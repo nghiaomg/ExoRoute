@@ -1,0 +1,25 @@
+{
+  "name": "exoroute",
+  "version": "0.1.0",
+  "description": "ExoRoute AI protocol gateway launcher",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nghiaomg/ExoRoute.git"
+  },
+  "homepage": "https://github.com/nghiaomg/ExoRoute",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "exoroute": "bin/exoroute.js"
+  },
+  "files": [
+    "bin",
+    "scripts",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/install.cjs"
+  }
+}
