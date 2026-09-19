@@ -6,6 +6,9 @@
 /web/.svelte-kit/
 /web/dist/
 
+# npm launcher downloaded binary
+/npm/vendor/
+
 # Local tooling metadata
 /.freebuff/
 
