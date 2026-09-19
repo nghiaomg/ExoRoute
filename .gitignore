@@ -1,0 +1,69 @@
+# Rust build output
+/target/
+
+# Frontend dependencies and generated build output
+/web/node_modules/
+/web/.svelte-kit/
+/web/dist/
+
+# Local tooling metadata
+/.freebuff/
+
+# Local application data and databases
+/.exoroute/
+/backups/
+/data/*
+!/data/.gitkeep
+!/data/provider-presets.yaml
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.lmdb/
+*.mdb
+*.mdb-*
+
+# Local environment files. Keep the checked-in template safe and secret-free.
+.env
+.env.*
+!.env.example
+.envrc
+*.token
+
+# Secret and credential material
+*.secret
+*.secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+ssh_host_*_key
+secrets/
+credentials/
+
+# Runtime logs, exports, and backups
+*.log
+*.log.*
+/logs/
+*.dump
+*.backup
+*.bak
+*.exoroute
+*-backup.zip
+*_backup.zip
+*-backup.tar.gz
+*_backup.tar.gz
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+docs/

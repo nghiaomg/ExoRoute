@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56" fill="none">
+  <defs>
+    <linearGradient id="pubFullBodyGrad" x1="12" y1="42" x2="48" y2="14" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="pubFullBellyGrad" x1="16" y1="40" x2="46" y2="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3730a3" />
+      <stop offset="60%" stop-color="#4338ca" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="pubFullWingGrad" x1="33" y1="21" x2="14" y2="5" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+    <linearGradient id="pubFullBackWing" x1="28" y1="25" x2="12" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#312e81" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.95" />
+    </linearGradient>
+    <linearGradient id="pubFullTailGrad" x1="18" y1="36" x2="5" y2="49" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="pubFullTrail" x1="5" y1="51" x2="25" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.7" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fish Icon Container -->
+  <g transform="translate(0, -2)">
+    <!-- Speed Trails -->
+    <path d="M5 50C11 49 16 45 20 41" stroke="url(#pubFullTrail)" stroke-width="1.8" stroke-linecap="round" />
+    <path d="M9 53C15 52 21 47 25 43" stroke="url(#pubFullTrail)" stroke-width="1.3" stroke-dasharray="2 3" stroke-linecap="round" />
+
+    <!-- Secondary Back Wing -->
+    <path d="M25 26L12 19C15 23 19 25 22 28L25 26Z" fill="url(#pubFullBackWing)" />
+
+    <!-- Caudal Fin (Forked Tail) -->
+    <path d="M16 37L10 30C12 33.5 14 35.5 15 36.5L16 37Z" fill="url(#pubFullTailGrad)" opacity="0.9" />
+    <path d="M16 37L6 47C11 45 13.5 42 15 38.5L16 37Z" fill="url(#pubFullTailGrad)" />
+    <path d="M16 37L10 30C12 34 11 42 6 47C11 44 14 41 16 37Z" fill="#38bdf8" opacity="0.25" />
+
+    <!-- Ventral Pelvic Fin -->
+    <path d="M21 34L16 36.5C18 36.5 20 35.5 22 34.5L21 34Z" fill="#6366f1" opacity="0.7" />
+
+    <!-- Main Body -->
+    <path d="M48 16C41 23 30 33 16 37C23 31 34 23 48 16Z" fill="url(#pubFullBellyGrad)" />
+    <path d="M48 16C39 17 28 23 16 37C27 26 37 18 48 16Z" fill="url(#pubFullBodyGrad)" />
+
+    <!-- Primary Gliding Wing -->
+    <path d="M33 20C28 15 22 9 14 5C16 10 18 14 22 17L29 21L33 20Z" fill="url(#pubFullWingGrad)" />
+    <!-- Wing Rays -->
+    <path d="M16.5 7.2C18.8 11.2 21 14 24.5 16.2" stroke="#ffffff" stroke-width="1" stroke-linecap="round" opacity="0.75" />
+    <path d="M20 10.5C22 13 23.8 15.2 26.5 17" stroke="#cffafe" stroke-width="0.8" stroke-linecap="round" opacity="0.65" />
+
+    <!-- Head Detail & Eye -->
+    <circle cx="43" cy="18" r="2" fill="#ffffff" />
+    <circle cx="43.4" cy="17.8" r="1" fill="#0891b2" />
+    <circle cx="48" cy="16" r="0.8" fill="#67e8f9" />
+  </g>
+
+  <!-- Typography: ExoRoute -->
+  <text x="62" y="32" font-family="'Manrope', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="25" font-weight="800" letter-spacing="-0.8" fill="#1e1b4b">exo<tspan font-weight="600" fill="#6366f1">route</tspan></text>
+
+  <!-- Subtitle: Lightweight AI Gateway -->
+  <text x="63" y="45" font-family="'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="7.5" font-weight="700" letter-spacing="1.8" fill="#94a3b8">LIGHTWEIGHT AI GATEWAY</text>
+</svg>
