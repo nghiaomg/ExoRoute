@@ -58,6 +58,15 @@ On Windows, use `--binary target/release/exoroute.exe`. The script uses a tempor
 
 ## Quick Install
 
+### npm (Node.js 18+)
+```sh
+npm install -g exoroute
+exoroute
+```
+
+The npm launcher downloads the matching ExoRoute release for Linux, macOS, or
+Windows and verifies its SHA-256 checksum. It does not require Cosign.
+
 ### Linux & macOS
 ```sh
 curl -fsSL https://raw.githubusercontent.com/nghiaomg/ExoRoute/main/install.sh | sh
