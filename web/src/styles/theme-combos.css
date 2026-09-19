@@ -1,0 +1,223 @@
+/* Theme overrides: combos */
+/* Combos Redesign: Dark Mode */
+:root[data-theme='dark'] .summary-metric-card {
+  background: #111320 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .summary-metric-card .metric-count {
+  color: #f0f2f8 !important;
+}
+:root[data-theme='dark'] .summary-metric-card .metric-name {
+  color: #8e93aa !important;
+}
+:root[data-theme='dark'] .summary-metric-card .metric-icon.mint {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .summary-metric-card .metric-icon.orange {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .summary-metric-card .metric-icon.blue {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .summary-metric-card .metric-icon.purple {
+  background: rgba(139, 92, 246, 0.15) !important;
+  color: #a78bfa !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .combo-copy-btn {
+  color: #8e93aa !important;
+}
+:root[data-theme='dark'] .combo-copy-btn:hover {
+  color: #ea580c !important;
+  background: rgba(249, 115, 22, 0.15) !important;
+}
+:root[data-theme='dark'] .combo-edit-btn {
+  color: #8e93aa !important;
+}
+:root[data-theme='dark'] .combo-edit-btn:hover {
+  color: #60a5fa !important;
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+:root[data-theme='dark'] .pipeline-target-item {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .pipeline-target-item.is-primary {
+  background: rgba(249, 115, 22, 0.08) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .step-tag.primary {
+  background: rgba(249, 115, 22, 0.18) !important;
+  color: #fdba74 !important;
+}
+:root[data-theme='dark'] .step-tag.fallback {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #94a3b8 !important;
+}
+:root[data-theme='dark'] .target-provider-name {
+  color: #f0f2f8 !important;
+}
+:root[data-theme='dark'] .target-model-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #f0f2f8 !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .pipeline-connector .connector-line {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+:root[data-theme='dark'] .pipeline-connector .connector-badge {
+  background: #151828 !important;
+  color: #8e93aa !important;
+  border: none !important;
+}
+
+/* Combo Editor Modal & Target Cards: Dark Mode */
+:root[data-theme='dark'] .modal-card.combo-editor-dialog {
+  background: #0f111a !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .combo-strategy-callout {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border: none !important;
+  color: #93c5fd !important;
+}
+:root[data-theme='dark'] .combo-strategy-callout.is-round-robin {
+  background: rgba(139, 92, 246, 0.12) !important;
+  border: none !important;
+  color: #c4b5fd !important;
+}
+:root[data-theme='dark'] .combo-targets-section-bar {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .targets-section-title {
+  color: #f1f5f9 !important;
+}
+:root[data-theme='dark'] .targets-count-pill {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #94a3b8 !important;
+}
+:root[data-theme='dark'] .targets-section-desc {
+  color: #8e93aa !important;
+}
+:root[data-theme='dark'] .editor-target-connector .connector-line {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+:root[data-theme='dark'] .editor-target-connector .connector-chip {
+  background: #161928 !important;
+  border: none !important;
+  color: #8e93aa !important;
+}
+:root[data-theme='dark'] .combo-target-card {
+  background: #111320 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .combo-target-card.is-primary {
+  background: #141727 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .target-card-header {
+  border-bottom: none !important;
+}
+:root[data-theme='dark'] .target-card-index {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .combo-target-card.is-primary .target-card-index {
+  background: rgba(249, 115, 22, 0.2) !important;
+  color: #fdba74 !important;
+}
+:root[data-theme='dark'] .target-role-badge.is-primary {
+  background: rgba(249, 115, 22, 0.18) !important;
+  color: #fdba74 !important;
+}
+:root[data-theme='dark'] .target-role-badge.is-fallback {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #94a3b8 !important;
+}
+:root[data-theme='dark'] .target-icon-btn {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: none !important;
+  color: #94a3b8 !important;
+}
+:root[data-theme='dark'] .target-icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: #f1f5f9 !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .target-icon-btn.is-danger:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border: none !important;
+}
+:root[data-theme='dark'] .add-target-dashed-btn {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: none !important;
+  color: #8e93aa !important;
+}
+:root[data-theme='dark'] .add-target-dashed-btn:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.12) !important;
+  border: none !important;
+  color: #fb923c !important;
+}
+
+
+:root[data-theme='dark'] .api-key-summary,
+:root[data-theme='dark'] .api-key-card {
+  background: #111320 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .api-key-card:hover {
+  background: #181b2e !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .api-key-card:active {
+  transform: scale(0.985) !important;
+  transition-duration: 0.08s !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .api-key-summary strong,
+:root[data-theme='dark'] .api-key-card-heading h2 { color: #f0f2f8; font-weight: 600; }
+:root[data-theme='dark'] .api-key-summary span:not(.api-key-summary-icon),
+:root[data-theme='dark'] .api-key-card-dates span { color: #8e93aa; font-weight: 500; }
+:root[data-theme='dark'] .api-key-card-heading code { color: #fed7aa; background: rgba(249, 115, 22, 0.14); border: none !important; box-shadow: none !important; font-weight: 500; }
+:root[data-theme='dark'] .api-key-summary-icon,
+:root[data-theme='dark'] .api-key-card-icon { color: #fb923c; background: rgba(249, 115, 22, 0.14); }
+:root[data-theme='dark'] .api-key-card-dates > div { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0; }
+:root[data-theme='dark'] .api-key-card-dates strong { color: #f0f2f8; font-weight: 600; }
+:root[data-theme='dark'] .api-key-revoke { border: none !important; box-shadow: none !important; background: rgba(255, 255, 255, 0.06); color: #c4c7d4; font-weight: 600; }
+:root[data-theme='dark'] .api-key-revoke:hover { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+:root[data-theme='dark'] .resource-limits-description,
+:root[data-theme='dark'] .resource-limits-active,
+:root[data-theme='dark'] .resource-limit-field > small { color: #8e93aa; }
+:root[data-theme='dark'] .resource-limits-active strong,
+:root[data-theme='dark'] .resource-limit-field { color: #f0f2f8; }
+:root[data-theme='dark'] .resource-continuity-control { color: #f0f2f8; }
+:root[data-theme='dark'] .resource-limit-input input,
+:root[data-theme='dark'] .resource-limit-input select {
+  color: #f0f2f8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+:root[data-theme='dark'] .resource-limit-input input:focus-visible,
+:root[data-theme='dark'] .resource-limit-input select:focus-visible { outline-color: rgba(99, 102, 241, 0.4); border-color: #818cf8; }
+:root[data-theme='dark'] .resource-limits-notice { color: #fde047; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); }
+:root[data-theme='dark'] .resource-limits-error { color: #fca5a5; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.28); }
+:root[data-theme='dark'] .resource-limits-success { color: #86efac; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.28); }
+:root[data-theme='dark'] .resource-limits-validation { color: #fca5a5; }
+
+

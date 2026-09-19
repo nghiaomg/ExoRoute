@@ -1,0 +1,372 @@
+# This catalog is parsed during the build and embedded in the ExoRoute binary.
+# adapter_id must refer to a Rust adapter registered in src/provider_adapters.rs.
+# Metadata cannot add protocol/auth behavior that the adapter does not implement.
+providers:
+  - id: kilo_gateway
+    adapter_id: kilo_gateway
+    name: Kilo AI Gateway
+    description: Route Kilo models through its OpenAI-compatible gateway. API keys are used for paid models; free models may be available without one.
+    category: gateway
+    labels: []
+    default_base_url: https://api.kilo.ai/api/gateway
+    default_logo_url: null
+    default_model_prefix: kilo
+    default_auth_type: bearer
+    supported_auth_types:
+      - none
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: true
+      event_stream_response: false
+      auth_panel: null
+
+  - id: openai_codex
+    adapter_id: openai_codex
+    name: OpenAI Codex
+    description: Sign in with an OpenAI Codex account using OAuth.
+    category: oauth
+    labels: []
+    default_base_url: https://chatgpt.com/backend-api/codex
+    default_logo_url: null
+    default_model_prefix: cx
+    default_auth_type: codex_oauth
+    supported_auth_types:
+      - codex_oauth
+    default_preferred_protocol: responses
+    default_supported_protocols:
+      - responses
+    protocol_selectable: false
+    capabilities:
+      api_keys: false
+      oauth_accounts: true
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: true
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [responses]
+      api_key_auth_assist: false
+      model_catalog_authoritative: true
+      event_stream_response: true
+      auth_panel: openai_codex
+
+  - id: command_code
+    adapter_id: command_code
+    name: Command Code
+    description: Connect to Command Code using an API key or its Studio sign-in flow.
+    category: gateway
+    labels: []
+    default_base_url: https://api.commandcode.ai
+    default_logo_url: null
+    default_model_prefix: cmc
+    default_auth_type: bearer
+    supported_auth_types:
+      - none
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+      - messages
+    protocol_selectable: true
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: true
+      api_key_usage_status: supported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions, messages]
+      api_key_auth_assist: true
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: command_code
+
+  - id: opencode_go
+    adapter_id: opencode_go
+    name: OpenCode Go
+    description: Connect to OpenCode Go with an API key and route models using their documented upstream protocol.
+    category: gateway
+    labels: []
+    default_base_url: https://opencode.ai/zen/go/v1
+    default_logo_url: null
+    default_model_prefix: ocg
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+      - responses
+      - messages
+    protocol_selectable: true
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: true
+      api_key_usage_status: unverified
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions, responses, messages]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: opencode_zen
+    adapter_id: opencode_zen
+    name: OpenCode Zen
+    description: Connect to OpenCode Zen with an API key and route models using their documented upstream protocol.
+    category: gateway
+    labels: []
+    default_base_url: https://opencode.ai/zen/v1
+    default_logo_url: null
+    default_model_prefix: ocz
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+      - responses
+      - messages
+      - google_generate_content
+    protocol_selectable: true
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unverified
+      model_protocol_routing: true
+      supported_upstream_protocols: [chat_completions, responses, messages, google_generate_content]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: openrouter
+    adapter_id: openrouter
+    name: OpenRouter
+    description: Route requests through OpenRouter and discover its available model catalog.
+    category: gateway
+    labels: []
+    default_base_url: https://openrouter.ai/api/v1
+    default_logo_url: null
+    default_model_prefix: openrouter
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+      - responses
+      - messages
+    protocol_selectable: true
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: true
+      api_key_usage_status: supported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions, responses, messages]
+      api_key_auth_assist: false
+      model_catalog_authoritative: true
+      event_stream_response: false
+      auth_panel: null
+
+  - id: freebuff
+    adapter_id: freebuff
+    name: Freebuff
+    description: Route Freebuff models through the Codebuff OpenAI-compatible API with a Freebuff or CodeBuff auth token.
+    category: gateway
+    labels: [free]
+    default_base_url: https://www.codebuff.com/api/v1
+    default_logo_url: null
+    default_model_prefix: fb
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      local_quota_tracking: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: antigravity
+    adapter_id: antigravity
+    name: Antigravity
+    description: Sign in with a Google account and route Gemini, Claude, and open models through Google Cloud Code using a configured OAuth client.
+    category: oauth
+    labels: [free]
+    default_base_url: https://daily-cloudcode-pa.googleapis.com
+    default_logo_url: null
+    default_model_prefix: ag
+    default_models:
+      - gemini-3.7-flash-high
+      - gemini-3.7-flash-medium
+      - gemini-3.7-flash-low
+      - gemini-3.7-flash-tiered
+      - gemini-pro-agent
+      - gemini-3.1-pro-low
+      - gemini-3.1-flash-lite
+      - gemini-3.6-flash-tiered
+      - gemini-3.8-flash-tiered
+      - gemini-3.5-flash-lite
+      - gemini-3-flash
+      - claude-opus-4-6-thinking
+      - claude-sonnet-4-6
+      - gpt-oss-120b-medium
+    default_auth_type: antigravity_oauth
+    supported_auth_types:
+      - antigravity_oauth
+    default_preferred_protocol: google_generate_content
+    default_supported_protocols:
+      - google_generate_content
+    protocol_selectable: false
+    capabilities:
+      api_keys: false
+      oauth_accounts: true
+      local_usage_meter: false
+      local_quota_tracking: false
+      model_discovery: true
+      usage_limits: true
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [google_generate_content]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: true
+      auth_panel: openai_codex
+
+  - id: cline
+    adapter_id: cline
+    name: Cline
+    description: Connect a Cline account with OAuth or a Cline API key.
+    category: oauth
+    labels: []
+    default_base_url: https://api.cline.bot/api/v1/chat/completions
+    default_logo_url: null
+    default_model_prefix: cl
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: true
+      local_usage_meter: true
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: cline
+
+  - id: clinepass
+    adapter_id: clinepass
+    name: ClinePass
+    description: Connect a ClinePass account with OAuth or a ClinePass API key.
+    category: oauth
+    labels: []
+    default_base_url: https://api.cline.bot/api/v1/chat/completions
+    default_logo_url: null
+    default_model_prefix: cp
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: true
+      local_usage_meter: true
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: cline
+
+  - id: nvidia_nim
+    adapter_id: nvidia_nim
+    name: NVIDIA NIM
+    description: Route NVIDIA API Catalog hosted models through its OpenAI-compatible Chat Completions API.
+    category: gateway
+    labels: []
+    default_base_url: https://integrate.api.nvidia.com/v1
+    default_logo_url: null
+    default_model_prefix: nim
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      local_quota_tracking: true
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
