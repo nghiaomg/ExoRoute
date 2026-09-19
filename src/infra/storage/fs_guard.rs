@@ -14,6 +14,18 @@ use std::{
 pub(super) fn ensure_environment_directory(path: &Path) -> Result<(), StorageError> {
     // The configured environment itself is ExoRoute-owned. Its parent may be
     // a shared directory such as /tmp and must not have its permissions changed.
+    // Check an existing leaf before the generic path guard so a symlink is
+    // reported as invalid input rather than as a generic I/O failure.
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+            return Err(StorageError::Invalid(
+                "LMDB path must be a real directory, not a symlink or file".to_owned(),
+            ));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(StorageError::Io(error)),
+    }
     crate::config::ensure_private_dir(path)?;
     match fs::symlink_metadata(path) {
         Ok(metadata) => {
