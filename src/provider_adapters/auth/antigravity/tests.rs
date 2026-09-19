@@ -44,15 +44,10 @@ fn authorization_url_uses_the_requested_dashboard_callback() {
             .as_deref(),
         Some(callback)
     );
+    assert!(!url.query_pairs().any(|(name, _)| name == "code_challenge"));
     assert!(
-        url.query_pairs()
-            .find(|(name, _)| name == "code_challenge")
-            .is_none()
-    );
-    assert!(
-        url.query_pairs()
-            .find(|(name, _)| name == "code_challenge_method")
-            .is_none()
+        !url.query_pairs()
+            .any(|(name, _)| name == "code_challenge_method")
     );
 }
 
