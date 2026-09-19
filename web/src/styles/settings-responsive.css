@@ -1,0 +1,674 @@
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN SYSTEM: SETTINGS VIEW (ALL TIERS)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. Ultra-wide & 2K/4K Displays (2560px+) ─── */
+@media (min-width: 1921px) {
+  .settings-view {
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .settings-hero-banner {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .public-config-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+/* ─── 2. Laptops & High-Res Displays (1025px – 1440px) ─── */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .settings-hero-banner {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .settings-hero-card {
+    padding: 14px 14px;
+    gap: 12px;
+  }
+  .public-config-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+/* ─── 3. Tablets (769px – 1024px: iPad 768px, iPad Air 820px/834px, iPad Pro 1024px) ─── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .settings-hero-banner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .settings-grid-dual {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .public-config-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .settings-nav-tabs {
+    gap: 6px;
+    padding: 5px;
+  }
+}
+
+/* ─── 4. Mobile Layout & Native Mobile App Style (<= 768px) ───
+   Covers:
+   - 412px – 430px (Galaxy S series, Pixel, iPhone Pro Max)
+   - 390px – 393px (iPhone 14/15/16 tiêu chuẩn)
+   - 375px (iPhone SE, iPhone mini)
+   - 320px – 360px (máy cũ / Android nhỏ)
+*/
+@media (max-width: 768px) {
+  .settings-view {
+    gap: 16px;
+  }
+
+  /* Segmented Nav Tabs - Native Carousel */
+  .settings-nav-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px;
+    border-radius: 14px;
+    background: #edeef6;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .settings-nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .settings-nav-tab {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+  }
+  .settings-nav-tab:active {
+    transform: scale(0.96);
+  }
+  .settings-nav-tab svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  /* Quick Status Hero Banner - 2x2 App Widget Grid */
+  .settings-hero-banner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .settings-hero-card {
+    display: flex;
+    align-items: flex-start;
+    padding: 13px 12px;
+    border-radius: 14px;
+    gap: 10px;
+    min-width: 0;
+    box-sizing: border-box;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+  }
+  .settings-hero-card:active {
+    transform: scale(0.975);
+  }
+  .settings-hero-card:hover {
+    transform: none;
+  }
+  .hero-card-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    flex-shrink: 0;
+  }
+  .hero-card-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  .hero-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+  }
+  .hero-card-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    gap: 4px;
+    color: #797d93;
+  }
+  .hero-card-value {
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #2b2e40;
+    word-break: break-word;
+    white-space: normal;
+  }
+  .hero-card-sub {
+    font-size: 11.5px;
+    color: #8c90a4;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Dual Grid & Panels */
+  .settings-grid-dual {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .settings-view .settings-panel {
+    border-radius: 16px;
+    background: #ffffff;
+    overflow: hidden;
+  }
+  .settings-view .panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 16px;
+  }
+  .settings-view .panel-heading h2 {
+    font-size: 14.5px;
+    font-weight: 700;
+    margin: 0 0 2px;
+  }
+  .settings-view .panel-heading p {
+    font-size: 12px;
+    color: #797d93;
+    line-height: 1.35;
+    margin: 0;
+  }
+  .settings-view .panel-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+  .settings-view .panel-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Inset Grouped List Item Rows */
+  .settings-view .settings-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 16px;
+    min-height: 50px;
+    gap: 10px 12px;
+    border-bottom: 1px solid #f0f1f7 !important;
+    background: transparent !important;
+  }
+  .settings-view .settings-row:last-child {
+    border-bottom: none !important;
+  }
+  .settings-view .settings-row > div:first-child {
+    flex: 1 1 55%;
+    min-width: 0;
+  }
+  .settings-view .settings-row strong {
+    font-size: 13px;
+    font-weight: 600;
+    display: block;
+    color: #2b2e40;
+    margin-bottom: 2px;
+  }
+  .settings-view .settings-row span {
+    font-size: 12px;
+    display: block;
+    line-height: 1.4;
+    color: #797d93;
+    word-break: break-word;
+  }
+  .settings-view .settings-row > .primary-button,
+  .settings-view .settings-row > .secondary-button,
+  .settings-view .settings-update-actions {
+    flex: 1 1 100%;
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    margin-top: 4px;
+  }
+  .settings-view .settings-update-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .settings-view .settings-update-actions .primary-button,
+  .settings-view .settings-update-actions .secondary-button {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .settings-badge-code,
+  .settings-badge-uptime {
+    font-size: 12px;
+    padding: 4px 9px;
+    border-radius: 7px;
+    flex-shrink: 0;
+  }
+  .secure-value {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .value-with-dot {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Public Configuration Tiles */
+  .public-config-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 0 16px 16px;
+  }
+  .config-tile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 14px;
+    min-height: 44px;
+    border-radius: 11px;
+    background: #f6f7fc;
+  }
+  .config-tile-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #4b4f65;
+    word-break: break-word;
+  }
+  .config-status-chip,
+  .config-tile-code {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Operational & Resource Limits Forms */
+  .settings-view .resource-limits-content {
+    padding: 0 16px 20px;
+  }
+  .settings-view .resource-limits-active {
+    padding: 13px 14px;
+    border-radius: 11px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .resource-limits-description {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .resource-limits-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  .settings-view .resource-limit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 13px 14px;
+    border-radius: 12px;
+    background: #f7f8fd;
+  }
+  .settings-view .resource-limit-field > span:first-child,
+  .resource-continuity-label-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333649;
+  }
+  .resource-limit-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100% !important;
+  }
+  .settings-view .resource-limit-input input,
+  .settings-view .resource-limit-input select {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    height: 44px;
+    min-height: 44px;
+    font-size: 14px;
+    border-radius: 9px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid #dfe1e9;
+    background: #ffffff;
+    color: #2b2e40;
+  }
+  .resource-limit-input > small {
+    font-size: 12px;
+    font-weight: 600;
+    color: #797d93;
+    min-width: 44px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .settings-view .resource-limit-field > small {
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: #8c90a4;
+    margin-top: 2px;
+  }
+  .resource-continuity-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .continuity-help-trigger {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+  }
+  .resource-continuity-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 38px;
+  }
+  .settings-view .resource-limits-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    width: 100%;
+    margin-top: 14px;
+  }
+  .settings-view .resource-limits-actions .primary-button,
+  .settings-view .resource-limits-actions .secondary-button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .resource-limits-validation {
+    text-align: center;
+    font-size: 12px;
+    color: #ef4444;
+    margin-top: 4px;
+  }
+
+  /* Output Styles Panel */
+  .output-styles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .output-style-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px 10px;
+    padding: 13px 14px;
+    border-radius: 13px;
+    background: #f7f8fd;
+    border: 1px solid #edf0f8;
+  }
+  .output-style-row .ark-checkbox-root {
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+  .output-style-copy {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .output-style-copy strong {
+    font-size: 13px;
+    color: #2b2e40;
+  }
+  .output-style-copy small {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+  .output-style-level {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 9px;
+    border-top: 1px solid #edf0f8;
+  }
+  .output-style-level span {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #797d93;
+  }
+  .output-style-level select {
+    flex: 0 1 160px;
+    height: 38px;
+    min-height: 38px;
+    border-radius: 8px;
+    font-size: 13px;
+    padding: 0 10px;
+    background: #ffffff;
+    color: #2b2e40;
+    border: 1px solid #dfe1ea;
+  }
+
+  /* Database Backup */
+  .settings-view .database-content {
+    padding: 0 16px 20px;
+    gap: 14px;
+  }
+  .settings-view .database-log-option {
+    padding: 13px 14px;
+    border-radius: 12px;
+    background: #f7f8fd;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .settings-view .database-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    width: 100%;
+  }
+  .settings-view .database-actions .secondary-button,
+  .settings-view .database-actions .primary-button,
+  .settings-view .database-actions .database-file-label {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-sizing: border-box;
+  }
+  .database-feedback {
+    text-align: center;
+    font-size: 12.5px;
+    padding: 4px 8px;
+  }
+
+  /* Note Banner */
+  .settings-view .settings-note {
+    padding: 13px 15px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+}
+
+/* ─── 5. Small Mobile / iPhone SE & mini (<= 400px: 375px) ─── */
+@media (max-width: 400px) {
+  .settings-nav-tab {
+    padding: 7px 12px;
+    font-size: 12px;
+    gap: 6px;
+  }
+  .settings-hero-banner {
+    gap: 8px;
+  }
+  .settings-hero-card {
+    padding: 11px 10px;
+    gap: 8px;
+  }
+  .hero-card-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .hero-card-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+  .hero-card-value {
+    font-size: 12.5px;
+  }
+  .hero-card-sub {
+    font-size: 11px;
+  }
+  .settings-view .panel-heading {
+    padding: 13px 14px;
+  }
+  .settings-view .settings-row {
+    padding: 11px 14px;
+  }
+  .settings-view .resource-limits-content,
+  .settings-view .database-content,
+  .public-config-grid {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .output-style-level select {
+    flex: 0 1 140px;
+  }
+}
+
+/* ─── 6. Ultra-compact Devices (<= 360px: 320px–360px) ─── */
+@media (max-width: 360px) {
+  .settings-nav-tab {
+    padding: 6px 10px;
+    font-size: 11.5px;
+    gap: 5px;
+  }
+  .settings-hero-banner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .settings-hero-card {
+    padding: 9px 8px;
+    gap: 6px;
+  }
+  .hero-card-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+  }
+  .hero-card-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+  .hero-card-label {
+    font-size: 10px;
+  }
+  .hero-card-value {
+    font-size: 12px;
+  }
+  .hero-card-sub {
+    display: none;
+  }
+  .settings-view .settings-row {
+    padding: 10px 12px;
+  }
+  .settings-view .settings-row strong {
+    font-size: 12px;
+  }
+  .settings-view .settings-row span {
+    font-size: 11.5px;
+  }
+  .settings-badge-code,
+  .settings-badge-uptime {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  .settings-view .panel-heading {
+    padding: 11px 12px;
+  }
+  .settings-view .panel-heading h2 {
+    font-size: 13.5px;
+  }
+  .settings-view .panel-heading p {
+    font-size: 11.5px;
+  }
+  .settings-view .resource-limits-content,
+  .settings-view .database-content,
+  .public-config-grid {
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+  .output-style-level select {
+    flex: 1 1 auto;
+    max-width: 130px;
+  }
+}
+
+.codex-auth-link { display: inline-flex; align-items: center; gap: 5px; color: #ea580c; font-size: 12px; font-weight: 700; text-decoration: none; }
+.codex-auth-link:hover { text-decoration: underline; }
+.codex-accounts-section .provider-key-list { max-height: min(32vh, 280px); overflow-y: auto; }
+.provider-model-section { display: grid; gap: 10px; min-width: 0; }
+.provider-model-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.provider-model-section-heading { flex-wrap: wrap; }
+.provider-model-section-heading h3 { margin: 0 0 3px; color: #44485c; font: 700 12px var(--font-heading); }
+.provider-model-section-heading p { margin: 0; color: #9699aa; font-size: 12px; line-height: 1.5; }
+.provider-model-filter { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.provider-model-filter .search-box { min-width: 0; flex: 1; background: #f0f2f8; }
+.model-routing-table-scroll { max-height: min(65vh, 640px); overflow: auto; overscroll-behavior: contain; border: 1px solid #e8e9f0; border-radius: 8px; }
+.model-routing-table { width: 100%; min-width: 700px; border-collapse: separate; border-spacing: 0; font-size: 12px; text-align: left; }
+.model-routing-table th { position: sticky; top: 0; z-index: 1; padding: 8px 9px; color: #777b8d; background: #f8f8fb; border-bottom: 1px solid #e8e9f0; font-size: 12px; font-weight: 700; }
+.model-routing-table td { padding: 8px 9px; color: #64697c; vertical-align: middle; border-bottom: 1px solid #eff0f4; }
+.model-routing-table tbody tr:last-child td { border-bottom: 0; }
+.model-routing-table td:first-child code { display: block; max-width: 300px; color: #c2410c; overflow-wrap: anywhere; }
+.model-routing-table td strong,
+.model-routing-table td small { display: block; }
+.model-routing-table td small { margin-top: 3px; color: #9296a6; font-size: 12px; line-height: 1.35; }
+.model-routing-table td .ark-select-root { min-width: 175px; }
+.model-routing-unknown,
+.model-routing-warning { color: #a1773e !important; }
+.model-routing-actions { display: flex; gap: 5px; white-space: nowrap; }
+.model-routing-status { margin: 0; color: #32876d; font-size: 12px; }
+.model-routing-error { margin: 0; color: #b65059; font-size: 12px; }
+.model-routing-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 9px; color: #8f93a2; font-size: 12px; }
+

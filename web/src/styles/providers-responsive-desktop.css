@@ -1,0 +1,320 @@
+/* Provider responsive layout: desktop tiers followed by mobile surfaces. */
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN SYSTEM: PROVIDERS, COMBOS & APP SECTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. Ultra-wide & 2K/4K Displays (2560px+) ─── */
+@media (min-width: 1921px) {
+  .content-wrap {
+    max-width: 1720px;
+    padding: 44px 56px 36px;
+  }
+  .preset-cards-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .provider-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .providers-metrics-banner {
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+  .metric-chip {
+    padding: 18px 22px;
+    gap: 16px;
+  }
+  .metric-chip-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+  }
+  .metric-chip-info strong {
+    font-size: 22px;
+  }
+  .metric-chip-info span {
+    font-size: 13px;
+  }
+  .detail-page-grid.has-oauth {
+    grid-template-columns: 420px 1fr;
+    gap: 28px;
+  }
+  .detail-hero-banner {
+    padding: 30px 36px;
+  }
+  .detail-avatar-wrap {
+    flex: 0 0 72px;
+  }
+  .detail-avatar {
+    width: 72px !important;
+    height: 72px !important;
+    border-radius: 16px !important;
+    font-size: 24px !important;
+  }
+  .detail-title {
+    font-size: 26px;
+  }
+  .detail-card {
+    padding: 26px 30px;
+  }
+  .detail-col-models .provider-model-list {
+    max-height: min(65vh, 640px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .combos-summary-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .summary-metric-card {
+    padding: 16px 18px;
+    gap: 14px;
+  }
+  .summary-metric-card .metric-count {
+    font-size: 18px;
+  }
+  .summary-metric-card .metric-name {
+    font-size: 12px;
+  }
+  .combos-view .combo-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .combos-view .combo-card {
+    padding: 22px 24px;
+  }
+}
+
+/* ─── 2. Desktop High-Res / Full HD (1441px – 1920px) [1920px Full HD] ─── */
+@media (min-width: 1441px) and (max-width: 1920px) {
+  .preset-cards-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .provider-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .detail-page-grid.has-oauth {
+    grid-template-columns: 400px 1fr;
+    gap: 24px;
+  }
+  .detail-col-models .provider-model-list {
+    max-height: min(60vh, 560px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .combos-summary-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .combos-view .combo-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .combos-view .combo-card {
+    padding: 20px 22px;
+  }
+}
+
+/* ─── 3. Standard Laptops & Desktops (min-width: 1161px) and (max-width: 1440px) [1366px, 1440px] ─── */
+@media (min-width: 1161px) and (max-width: 1440px) {
+  .preset-cards-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .provider-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .providers-metrics-banner {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .detail-page-grid.has-oauth {
+    grid-template-columns: 370px 1fr;
+    gap: 20px;
+  }
+  .detail-col-models .provider-model-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .combos-summary-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .combos-view .combo-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .combos-view .combo-card {
+    padding: 18px 20px;
+  }
+}
+
+/* ─── 4. Compact Laptops & Large Tablets (min-width: 891px) and (max-width: 1160px) [1024px iPad Pro / laptop nhỏ] ─── */
+@media (min-width: 891px) and (max-width: 1160px) {
+  .preset-cards-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .provider-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .providers-metrics-banner {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .detail-page-grid.has-oauth {
+    grid-template-columns: 340px 1fr;
+    gap: 18px;
+  }
+  .detail-hero-banner {
+    padding: 20px 24px;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .detail-col-models .provider-model-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .combos-summary-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .summary-metric-card {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .combos-view .combo-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .combos-view .combo-card {
+    padding: 16px 18px;
+  }
+}
+
+/* ─── 5. Tablets (min-width: 651px) and (max-width: 890px) [768px iPad, 820px iPad Air] ─── */
+@media (min-width: 651px) and (max-width: 890px) {
+  .content-wrap {
+    padding: 20px 24px 32px;
+  }
+  .preset-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .provider-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .providers-metrics-banner {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .combos-summary-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .summary-metric-card {
+    padding: 10px 8px;
+    gap: 8px;
+  }
+  .summary-metric-card .metric-icon {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+  }
+  .summary-metric-card .metric-count {
+    font-size: 14px;
+  }
+  .summary-metric-card .metric-name {
+    font-size: 10px;
+  }
+  .combos-view .combo-list {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .combos-view .combo-card {
+    padding: 16px 18px;
+  }
+  .metric-chip {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .metric-chip-icon {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+  }
+  .metric-chip-info strong {
+    font-size: 17px;
+  }
+  .metric-chip-info span {
+    font-size: 12px;
+  }
+  .detail-hero-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 20px 24px;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .detail-hero-main {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .detail-avatar {
+    width: 56px !important;
+    height: 56px !important;
+  }
+  .detail-title {
+    font-size: 21px;
+  }
+  .detail-hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: none !important;
+    width: 100%;
+  }
+  .detail-hero-actions .primary-button,
+  .detail-hero-actions .secondary-button,
+  .detail-hero-actions .detail-delete-btn {
+    width: auto;
+    min-width: 130px;
+    height: 38px;
+    min-height: 38px;
+    font-size: 12.5px;
+  }
+  .detail-page-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .detail-col-models .provider-model-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    max-height: 520px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* ─── 6. Mobile Layout & Mobile App Style (<= 650px: Galaxy S, Pixel, iPhone 14/15/16 Pro Max, iPhone mini, máy cũ 320px-360px) ─── */
+
