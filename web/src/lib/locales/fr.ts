@@ -1491,4 +1491,6 @@ export const fr: Catalog = {
   "Save key strategy": "Save key strategy",
   "Key rotation strategy saved.": "Key rotation strategy saved.",
   "Could not update the key rotation strategy.": "Could not update the key rotation strategy.",
+  "Provider configurations saved.": "Configurations du fournisseur enregistrées.",
+  "Could not update provider configurations.": "Impossible de mettre à jour les configurations du fournisseur.",
 };

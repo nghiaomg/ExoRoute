@@ -1491,4 +1491,6 @@ export const ja: Catalog = {
   'Save key strategy': 'キー戦略を保存',
   'Key rotation strategy saved.': 'キーローテーション戦略を保存しました。',
   'Could not update the key rotation strategy.': 'キーローテーション戦略を更新できませんでした。',
+  'Provider configurations saved.': 'プロバイダー設定を保存しました。',
+  'Could not update provider configurations.': 'プロバイダー設定を更新できませんでした。',
 };

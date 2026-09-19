@@ -1489,4 +1489,6 @@ export const vi: Record<TranslationKey, string> = {
   'Save key strategy': 'Lưu chiến lược key',
   'Key rotation strategy saved.': 'Đã lưu chiến lược luân chuyển key.',
   'Could not update the key rotation strategy.': 'Không thể cập nhật chiến lược luân chuyển key.',
+  'Provider configurations saved.': 'Đã lưu cấu hình nhà cung cấp.',
+  'Could not update provider configurations.': 'Không thể cập nhật cấu hình nhà cung cấp.',
 };

@@ -297,7 +297,7 @@ async fn transient_stream_timeout_upstream(
     Json(_body): Json<Value>,
 ) -> axum::response::Response {
     if calls.fetch_add(1, Ordering::Relaxed) == 0 {
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        tokio::time::sleep(Duration::from_secs(2)).await;
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"error":{"message":"late upstream failure"}})),
@@ -1257,7 +1257,7 @@ async fn stream_continuity_retries_upstream_timeout_before_emitting_an_error() {
     let database = TestDatabase::open().await;
     let mut config = database.config();
     config.allow_private_provider_urls = true;
-    config.request_timeout = Duration::from_millis(100);
+    config.request_timeout = Duration::from_secs(1);
     let resource_limits = GatewayResourceLimits {
         stream_continuity_enabled: true,
         ..GatewayResourceLimits::default()
@@ -1301,8 +1301,8 @@ async fn stream_continuity_retries_upstream_timeout_before_emitting_an_error() {
         GatewayExecutionSettings {
             resource_limits,
             operational_settings: OperationalSettings {
-                connect_timeout: Duration::from_millis(100),
-                request_timeout: Duration::from_millis(100),
+                connect_timeout: Duration::from_secs(1),
+                request_timeout: Duration::from_secs(1),
                 ..OperationalSettings::default()
             },
             api_key_id: Some("owner".to_owned()),
@@ -1315,7 +1315,9 @@ async fn stream_continuity_retries_upstream_timeout_before_emitting_an_error() {
     let body = to_bytes(response.into_body(), 1024 * 1024)
         .await
         .expect("continuity response");
-    assert!(!String::from_utf8_lossy(&body).contains("event: error"));
+    let body = String::from_utf8_lossy(&body);
+    assert!(!body.contains("event: error"), "{body}");
+    assert!(body.contains("recovered"), "{body}");
     assert_eq!(calls.load(Ordering::Relaxed), 2);
     server.abort();
 }

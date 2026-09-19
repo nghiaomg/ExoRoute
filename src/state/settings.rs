@@ -184,6 +184,7 @@ impl AppState {
                 circuit.open_until = opened_at.checked_add(next.circuit_breaker_cooldown);
             }
         }
+        drop(breakers);
         *active = record;
         drop(active);
         self.log_runtime_registry_sizes();
