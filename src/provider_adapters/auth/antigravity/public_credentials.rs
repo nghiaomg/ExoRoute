@@ -22,9 +22,6 @@ const CLIENT_SECRET_MASKED: &[u8] = &[
 ];
 
 fn decode(masked: &[u8]) -> Result<String, String> {
-    if MASK.is_empty() {
-        return Err("embedded Antigravity OAuth credential mask is invalid".to_owned());
-    }
     let decoded = masked
         .iter()
         .enumerate()
