@@ -12,7 +12,6 @@ use target_preparation::RequestScope;
 pub(super) async fn stream_response(
     scope: &RequestScope,
     completed: CompletedUpstream,
-    canonical: &protocol::CanonicalRequest,
     route_alias: &str,
     live: &RequestLiveGuard,
     background_continuity: bool,
@@ -29,6 +28,7 @@ pub(super) async fn stream_response(
         adapter_id: _,
         provider_id,
         upstream_protocol,
+        target_model,
     } = completed;
     let upstream_chunks = match result {
         ProviderUpstreamResult::Response(upstream) => {
@@ -51,7 +51,7 @@ pub(super) async fn stream_response(
                         failures.selected_credential_id.as_deref(),
                         failures.last_status,
                         &error,
-                        &canonical.model,
+                        &target_model,
                     ),
                 )
                 .await;
@@ -77,7 +77,7 @@ pub(super) async fn stream_response(
                     failures.selected_credential_id.as_deref(),
                     failures.last_status,
                     &error,
-                    &canonical.model,
+                    &target_model,
                 ),
             )
             .await;
@@ -111,7 +111,7 @@ pub(super) async fn stream_response(
                 request_id: scope.request_id.clone(),
                 route_alias: route_alias.to_owned(),
                 provider_id,
-                model: canonical.model.clone(),
+                model: target_model,
                 api_key_id: log.api_key_id.map(str::to_owned),
                 provider_credential_id: failures.selected_credential_id.clone(),
                 client_protocol: scope.client_protocol,
@@ -135,7 +135,6 @@ pub(super) async fn stream_response(
 pub(super) async fn decode_response(
     scope: &RequestScope,
     completed: CompletedUpstream,
-    canonical: &protocol::CanonicalRequest,
     route_alias: &str,
     live: &RequestLiveGuard,
     log: &RequestLogPayload<'_>,
@@ -151,6 +150,7 @@ pub(super) async fn decode_response(
         adapter_id,
         provider_id,
         upstream_protocol,
+        target_model,
     } = completed;
     let upstream_value = match read_upstream_value(
         result,
@@ -174,7 +174,7 @@ pub(super) async fn decode_response(
                     failures.selected_credential_id.as_deref(),
                     failures.last_status,
                     &failures.last_error,
-                    &canonical.model,
+                    &target_model,
                 ),
             )
             .await;
@@ -182,33 +182,31 @@ pub(super) async fn decode_response(
             return None;
         }
     };
-    let decoded = match protocol::decode_upstream_response(
-        upstream_protocol,
-        &upstream_value,
-        &canonical.model,
-    ) {
-        Ok(response) => response,
-        Err(error) => {
-            circuit_probe.failed();
-            failures.last_status = StatusCode::BAD_GATEWAY;
-            failures.last_error = format!("could not decode provider response: {error}");
-            log_request(
-                &scope.state,
-                Some(live),
-                log.provider_failure(
-                    &provider_id,
-                    upstream_protocol,
-                    failures.selected_credential_id.as_deref(),
-                    failures.last_status,
-                    &failures.last_error,
-                    &canonical.model,
-                ),
-            )
-            .await;
-            drop(provider_permit);
-            return None;
-        }
-    };
+    let decoded =
+        match protocol::decode_upstream_response(upstream_protocol, &upstream_value, &target_model)
+        {
+            Ok(response) => response,
+            Err(error) => {
+                circuit_probe.failed();
+                failures.last_status = StatusCode::BAD_GATEWAY;
+                failures.last_error = format!("could not decode provider response: {error}");
+                log_request(
+                    &scope.state,
+                    Some(live),
+                    log.provider_failure(
+                        &provider_id,
+                        upstream_protocol,
+                        failures.selected_credential_id.as_deref(),
+                        failures.last_status,
+                        &failures.last_error,
+                        &target_model,
+                    ),
+                )
+                .await;
+                drop(provider_permit);
+                return None;
+            }
+        };
     if let Some(analytics) = analytics {
         analytics.set_token_usage(
             decoded.usage.as_ref().map(|usage| usage.input_tokens),
@@ -227,7 +225,7 @@ pub(super) async fn decode_response(
             &provider_id,
             upstream_protocol,
             failures.selected_credential_id.as_deref(),
-            &decoded.model,
+            &target_model,
             decoded
                 .usage
                 .as_ref()
