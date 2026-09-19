@@ -68,7 +68,7 @@ jobs:
 
       - name: Verify release tag matches package version
         run: |
-          node -e 'const fs = require("fs"); const text = fs.readFileSync("Cargo.toml", "utf8"); const match = text.match(/^version\s*=\s*"([^"]+)"/m); if (!match) throw new Error("Could not read the Cargo package version"); const expected = "v" + match[1]; if (process.env.GITHUB_REF_NAME !== expected) throw new Error("Tag " + process.env.GITHUB_REF_NAME + " does not match Cargo package version " + expected);'
+          node -e 'const fs = require("fs"); const text = fs.readFileSync("Cargo.toml", "utf8"); const match = text.match(/^version\s*=\s*"([^"]+)"/m); if (!match) throw new Error("Could not read the Cargo package version"); const npmPackage = JSON.parse(fs.readFileSync("npm/package.json", "utf8")); if (npmPackage.version !== match[1]) throw new Error("npm package version " + npmPackage.version + " does not match Cargo package version " + match[1]); const expected = "v" + match[1]; if (process.env.GITHUB_REF_NAME !== expected) throw new Error("Tag " + process.env.GITHUB_REF_NAME + " does not match package version " + expected);'
 
       - name: Check Rust formatting
         if: matrix.target == 'x86_64-unknown-linux-gnu'
@@ -190,3 +190,27 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
+
+  publish-npm:
+    name: Publish npm launcher
+    needs: publish
+    if: ${{ vars.EXOROUTE_NPM_PUBLISH == 'true' }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish npm package
+        working-directory: npm
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
