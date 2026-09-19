@@ -117,7 +117,6 @@ impl Orchestrator {
                         .respond(
                             &scope,
                             *upstream,
-                            &canonical,
                             &route_alias,
                             &live,
                             &log,
@@ -157,7 +156,6 @@ impl Orchestrator {
         &self,
         scope: &RequestScope,
         upstream: outcome::CompletedUpstream,
-        canonical: &protocol::CanonicalRequest,
         route_alias: &str,
         live: &RequestLiveGuard,
         log: &RequestLogPayload<'_>,
@@ -169,7 +167,6 @@ impl Orchestrator {
             return respond::stream_response(
                 scope,
                 upstream,
-                canonical,
                 route_alias,
                 live,
                 background_continuity,
@@ -183,7 +180,6 @@ impl Orchestrator {
         respond::decode_response(
             scope,
             upstream,
-            canonical,
             route_alias,
             live,
             log,
