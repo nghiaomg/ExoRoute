@@ -1,0 +1,264 @@
+/* ─── Setup Hub ─── */
+.quick-heading {
+  margin-top: 32px;
+}
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.setup-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 124px;
+  padding: 18px 22px;
+  text-align: left;
+  border: none;
+  border-radius: var(--radius-xl);
+  background: #ffffff;
+  box-shadow: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.setup-card:hover {
+  border: none;
+  background: #f5f6fa;
+  box-shadow: none;
+}
+.setup-card:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+.setup-step {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  color: #e8c9a8;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: var(--font-extrabold);
+  letter-spacing: 0.5px;
+}
+
+/* ─── Overview Glassmorphism Layout & Cards ─── */
+.overview-view {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.overview-view .section-card {
+  background: #ffffff;
+  border: none !important;
+  box-shadow: none !important;
+}
+.overview-view .setup-card {
+  background: #ffffff;
+  border: none !important;
+  box-shadow: none !important;
+  transition: background-color 0.16s ease;
+}
+.overview-view .setup-card:hover {
+  background: #f5f6fa;
+}
+.overview-view .setup-card:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+.overview-view .combo-mini-item,
+.overview-view .provider-mini-row {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s ease;
+}
+.overview-view .combo-mini-item:hover,
+.overview-view .provider-mini-row:hover {
+  background: #f4f5fb !important;
+}
+.overview-view .combo-mini-item:active,
+.overview-view .provider-mini-row:active {
+  transform: none;
+}
+.overview-view .mini-target-chip {
+  background: #eff1f8 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.overview-view .empty-inline {
+  background: #fdfdfd;
+  border: 1px dashed rgba(249, 115, 22, 0.2) !important;
+}
+.overview-view .secondary-button {
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02), inset 0 1px 1px #ffffff !important;
+  background: rgba(255, 255, 255, 0.75);
+}
+.overview-view .secondary-button:hover {
+  background: #eef0f6;
+  color: #23263b;
+}
+.setup-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  margin-bottom: 2px;
+}
+.setup-icon.mint-icon { color: #278e6d; background: #e9faf5; }
+.setup-icon.blue-icon { color: #3d86dd; background: #ebf4ff; }
+.setup-icon.violet-icon { color: #f97316; background: #fff4e6; }
+.setup-card strong {
+  color: #313548;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+.setup-card > span:not(.setup-step):not(.setup-icon) {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  padding-right: 20px;
+}
+.setup-arrow {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  color: #fdba74;
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+.setup-card:hover .setup-arrow {
+  transform: translateX(4px);
+  color: var(--violet);
+}
+
+/* ─── Cockpit Quick Action Strip ─── */
+.quick-action-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: var(--radius-xl);
+  background: #ffffff;
+  border: none !important;
+  box-shadow: none !important;
+  flex-shrink: 0;
+  user-select: none;
+}
+.quick-strip-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #7a7e91;
+  padding-right: 14px;
+  border: none !important;
+  flex-shrink: 0;
+}
+.quick-strip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6366f1;
+}
+.quick-strip-items {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.quick-strip-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 16px;
+  min-height: 38px;
+  border-radius: var(--radius-md);
+  background: #f4f5fa;
+  border: none !important;
+  box-shadow: none !important;
+  color: #4b4f62;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  -webkit-tap-highlight-color: transparent;
+}
+.quick-strip-btn:hover {
+  background: #eaecef;
+  color: #1e202e;
+}
+.quick-strip-btn:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+.quick-step-num {
+  font-size: 10px;
+  font-weight: 800;
+  color: #9aa0b6;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+}
+.quick-step-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.quick-step-icon.mint-icon { color: #278e6d; background: #e9faf5; }
+.quick-step-icon.blue-icon { color: #3d86dd; background: #ebf4ff; }
+.quick-step-icon.violet-icon { color: #8b5cf6; background: #f5f3ff; }
+.quick-step-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.quick-step-arrow {
+  color: #b2b5c7;
+  flex-shrink: 0;
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+.quick-strip-btn:hover .quick-step-arrow {
+  color: #6366f1;
+  transform: translateX(2px);
+}
+
+/* ─── Cockpit Metric Strip Inner Structure ─── */
+.metric-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.metric-info-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.metric-bottom {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}

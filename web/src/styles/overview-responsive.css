@@ -1,0 +1,278 @@
+/* ─── Overview Full-Page Scrollable Layout (min-width: 1024px) ─── */
+@media (min-width: 1024px) {
+  .overview-view,
+  .overview-view.cockpit-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-height: auto;
+  }
+
+  /* Spacious Hero Card */
+  .overview-view .overview-hero,
+  .overview-view.cockpit-mode .overview-hero {
+    padding: 28px 34px;
+    gap: 28px;
+    border-radius: var(--radius-2xl);
+  }
+  .overview-view .hero-status-pill,
+  .overview-view.cockpit-mode .hero-status-pill {
+    padding: 4px 12px 4px 10px;
+    gap: 8px;
+  }
+  .overview-view .hero-headline,
+  .overview-view.cockpit-mode .hero-headline {
+    font-size: 26px;
+    letter-spacing: -0.5px;
+    line-height: 1.25;
+    margin: 0;
+  }
+  .overview-view .hero-subtitle,
+  .overview-view.cockpit-mode .hero-subtitle {
+    font-size: 13.5px;
+    line-height: 1.55;
+    max-width: 520px;
+    display: block;
+    overflow: visible;
+  }
+  .overview-view .hero-actions-row,
+  .overview-view.cockpit-mode .hero-actions-row {
+    margin-top: 6px;
+    gap: 10px;
+  }
+  .overview-view .hero-actions-row .compact-btn,
+  .overview-view.cockpit-mode .hero-actions-row .compact-btn {
+    height: 38px;
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 13px;
+    gap: 7px;
+    border-radius: var(--radius-md);
+  }
+  .overview-view .pipeline-card,
+  .overview-view.cockpit-mode .pipeline-card {
+    padding: 16px 20px;
+    max-width: 440px;
+    border-radius: var(--radius-xl);
+  }
+  .overview-view .pipeline-header,
+  .overview-view.cockpit-mode .pipeline-header {
+    margin-bottom: 12px;
+  }
+  .overview-view .pipeline-node .node-icon,
+  .overview-view.cockpit-mode .pipeline-node .node-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+  .overview-view .core-node .core-logo-badge,
+  .overview-view.cockpit-mode .core-node .core-logo-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+  }
+  .overview-view .pipeline-stream,
+  .overview-view.cockpit-mode .pipeline-stream {
+    min-width: 28px;
+  }
+  .overview-view .upstream-chips,
+  .overview-view.cockpit-mode .upstream-chips {
+    min-height: 40px;
+    gap: 4px;
+  }
+  .overview-view .upstream-mini-chip,
+  .overview-view.cockpit-mode .upstream-mini-chip {
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+
+  /* Spacious Metric Cards Grid */
+  .overview-view .metric-grid,
+  .overview-view.cockpit-mode .metric-grid {
+    margin-top: 0;
+    gap: 16px;
+  }
+  .overview-view .metric-card,
+  .overview-view.cockpit-mode .metric-card {
+    min-height: 104px;
+    padding: 18px 20px 16px;
+    border-radius: var(--radius-xl);
+  }
+  .overview-view .metric-icon,
+  .overview-view.cockpit-mode .metric-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .overview-view .metric-label,
+  .overview-view.cockpit-mode .metric-label {
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .overview-view .metric-trend,
+  .overview-view.cockpit-mode .metric-trend {
+    font-size: 11px;
+  }
+  .overview-view .metric-value,
+  .overview-view.cockpit-mode .metric-value {
+    font-size: 26px;
+    margin: 4px 0 2px;
+    line-height: 1.15;
+  }
+  .overview-view .metric-uptime,
+  .overview-view.cockpit-mode .metric-uptime {
+    font-size: 19px;
+  }
+  .overview-view .metric-pill,
+  .overview-view.cockpit-mode .metric-pill {
+    font-size: 11px;
+    padding: 2px 7px;
+  }
+  .overview-view .metric-foot-desc,
+  .overview-view.cockpit-mode .metric-foot-desc {
+    font-size: 11.5px;
+  }
+
+  /* Dual Grid Workspace (Traffic & Routing) */
+  .overview-view .overview-dual-grid,
+  .overview-view.cockpit-mode .overview-dual-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    gap: 20px;
+    margin-top: 0;
+    min-height: auto;
+  }
+  .overview-view .overview-main-col,
+  .overview-view.cockpit-mode .overview-main-col {
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+  }
+  .overview-view .overview-main-col .section-card,
+  .overview-view.cockpit-mode .overview-main-col .section-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-xl);
+    min-height: auto;
+  }
+  .overview-view .section-card-header,
+  .overview-view.cockpit-mode .section-card-header {
+    padding: 16px 22px 14px;
+    flex-shrink: 0;
+  }
+  .overview-view .section-card-header .section-title,
+  .overview-view.cockpit-mode .section-card-header .section-title {
+    font-size: 15px;
+  }
+  .overview-view .section-card-header .section-caption,
+  .overview-view.cockpit-mode .section-card-header .section-caption {
+    font-size: 12px;
+  }
+  .overview-view .table-wrap,
+  .overview-view.cockpit-mode .table-wrap {
+    overflow-x: auto;
+  }
+  .overview-view table th,
+  .overview-view.cockpit-mode table th {
+    height: 42px;
+    padding: 0 16px;
+    font-size: 11px;
+  }
+  .overview-view table td,
+  .overview-view.cockpit-mode table td {
+    height: 52px;
+    padding: 0 16px;
+    font-size: 12.5px;
+  }
+  .overview-view .overview-side-col,
+  .overview-view.cockpit-mode .overview-side-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: auto;
+  }
+  .overview-view .side-card,
+  .overview-view.cockpit-mode .side-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-xl);
+    min-height: auto;
+  }
+  .overview-view .side-card-body,
+  .overview-view.cockpit-mode .side-card-body {
+    padding: 0 18px 16px;
+  }
+  .overview-view .compact-header,
+  .overview-view.cockpit-mode .compact-header {
+    padding: 14px 18px 10px;
+  }
+  .overview-view .side-card-title,
+  .overview-view.cockpit-mode .side-card-title {
+    font-size: 14px;
+  }
+  .overview-view .side-card-caption,
+  .overview-view.cockpit-mode .side-card-caption {
+    font-size: 11.5px;
+  }
+  .overview-view .combo-mini-item,
+  .overview-view.cockpit-mode .combo-mini-item,
+  .overview-view .provider-mini-row,
+  .overview-view.cockpit-mode .provider-mini-row {
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    margin-bottom: 2px;
+  }
+  .overview-view .combo-mini-top strong,
+  .overview-view.cockpit-mode .combo-mini-top strong,
+  .overview-view .provider-mini-info strong,
+  .overview-view.cockpit-mode .provider-mini-info strong {
+    font-size: 12.5px;
+  }
+  .overview-view .provider-mini-info small,
+  .overview-view.cockpit-mode .provider-mini-info small {
+    font-size: 11.5px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .quick-action-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .quick-strip-label {
+    border: none !important;
+    padding-bottom: 4px;
+    padding-right: 0;
+  }
+  .quick-strip-items {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .quick-strip-btn {
+    width: 100%;
+  }
+}
+
+.state-card { display: flex; align-items: flex-start; gap: 15px; padding: 20px; border: 1px solid #e8e9ef; border-radius: 12px; background: #fff; }
+.error-state { border-color: #f1dede; background: linear-gradient(115deg, #fff, #fffafa); }
+.state-icon { display: grid; place-items: center; width: 39px; height: 39px; flex: 0 0 39px; border-radius: 11px; color: #8a78e7; background: #fff7ed; }
+.error-icon { color: #d37479; background: #fff0ef; }
+.state-copy { flex: 1; }
+.state-copy h2 { margin: 2px 0 5px; color: #42465b; font: 700 13px var(--font-heading); }
+.state-copy p { margin: 0; color: #8e92a2; font-size: 12px; line-height: 1.6; }
+.state-hint { display: flex; gap: 9px; align-items: center; margin-top: 11px; color: #a0a2af; font-size: 12px; }
+.state-hint code { padding: 4px 6px; color: #ea580c; border: 1px solid #ffedd5; border-radius: 5px; background: #fff7ed; font-size: 12px; }
+.loading-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }.skeleton { height: 122px; border-radius: 11px; background: linear-gradient(90deg, #eeeeF4 25%, #f6f6fa 45%, #eeeeF4 65%); background-size: 220% 100%; animation: shimmer 1.45s infinite; }.hero-skeleton { grid-column: 1 / -1; height: 220px; }
+.inline-loading { display: flex; align-items: center; gap: 8px; min-height: 110px; justify-content: center; color: #8c90a0; font-size: 12px; }.spin { animation: spin 1s linear infinite; }
+@keyframes shimmer { to { background-position: -220% 0; } } @keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state { min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 35px 20px; border: 1px dashed #e2e3ec; border-radius: 12px; background: #fff; text-align: center; }
+.empty-illustration { position: relative; display: grid; place-items: center; width: 58px; height: 58px; margin-bottom: 17px; border: 1px solid #ffedd5; border-radius: 18px; color: #f97316; background: linear-gradient(145deg, #fff7ed, #ffedd5); box-shadow: 0 9px 25px #ea580c0d; }
+.empty-orbit { position: absolute; inset: -9px; border: 1px solid #ffedd5; border-radius: 21px; transform: rotate(10deg); }
+.empty-state h2 { margin: 0 0 7px; color: #44485c; font: 700 14px var(--font-heading); }
+.empty-state p { max-width: 340px; margin: 0 0 16px; color: #9699aa; font-size: 12px; line-height: 1.65; }
+
