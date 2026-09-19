@@ -1491,4 +1491,6 @@ export const ar: Catalog = {
   "Save key strategy": "Save key strategy",
   "Key rotation strategy saved.": "Key rotation strategy saved.",
   "Could not update the key rotation strategy.": "Could not update the key rotation strategy.",
+  "Provider configurations saved.": "تم حفظ تكوينات موفر الخدمة.",
+  "Could not update provider configurations.": "تعذر تحديث تكوينات موفر الخدمة.",
 };
