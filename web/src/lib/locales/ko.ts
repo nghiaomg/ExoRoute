@@ -1491,4 +1491,6 @@ export const ko: Catalog = {
   "Save key strategy": "키 전략 저장",
   "Key rotation strategy saved.": "키 로테이션 전략이 저장되었습니다.",
   "Could not update the key rotation strategy.": "키 로테이션 전략을 업데이트할 수 없습니다.",
+  "Provider configurations saved.": "공급자 구성이 저장되었습니다.",
+  "Could not update provider configurations.": "공급자 구성을 업데이트할 수 없습니다.",
 };

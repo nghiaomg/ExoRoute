@@ -1491,4 +1491,6 @@ export const zh: Catalog = {
   'Save key strategy': '保存密钥策略',
   'Key rotation strategy saved.': '密钥轮换策略已保存。',
   'Could not update the key rotation strategy.': '无法更新密钥轮换策略。',
+  'Provider configurations saved.': '提供商配置已保存。',
+  'Could not update provider configurations.': '无法更新提供商配置。',
 };
