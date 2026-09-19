@@ -1,0 +1,192 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.asset }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            asset: linux-x86_64
+            archive: tar.gz
+          - runner: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            asset: linux-aarch64
+            archive: tar.gz
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            asset: darwin-x86_64
+            archive: tar.gz
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            asset: darwin-aarch64
+            archive: tar.gz
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset: windows-x86_64
+            archive: zip
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build dashboard
+        working-directory: web
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run build
+
+      - name: Check source boundaries
+        run: node scripts/check_source_boundaries.mjs
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: 1.88.0
+          components: rustfmt, clippy
+          targets: ${{ matrix.target }}
+
+      - name: Verify release tag matches package version
+        run: |
+          node -e 'const fs = require("fs"); const text = fs.readFileSync("Cargo.toml", "utf8"); const match = text.match(/^version\s*=\s*"([^"]+)"/m); if (!match) throw new Error("Could not read the Cargo package version"); const expected = "v" + match[1]; if (process.env.GITHUB_REF_NAME !== expected) throw new Error("Tag " + process.env.GITHUB_REF_NAME + " does not match Cargo package version " + expected);'
+
+      - name: Check Rust formatting
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: cargo fmt --check
+
+      - name: Clippy with warnings denied
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Verify minimum supported Rust version
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: cargo check --locked
+
+      - name: Build ExoRoute
+        run: cargo build --locked --release --target ${{ matrix.target }}
+
+      - name: Run Rust tests
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'x86_64-pc-windows-msvc'
+        run: cargo test --locked
+
+      - name: Smoke test release binary
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: ./target/${{ matrix.target }}/release/exoroute --version
+
+      - name: Smoke test Windows release binary
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: '& "target/${{ matrix.target }}/release/exoroute.exe" --version'
+
+      - name: Package Unix binary
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          mkdir -p package dist
+          cp "target/${{ matrix.target }}/release/exoroute" package/
+          cp LICENSE README.md package/
+          tar -C package -czf "$GITHUB_WORKSPACE/dist/exoroute-${{ matrix.asset }}.tar.gz" exoroute LICENSE README.md
+
+      - name: Package Windows binary
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path package, dist -Force | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/exoroute.exe" package/
+          Copy-Item LICENSE, README.md package/
+          Compress-Archive -Path package/* -DestinationPath "dist/exoroute-${{ matrix.asset }}.zip"
+
+      - name: Generate Unix asset checksum
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          asset="exoroute-${{ matrix.asset }}.tar.gz"
+          sha256sum "dist/$asset" > "dist/$asset.sha256"
+
+      - name: Generate Windows asset checksum
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $asset = 'exoroute-${{ matrix.asset }}.zip'
+          $hash = (Get-FileHash -Algorithm SHA256 "dist/$asset").Hash.ToLowerInvariant()
+          "$hash  $asset" | Set-Content -Encoding ascii "dist/$asset.sha256"
+
+      - name: Upload packaged binary
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: release-${{ matrix.asset }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Download packaged binaries
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate release checksum manifest
+        shell: bash
+        run: |
+          cd dist
+          export LC_ALL=C
+          shopt -s nullglob
+          assets=(exoroute-*.tar.gz exoroute-*.zip)
+          if [ "${#assets[@]}" -ne 5 ]; then
+            printf 'Expected 5 release archives, found %s.\n' "${#assets[@]}" >&2
+            exit 1
+          fi
+          sha256sum "${assets[@]}" > SHA256SUMS
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+        with:
+          cosign-release: v3.1.3
+
+      - name: Sign and verify release checksum manifest
+        shell: bash
+        run: |
+          cosign sign-blob --yes --bundle dist/SHA256SUMS.sigstore.json dist/SHA256SUMS
+          cosign verify-blob dist/SHA256SUMS \
+            --bundle dist/SHA256SUMS.sigstore.json \
+            --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release.yml@${GITHUB_REF}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+      - name: Create release and attach binaries
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: dist/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
