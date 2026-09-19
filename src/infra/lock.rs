@@ -25,8 +25,14 @@ pub fn lock_database(path: &Path) -> io::Result<DatabaseLock> {
     let mut lock_path = path.as_os_str().to_os_string();
     lock_path.push(".lock");
     let lock_path = Path::new(&lock_path);
-    crate::config::ensure_no_reparse_path_components(lock_path)?;
+    if let Some(parent) = lock_path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        crate::config::ensure_no_reparse_path_components(parent)?;
+    }
     ensure_lock_file_is_safe(lock_path)?;
+    crate::config::ensure_no_reparse_path_components(lock_path)?;
     let mut options = OpenOptions::new();
     options.create(true).read(true).write(true);
     #[cfg(unix)]
