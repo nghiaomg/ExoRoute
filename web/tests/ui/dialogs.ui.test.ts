@@ -41,13 +41,15 @@ describe('complex admin dialogs', () => {
     expect(await screen.findByText('Provider Configurations')).toBeTruthy();
     const input = await screen.findByLabelText('Model prefix') as HTMLInputElement;
     await fireEvent.input(input, { target: { value: 'custom' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Save model prefix' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    await waitFor(() => expect(updateProvider).toHaveBeenCalledWith(
-      'openai',
-      expect.objectContaining({ model_prefix: 'custom' }),
-    ));
-    expect(onProviderUpdated).toHaveBeenCalledWith(expect.objectContaining({ model_prefix: 'custom' }));
+    await waitFor(() => {
+      expect(updateProvider).toHaveBeenCalledWith(
+        'openai',
+        expect.objectContaining({ model_prefix: 'custom' }),
+      );
+      expect(onProviderUpdated).toHaveBeenCalledWith(expect.objectContaining({ model_prefix: 'custom' }));
+    });
   });
 
   test('ComboEditorDialog renders a primary target and adds a fallback target', async () => {

@@ -1487,4 +1487,6 @@ export const en = {
   'Save key strategy': 'Save key strategy',
   'Key rotation strategy saved.': 'Key rotation strategy saved.',
   'Could not update the key rotation strategy.': 'Could not update the key rotation strategy.',
+  'Provider configurations saved.': 'Provider configurations saved.',
+  'Could not update provider configurations.': 'Could not update provider configurations.',
 } as const;

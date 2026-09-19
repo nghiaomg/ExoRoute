@@ -1491,4 +1491,6 @@ export const id: Catalog = {
   'Save key strategy': 'Simpan strategi kunci',
   'Key rotation strategy saved.': 'Strategi rotasi kunci disimpan.',
   'Could not update the key rotation strategy.': 'Tidak dapat memperbarui strategi rotasi kunci.',
+  'Provider configurations saved.': 'Konfigurasi penyedia berhasil disimpan.',
+  'Could not update provider configurations.': 'Tidak dapat memperbarui konfigurasi penyedia.',
 };

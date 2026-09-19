@@ -1491,4 +1491,6 @@ export const hi: Catalog = {
   "Save key strategy": "Save key strategy",
   "Key rotation strategy saved.": "Key rotation strategy saved.",
   "Could not update the key rotation strategy.": "Could not update the key rotation strategy.",
+  "Provider configurations saved.": "प्रदाता कॉन्फ़िगरेशन सहेजे गए।",
+  "Could not update provider configurations.": "प्रदाता कॉन्फ़िगरेशन अपडेट नहीं किए जा सके।",
 };
