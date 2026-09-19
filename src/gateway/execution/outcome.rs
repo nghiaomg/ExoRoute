@@ -16,6 +16,10 @@ pub(super) struct CompletedUpstream {
     pub(super) adapter_id: String,
     pub(super) provider_id: String,
     pub(super) upstream_protocol: UpstreamProtocol,
+    /// The model selected from the configured route/combo. This is kept
+    /// separate from the model reported by the upstream response so request
+    /// logs describe the configured target that actually completed.
+    pub(super) target_model: String,
 }
 
 /// What the dispatch stage decided about one target.

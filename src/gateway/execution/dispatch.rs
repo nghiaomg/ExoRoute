@@ -146,6 +146,7 @@ pub(super) async fn dispatch_target(
                     adapter_id: attempt.provider.adapter_id.clone(),
                     provider_id: attempt.provider.id.clone(),
                     upstream_protocol: attempt.upstream_protocol,
+                    target_model: attempt.target_model.to_owned(),
                 }));
             }
             SendStep::Failed(outcome) => {
