@@ -8,6 +8,7 @@
   import { type Translate } from '../lib/format';
 import { localizedError } from '../lib/errors';
   import type { Locale } from '../lib/i18n';
+  import { docsCopy } from '../features/docs/docsCopy';
 
   interface Preferences {
     locale: Locale;
@@ -97,5 +98,6 @@ import { localizedError } from '../lib/errors';
         <button class="primary-button login-submit" disabled={saving || sessionCheckStatus === 'checking'}>{#if saving}<LoaderCircle size={15} class="spin" />{:else}<Check size={15} />{/if}{tr('Sign in')}</button>
       </form>
     {/if}
+    <a class="login-docs-link" href="/docs">{docsCopy(preferences.locale).shell.documentation} <span aria-hidden="true">→</span></a>
   </section>
 </main>

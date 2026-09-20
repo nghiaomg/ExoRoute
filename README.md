@@ -27,6 +27,8 @@
 
 It provides your applications with a single HTTP endpoint (`127.0.0.1:8686/v1` by default), seamlessly converting across **OpenAI Chat Completions**, **OpenAI Responses**, and **Anthropic Messages** while routing requests intelligently across providers and models.
 
+Open the built-in interactive documentation at `http://127.0.0.1:8686/docs` after starting ExoRoute for install, API, SDK, Cursor, Continue, Cline, and Roo Code integration guides.
+
 ---
 
 ## User Benefits

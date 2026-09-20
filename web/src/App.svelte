@@ -3,10 +3,15 @@
   import DashboardShell from './components/DashboardShell.svelte';
   import LoginPage from './components/LoginPage.svelte';
   import ProviderOAuthCallbackFlow from './features/providers/ProviderOAuthCallbackFlow.svelte';
+  import DocsShell from './features/docs/DocsShell.svelte';
+  import DocsHomePage from './features/docs/DocsHomePage.svelte';
+  import DocsQuickstartPage from './features/docs/DocsQuickstartPage.svelte';
+  import DocsIntegrationsPage from './features/docs/DocsIntegrationsPage.svelte';
+  import DocsReferencePage from './features/docs/DocsReferencePage.svelte';
   import type { ComponentType } from 'svelte';
   import { api, getAdminAccessToken, notifyAdminLogout, restoreAdminSession, setAdminAccessToken, type AdminAccessResult, type AdminLoginResult } from './lib/api';
   import { getStoredLocale, saveLocale, t, type Locale } from './lib/i18n';
-  import { pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type FeatureActionRequest, type Page } from './lib/navigation';
+  import { isDocsPage, pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type DocsPage, type FeatureActionRequest, type Page } from './lib/navigation';
   import type { Translate } from './lib/format';
   import { applyTheme, getStoredTheme, type Theme } from './lib/theme';
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
@@ -29,6 +34,10 @@
     statistics: 'Statistics',
     'api-keys': 'Gateway API keys',
     settings: 'Settings',
+    docs: 'Documentation',
+    'docs-quickstart': 'Quickstart',
+    'docs-integrations': 'Integrations',
+    'docs-reference': 'API reference',
   };
 
   let locale: Locale = 'en';
@@ -60,7 +69,7 @@
   $: preferences = { locale, theme, setLocale: changeLocale, toggleTheme };
   $: gateway = { state: connectionState, address: gatewayAddress };
   $: pageTitle = tr(mustChangePassword && currentPage === 'login' ? 'Set a new admin password' : pageTitles[currentPage]);
-  $: if (authBootstrap !== 'checking' && currentPage !== 'login' && (activeFeaturePage !== currentPage || activeFeatureRefreshKey !== refreshKey)) {
+  $: if (authBootstrap !== 'checking' && dashboardPage(currentPage) && (activeFeaturePage !== currentPage || activeFeatureRefreshKey !== refreshKey)) {
     activeFeaturePage = null;
     activeFeature = null;
     activeFeatureRefreshKey = refreshKey;
@@ -120,7 +129,7 @@
   }
 
   function dashboardPage(page: Page): page is DashboardPage {
-    return page !== 'login';
+    return page !== 'login' && !isDocsPage(page);
   }
 
   function redirectToLogin(returnTo: DashboardPage): void {
@@ -129,6 +138,14 @@
     connectionState = 'idle';
     const target = `${pagePaths.login}?next=${encodeURIComponent(pagePaths[returnTo])}`;
     if (`${window.location.pathname}${window.location.search}` !== target) window.history.replaceState(null, '', target);
+  }
+
+  function navigateToDocs(page: DocsPage): void {
+    const path = pagePaths[page];
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    currentPage = page;
+    actionRequest = null;
+    connectionState = 'idle';
   }
 
   function navigateTo(page: DashboardPage, updatePath = true): void {
@@ -219,6 +236,12 @@
     const syncWithLocation = (): void => {
       if (authBootstrap === 'checking') return;
       const page = pageFromPath(window.location.pathname);
+      if (isDocsPage(page)) {
+        currentPage = page;
+        actionRequest = null;
+        connectionState = 'idle';
+        return;
+      }
       if (page === 'login') {
         if (getAdminAccessToken() && !mustChangePassword) {
           const destination = pageAfterLogin(window.location.search);
@@ -337,6 +360,18 @@
 
 {#if authBootstrap === 'checking'}
   <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Checking admin session…')}</p></section></main>
+{:else if isDocsPage(currentPage)}
+  <DocsShell page={currentPage} {locale} {preferences} onNavigate={navigateToDocs} onBackToLogin={() => { currentPage = 'login'; window.history.pushState(null, '', pagePaths.login); }}>
+    {#if currentPage === 'docs'}
+      <DocsHomePage {locale} onNavigate={navigateToDocs} />
+    {:else if currentPage === 'docs-quickstart'}
+      <DocsQuickstartPage {locale} />
+    {:else if currentPage === 'docs-integrations'}
+      <DocsIntegrationsPage {locale} />
+    {:else}
+      <DocsReferencePage {locale} />
+    {/if}
+  </DocsShell>
 {:else if currentPage === 'login'}
   <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
 {:else}
