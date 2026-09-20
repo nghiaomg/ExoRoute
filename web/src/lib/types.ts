@@ -394,6 +394,8 @@ export type RequestLiveEvent =
       live_id: string;
       provider_id: string | null;
       latest_log_id: string | null;
+      input_tokens?: number | null;
+      output_tokens?: number | null;
     }
   | {
       type: 'finished';

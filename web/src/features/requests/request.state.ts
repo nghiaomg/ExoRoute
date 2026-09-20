@@ -110,6 +110,8 @@ export function applyRequestLiveEvent(
           ...request,
           id: event.latest_log_id ?? request.id,
           provider_id: event.provider_id ?? undefined,
+          input_tokens: event.input_tokens === undefined ? request.input_tokens : event.input_tokens ?? undefined,
+          output_tokens: event.output_tokens === undefined ? request.output_tokens : event.output_tokens ?? undefined,
         }),
       },
       finished: null,
