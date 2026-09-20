@@ -36,8 +36,8 @@
         <td class="req-duration">{requestDuration(request)}</td>
         <td class="req-tokens" aria-label={tr('Token usage')}>
           <div class="req-token-lines">
-            <span class="req-token-line"><span class="req-token-label">{tr('Input tokens')}</span><strong class="req-token-value">{formatTokenCount(request.input_tokens)}</strong></span>
-            <span class="req-token-line"><span class="req-token-label">{tr('Output tokens')}</span><strong class="req-token-value">{formatTokenCount(request.output_tokens)}</strong></span>
+            <span class="req-token-line req-token-input"><span class="req-token-label">{tr('Input tokens')}</span><strong class="req-token-value">{formatTokenCount(request.input_tokens)}</strong></span>
+            <span class="req-token-line req-token-output"><span class="req-token-label">{tr('Output tokens')}</span><strong class="req-token-value">{formatTokenCount(request.output_tokens)}</strong></span>
           </div>
         </td>
         <td class="req-status"><span class="status-badge" class:live={isLiveRequest(request)} class:success={!isLiveRequest(request) && request.status != null && request.status >= 200 && request.status < 300} class:failure={!isLiveRequest(request) && request.status != null && (request.status < 200 || request.status >= 300)}>{isLiveRequest(request) ? tr('In progress') : request.status ?? '—'}</span></td>
@@ -206,12 +206,32 @@
     font-weight: 600;
   }
 
+  .req-token-input .req-token-label,
+  .req-token-input .req-token-value {
+    color: #ea580c;
+  }
+
+  .req-token-output .req-token-label,
+  .req-token-output .req-token-value {
+    color: #7c3aed;
+  }
+
   :global(:root[data-theme='dark']) .req-token-label {
     color: #8c8fa4;
   }
 
   :global(:root[data-theme='dark']) .req-token-value {
     color: #e7e4f8;
+  }
+
+  :global(:root[data-theme='dark']) .req-token-input .req-token-label,
+  :global(:root[data-theme='dark']) .req-token-input .req-token-value {
+    color: #fdba74;
+  }
+
+  :global(:root[data-theme='dark']) .req-token-output .req-token-label,
+  :global(:root[data-theme='dark']) .req-token-output .req-token-value {
+    color: #c4b5fd;
   }
 
   .request-table-card td.req-status {
