@@ -70,3 +70,5 @@ __pycache__/
 *.py[cod]
 
 docs/
+!web/src/features/docs/
+!web/src/features/docs/**
