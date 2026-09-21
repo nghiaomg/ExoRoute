@@ -23,6 +23,10 @@
   function formatTokenCount(value: number | undefined): string {
     return value == null || !Number.isFinite(value) ? '—' : numberFormat.format(value);
   }
+
+  function tokenUsageLabel(request: RequestLog | RequestLiveRow): string {
+    return `${tr('Input tokens')}: ${formatTokenCount(request.input_tokens)} / ${tr('Output tokens')}: ${formatTokenCount(request.output_tokens)}`;
+  }
 </script>
 
   <div class="table-card request-table-card"><table><thead><tr><th>{tr('TIME')}</th><th>{tr('API KEY')}</th><th>{tr('MODEL')}</th><th>{tr('ALIAS / COMBO')}</th><th>{tr('PROVIDER')}</th><th>{tr('DURATION')}</th><th>{tr('TOKENS')}</th><th>{tr('STATUS')}</th><th>{tr('ERROR')}</th></tr></thead><tbody>
@@ -34,10 +38,11 @@
         <td class="req-alias" title={request.route_alias ?? ''}>{request.route_alias ?? '—'}</td>
         <td class="req-provider" title={request.provider_id ?? ''}>{request.provider_id ?? (isLiveRequest(request) ? tr('Routing…') : '—')}</td>
         <td class="req-duration">{requestDuration(request)}</td>
-        <td class="req-tokens" aria-label={tr('Token usage')}>
+        <td class="req-tokens" aria-label={tokenUsageLabel(request)}>
           <div class="req-token-lines">
-            <span class="req-token-line req-token-input"><span class="req-token-label">{tr('Input tokens')}</span><strong class="req-token-value">{formatTokenCount(request.input_tokens)}</strong></span>
-            <span class="req-token-line req-token-output"><span class="req-token-label">{tr('Output tokens')}</span><strong class="req-token-value">{formatTokenCount(request.output_tokens)}</strong></span>
+            <strong class="req-token-value req-token-input">{formatTokenCount(request.input_tokens)}</strong>
+            <span class="req-token-separator" aria-hidden="true">/</span>
+            <strong class="req-token-value req-token-output">{formatTokenCount(request.output_tokens)}</strong>
           </div>
         </td>
         <td class="req-status"><span class="status-badge" class:live={isLiveRequest(request)} class:success={!isLiveRequest(request) && request.status != null && request.status >= 200 && request.status < 300} class:failure={!isLiveRequest(request) && request.status != null && (request.status < 200 || request.status >= 300)}>{isLiveRequest(request) ? tr('In progress') : request.status ?? '—'}</span></td>
@@ -181,21 +186,10 @@
   }
 
   .req-token-lines {
-    display: grid;
-    gap: 2px;
-  }
-
-  .req-token-line {
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
+    gap: 6px;
     line-height: 1.2;
-  }
-
-  .req-token-label {
-    color: #8e92a2;
-    font-size: 10px;
   }
 
   .req-token-value {
@@ -206,31 +200,32 @@
     font-weight: 600;
   }
 
-  .req-token-input .req-token-label,
-  .req-token-input .req-token-value {
+  .req-token-separator {
+    color: #a3a6b5;
+    font-size: 11px;
+  }
+
+  .req-token-input {
     color: #ea580c;
   }
 
-  .req-token-output .req-token-label,
-  .req-token-output .req-token-value {
+  .req-token-output {
     color: #7c3aed;
-  }
-
-  :global(:root[data-theme='dark']) .req-token-label {
-    color: #8c8fa4;
   }
 
   :global(:root[data-theme='dark']) .req-token-value {
     color: #e7e4f8;
   }
 
-  :global(:root[data-theme='dark']) .req-token-input .req-token-label,
-  :global(:root[data-theme='dark']) .req-token-input .req-token-value {
+  :global(:root[data-theme='dark']) .req-token-separator {
+    color: #8c8fa4;
+  }
+
+  :global(:root[data-theme='dark']) .req-token-input {
     color: #fdba74;
   }
 
-  :global(:root[data-theme='dark']) .req-token-output .req-token-label,
-  :global(:root[data-theme='dark']) .req-token-output .req-token-value {
+  :global(:root[data-theme='dark']) .req-token-output {
     color: #c4b5fd;
   }
 
@@ -395,15 +390,7 @@
       border: none !important;
     }
     .request-table-card td.req-tokens .req-token-lines {
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .request-table-card td.req-tokens .req-token-line {
-      justify-content: flex-start;
       gap: 6px;
-    }
-    .request-table-card td.req-tokens .req-token-label {
-      font-size: 10px;
     }
     .request-table-card td.req-tokens .req-token-value {
       font-size: 11px;
