@@ -19,6 +19,8 @@ use std::{
 use reqwest::Url;
 use tokio::sync::Mutex;
 
+const PROVIDER_POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+
 /// Parse a provider's custom authentication header without allowing it to
 /// replace HTTP framing or hop-by-hop headers managed by the client.
 pub fn provider_auth_header_name(name: &str) -> Result<http::header::HeaderName, String> {
@@ -149,7 +151,10 @@ pub async fn provider_client(
         reqwest::Client::builder()
             .connect_timeout(connect_timeout)
             .timeout(request_timeout)
-            .pool_idle_timeout(Duration::from_secs(90))
+            // Evict idle sockets before common provider/proxy keep-alive
+            // windows expire. Reusing a server-closed socket makes POSTs
+            // fail with a reset instead of opening a fresh connection.
+            .pool_idle_timeout(PROVIDER_POOL_IDLE_TIMEOUT)
             .user_agent(user_agent),
         &resolved,
     )?;
