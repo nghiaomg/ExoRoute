@@ -22,6 +22,8 @@ pub(crate) struct RequestLiveRow {
     pub(crate) model: String,
     pub(crate) client_protocol: String,
     pub(crate) upstream_protocol: Option<String>,
+    pub(crate) input_tokens: Option<i64>,
+    pub(crate) output_tokens: Option<i64>,
     pub(crate) started_at_ms: i64,
 }
 
@@ -43,6 +45,8 @@ pub(crate) enum RequestLiveEvent {
         live_id: String,
         provider_id: Option<String>,
         latest_log_id: Option<String>,
+        input_tokens: Option<i64>,
+        output_tokens: Option<i64>,
     },
     Finished {
         live_id: String,
@@ -175,6 +179,11 @@ impl RequestLiveRegistry {
             live_id: live_id.to_owned(),
             provider_id,
             latest_log_id: entry.latest.as_ref().map(|record| record.id.clone()),
+            input_tokens: entry.latest.as_ref().and_then(|record| record.input_tokens),
+            output_tokens: entry
+                .latest
+                .as_ref()
+                .and_then(|record| record.output_tokens),
         });
     }
 
@@ -191,6 +200,8 @@ impl RequestLiveRegistry {
                 live_id: live_id.to_owned(),
                 provider_id,
                 latest_log_id,
+                input_tokens: record.input_tokens,
+                output_tokens: record.output_tokens,
             });
         }
     }
@@ -266,6 +277,8 @@ impl RequestLiveEntry {
                 .map(|record| record.client_protocol.clone())
                 .unwrap_or_else(|| self.client_protocol.clone()),
             upstream_protocol: latest.and_then(|record| record.upstream_protocol.clone()),
+            input_tokens: latest.and_then(|record| record.input_tokens),
+            output_tokens: latest.and_then(|record| record.output_tokens),
             started_at_ms: self.started_at_ms,
         }
     }

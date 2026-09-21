@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Locale } from '../../lib/i18n';
+  import { getIntlLocale, type Locale } from '../../lib/i18n';
   import { formatDate, type Translate } from '../../lib/format';
   import type { RequestLiveRow, RequestLog } from '../../lib/types';
   import { isLiveRequest } from './request.state';
@@ -10,6 +10,8 @@
   export let liveClockMs: number = Date.now();
   export let onViewError: (request: RequestLog | RequestLiveRow) => void = () => {};
 
+  $: numberFormat = new Intl.NumberFormat(getIntlLocale(locale));
+
   function requestCreatedAt(request: RequestLog | RequestLiveRow): string {
     return isLiveRequest(request) ? new Date(request.started_at_ms).toISOString() : request.created_at;
   }
@@ -17,9 +19,13 @@
   function requestDuration(request: RequestLog | RequestLiveRow): string {
     return isLiveRequest(request) ? `${Math.max(0, liveClockMs - request.started_at_ms)} ms` : request.duration_ms != null ? `${request.duration_ms} ms` : '—';
   }
+
+  function formatTokenCount(value: number | undefined): string {
+    return value == null || !Number.isFinite(value) ? '—' : numberFormat.format(value);
+  }
 </script>
 
-  <div class="table-card request-table-card"><table><thead><tr><th>{tr('TIME')}</th><th>{tr('API KEY')}</th><th>{tr('MODEL')}</th><th>{tr('ALIAS / COMBO')}</th><th>{tr('PROVIDER')}</th><th>{tr('DURATION')}</th><th>{tr('STATUS')}</th><th>{tr('ERROR')}</th></tr></thead><tbody>
+  <div class="table-card request-table-card"><table><thead><tr><th>{tr('TIME')}</th><th>{tr('API KEY')}</th><th>{tr('MODEL')}</th><th>{tr('ALIAS / COMBO')}</th><th>{tr('PROVIDER')}</th><th>{tr('DURATION')}</th><th>{tr('TOKENS')}</th><th>{tr('STATUS')}</th><th>{tr('ERROR')}</th></tr></thead><tbody>
     {#each rows as request (isLiveRequest(request) ? request.live_id : request.id ?? request.request_id ?? request.created_at)}
       <tr class="request-row" class:live-request={isLiveRequest(request)}>
         <td class="req-time muted-cell">{formatDate(requestCreatedAt(request), locale)}</td>
@@ -28,6 +34,12 @@
         <td class="req-alias" title={request.route_alias ?? ''}>{request.route_alias ?? '—'}</td>
         <td class="req-provider" title={request.provider_id ?? ''}>{request.provider_id ?? (isLiveRequest(request) ? tr('Routing…') : '—')}</td>
         <td class="req-duration">{requestDuration(request)}</td>
+        <td class="req-tokens" aria-label={tr('Token usage')}>
+          <div class="req-token-lines">
+            <span class="req-token-line req-token-input"><span class="req-token-label">{tr('Input tokens')}</span><strong class="req-token-value">{formatTokenCount(request.input_tokens)}</strong></span>
+            <span class="req-token-line req-token-output"><span class="req-token-label">{tr('Output tokens')}</span><strong class="req-token-value">{formatTokenCount(request.output_tokens)}</strong></span>
+          </div>
+        </td>
         <td class="req-status"><span class="status-badge" class:live={isLiveRequest(request)} class:success={!isLiveRequest(request) && request.status != null && request.status >= 200 && request.status < 300} class:failure={!isLiveRequest(request) && request.status != null && (request.status < 200 || request.status >= 300)}>{isLiveRequest(request) ? tr('In progress') : request.status ?? '—'}</span></td>
         <td class="req-error" class:has-error={Boolean(request.error)}>
           {#if request.error && !isLiveRequest(request)}
@@ -163,6 +175,65 @@
     font-size: 12px;
   }
 
+  .request-table-card td.req-tokens {
+    min-width: 142px;
+    white-space: nowrap;
+  }
+
+  .req-token-lines {
+    display: grid;
+    gap: 2px;
+  }
+
+  .req-token-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    line-height: 1.2;
+  }
+
+  .req-token-label {
+    color: #8e92a2;
+    font-size: 10px;
+  }
+
+  .req-token-value {
+    color: #36394d;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .req-token-input .req-token-label,
+  .req-token-input .req-token-value {
+    color: #ea580c;
+  }
+
+  .req-token-output .req-token-label,
+  .req-token-output .req-token-value {
+    color: #7c3aed;
+  }
+
+  :global(:root[data-theme='dark']) .req-token-label {
+    color: #8c8fa4;
+  }
+
+  :global(:root[data-theme='dark']) .req-token-value {
+    color: #e7e4f8;
+  }
+
+  :global(:root[data-theme='dark']) .req-token-input .req-token-label,
+  :global(:root[data-theme='dark']) .req-token-input .req-token-value {
+    color: #fdba74;
+  }
+
+  :global(:root[data-theme='dark']) .req-token-output .req-token-label,
+  :global(:root[data-theme='dark']) .req-token-output .req-token-value {
+    color: #c4b5fd;
+  }
+
   .request-table-card td.req-status {
     white-space: nowrap;
   }
@@ -241,7 +312,7 @@
     .request-table-card tr.request-row {
       display: grid !important;
       grid-template-columns: 1fr auto !important;
-      grid-template-rows: auto auto auto auto !important;
+      grid-template-rows: auto auto auto auto auto !important;
       gap: 6px 10px !important;
       padding: 14px 14px !important;
       background: #ffffff !important;
@@ -314,6 +385,30 @@
       border: none !important;
     }
 
+    /* Row 4: Input & output token usage */
+    .request-table-card td.req-tokens {
+      grid-column: 1 / -1 !important;
+      grid-row: 4 !important;
+      display: block !important;
+      min-width: 0 !important;
+      padding: 4px 0 0 !important;
+      border: none !important;
+    }
+    .request-table-card td.req-tokens .req-token-lines {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .request-table-card td.req-tokens .req-token-line {
+      justify-content: flex-start;
+      gap: 6px;
+    }
+    .request-table-card td.req-tokens .req-token-label {
+      font-size: 10px;
+    }
+    .request-table-card td.req-tokens .req-token-value {
+      font-size: 11px;
+    }
+
     /* Row 3: API Key & Time */
     .request-table-card td.req-key {
       grid-column: 1 !important;
@@ -338,7 +433,7 @@
     }
     .request-table-card td.req-error {
       grid-column: 1 / -1 !important;
-      grid-row: 4 !important;
+      grid-row: 5 !important;
       display: block !important;
       min-width: 0 !important;
       max-width: none !important;

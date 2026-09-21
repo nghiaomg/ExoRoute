@@ -43,8 +43,8 @@ fn live_test_record(request_id: &str, provider_id: Option<&str>) -> RequestLogRe
         upstream_protocol: Some("chat_completions".to_owned()),
         status: 200,
         duration_ms: 12,
-        input_tokens: None,
-        output_tokens: None,
+        input_tokens: Some(12),
+        output_tokens: Some(7),
         cached_tokens: None,
         cache_input_tokens: None,
         cost_micro_usd: None,
@@ -141,9 +141,15 @@ async fn request_live_guard_updates_provider_and_finishes_once() {
     let record = live_test_record("request", Some("provider-a"));
     let record_id = record.id.clone();
     guard.update_log(&record);
-    assert!(
-        matches!(updates.recv().await.expect("latest log event"), RequestLiveEvent::Updated { latest_log_id: Some(id), .. } if id == record_id)
-    );
+    assert!(matches!(
+        updates.recv().await.expect("latest log event"),
+        RequestLiveEvent::Updated {
+            latest_log_id: Some(id),
+            input_tokens: Some(12),
+            output_tokens: Some(7),
+            ..
+        } if id == record_id
+    ));
     drop(guard);
     assert!(
         matches!(updates.recv().await.expect("finish event"), RequestLiveEvent::Finished { live_id: id, request: Some(record), .. } if id == live_id && record.status == 200)
