@@ -608,7 +608,7 @@ pub use presets::{
 pub(crate) use sse::{
     AdapterSseError, ResponsesStreamAccumulator, accepts_event_stream_response,
     adapter_sse_error_can_fail_over, parse_adapter_event_stream, read_adapter_event_stream,
-    read_codex_event_stream, read_limited_response,
+    read_codex_event_stream, read_limited_response, upstream_transport_error_message,
 };
 mod runtime;
 pub use runtime::*;

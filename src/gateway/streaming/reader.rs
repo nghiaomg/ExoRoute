@@ -1,5 +1,6 @@
 use super::preflight::find_sse_boundary;
 use super::{DynamicSemaphore, DynamicSemaphorePermit, GatewayResourceLimits, UpstreamChunkStream};
+use crate::provider_adapters;
 use bytes::Bytes;
 use futures_util::StreamExt;
 use std::sync::Arc;
@@ -115,8 +116,11 @@ impl SseFrameReader {
                     }
                     value
                 }
-                Some(Err(_)) => {
-                    return SseReadEvent::Error("upstream stream could not be read".to_owned());
+                Some(Err(error)) => {
+                    return SseReadEvent::Error(format!(
+                        "upstream stream read failed: {}",
+                        provider_adapters::upstream_transport_error_message(&error)
+                    ));
                 }
                 None => {
                     if self.buffer.is_empty() {
