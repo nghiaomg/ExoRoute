@@ -54,7 +54,7 @@ test('request live SSE ignores malformed events and parses lifecycle events with
     'event: request-snapshot\ndata: {"requests":[],"truncated":false,"limit":64,"active_count":0}\n\n',
     'event: request-started\ndata: {"live":true,"live_id":"live-a","request_id":"client-a","route_alias":"route","model":"model","started_at_ms":1700000000000,"api_key_id":"key-a","active_count":1}\n\n',
     'event: request-started\ndata: {"live":true,"live_id":"live-b","started_at_ms":"invalid","model":"model"}\n\n',
-    'event: request-updated\ndata: {"live_id":"live-a","provider_id":"provider-a","latest_log_id":"log-a"}\n\n',
+    'event: request-updated\ndata: {"live_id":"live-a","provider_id":"provider-a","latest_log_id":"log-a","input_tokens":12,"output_tokens":7}\n\n',
     'event: request-finished\ndata: {"live_id":"live-a","finished_at_ms":1700000001000,"request":{"id":"log-a","request_id":"client-a","model":"model","status":200,"created_at":null},"active_count":0}\n\n',
   ].join('');
   globalThis.fetch = async () => {
@@ -76,6 +76,8 @@ test('request live SSE ignores malformed events and parses lifecycle events with
   assert.equal(events[1].type === 'started' ? events[1].active_count : -1, 1);
   assert.equal(events[1].type === 'started' ? events[1].request.live_id : '', 'live-a');
   assert.equal(events[2].type === 'updated' ? events[2].latest_log_id : '', 'log-a');
+  assert.equal(events[2].type === 'updated' ? events[2].input_tokens : -1, 12);
+  assert.equal(events[2].type === 'updated' ? events[2].output_tokens : -1, 7);
   assert.equal(events[3].type === 'finished' ? events[3].active_count : -1, 0);
   assert.equal(events[3].type === 'finished' ? events[3].request?.status : 0, 200);
 });
@@ -104,9 +106,13 @@ test('request live state replaces stale snapshots and applies provider updates',
     live_id: 'live-a',
     provider_id: 'provider-a',
     latest_log_id: 'log-a',
+    input_tokens: 12,
+    output_tokens: 7,
   }, filters).state;
   assert.equal(state.requests.get('live-a')?.provider_id, 'provider-a');
   assert.equal(state.requests.get('live-a')?.id, 'log-a');
+  assert.equal(state.requests.get('live-a')?.input_tokens, 12);
+  assert.equal(state.requests.get('live-a')?.output_tokens, 7);
 
   state = applyRequestLiveEvent(state, {
     type: 'snapshot',
