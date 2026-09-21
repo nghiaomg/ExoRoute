@@ -166,7 +166,7 @@ async fn adapter_sse_failure_outcome(
     DispatchOutcome::TargetFailed
 }
 
-/// The upstream request ended in a transport error (timeout, connect).
+/// The upstream request ended in a transport error before response headers.
 pub(super) async fn transport_failure(
     attempt: &mut AttemptContext<'_>,
     failures: &mut TargetLoopFailures,
@@ -176,13 +176,15 @@ pub(super) async fn transport_failure(
 ) -> DispatchOutcome {
     attempt.circuit_probe.failed();
     failures.last_status = StatusCode::BAD_GATEWAY;
-    let failure_kind = if error.is_timeout() {
-        "timed out"
-    } else if error.is_connect() {
-        "could not connect"
-    } else {
-        "failed before receiving a response"
-    };
+    let failure_kind = provider_adapters::upstream_transport_error_message(&error);
+    tracing::warn!(
+        provider_id = %attempt.provider.id,
+        request_id = %attempt.scope.request_id,
+        failure_kind = %failure_kind,
+        is_connect = error.is_connect(),
+        is_timeout = error.is_timeout(),
+        "upstream request transport failed before response"
+    );
     failures.last_error = format!("provider '{}' request {failure_kind}", attempt.provider.id);
     log_request(
         &attempt.scope.state,

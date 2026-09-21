@@ -1,4 +1,5 @@
 use super::*;
+use crate::provider_adapters;
 
 pub(crate) enum PreflightFrame {
     Continue,
@@ -277,8 +278,11 @@ pub(crate) async fn preflight_stream(
                         offset += take;
                     }
                 }
-                Ok(Some(Err(_))) => {
-                    return Err("upstream stream could not be read before output".to_owned());
+                Ok(Some(Err(error))) => {
+                    return Err(format!(
+                        "upstream stream read failed before output: {}",
+                        provider_adapters::upstream_transport_error_message(&error)
+                    ));
                 }
                 Ok(None) => {
                     stream_ended = true;
