@@ -9,6 +9,11 @@ use std::collections::BTreeMap;
 pub(crate) const MAX_TRANSLATION_OPTION_DIAGNOSTICS: usize = 8;
 pub(crate) const MAX_TRANSLATION_OPTION_NAME_CHARS: usize = 128;
 
+/// Upper bound for a safe-passthrough option value. `prompt_cache_key` is a
+/// routing hint, not content, so anything past this length is a misuse rather
+/// than a legitimate cache key.
+pub(crate) const MAX_SAFE_PASSTHROUGH_VALUE_CHARS: usize = 256;
+
 /// Chat Completions options with no Responses equivalent that provider adapters
 /// strip in `prepare_body`. Translating a request carrying one of these to a
 /// Responses provider is safe because the adapter removes the field before
@@ -27,6 +32,15 @@ pub(crate) const CHAT_ONLY_DROPPED_OPTIONS: &[&str] = &[
     "safety_identifier",
     "stream_options",
 ];
+
+/// Options whose field name and semantics are identical on Chat Completions and
+/// Responses, so they can forward between the two OpenAI-family protocols by
+/// name. `prompt_cache_key` is a cache-routing hint, not a credential: both
+/// APIs treat it as an opaque string, and routing identical prompts with the
+/// same key is the intended behavior on both. Membership is matched on the
+/// exact option name, so look-alike names such as `prompt_cache_keys` still
+/// fall through to the safety guard in the chat encoder.
+pub(crate) const SAFE_PASSTHROUGH_OPTIONS: &[&str] = &["prompt_cache_key"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ResponsesThinkingIntent {
@@ -100,6 +114,35 @@ pub(crate) fn apply_responses_metadata(
             // stream, and sampling options like n that Responses never accepted).
             // Provider adapters strip these in prepare_body before dispatch, so
             // dropping them here matches what the provider would receive.
+        } else if let Some(canonical) = SAFE_PASSTHROUGH_OPTIONS
+            .iter()
+            .find(|name| key.eq_ignore_ascii_case(name))
+        {
+            supported += 1;
+            // Identical field name and semantics on both OpenAI-family
+            // protocols, so the value forwards to the Responses request
+            // unchanged after the shared safety validation below.
+            if let Some(text) = value.as_str() {
+                if text.trim().is_empty() {
+                    return Err(format!("request option '{key}' must be a non-empty string"));
+                }
+                if !text.is_ascii() {
+                    return Err(format!("request option '{key}' must be an ASCII string"));
+                }
+                let len = text.chars().count();
+                if len > MAX_SAFE_PASSTHROUGH_VALUE_CHARS {
+                    return Err(format!(
+                        "request option '{key}' must be at most {MAX_SAFE_PASSTHROUGH_VALUE_CHARS} characters"
+                    ));
+                }
+            } else if !value.is_null() {
+                return Err(format!(
+                    "request option '{key}' must be a string when provided"
+                ));
+            }
+            if let Some(text) = value.as_str() {
+                target[*canonical] = json!(text);
+            }
         } else if key.eq_ignore_ascii_case("verbosity") {
             supported += 1;
             if verbosity.is_some() {
