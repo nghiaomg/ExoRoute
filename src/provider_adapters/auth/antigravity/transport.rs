@@ -29,6 +29,7 @@ pub(crate) async fn post_json(
         false,
         connect_timeout,
         request_timeout,
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         upstream,
     )
@@ -107,6 +108,7 @@ pub(crate) async fn oauth_client(
         false,
         connect_timeout.min(Duration::from_secs(3)),
         request_timeout.min(Duration::from_secs(15)),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         upstream,
     )

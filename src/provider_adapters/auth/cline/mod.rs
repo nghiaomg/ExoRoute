@@ -422,6 +422,7 @@ async fn oauth_client(
         false,
         connect_timeout.min(Duration::from_secs(3)),
         request_timeout.min(Duration::from_secs(15)),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         upstream,
     )
