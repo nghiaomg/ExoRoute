@@ -332,6 +332,105 @@ fn chat_store_and_parallel_tool_calls_translate_to_responses() {
 }
 
 #[test]
+fn prompt_cache_key_forwards_between_openai_family_protocols() {
+    // The bug report: prompt_cache_key is a legitimate Chat Completions
+    // option (a cache-routing hint, not a credential) but the sensitive
+    // substring guard rejected it before it could reach a command-code
+    // provider. Same-protocol encoding must forward it unchanged.
+    let input = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "prompt_cache_key":"conv-123"
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+    let encoded = encode_request(Protocol::ChatCompletions, &canonical, "model-a")
+        .expect("prompt_cache_key forwards between Chat Completions requests");
+    assert_eq!(encoded["prompt_cache_key"], json!("conv-123"));
+
+    // Responses uses the same field name and semantics, so translation
+    // forwards it. This also lets the codex adapter keep the client's cache
+    // key instead of replacing it with the gateway request id.
+    let encoded = encode_request(Protocol::Responses, &canonical, "reasoning-model")
+        .expect("prompt_cache_key translates to Responses");
+    assert_eq!(encoded["prompt_cache_key"], json!("conv-123"));
+
+    // Explicit null means unset on the Responses path.
+    let null_key = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "prompt_cache_key":null
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &null_key).expect("null key parses");
+    let encoded = encode_request(Protocol::Responses, &canonical, "reasoning-model")
+        .expect("null-valued option is omitted, not forwarded");
+    assert!(encoded.get("prompt_cache_key").is_none());
+
+    // Validation still applies: empty, non-ASCII, overlong, and non-string
+    // values are reported instead of silently forwarded.
+    for (label, key_json, expected) in [
+        ("empty", json!("   "), "non-empty"),
+        ("non-ascii", json!("khóa-123"), "ASCII"),
+        ("overlong", json!("x".repeat(257)), "256"),
+        ("non-string", json!(12345), "string"),
+    ] {
+        let input = json!({
+            "model":"alias",
+            "messages":[{"role":"user","content":"hello"}],
+            "prompt_cache_key":key_json
+        });
+        let canonical =
+            decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+        let error = encode_request(Protocol::Responses, &canonical, "reasoning-model")
+            .expect_err(&format!("{label} prompt_cache_key must be reported"));
+        assert!(
+            error.contains(expected) && error.contains("prompt_cache_key"),
+            "{label} error must name the option and the problem: {error}"
+        );
+    }
+}
+
+#[test]
+fn sensitive_option_names_are_still_rejected_between_chat_requests() {
+    // The safety guard covers everything outside the exact-name allowlist:
+    // a look-alike name must not slip through just because its prefix looks
+    // like a known option.
+    let input = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "prompt_cache_keys":"conv-123"
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+    let error = encode_request(Protocol::ChatCompletions, &canonical, "model-a")
+        .expect_err("look-alike sensitive names stay guarded");
+    assert!(error.contains("cannot be forwarded safely"));
+
+    let input = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "api_key":"sk-test"
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+    let error = encode_request(Protocol::ChatCompletions, &canonical, "model-a")
+        .expect_err("credential-like options stay guarded");
+    assert!(error.contains("cannot be forwarded safely"));
+
+    // Unrelated unknown options keep their existing behavior: unknown on the
+    // Responses translation path, forwarded on the same-protocol path.
+    let input = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "logit_biasx":{"50256":-100}
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+    let error = encode_request(Protocol::Responses, &canonical, "reasoning-model")
+        .expect_err("unknown options stay unsupported on Responses");
+    assert!(error.contains("logit_biasx"));
+    let encoded = encode_request(Protocol::ChatCompletions, &canonical, "model-a")
+        .expect("unknown non-sensitive options still forward between chat requests");
+    assert_eq!(encoded["logit_biasx"], json!({"50256":-100}));
+}
+
+#[test]
 fn chat_response_format_translates_to_responses_text_format() {
     let json_object = json!({
         "model":"alias",
