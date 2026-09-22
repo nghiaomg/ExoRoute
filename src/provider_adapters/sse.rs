@@ -223,6 +223,8 @@ pub(crate) struct ResponsesStreamAccumulator {
     text_done: BTreeMap<(usize, usize), String>,
     function_call_arguments: BTreeMap<usize, String>,
     function_call_arguments_done: BTreeMap<usize, String>,
+    custom_tool_call_input: BTreeMap<usize, String>,
+    custom_tool_call_input_done: BTreeMap<usize, String>,
     item_ids: BTreeMap<usize, String>,
 }
 
@@ -326,6 +328,36 @@ impl ResponsesStreamAccumulator {
                     "Responses function-call arguments",
                 )?;
             }
+            "response.custom_tool_call_input.delta" => {
+                let Some(delta) = event.get("delta").and_then(Value::as_str) else {
+                    return Ok(());
+                };
+                let Some(output_index) = self.event_output_index(event) else {
+                    return Ok(());
+                };
+                append_bounded(
+                    self.custom_tool_call_input.entry(output_index).or_default(),
+                    delta,
+                    max_bytes,
+                    "Responses custom tool-call input",
+                )?;
+            }
+            "response.custom_tool_call_input.done" => {
+                let Some(input) = event.get("input").and_then(Value::as_str) else {
+                    return Ok(());
+                };
+                let Some(output_index) = self.event_output_index(event) else {
+                    return Ok(());
+                };
+                if max_bytes != 0 && input.len() > max_bytes {
+                    return Err(
+                        "Responses completed custom tool-call input exceeded the configured response limit"
+                            .to_owned(),
+                    );
+                }
+                self.custom_tool_call_input_done
+                    .insert(output_index, input.to_owned());
+            }
             "response.function_call_arguments.done" => {
                 let Some(arguments) = event.get("arguments").and_then(Value::as_str) else {
                     return Ok(());
@@ -410,6 +442,26 @@ impl ResponsesStreamAccumulator {
                 && item.get("type").and_then(Value::as_str) == Some("function_call")
             {
                 item["arguments"] = Value::String(arguments);
+            }
+        }
+
+        // Custom (freeform) tool calls such as Codex apply_patch stream their
+        // input through custom_tool_call_input events; without merging them a
+        // reconstructed item keeps an empty input and the call loses its payload.
+        let mut custom_tool_inputs = self.custom_tool_call_input.clone();
+        for (output_index, input) in &self.custom_tool_call_input_done {
+            if !input.is_empty() {
+                custom_tool_inputs.insert(*output_index, input.clone());
+            }
+        }
+        for (output_index, input) in custom_tool_inputs {
+            if input.is_empty() {
+                continue;
+            }
+            if let Some(item) = output_items.get_mut(&output_index)
+                && item.get("type").and_then(Value::as_str) == Some("custom_tool_call")
+            {
+                item["input"] = Value::String(input);
             }
         }
 
