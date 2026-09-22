@@ -175,6 +175,38 @@ fn decode_responses_response(
                     }
                 }
             }
+            // Codex freeform tools (for example apply_patch) arrive as
+            // custom_tool_call items whose input is a freeform string that is not
+            // required to be valid JSON, unlike function_call arguments.
+            if item.get("type").and_then(Value::as_str) == Some("custom_tool_call") {
+                let name = item
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_owned();
+                // Some custom tools send structured JSON input as a string; when
+                // it parses, keep the object like function_call arguments do.
+                // Otherwise retain the raw freeform payload (apply_patch diffs).
+                let input = match item.get("input") {
+                    Some(Value::String(text)) => {
+                        serde_json::from_str(text).unwrap_or(Value::String(text.clone()))
+                    }
+                    Some(other) => other.clone(),
+                    None => json!(""),
+                };
+                if !name.is_empty() {
+                    content.push(ContentBlock::ToolCall {
+                        id: item
+                            .get("call_id")
+                            .or_else(|| item.get("id"))
+                            .and_then(Value::as_str)
+                            .unwrap_or("call")
+                            .to_owned(),
+                        name,
+                        arguments: input,
+                    });
+                }
+            }
             if item.get("type").and_then(Value::as_str) == Some("function_call") {
                 content.push(ContentBlock::ToolCall {
                     id: item
