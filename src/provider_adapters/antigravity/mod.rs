@@ -398,6 +398,7 @@ async fn test_antigravity_model(
         false,
         connect_timeout,
         request_timeout,
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         state.operational_settings().settings.upstream,
     )

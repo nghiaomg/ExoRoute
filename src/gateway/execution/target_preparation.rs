@@ -197,6 +197,11 @@ pub(super) async fn prepare_target<'a>(
         state.config.allow_private_provider_urls,
         scope.operational_settings.connect_timeout,
         scope.operational_settings.request_timeout,
+        // Streaming responses must not inherit the total request timeout:
+        // reqwest's timeout spans the whole body and would abort a healthy
+        // stream once `request_timeout` elapses. The SSE reader owns stream
+        // liveness through its idle deadlines instead.
+        scope.canonical_stream || provider_adapters::wants_event_stream(&provider.adapter_id),
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         scope.operational_settings.upstream,
     )

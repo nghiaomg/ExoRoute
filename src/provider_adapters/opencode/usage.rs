@@ -17,6 +17,7 @@ pub(super) async fn fetch_opencode_go_usage(
             operational
                 .request_timeout
                 .min(upstream.opencode_usage_timeout),
+            false,
             concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
             operational.upstream,
         )
