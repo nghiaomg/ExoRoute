@@ -109,6 +109,7 @@ async fn fetch_remote_image(
         false,
         upstream.remote_image_connect_timeout,
         upstream.remote_image_request_timeout,
+        false,
         USER_AGENT,
         upstream,
     )
