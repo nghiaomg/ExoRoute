@@ -122,12 +122,20 @@ fn responses_history_separates_reasoning_and_sanitizes_assistant_media() {
     let encoded = encode_request(Protocol::Responses, &request, "gpt-5.5")
         .expect("assistant history translates to valid Responses items");
 
-    assert_eq!(encoded["input"][0]["type"], "reasoning");
-    assert_eq!(encoded["input"][0]["content"][0]["type"], "reasoning_text");
-    assert_eq!(encoded["input"][1]["role"], "assistant");
-    assert_eq!(encoded["input"][1]["content"][0]["type"], "output_text");
-    assert_eq!(encoded["input"][1]["content"][1]["type"], "output_text");
-    assert_eq!(encoded["input"][2]["role"], "user");
+    // Responses input reasoning items cannot carry a content array (the upstream
+    // rejects it with "expected maximum length 0"), so replayed assistant
+    // reasoning text is dropped and the turn replays through text items only.
+    let input = encoded["input"].as_array().expect("input array");
+    assert!(
+        input
+            .iter()
+            .all(|item| item.get("type").and_then(Value::as_str) != Some("reasoning")),
+        "no reasoning items may be emitted into Responses input: {input:?}"
+    );
+    assert_eq!(encoded["input"][0]["role"], "assistant");
+    assert_eq!(encoded["input"][0]["content"][0]["type"], "output_text");
+    assert_eq!(encoded["input"][0]["content"][1]["type"], "output_text");
+    assert_eq!(encoded["input"][1]["role"], "user");
 }
 
 #[test]

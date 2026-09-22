@@ -65,15 +65,14 @@ pub(crate) fn encode_openai_family_request(
                     match block {
                         ContentBlock::ToolCall { id, name, arguments } => input.push(json!({"type":"function_call","call_id":id,"name":name,"arguments":arguments.to_string()})),
                         ContentBlock::ToolResult { tool_call_id, content: result } => input.push(json!({"type":"function_call_output","call_id":tool_call_id,"output":result.iter().filter_map(|b| if let ContentBlock::Text{text}=b {Some(text.as_str())} else {None}).collect::<Vec<_>>().join("\n")})),
-                        ContentBlock::Reasoning { text } if assistant_message => {
-                            if !text.trim().is_empty() {
-                                input.push(json!({
-                                    "type":"reasoning",
-                                    "content":[{"type":"reasoning_text","text":text}],
-                                    "summary":[]
-                                }));
-                            }
-                        }
+                        // Responses input reasoning items cannot carry text: the
+                        // upstream rejects any content array on them ("expected
+                        // maximum length 0"), and replayed reasoning only
+                        // round-trips through encrypted_content, which the
+                        // canonical request does not retain. Assistant reasoning
+                        // text is therefore not forwarded; the assistant turn
+                        // still replays through its text and tool-call items.
+                        ContentBlock::Reasoning { .. } if assistant_message => {}
                         other => {
                             if let Some(value) =
                                 content_to_responses_input(other, assistant_message)
