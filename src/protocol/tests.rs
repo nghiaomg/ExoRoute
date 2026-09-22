@@ -167,6 +167,8 @@ fn chat_responses_maps_thinking_aliases_without_forwarding_them() {
 
 #[test]
 fn chat_responses_accepts_codex_reasoning_effort_values() {
+    // The Codex model tier rejects "minimal" upstream with an invalid_request
+    // error, so the closest supported effort is sent instead.
     let input = json!({
         "model":"alias",
         "messages":[{"role":"user","content":"hello"}],
@@ -174,11 +176,22 @@ fn chat_responses_accepts_codex_reasoning_effort_values() {
     });
     let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
     let encoded = encode_request(Protocol::Responses, &canonical, "gpt-5.6-luna")
-        .expect("Codex minimal effort translates to Responses");
+        .expect("minimal effort degrades instead of failing upstream");
     assert_eq!(
         encoded["reasoning"],
-        json!({"effort":"minimal","summary":"auto"})
+        json!({"effort":"low","summary":"auto"})
     );
+
+    // Models outside the Codex tier accept "minimal" natively, so it forwards.
+    let input = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "reasoning_effort":"minimal"
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+    let encoded = encode_request(Protocol::Responses, &canonical, "gpt-5.5")
+        .expect("non-Codex models forward minimal unchanged");
+    assert_eq!(encoded["reasoning"], json!({"effort":"minimal"}));
 
     let input = json!({
         "model":"alias",
@@ -199,6 +212,17 @@ fn chat_responses_accepts_codex_reasoning_effort_values() {
     let encoded = encode_request(Protocol::Responses, &canonical, "gpt-5.6-luna")
         .expect("Codex ultra alias translates to native max");
     assert_eq!(encoded["reasoning"], json!({"effort":"max"}));
+
+    // Variant suffixes still resolve to the base model for effort support.
+    let input = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "reasoning_effort":"minimal"
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+    let encoded = encode_request(Protocol::Responses, &canonical, "gpt-5.6-luna-high")
+        .expect("variant suffix keeps the Codex-tier minimal rejection");
+    assert_eq!(encoded["reasoning"], json!({"effort":"low"}));
 }
 
 #[test]
@@ -227,6 +251,84 @@ fn unsupported_chat_options_are_named_when_translating_to_responses() {
         .expect_err("unsupported options must not be silently discarded");
 
     assert!(error.contains("service_tier"));
+}
+
+#[test]
+fn chat_only_options_are_dropped_when_translating_to_responses() {
+    let input = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "n":3,
+        "seed":7,
+        "user":"u-1",
+        "metadata":{"trace":"abc"},
+        "logprobs":true,
+        "top_logprobs":5,
+        "logit_bias":{ "50256": -100 },
+        "frequency_penalty":0.5,
+        "presence_penalty":-0.5,
+        "safety_identifier":"sid-1",
+        "stream_options":{"include_usage":true}
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+    let encoded = encode_request(Protocol::Responses, &canonical, "reasoning-model")
+        .expect("chat-only options are dropped instead of failing translation");
+    for field in [
+        "n",
+        "seed",
+        "user",
+        "metadata",
+        "logprobs",
+        "top_logprobs",
+        "logit_bias",
+        "frequency_penalty",
+        "presence_penalty",
+        "safety_identifier",
+        "stream_options",
+    ] {
+        assert!(
+            encoded.get(field).is_none(),
+            "{field} must not reach Responses"
+        );
+    }
+}
+
+#[test]
+fn chat_store_and_parallel_tool_calls_translate_to_responses() {
+    let input = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "store":false,
+        "parallel_tool_calls":true
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &input).expect("valid chat request");
+    let encoded = encode_request(Protocol::Responses, &canonical, "reasoning-model")
+        .expect("Responses-native options translate to Responses");
+    assert_eq!(encoded["store"], json!(false));
+    assert_eq!(encoded["parallel_tool_calls"], json!(true));
+
+    let nulls = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "store":null,
+        "parallel_tool_calls":null
+    });
+    let canonical = decode_request(Protocol::ChatCompletions, &nulls).expect("null options parse");
+    let encoded = encode_request(Protocol::Responses, &canonical, "reasoning-model")
+        .expect("null-valued options are omitted, not forwarded");
+    assert!(encoded.get("store").is_none());
+    assert!(encoded.get("parallel_tool_calls").is_none());
+
+    let invalid = json!({
+        "model":"alias",
+        "messages":[{"role":"user","content":"hello"}],
+        "store":"false"
+    });
+    let canonical =
+        decode_request(Protocol::ChatCompletions, &invalid).expect("string store parses");
+    let error = encode_request(Protocol::Responses, &canonical, "reasoning-model")
+        .expect_err("a non-boolean store must be reported");
+    assert!(error.contains("store"));
 }
 
 #[test]
@@ -624,6 +726,88 @@ fn response_protocols_decode_to_the_same_text_response() {
         encode_response(Protocol::ChatCompletions, &b)["choices"][0]["message"]["content"],
         "hello"
     );
+}
+
+#[test]
+fn custom_tool_calls_decode_as_tool_calls() {
+    // Codex freeform tools such as apply_patch arrive as custom_tool_call items
+    // with a freeform string input that is not necessarily valid JSON.
+    let freeform = decode_upstream_response(
+        UpstreamProtocol::Responses,
+        &json!({
+            "id":"resp_1",
+            "status":"completed",
+            "output":[
+                {"type":"reasoning","summary":[{"type":"summary_text","text":"editing"}]},
+                {"type":"custom_tool_call","id":"ctc_1","call_id":"call_1","name":"apply_patch","input":"*** Begin Patch\n*** Update File: a.txt\n*** End Patch"}
+            ]
+        }),
+        "codex",
+    )
+    .expect("custom tool call is valid assistant output");
+    assert_eq!(freeform.finish_reason, "tool_calls");
+    let calls: Vec<_> = freeform
+        .message
+        .content
+        .iter()
+        .filter(|block| matches!(block, ContentBlock::ToolCall { .. }))
+        .collect();
+    assert_eq!(calls.len(), 1);
+    match calls[0] {
+        ContentBlock::ToolCall {
+            id,
+            name,
+            arguments,
+        } => {
+            assert_eq!(id, "call_1");
+            assert_eq!(name, "apply_patch");
+            assert_eq!(
+                arguments,
+                &json!("*** Begin Patch\n*** Update File: a.txt\n*** End Patch")
+            );
+        }
+        _ => unreachable!(),
+    }
+
+    // Structured custom tool input that is valid JSON stays a JSON value.
+    let structured = decode_upstream_response(
+        UpstreamProtocol::Responses,
+        &json!({
+            "status":"completed",
+            "output":[{"type":"custom_tool_call","call_id":"call_2","name":"run_query","input":"{\"sql\":\"select 1\"}"}]
+        }),
+        "codex",
+    )
+    .expect("structured custom tool call is valid output");
+    match structured.message.content.first() {
+        Some(ContentBlock::ToolCall { id, arguments, .. }) => {
+            assert_eq!(id, "call_2");
+            assert_eq!(arguments, &json!({"sql":"select 1"}));
+        }
+        other => panic!("expected tool call, got {other:?}"),
+    }
+
+    // An empty input is still a real tool call: like function_call, the call is
+    // forwarded by name so the client can answer it.
+    let empty_input = decode_upstream_response(
+        UpstreamProtocol::Responses,
+        &json!({"status":"completed","output":[{"type":"custom_tool_call","call_id":"call_3","name":"apply_patch","input":""}]}),
+        "codex",
+    )
+    .expect("an empty-input call still forwards by name");
+    assert_eq!(empty_input.finish_reason, "tool_calls");
+    match empty_input.message.content.first() {
+        Some(ContentBlock::ToolCall {
+            id,
+            name,
+            arguments,
+        }) => {
+            assert_eq!(id, "call_3");
+            assert_eq!(name, "apply_patch");
+            assert_eq!(arguments, &json!(""));
+        }
+        other => panic!("expected tool call, got {other:?}"),
+    }
 }
 
 #[test]

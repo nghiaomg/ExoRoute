@@ -9,6 +9,25 @@ use std::collections::BTreeMap;
 pub(crate) const MAX_TRANSLATION_OPTION_DIAGNOSTICS: usize = 8;
 pub(crate) const MAX_TRANSLATION_OPTION_NAME_CHARS: usize = 128;
 
+/// Chat Completions options with no Responses equivalent that provider adapters
+/// strip in `prepare_body`. Translating a request carrying one of these to a
+/// Responses provider is safe because the adapter removes the field before
+/// dispatch. Keep this list in sync with the codex adapter's strip list; it
+/// covers the Chat Completions-native fields on that list.
+pub(crate) const CHAT_ONLY_DROPPED_OPTIONS: &[&str] = &[
+    "n",
+    "seed",
+    "user",
+    "metadata",
+    "logprobs",
+    "top_logprobs",
+    "logit_bias",
+    "frequency_penalty",
+    "presence_penalty",
+    "safety_identifier",
+    "stream_options",
+];
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ResponsesThinkingIntent {
     Enabled,
@@ -34,6 +53,8 @@ pub(crate) fn apply_responses_metadata(
     let mut enable_thinking = None;
     let mut verbosity = None;
     let mut response_format = None;
+    let mut store = None;
+    let mut parallel_tool_calls = None;
     for (key, value) in metadata {
         if key.eq_ignore_ascii_case("effort") {
             supported += 1;
@@ -69,11 +90,16 @@ pub(crate) fn apply_responses_metadata(
                 );
             }
             enable_thinking = Some(value);
-        } else if key.eq_ignore_ascii_case("stream_options") {
+        } else if CHAT_ONLY_DROPPED_OPTIONS
+            .iter()
+            .any(|name| key.eq_ignore_ascii_case(name))
+        {
             supported += 1;
-            // Chat Completions clients use stream_options.include_usage, but the
-            // Responses API has no equivalent and rejects this field. Usage is
-            // decoded from the Responses event stream instead.
+            // Chat Completions-only options with no Responses equivalent
+            // (stream_options because usage is decoded from the Responses event
+            // stream, and sampling options like n that Responses never accepted).
+            // Provider adapters strip these in prepare_body before dispatch, so
+            // dropping them here matches what the provider would receive.
         } else if key.eq_ignore_ascii_case("verbosity") {
             supported += 1;
             if verbosity.is_some() {
@@ -88,6 +114,20 @@ pub(crate) fn apply_responses_metadata(
                 );
             }
             response_format = Some(value);
+        } else if key.eq_ignore_ascii_case("store") {
+            supported += 1;
+            if store.is_some() {
+                return Err("request option 'store' was provided more than once".to_owned());
+            }
+            store = Some(value);
+        } else if key.eq_ignore_ascii_case("parallel_tool_calls") {
+            supported += 1;
+            if parallel_tool_calls.is_some() {
+                return Err(
+                    "request option 'parallel_tool_calls' was provided more than once".to_owned(),
+                );
+            }
+            parallel_tool_calls = Some(value);
         } else if unsupported.len() < MAX_TRANSLATION_OPTION_DIAGNOSTICS {
             unsupported.push(bound_option_name(key));
         }
@@ -178,6 +218,24 @@ pub(crate) fn apply_responses_metadata(
         }
     }
 
+    // Both fields are native to the Responses API with identical semantics, so
+    // they pass through. store=false in particular must survive translation:
+    // dropping it would let a Responses provider default to store=true and
+    // retain client conversation data the sender explicitly declined.
+    // Explicit null means "unset", matching the option handling in parse.rs.
+    if let Some(value) = store.filter(|value| !value.is_null()) {
+        let stored = value
+            .as_bool()
+            .ok_or("request option 'store' must be a boolean")?;
+        target["store"] = json!(stored);
+    }
+    if let Some(value) = parallel_tool_calls.filter(|value| !value.is_null()) {
+        let parallel = value
+            .as_bool()
+            .ok_or("request option 'parallel_tool_calls' must be a boolean")?;
+        target["parallel_tool_calls"] = json!(parallel);
+    }
+
     Ok(())
 }
 
@@ -246,7 +304,14 @@ pub(crate) fn normalize_responses_effort(
             "request option '{option}' must be one of none, minimal, low, medium, high, xhigh, max or ultra"
         ));
     }
-    if matches!(effort.as_str(), "max" | "ultra") && !supports_native_max_reasoning_effort(model) {
+    // "minimal" is only accepted by newer Responses models; older models list
+    // exactly the universal levels, so degrade it to the closest supported
+    // effort instead of failing the request upstream.
+    if effort == "minimal" && !supports_native_reasoning_effort(model, "minimal") {
+        return Ok("low".to_owned());
+    }
+    if matches!(effort.as_str(), "max" | "ultra") && !supports_native_reasoning_effort(model, "max")
+    {
         return Ok("xhigh".to_owned());
     }
     if effort == "ultra" {
@@ -255,7 +320,14 @@ pub(crate) fn normalize_responses_effort(
     Ok(effort)
 }
 
-pub(crate) fn supports_native_max_reasoning_effort(model: &str) -> bool {
+/// Returns whether the model accepts `effort` natively in the Responses API.
+/// Effort support is model-dependent: the OpenAI Codex tier (gpt-5.6-*/gpt-6)
+/// rejects "minimal" but adds native "max", while earlier OpenAI reasoning
+/// models accept "minimal" and reject "max". Other model names forward the
+/// documented value unchanged and rely on the provider as the authority.
+/// Model suffixes such as gpt-5.6-luna-high name a variant, so they are
+/// stripped before matching.
+pub(crate) fn supports_native_reasoning_effort(model: &str, effort: &str) -> bool {
     let model = model.trim().to_ascii_lowercase();
     let model = model
         .strip_prefix("codex/")
@@ -267,10 +339,15 @@ pub(crate) fn supports_native_max_reasoning_effort(model: &str) -> bool {
     .iter()
     .find_map(|suffix| model.strip_suffix(suffix))
     .unwrap_or(model);
-    matches!(
+    let codex_tier = matches!(
         base_model,
         "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gpt-6-astra"
-    )
+    );
+    match effort {
+        "max" => codex_tier,
+        "minimal" => !codex_tier,
+        _ => true,
+    }
 }
 
 pub(crate) fn normalize_responses_reasoning(value: &Value, model: &str) -> Result<Value, String> {
