@@ -1,5 +1,5 @@
 use super::parse::{CanonicalToolChoice, parse_tool_choice};
-use super::request_metadata::apply_responses_metadata;
+use super::request_metadata::{SAFE_PASSTHROUGH_OPTIONS, apply_responses_metadata};
 use super::*;
 pub(crate) fn encode_openai_family_request(
     protocol: Protocol,
@@ -28,10 +28,13 @@ pub(crate) fn encode_openai_family_request(
             let mut result = json!({"model":model,"messages":messages,"stream":request.stream});
             for (key, value) in &request.metadata {
                 let lower = key.to_ascii_lowercase();
-                if lower.contains("key")
-                    || lower.contains("token")
-                    || lower.contains("authorization")
-                    || lower.contains("secret")
+                if !SAFE_PASSTHROUGH_OPTIONS
+                    .iter()
+                    .any(|name| name.eq_ignore_ascii_case(&lower))
+                    && (lower.contains("key")
+                        || lower.contains("token")
+                        || lower.contains("authorization")
+                        || lower.contains("secret"))
                 {
                     return Err(format!("request option '{key}' cannot be forwarded safely"));
                 }
