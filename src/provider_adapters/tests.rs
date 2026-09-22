@@ -151,6 +151,39 @@ data: {"type":"response.completed","response":{"id":"resp_1","model":"gpt-5.6-lu
 }
 
 #[test]
+fn codex_completed_response_reconstructs_custom_tool_call_input() {
+    // Codex freeform tools such as apply_patch stream their patch through
+    // custom_tool_call_input events and complete with an empty-input item.
+    let response = parse_adapter_event_stream(
+        br#"event: response.output_item.added
+data: {"type":"response.output_item.added","output_index":0,"item":{"id":"ctc_1","type":"custom_tool_call","status":"in_progress","call_id":"call_1","name":"apply_patch","input":""}}
+
+event: response.custom_tool_call_input.delta
+data: {"type":"response.custom_tool_call_input.delta","item_id":"ctc_1","output_index":0,"delta":"*** Begin Patch\n"}
+
+event: response.custom_tool_call_input.delta
+data: {"type":"response.custom_tool_call_input.delta","item_id":"ctc_1","output_index":0,"delta":"*** End Patch"}
+
+event: response.custom_tool_call_input.done
+data: {"type":"response.custom_tool_call_input.done","item_id":"ctc_1","output_index":0,"input":"*** Begin Patch\n*** End Patch"}
+
+event: response.completed
+data: {"type":"response.completed","response":{"id":"resp_1","model":"gpt-5.6-luna","status":"completed","output":[]}}
+
+"#,
+    )
+    .expect("incremental Codex custom tool call should complete successfully");
+
+    assert_eq!(response["output"][0]["type"], "custom_tool_call");
+    assert_eq!(response["output"][0]["call_id"], "call_1");
+    assert_eq!(response["output"][0]["name"], "apply_patch");
+    assert_eq!(
+        response["output"][0]["input"],
+        "*** Begin Patch\n*** End Patch"
+    );
+}
+
+#[test]
 fn codex_completed_response_reconstructs_function_call_arguments() {
     let response = parse_adapter_event_stream(
         br#"event: response.output_item.added
