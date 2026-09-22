@@ -513,6 +513,7 @@ async fn fetch_usage_for_account(
         false,
         operational.connect_timeout,
         operational.request_timeout,
+        false,
         CODEX_USER_AGENT,
         operational.upstream,
     )
@@ -578,6 +579,7 @@ async fn oauth_client(
         false,
         connect_timeout,
         request_timeout,
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         upstream,
     )

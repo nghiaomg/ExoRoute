@@ -200,6 +200,7 @@ pub(super) async fn test_command_code_api_key(
         operational
             .request_timeout
             .min(operational.upstream.command_code_usage_timeout),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         operational.upstream,
     )
@@ -266,6 +267,7 @@ pub(super) async fn fetch_command_code_usage(
         operational
             .request_timeout
             .min(operational.upstream.command_code_usage_timeout),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         operational.upstream,
     )
