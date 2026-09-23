@@ -457,6 +457,75 @@ async fn preflight_reports_deliberate_empty_completion_for_finish_signal_only_st
     );
 }
 
+#[test]
+fn preflight_accepts_chat_tool_deltas_for_every_client_protocol() {
+    let chunk = json!({
+        "choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"exec","arguments":"{\"cmd\":\"pwd\"}"}}]},"finish_reason":null}]
+    });
+    let frame = format!("data: {}\n\n", chunk);
+    for client_protocol in [
+        Protocol::ChatCompletions,
+        Protocol::Responses,
+        Protocol::Messages,
+    ] {
+        let mut responses_accumulator = ResponsesStreamAccumulator::default();
+        assert!(
+            matches!(
+                preflight_frame(
+                    UpstreamProtocol::ChatCompletions,
+                    client_protocol,
+                    "test-model",
+                    &frame,
+                    &mut responses_accumulator,
+                    GatewayResourceLimits::default().sse_buffer_limit_bytes,
+                ),
+                Ok(PreflightFrame::Ready)
+            ),
+            "tool delta must be meaningful output for client {client_protocol:?}"
+        );
+    }
+}
+
+#[test]
+fn chat_tool_call_accumulator_merges_chunks_and_limits_arguments() {
+    let first = json!({
+        "tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"exec","arguments":"{\"cmd\":"}}]
+    });
+    let second = json!({
+        "tool_calls":[{"index":0,"function":{"arguments":"\"pwd\"}"}}]
+    });
+    let mut accumulator = ChatStreamToolCallAccumulator::default();
+    accumulator.merge_delta(&first, 1024).expect("first delta");
+    accumulator
+        .merge_delta(&second, 1024)
+        .expect("second delta");
+    assert_eq!(accumulator.call_count(), 1);
+    let calls = accumulator.drain();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(calls[0].id, "call-1");
+    assert_eq!(calls[0].name, "exec");
+    assert_eq!(calls[0].arguments, json!({"cmd":"pwd"}));
+    assert!(accumulator.is_empty());
+
+    // Arguments exceeding the limit fail the stream instead of truncating.
+    let mut oversized = ChatStreamToolCallAccumulator::default();
+    assert!(
+        oversized
+            .merge_delta(&first, 4)
+            .unwrap_err()
+            .contains("exceeded"),
+        "oversized arguments must fail"
+    );
+    // Invalid JSON arguments are preserved as a raw string, never dropped.
+    let raw = json!({
+        "tool_calls":[{"index":0,"id":"call-2","type":"function","function":{"name":"patch","arguments":"not-json"}}]
+    });
+    let mut raw_accumulator = ChatStreamToolCallAccumulator::default();
+    raw_accumulator.merge_delta(&raw, 1024).expect("raw delta");
+    let raw_calls = raw_accumulator.drain();
+    assert_eq!(raw_calls[0].arguments, Value::String("not-json".to_owned()));
+}
+
 #[tokio::test]
 async fn preflight_reconstructs_codex_function_call_before_empty_terminal_output() {
     let body = concat!(
@@ -965,6 +1034,73 @@ fn provider_stream_error_keeps_bounded_redacted_diagnostics() {
     );
 }
 
+async fn run_stream_translation_test_for(
+    upstream_protocol: UpstreamProtocol,
+    client_protocol: Protocol,
+    body: &str,
+) -> (String, StreamOutcome) {
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpListener,
+    };
+
+    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+        .await
+        .expect("stream test listener");
+    let address = listener.local_addr().expect("stream test address");
+    let body = body.to_owned();
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.expect("stream test request");
+        let mut request = [0_u8; 1024];
+        let _ = socket.read(&mut request).await;
+        let headers = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        socket
+            .write_all(headers.as_bytes())
+            .await
+            .expect("stream test headers");
+        socket
+            .write_all(body.as_bytes())
+            .await
+            .expect("stream test body");
+    });
+
+    let upstream = reqwest::Client::new()
+        .get(format!("http://{address}/stream"))
+        .send()
+        .await
+        .expect("stream test upstream response");
+    let (_shutdown_sender, shutdown) = watch::channel(false);
+    let outcome = StreamOutcome::default();
+    let response = stream_translation(
+        upstream,
+        StreamTranslationConfig {
+            upstream_protocol,
+            client_protocol,
+            request_id: "stream-test".to_owned(),
+            model: "cmc/model".to_owned(),
+            idle_timeout: Duration::from_secs(1),
+            continuity_enabled: false,
+            overall_timeout: None,
+            outcome: outcome.clone(),
+            analytics: None,
+            resource_limits: GatewayResourceLimits::default(),
+            shutdown,
+            log: None,
+        },
+    );
+    let translated = axum::body::to_bytes(response.into_body(), 64 * 1024)
+        .await
+        .expect("translated stream body");
+    server.await.expect("stream test server");
+    (
+        String::from_utf8(translated.to_vec()).expect("translated SSE text"),
+        outcome,
+    )
+}
+
 async fn run_stream_translation_test(
     body: &str,
     continuity_enabled: bool,
@@ -1125,4 +1261,74 @@ async fn continuity_timeout_is_not_hidden_by_local_heartbeats() {
     assert!(body.contains("upstream_error"), "{body}");
     assert!(outcome.failed());
     assert!(!outcome.completed());
+}
+
+#[tokio::test]
+async fn chat_tool_call_stream_translates_to_responses_client() {
+    let body = concat!(
+        "data: {\"id\":\"c1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"},\"finish_reason\":null}]}\n\n",
+        "data: {\"id\":\"c2\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"exec\",\"arguments\":\"\"}}]},\"finish_reason\":null}]}\n\n",
+        "data: {\"id\":\"c3\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"cmd\\\":\\\"pwd\\\"}\"}}]},\"finish_reason\":null}]}\n\n",
+        "data: {\"id\":\"c4\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n",
+        "data: [DONE]\n\n",
+    );
+    let (translated, outcome) = run_stream_translation_test_for(
+        UpstreamProtocol::ChatCompletions,
+        Protocol::Responses,
+        body,
+    )
+    .await;
+    assert!(outcome.completed(), "{translated}");
+    assert!(!translated.contains("upstream_error"), "{translated}");
+    assert!(
+        translated.contains("response.output_item.added"),
+        "{translated}"
+    );
+    assert!(translated.contains("\"name\":\"exec\""), "{translated}");
+    assert!(translated.contains("\"function_call\""), "{translated}");
+    assert!(
+        translated.contains("response.function_call_arguments.delta"),
+        "{translated}"
+    );
+    assert!(
+        translated.contains("\"finish_reason\":\"tool_calls\""),
+        "{translated}"
+    );
+    let completed = translated
+        .split("event: response.completed")
+        .nth(1)
+        .expect("completed event");
+    assert!(
+        completed.contains("\"type\":\"function_call\""),
+        "{translated}"
+    );
+}
+
+#[tokio::test]
+async fn chat_tool_call_stream_translates_to_messages_client() {
+    let body = concat!(
+        "data: {\"id\":\"c1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-1\",\"type\":\"function\",\"function\":{\"name\":\"exec\",\"arguments\":\"\"}}]},\"finish_reason\":null}]}\n\n",
+        "data: {\"id\":\"c2\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"{\\\"cmd\\\":\\\"pwd\\\"}\"}}]},\"finish_reason\":null}]}\n\n",
+        "data: {\"id\":\"c3\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n",
+        "data: [DONE]\n\n",
+    );
+    let (translated, outcome) = run_stream_translation_test_for(
+        UpstreamProtocol::ChatCompletions,
+        Protocol::Messages,
+        body,
+    )
+    .await;
+    assert!(outcome.completed(), "{translated}");
+    assert!(!translated.contains("upstream_error"), "{translated}");
+    assert!(translated.contains("content_block_start"), "{translated}");
+    assert!(translated.contains("\"name\":\"exec\""), "{translated}");
+    assert!(translated.contains("input_json_delta"), "{translated}");
+    assert!(
+        translated.contains("\"stop_reason\":\"tool_use\""),
+        "{translated}"
+    );
+    assert!(
+        translated.ends_with("event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"),
+        "{translated}"
+    );
 }
