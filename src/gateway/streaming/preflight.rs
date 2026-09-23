@@ -160,8 +160,15 @@ pub(crate) fn preflight_frame(
         return Ok(PreflightFrame::Ready);
     }
 
+    // A finish signal without a terminal sentinel event still tells us the
+    // provider finished deliberately: retrying the same request would burn
+    // tokens to produce the same empty output again.
     let completed = (upstream_protocol == UpstreamProtocol::Messages
-        && (event_name == "message_stop" || event_type == "message_stop"))
+        && (event_name == "message_stop"
+            || event_type == "message_stop"
+            || extract_stream_finish(upstream_protocol, &event_name, &value).is_some()))
+        || (upstream_protocol == UpstreamProtocol::ChatCompletions
+            && extract_stream_finish(upstream_protocol, &event_name, &value).is_some())
         || responses_terminal.is_some()
         || google_update
             .as_ref()

@@ -34,6 +34,7 @@ pub(super) fn translation_stream(
     async_stream::stream! {
         let mut sent_start = false;
         let mut completed = false;
+        let mut saw_finish_signal = false;
         let mut saw_output = false;
         let mut stream_error = None::<String>;
         let mut input_tokens = 0u64;
@@ -231,7 +232,10 @@ pub(super) fn translation_stream(
                     analytics.set_token_usage(input, output);
                     analytics.set_cached_token_usage(cached, cache_input);
                 }
-                if let Some(reason) = extract_stream_finish(upstream_protocol, &event_name, &value) { finish_reason = reason; }
+                if let Some(reason) = extract_stream_finish(upstream_protocol, &event_name, &value) {
+                    finish_reason = reason;
+                    saw_finish_signal = true;
+                }
                 if client_protocol == Protocol::Messages && !sent_start {
                     let start = if upstream_protocol == UpstreamProtocol::GoogleGenerateContent {
                         google_messages_stream_start(&upstream_id, &model, input_tokens)
@@ -612,6 +616,19 @@ pub(super) fn translation_stream(
 
         if shutting_down {
             return;
+        }
+        // Some providers close the connection right after the finish signal
+        // (chat finish_reason or Anthropic stop_reason) and omit the terminal
+        // sentinel event ([DONE] / message_stop). The output is already fully
+        // delivered at that point, so treat the finish signal as a clean
+        // completion instead of reporting a truncated stream.
+        if !completed && saw_finish_signal {
+            completed = true;
+            if upstream_protocol == UpstreamProtocol::Messages
+                && client_protocol == Protocol::Responses
+            {
+                response_output = Some(messages_response_output(&messages_blocks));
+            }
         }
         let had_stream_error = stream_error.is_some();
         let final_error = stream_error.or_else(|| {
