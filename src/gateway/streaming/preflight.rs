@@ -142,10 +142,8 @@ pub(crate) fn preflight_frame(
         || encode_responses_image_event(upstream_protocol, client_protocol, &event_name, &value)
             .is_some()
         || (upstream_protocol == UpstreamProtocol::ChatCompletions
-            && client_protocol == Protocol::ChatCompletions
             && extract_chat_stream_tool_delta(&value).is_some())
         || (upstream_protocol == UpstreamProtocol::ChatCompletions
-            && client_protocol == Protocol::ChatCompletions
             && extract_chat_stream_reasoning_delta(&value)
                 .is_some_and(|text| !text.trim().is_empty()))
         || (upstream_protocol == UpstreamProtocol::GoogleGenerateContent

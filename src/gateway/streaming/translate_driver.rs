@@ -53,7 +53,9 @@ pub(super) fn translation_stream(
         let mut messages_next_output_index = 0usize;
         let mut messages_open_blocks = Vec::<usize>::new();
         let mut messages_text_started = false;
+        let mut chat_stream_text_sent = false;
         let mut google_responses_text = String::new();
+        let mut chat_tool_calls = ChatStreamToolCallAccumulator::default();
         let mut shutting_down = false;
         'read_stream: loop {
             let (event_name, data, frame_permit) = match reader.next().await {
@@ -236,6 +238,22 @@ pub(super) fn translation_stream(
                     finish_reason = reason;
                     saw_finish_signal = true;
                 }
+                if upstream_protocol == UpstreamProtocol::ChatCompletions
+                    && let Some(delta) = extract_chat_stream_tool_delta(&value)
+                    && let Err(error) =
+                        chat_tool_calls.merge_delta(delta, resource_limits.sse_buffer_limit_bytes)
+                {
+                    stream_error = Some(error);
+                    drop(value);
+                    drop(event_name);
+                    drop(data);
+                    drop(frame_permit);
+                    yield Ok(Bytes::from(encode_stream_error(
+                        client_protocol,
+                        stream_error.as_deref().unwrap_or("upstream stream failed"),
+                    )));
+                    break 'read_stream;
+                }
                 if client_protocol == Protocol::Messages && !sent_start {
                     let start = if upstream_protocol == UpstreamProtocol::GoogleGenerateContent {
                         google_messages_stream_start(&upstream_id, &model, input_tokens)
@@ -347,7 +365,6 @@ pub(super) fn translation_stream(
                     frame_output.push(Bytes::from(encoded));
                 }
                 if upstream_protocol == UpstreamProtocol::ChatCompletions
-                    && client_protocol == Protocol::ChatCompletions
                     && let Some(reasoning) = extract_chat_stream_reasoning_delta(&value)
                 {
                     saw_output = true;
@@ -371,6 +388,7 @@ pub(super) fn translation_stream(
                 if let Some(crate::protocol::StreamEvent::TextDelta { text }) = event {
                     if !text.trim().is_empty() {
                         saw_output = true;
+                        chat_stream_text_sent = true;
                     }
                     if upstream_protocol == UpstreamProtocol::GoogleGenerateContent
                         && client_protocol == Protocol::Responses
@@ -422,22 +440,26 @@ pub(super) fn translation_stream(
                     if !encoded.is_empty() { frame_output.push(Bytes::from(encoded)); }
                 }
                 if upstream_protocol == UpstreamProtocol::ChatCompletions
-                    && client_protocol == Protocol::ChatCompletions
                     && let Some(delta) = extract_chat_stream_tool_delta(&value)
                 {
                     saw_output = true;
-                    if !sent_start {
-                        let start = encode_stream_start(client_protocol, &upstream_id, &model);
-                        if !start.is_empty() {
-                            frame_output.push(Bytes::from(start));
+                    if client_protocol == Protocol::ChatCompletions {
+                        if !sent_start {
+                            let start = encode_stream_start(client_protocol, &upstream_id, &model);
+                            if !start.is_empty() {
+                                frame_output.push(Bytes::from(start));
+                            }
+                            sent_start = true;
                         }
-                        sent_start = true;
+                        frame_output.push(Bytes::from(encode_chat_stream_tool_delta(
+                            &upstream_id,
+                            &model,
+                            delta,
+                        )));
                     }
-                    frame_output.push(Bytes::from(encode_chat_stream_tool_delta(
-                        &upstream_id,
-                        &model,
-                        delta,
-                    )));
+                    // Non-Chat clients receive the merged calls when the
+                    // stream completes; their protocol shapes have no
+                    // incremental tool-delta form to mirror Chat chunks with.
                 }
                 if responses_terminal.is_some() {
                     let terminal_response = value.get("response").unwrap_or(&value);
@@ -630,6 +652,15 @@ pub(super) fn translation_stream(
                 response_output = Some(messages_response_output(&messages_blocks));
             }
         }
+        if !completed
+            && upstream_protocol == UpstreamProtocol::ChatCompletions
+            && !chat_tool_calls.is_empty()
+        {
+            completed = true;
+            if finish_reason == "stop" {
+                finish_reason = "tool_calls".to_owned();
+            }
+        }
         let had_stream_error = stream_error.is_some();
         let final_error = stream_error.or_else(|| {
             if !completed {
@@ -674,6 +705,64 @@ pub(super) fn translation_stream(
                 }
             }
             let usage = has_usage.then_some((input_tokens, output_tokens));
+            if upstream_protocol == UpstreamProtocol::ChatCompletions
+                && client_protocol != Protocol::ChatCompletions
+            {
+                if finish_reason == "stop" {
+                    finish_reason = "tool_calls".to_owned();
+                }
+                if client_protocol == Protocol::Messages {
+                    let first_tool_index = usize::from(messages_text_started);
+                    let tool_count = chat_tool_calls.call_count();
+                    for offset in 0..tool_count {
+                        let output_index = first_tool_index.saturating_add(offset);
+                        if !messages_open_blocks.contains(&output_index) {
+                            messages_open_blocks.push(output_index);
+                        }
+                    }
+                }
+                if client_protocol == Protocol::Responses
+                    && response_output.is_none()
+                    && !saw_output
+                {
+                    response_output = Some(Vec::new());
+                }
+                if !sent_start {
+                    let start = encode_stream_start(client_protocol, &upstream_id, &model);
+                    if !start.is_empty() {
+                        yield Ok(Bytes::from(start));
+                    }
+                }
+                for call in chat_tool_calls.drain() {
+                    let (tool_events, tool_output) = match encode_google_tool_call_events(
+                        client_protocol,
+                        std::slice::from_ref(&call),
+                        &upstream_id,
+                        &model,
+                        chat_stream_text_sent,
+                        chat_stream_text_sent,
+                    ) {
+                        Ok(output) => output,
+                        Err(error) => {
+                            stream_error = Some(error);
+                            yield Ok(Bytes::from(encode_stream_error(
+                                client_protocol,
+                                stream_error.as_deref().unwrap_or("upstream stream failed"),
+                            )));
+                            break;
+                        }
+                    };
+                    if !tool_output.is_empty() {
+                        match response_output.as_mut() {
+                            Some(output) => output.extend(tool_output),
+                            None => response_output = Some(tool_output),
+                        }
+                    }
+                    for event in tool_events {
+                        yield Ok(event);
+                    }
+                }
+            }
             let finish = if upstream_protocol == UpstreamProtocol::GoogleGenerateContent
                 && client_protocol == Protocol::Messages
             {
