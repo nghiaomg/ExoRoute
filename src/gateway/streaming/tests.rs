@@ -318,6 +318,146 @@ async fn anthropic_tool_only_stream_is_completed_without_empty_content_error() {
 }
 
 #[tokio::test]
+async fn chat_stream_missing_done_marker_completes_from_finish_reason() {
+    let body = concat!(
+        "data: {\"id\":\"c1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"hello\"},\"finish_reason\":null}]}\n\n",
+        "data: {\"id\":\"c1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+    );
+    let (_shutdown_sender, shutdown) = watch::channel(false);
+    let outcome = StreamOutcome::default();
+    let response = stream_translation_from_chunks(
+        Box::pin(futures_util::stream::iter(vec![
+            Ok::<Bytes, reqwest::Error>(Bytes::from_static(body.as_bytes())),
+        ])),
+        StreamTranslationConfig {
+            upstream_protocol: UpstreamProtocol::ChatCompletions,
+            client_protocol: Protocol::ChatCompletions,
+            request_id: "chat-no-done".to_owned(),
+            model: "command-code/model".to_owned(),
+            idle_timeout: Duration::from_secs(1),
+            continuity_enabled: false,
+            overall_timeout: None,
+            outcome: outcome.clone(),
+            analytics: None,
+            resource_limits: GatewayResourceLimits::default(),
+            shutdown,
+            log: None,
+        },
+    );
+    let translated = axum::body::to_bytes(response.into_body(), 64 * 1024)
+        .await
+        .expect("translated chat stream body");
+    let translated = String::from_utf8(translated.to_vec()).expect("translated SSE text");
+    assert!(
+        translated.contains("\"finish_reason\":\"stop\""),
+        "{translated}"
+    );
+    assert!(!translated.contains("upstream_error"), "{translated}");
+    assert!(translated.ends_with("data: [DONE]\n\n"), "{translated}");
+    assert!(outcome.completed());
+    assert!(!outcome.failed());
+}
+
+#[tokio::test]
+async fn chat_stream_eof_without_finish_signal_stays_failed() {
+    let body = "data: {\"id\":\"c2\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"partial\"},\"finish_reason\":null}]}\n\n";
+    let (_shutdown_sender, shutdown) = watch::channel(false);
+    let outcome = StreamOutcome::default();
+    let response = stream_translation_from_chunks(
+        Box::pin(futures_util::stream::iter(vec![
+            Ok::<Bytes, reqwest::Error>(Bytes::from_static(body.as_bytes())),
+        ])),
+        StreamTranslationConfig {
+            upstream_protocol: UpstreamProtocol::ChatCompletions,
+            client_protocol: Protocol::ChatCompletions,
+            request_id: "chat-truncated".to_owned(),
+            model: "command-code/model".to_owned(),
+            idle_timeout: Duration::from_secs(1),
+            continuity_enabled: false,
+            overall_timeout: None,
+            outcome: outcome.clone(),
+            analytics: None,
+            resource_limits: GatewayResourceLimits::default(),
+            shutdown,
+            log: None,
+        },
+    );
+    let translated = axum::body::to_bytes(response.into_body(), 64 * 1024)
+        .await
+        .expect("translated truncated chat stream body");
+    let translated = String::from_utf8(translated.to_vec()).expect("translated SSE text");
+    assert!(
+        translated.contains("upstream stream ended before a terminal success event"),
+        "{translated}"
+    );
+    assert!(outcome.failed());
+    assert!(!outcome.completed());
+}
+
+#[tokio::test]
+async fn anthropic_stream_without_message_stop_completes_from_stop_reason() {
+    let body = concat!(
+        "event: message_start\n",
+        "data: {\"type\":\"message_start\",\"message\":{\"content\":[]}}\n\n",
+        "event: content_block_start\n",
+        "data: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\n",
+        "event: content_block_delta\n",
+        "data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"hi\"}}\n\n",
+        "event: message_delta\n",
+        "data: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"}}\n\n",
+    );
+    let (_shutdown_sender, shutdown) = watch::channel(false);
+    let outcome = StreamOutcome::default();
+    let response = stream_translation_from_chunks(
+        Box::pin(futures_util::stream::iter(vec![
+            Ok::<Bytes, reqwest::Error>(Bytes::from_static(body.as_bytes())),
+        ])),
+        StreamTranslationConfig {
+            upstream_protocol: UpstreamProtocol::Messages,
+            client_protocol: Protocol::Messages,
+            request_id: "messages-no-stop".to_owned(),
+            model: "command-code/model".to_owned(),
+            idle_timeout: Duration::from_secs(1),
+            continuity_enabled: false,
+            overall_timeout: None,
+            outcome: outcome.clone(),
+            analytics: None,
+            resource_limits: GatewayResourceLimits::default(),
+            shutdown,
+            log: None,
+        },
+    );
+    let translated = axum::body::to_bytes(response.into_body(), 64 * 1024)
+        .await
+        .expect("translated Anthropic stream body");
+    let translated = String::from_utf8(translated.to_vec()).expect("translated SSE text");
+    assert!(!translated.contains("upstream_error"), "{translated}");
+    assert!(
+        translated.contains("\"stop_reason\":\"end_turn\""),
+        "{translated}"
+    );
+    assert!(outcome.completed());
+    assert!(!outcome.failed());
+}
+
+#[tokio::test]
+async fn preflight_reports_deliberate_empty_completion_for_finish_signal_only_stream() {
+    let body = "data: {\"id\":\"c3\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n";
+    let error = run_preflight_test(
+        body,
+        UpstreamProtocol::ChatCompletions,
+        Protocol::ChatCompletions,
+        GatewayResourceLimits::default(),
+    )
+    .await
+    .expect_err("finish signal without output stays retryable");
+    assert!(
+        error.contains("upstream completed the response without content"),
+        "{error}"
+    );
+}
+
+#[tokio::test]
 async fn preflight_reconstructs_codex_function_call_before_empty_terminal_output() {
     let body = concat!(
         "event: response.output_item.added\n",
