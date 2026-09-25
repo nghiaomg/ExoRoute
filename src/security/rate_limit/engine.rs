@@ -1,110 +1,16 @@
-//! Small, process-local rate limiter primitives.
+//! Stateful rate-limit engine.
 //!
-//! Create separate `RateLimiter` instances for different identities/policies
-//! (for example, admin login IPs and authenticated gateway client IDs). The
-//! map has a hard entry limit. When full, new identities are rejected until
-//! expired entries can be safely pruned; this avoids evicting an active
-//! identity and letting an attacker bypass its quota by cycling identities.
+//! Owns the per-identity quota map, its lock discipline, and the bounded
+//! pruning work performed on each request.
 
+use super::policy::{
+    MAX_KEY_BYTES, RateLimitDecision, RateLimitPolicy, RateLimiterConfig, RateLimiterConfigError,
+};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-/// The maximum size of a key retained by the limiter.
-///
-/// Identity keys should be short values such as an IP address or a database
-/// ID. Rejecting oversized keys also bounds memory use per map entry.
-pub const MAX_KEY_BYTES: usize = 256;
 const PRUNE_BATCH_SIZE: usize = 1_024;
-
-/// Fixed-window or token-bucket quota policy.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RateLimitPolicy {
-    /// Permit `max_requests` requests per `window`, aligned to the first
-    /// request from each identity rather than to wall-clock boundaries.
-    FixedWindow { max_requests: u32, window: Duration },
-    /// Add `refill_tokens` tokens every `refill_interval`, up to `capacity`.
-    /// A request consumes one token. Refill is applied in whole intervals.
-    TokenBucket {
-        capacity: u32,
-        refill_tokens: u32,
-        refill_interval: Duration,
-    },
-}
-
-/// Configuration for a process-local limiter.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct RateLimiterConfig {
-    pub policy: RateLimitPolicy,
-    /// Hard bound on identities held in memory.
-    pub max_entries: usize,
-    /// An entry is removable only after this much inactivity *and* after its
-    /// quota has naturally reset/refilled. This prevents pruning from granting
-    /// a fresh quota early.
-    pub idle_ttl: Duration,
-    /// Maximum interval between bounded incremental pruning batches.
-    pub prune_interval: Duration,
-}
-
-impl RateLimiterConfig {
-    pub const fn new(policy: RateLimitPolicy, max_entries: usize) -> Self {
-        Self {
-            policy,
-            max_entries,
-            idle_ttl: Duration::from_secs(15 * 60),
-            prune_interval: Duration::from_secs(1),
-        }
-    }
-}
-
-/// Invalid limiter configuration.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RateLimiterConfigError {
-    EmptyEntryLimit,
-    MissingIdleTtl,
-    MissingPruneInterval,
-    ZeroRequestLimit,
-    NoWindow,
-    ZeroCapacity,
-    ZeroRefill,
-    ZeroRefillInterval,
-}
-
-/// Outcome of one rate-limit check.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct RateLimitDecision {
-    pub allowed: bool,
-    /// Remaining requests/tokens after this check. Zero for rejected requests.
-    pub remaining: u32,
-    /// Suggested delay before retrying, present for quota and capacity denial.
-    pub retry_after: Option<Duration>,
-}
-
-impl RateLimitDecision {
-    const fn allowed(remaining: u32) -> Self {
-        Self {
-            allowed: true,
-            remaining,
-            retry_after: None,
-        }
-    }
-
-    const fn rejected(retry_after: Duration) -> Self {
-        Self {
-            allowed: false,
-            remaining: 0,
-            retry_after: Some(retry_after),
-        }
-    }
-
-    const fn denied_without_estimate() -> Self {
-        Self {
-            allowed: false,
-            remaining: 0,
-            retry_after: None,
-        }
-    }
-}
 
 #[derive(Debug)]
 struct Entry {

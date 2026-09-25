@@ -13,7 +13,7 @@ use crate::{
     protocol::UpstreamProtocol,
     provider_adapters::{self},
     security::egress,
-    security::{decrypt_secret, encrypt_secret, secure_eq, token_hash},
+    security::{decrypt_secret, secure_eq, token_hash},
     state::{AppState, PendingProviderAuthFlow, ProviderAuthFlowStatus},
 };
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
