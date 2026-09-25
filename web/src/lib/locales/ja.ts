@@ -160,6 +160,8 @@ export const ja: Catalog = {
   'Could not open provider details. Reload the page and try again.': 'プロバイダーの詳細を開けませんでした。ページを再読み込みして、もう一度お試しください。',
   'Custom provider settings are unavailable. Reload the page and try again.': 'カスタムプロバイダー設定を利用できません。ページを再読み込みして、もう一度お試しください。',
   'Saved models': '保存済みモデル',
+  'Manual': '手動',
+  'Imported {count} models. Kept {kept} manual models.': '{count} 件のモデルをインポートしました。手動モデル {kept} 件を保持しました。',
   'Manage saved models for this provider. Import a list, add a model ID manually, or test models below.': 'このプロバイダーの保存済みモデルを管理します。リストをインポートするか、下でモデルをテストしてください。',
   'Give your model an endpoint': 'モデルにエンドポイントを設定',
   'BASE URL': 'ベース URL',

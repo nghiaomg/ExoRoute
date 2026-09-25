@@ -6,6 +6,7 @@
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
   import type { ModelTestTarget, Provider, ProviderModelImportResult } from '../../lib/types';
+  import { mergeImportedModels } from '../../lib/provider-model-import';
   import ProviderModelTests from './ProviderModelTests.svelte';
 
   type CatalogState = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
@@ -18,6 +19,7 @@ import { localizedError } from '../../lib/errors';
   export let onProviderChanged: () => void;
 
   let models: string[] = [];
+  let manualModels: string[] = [];
   let catalogState: CatalogState = 'idle';
   let catalogError = '';
   let importFeedback: ImportFeedback | null = null;
@@ -56,6 +58,7 @@ import { localizedError } from '../../lib/errors';
       const catalog = await api.providerModels(provider.id);
       if (requestGeneration !== generation) return;
       models = catalog.models;
+      manualModels = catalog.manual_models ?? [];
       if (catalog.models.length || !isOAuthProvider) {
         catalogState = catalog.models.length ? 'ready' : 'empty';
         return;
@@ -66,6 +69,7 @@ import { localizedError } from '../../lib/errors';
       if (requestGeneration !== generation) return;
       if (!imported.available || imported.models.length === 0) {
         models = [];
+        manualModels = [];
         catalogState = 'empty';
         importFeedback = {
           state: imported.available ? 'empty' : 'unsupported',
@@ -76,6 +80,7 @@ import { localizedError } from '../../lib/errors';
         return;
       }
       models = imported.models;
+      manualModels = [];
       catalogState = 'ready';
       importFeedback = {
         state: imported.truncated ? 'truncated' : 'success',
@@ -99,9 +104,13 @@ import { localizedError } from '../../lib/errors';
     const requestGeneration = generation;
     importFeedback = { state: 'loading', message: tr('Importing models…') };
     let previousModels = models;
+    let knownManualModels = manualModels;
     try {
       try {
-        previousModels = (await api.providerModels(providerId)).models;
+        const catalog = await api.providerModels(providerId);
+        previousModels = catalog.models;
+        knownManualModels = catalog.manual_models ?? knownManualModels;
+        manualModels = knownManualModels;
         models = previousModels;
         catalogState = previousModels.length ? 'ready' : 'empty';
       } catch {
@@ -112,33 +121,30 @@ import { localizedError } from '../../lib/errors';
       const nonAuthoritativeCatalog = provider.adapter_id === 'nvidia_nim'
         || provider.capabilities?.model_catalog_authoritative === false;
       const pruned = Array.isArray(result.pruned) ? result.pruned : [];
-      let nextModels: string[];
-      if (!result.available) {
-        nextModels = previousModels;
-      } else if (pruned.length) {
-        const prunedSet = new Set(pruned);
-        nextModels = previousModels.filter((model) => !prunedSet.has(model));
-        for (const model of result.models) {
-          if (!nextModels.includes(model)) nextModels.push(model);
-        }
-        nextModels.sort((left, right) => left.localeCompare(right));
-      } else if (nonAuthoritativeCatalog) {
-        nextModels = Array.from(new Set([...previousModels, ...result.models])).sort((left, right) => left.localeCompare(right));
-      } else {
-        nextModels = result.models;
-      }
-      models = nextModels;
-      catalogState = nextModels.length ? 'ready' : 'empty';
+      const merged = mergeImportedModels({
+        available: result.available,
+        authoritative: !nonAuthoritativeCatalog,
+        importedModels: result.models,
+        previousModels,
+        manualModels: knownManualModels,
+        pruned,
+      });
+      models = merged.models;
+      manualModels = merged.manualModels;
+      catalogState = merged.models.length ? 'ready' : 'empty';
       catalogError = '';
+      const keptManual = typeof result.manual_kept === 'number' ? result.manual_kept : 0;
       const state: ImportState = !result.available ? 'unsupported' : result.truncated ? 'truncated' : result.models.length ? 'success' : 'empty';
       const message = state === 'unsupported'
         ? tr('This provider does not support model listing.')
         : state === 'truncated'
           ? tr('Imported {count} models. The provider list was truncated.', { count: result.models.length })
-          : state === 'empty'
-            ? tr('No models were returned by this provider.')
-            : pruned.length
-              ? tr('Imported {count} models. Removed {removed} unsupported saved models: {models}', { count: result.models.length, removed: pruned.length, models: pruned.join(', ') })
+          : pruned.length
+          ? tr('Imported {count} models. Removed {removed} unsupported saved models: {models}', { count: result.models.length, removed: pruned.length, models: pruned.join(', ') })
+          : keptManual > 0
+            ? tr('Imported {count} models. Kept {kept} manual models.', { count: result.models.length, kept: keptManual })
+            : state === 'empty'
+              ? tr('No models were returned by this provider.')
               : tr('Imported {count} models.', { count: result.models.length });
       importFeedback = { state, message };
       onProviderChanged();
@@ -162,6 +168,7 @@ import { localizedError } from '../../lib/errors';
     try {
       const result = await api.addManualProviderModel(provider.id, model);
       if (!models.includes(result.model)) models = [...models, result.model].sort((left, right) => left.localeCompare(right));
+      if (!manualModels.includes(result.model)) manualModels = [...manualModels, result.model].sort((left, right) => left.localeCompare(right));
       catalogState = 'ready';
       manualModelDraft = '';
       manualModelNotice = tr('Model saved.');
@@ -182,6 +189,7 @@ import { localizedError } from '../../lib/errors';
       await api.deleteProviderModel(providerId, model);
       if (provider.id !== providerId) return;
       models = models.filter((item) => item !== model);
+      manualModels = manualModels.filter((item) => item !== model);
       catalogState = models.length ? 'ready' : 'empty';
       importFeedback = null;
       manualModelNotice = tr('Model deleted.');
@@ -237,6 +245,6 @@ import { localizedError } from '../../lib/errors';
   {:else if catalogState === 'empty'}
     <div class="provider-model-empty"><Cpu size={19} /><p>{tr('No saved models for this provider. Import a list or add a model ID manually.')}</p><button class="secondary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}><Download size={13} />{tr('Import models')}</button></div>
   {:else if catalogState === 'ready'}
-    <ProviderModelTests provider={provider} models={modelTargets} {tr} onDeleteModel={deleteModel} />
+    <ProviderModelTests provider={provider} models={modelTargets} {manualModels} {tr} onDeleteModel={deleteModel} />
   {/if}
 </section>

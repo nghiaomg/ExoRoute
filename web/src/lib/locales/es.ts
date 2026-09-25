@@ -160,6 +160,8 @@ export const es: Catalog = {
   'Could not open provider details. Reload the page and try again.': 'No se pudieron abrir los detalles del proveedor. Recarga la página e inténtalo de nuevo.',
   'Custom provider settings are unavailable. Reload the page and try again.': 'La configuración del proveedor personalizado no está disponible. Recarga la página e inténtalo de nuevo.',
   'Saved models': 'Modelos guardados',
+  'Manual': 'Manual',
+  'Imported {count} models. Kept {kept} manual models.': 'Se importaron {count} modelos. Se conservaron {kept} modelos manuales.',
   'Manage saved models for this provider. Import a list, add a model ID manually, or test models below.': 'Administra los modelos guardados de este proveedor. Importa una lista o prueba modelos a continuación.',
   'Give your model an endpoint': 'Asigna un endpoint a tu modelo',
   'BASE URL': 'URL BASE',

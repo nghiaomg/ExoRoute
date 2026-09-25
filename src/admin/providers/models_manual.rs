@@ -50,9 +50,17 @@ pub(crate) async fn add_manual_provider_model(
             StorageError::Conflict => fail(StatusCode::CONFLICT, "provider is being deleted"),
             other => internal(other),
         })?;
-    super::models_store::store_provider_models(&state.db, &id, std::slice::from_ref(&model), false)
-        .await?;
-    Ok(Json(json!({"model": model, "saved": true})))
+    super::models_store::store_provider_models(
+        &state.db,
+        &id,
+        std::slice::from_ref(&model),
+        super::models_store::ProviderModelSource::Manual,
+        false,
+    )
+    .await?;
+    Ok(Json(
+        json!({"model": model, "saved": true, "source": "manual"}),
+    ))
 }
 
 pub(crate) async fn delete_provider_model(

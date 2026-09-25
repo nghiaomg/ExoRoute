@@ -160,6 +160,8 @@ export const de: Catalog = {
   "Could not open provider details. Reload the page and try again.": "Anbieterdetails konnten nicht geöffnet werden. Laden Sie die Seite neu und versuchen Sie es erneut.",
   "Custom provider settings are unavailable. Reload the page and try again.": "Benutzerdefinierte Anbietereinstellungen sind nicht verfügbar. Laden Sie die Seite neu und versuchen Sie es erneut.",
   "Saved models": "Gespeicherte Modelle",
+  "Manual": "Manuell",
+  "Imported {count} models. Kept {kept} manual models.": "{count} Modelle importiert. {kept} manuelle Modelle beibehalten.",
   "Manage saved models for this provider. Import a list, add a model ID manually, or test models below.": "Manage saved models for this provider. Import a list, add a model ID manually, or test models below.",
   "Give your model an endpoint": "Give your model an endpoint",
   "BASE URL": "BASIS-URL",
