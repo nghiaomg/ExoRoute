@@ -21,7 +21,7 @@ mod thinking;
 use model::MAX_THINKING_OVERRIDE_BYTES;
 pub use model::{
     CanonicalRequest, CanonicalResponse, ContentBlock, DEFAULT_THINKING_MODE, DocumentSource,
-    Message, Protocol, Role, StreamEvent, ThinkingHandling, Tool, UpstreamProtocol, Usage,
+    Message, Protocol, Role, ThinkingHandling, Tool, UpstreamProtocol, Usage,
     parse_thinking_handling,
 };
 
