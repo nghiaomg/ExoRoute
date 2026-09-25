@@ -1,8 +1,6 @@
 use super::*;
 
-#[path = "translate_driver.rs"]
-mod driver;
-use driver::translation_stream;
+use super::translation::translation_stream;
 
 #[cfg(test)]
 pub(crate) fn stream_translation(
