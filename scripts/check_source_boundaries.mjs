@@ -25,7 +25,9 @@ function productionLineCount(text, extension) {
 
 function isIntentionalNonProductionFile(filePath, extension) {
   const relative = path.relative(root, filePath).replaceAll(path.sep, '/');
-  if (extension === '.rs' && relative.endsWith('/tests.rs')) return true;
+  // A split test module is either a single `tests.rs` or a `tests/` directory
+  // holding one file per concern; neither is production code.
+  if (extension === '.rs' && (relative.endsWith('/tests.rs') || relative.includes('/tests/'))) return true;
   return extension === '.ts' && relative.startsWith('web/src/lib/locales/');
 }
 
