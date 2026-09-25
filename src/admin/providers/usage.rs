@@ -1,10 +1,48 @@
 use super::keys::{
-    ProviderKeyPageQuery, ProviderUsageAccountView, ProviderUsageKey, credential_type_for_record,
-    decode_provider_key_cursor, encode_provider_key_cursor, unix_time_millis, usage_budget,
+    ProviderKeyPageQuery, credential_type_for_record, decode_provider_key_cursor,
+    encode_provider_key_cursor, unix_time_millis, usage_budget,
 };
-use super::*;
+use super::{DEFAULT_PROVIDER_KEY_PAGE_SIZE, provider_api_key_order_position};
+use crate::admin::{ApiResult, fail, internal};
 use crate::infra::storage::{Record, Table};
+use crate::provider_adapters;
+use crate::security::decrypt_secret;
+use crate::state::AppState;
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::StatusCode,
+};
 use futures_util::stream::{self, StreamExt};
+use serde::Serialize;
+use serde_json::{Value, json};
+use std::time::Duration;
+
+/// One provider API key rendered with whatever usage the adapter could report.
+#[derive(Debug, Serialize)]
+pub(crate) struct ProviderUsageAccountView {
+    pub(super) key_id: String,
+    pub(super) name: String,
+    pub(super) status: &'static str,
+    pub(super) snapshot: Option<Value>,
+    pub(super) provider_quota: Value,
+    pub(super) local_meter: Option<Value>,
+    pub(super) fetched_at_ms: Option<i64>,
+    pub(super) message: Option<String>,
+}
+
+/// Key metadata the usage readers need, without decrypting the credential.
+pub(crate) struct ProviderUsageKey {
+    pub(super) id: String,
+    pub(super) name: String,
+    pub(super) credential_type: &'static str,
+    pub(super) encrypted_secret: Option<Vec<u8>>,
+    pub(super) usage_budget_5h_micros: Option<i64>,
+    pub(super) usage_budget_7d_micros: Option<i64>,
+    pub(super) usage_budget_30d_micros: Option<i64>,
+    pub(super) enabled: bool,
+    pub(super) invalid: bool,
+}
 
 pub(crate) async fn provider_usage(
     State(state): State<AppState>,
