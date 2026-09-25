@@ -277,7 +277,15 @@ function refreshAdminAccessToken(): Promise<RefreshOutcome> {
   return refreshFlight;
 }
 
-export async function restoreAdminSession(): Promise<{ authenticated: boolean; unavailable: boolean; mustChangePassword: boolean; error?: ApiError }> {
+export interface AdminSessionRestoreResult {
+  authenticated: boolean;
+  /** The refresh attempt failed transiently; the admin is not necessarily signed out. */
+  unavailable: boolean;
+  mustChangePassword: boolean;
+  error?: ApiError;
+}
+
+export async function restoreAdminSession(): Promise<AdminSessionRestoreResult> {
   const result = await refreshAdminAccessToken();
   if (result.kind === 'ok') return { authenticated: true, unavailable: false, mustChangePassword: result.mustChangePassword };
   if (result.kind === 'invalid') return { authenticated: false, unavailable: false, mustChangePassword: false };
