@@ -34,6 +34,53 @@ providers:
       event_stream_response: false
       auth_panel: null
 
+  - id: kilocode
+    adapter_id: kilocode
+    name: Kilo Code
+    description: Sign in with a Kilo Code account to route the OpenRouter-style Kilo Code catalog. Its gateway requires the connected account; use the Kilo AI Gateway preset for anonymous free-model access.
+    category: oauth
+    labels: []
+    default_base_url: https://api.kilo.ai/api/openrouter
+    default_logo_url: null
+    default_model_prefix: kc
+    default_models:
+      - openrouter/free
+      - openai/gpt-5.6-sol
+      - openai/gpt-5.6-terra
+      - openai/gpt-5.6-luna
+      - anthropic/claude-opus-5
+      - anthropic/claude-sonnet-5
+      - anthropic/claude-haiku-4.5
+      - google/gemini-3.1-pro-preview
+      - google/gemini-3.7-flash
+      - google/gemini-3.5-flash-lite
+      - qwen/qwen3.8-max
+      - qwen/qwen3.7-plus
+      - deepseek/deepseek-v4-pro-0813
+      - deepseek/deepseek-v4-flash-0731
+      - moonshotai/kimi-k3
+    default_auth_type: kilocode_oauth
+    supported_auth_types:
+      - kilocode_oauth
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: false
+      oauth_accounts: true
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: true
+      event_stream_response: false
+      auth_panel: kilocode
+
   - id: openai_codex
     adapter_id: openai_codex
     name: OpenAI Codex

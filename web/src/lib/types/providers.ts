@@ -203,11 +203,25 @@ export interface ProviderKeyStrategyResult {
 export interface ProviderAuthStartResult {
   flow_id: string;
   authorization_url: string;
+  /** Present when the adapter signs in with a device code. */
+  method?: 'authorization_code' | 'device_code';
+  /** The code the operator approves in the provider's own page. */
+  user_code?: string;
+  expires_in?: number;
+  /** How often the dashboard may poll the device authorization. */
+  interval?: number;
 }
 
 export interface ProviderAuthStatus {
   status: 'pending' | 'connected' | 'failed' | 'expired';
   message?: string;
+  user_code?: string | null;
+  verification_url?: string | null;
+}
+
+export interface ProviderAuthPollResult {
+  status: ProviderAuthStatus['status'];
+  message?: string | null;
 }
 
 export interface ProviderAuthCompletionResult {
