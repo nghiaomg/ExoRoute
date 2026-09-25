@@ -26,6 +26,11 @@ export interface RequestLiveRow extends RequestLog {
   started_at_ms: number;
 }
 
+/** Narrows a request row to the in-progress variant the live feed streams. */
+export function isLiveRequest(request: RequestLog | RequestLiveRow): request is RequestLiveRow {
+  return 'live' in request && request.live === true;
+}
+
 export type RequestLiveConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'unavailable';
 
 export type RequestLiveEvent =

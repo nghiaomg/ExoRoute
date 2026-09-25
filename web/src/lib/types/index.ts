@@ -60,6 +60,7 @@ export type {
   RequestLogPage,
   RequestLogFilters,
 } from './requests';
+export { isLiveRequest } from './requests';
 export type {
   StatisticsDimension,
   ModelBreakdown,

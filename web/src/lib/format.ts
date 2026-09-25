@@ -1,4 +1,5 @@
 import { getIntlLocale, type Locale } from './i18n';
+import { isLiveRequest, type RequestLiveRow, type RequestLog } from './types';
 
 export type Translate = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -46,4 +47,33 @@ export function formatGatewayEndpoint(
     ? String(port).trim()
     : '8686';
   return `${h}:${p}/v1`;
+}
+
+const numberFormatters = new Map<string, Intl.NumberFormat>();
+
+function numberFormatter(locale: Locale): Intl.NumberFormat {
+  const key = getIntlLocale(locale);
+  let formatter = numberFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(key);
+    numberFormatters.set(key, formatter);
+  }
+  return formatter;
+}
+
+/// Timestamp a request row shows, ISO-encoded so `formatDate` can parse it.
+export function requestCreatedAt(request: RequestLog | RequestLiveRow): string {
+  return isLiveRequest(request) ? new Date(request.started_at_ms).toISOString() : request.created_at;
+}
+
+/// Elapsed time for a row: live rows measure against the ticking clock, a
+/// finished row uses the duration the gateway recorded.
+export function requestDuration(request: RequestLog | RequestLiveRow, liveClockMs: number): string {
+  if (isLiveRequest(request)) return `${Math.max(0, liveClockMs - request.started_at_ms)} ms`;
+  return request.duration_ms != null ? `${request.duration_ms} ms` : '—';
+}
+
+/// Grouped digits for a token count, or an em dash when the gateway omitted it.
+export function formatTokenCount(value: number | undefined, locale: Locale): string {
+  return value == null || !Number.isFinite(value) ? '—' : numberFormatter(locale).format(value);
 }
