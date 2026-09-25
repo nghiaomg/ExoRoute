@@ -4,7 +4,7 @@
   import { api } from '../../lib/api';
   import type { DashboardPage } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
-  import { formatDate, type Translate } from '../../lib/format';
+  import { formatDate, requestCreatedAt, requestDuration, type Translate } from '../../lib/format';
   import type { RequestLiveRow, RequestLog, RequestLogFilters } from '../../lib/types';
   import { createRequestLiveController, type RequestLiveController } from '../requests/request.live';
   import {
@@ -46,18 +46,6 @@
     ...visibleLiveRequests,
     ...localRequests.filter((request) => !request.id || !Array.from(liveRequests.values()).some((live) => live.id === request.id)),
   ];
-
-  function requestCreatedAt(request: RequestLog | RequestLiveRow): string {
-    return isLiveRequest(request) ? new Date(request.started_at_ms).toISOString() : request.created_at;
-  }
-
-  function requestDuration(request: RequestLog | RequestLiveRow): string {
-    return isLiveRequest(request)
-      ? `${Math.max(0, liveClockMs - request.started_at_ms)} ms`
-      : request.duration_ms != null
-        ? `${request.duration_ms} ms`
-        : '—';
-  }
 
   liveController = createRequestLiveController({
     getState: () => requestLiveState,
@@ -121,7 +109,7 @@
                 <td class="req-key" title={request.api_key_id ?? tr('Unknown key')}>
                   <span class="strong-cell">{request.api_key_name ?? (request.api_key_id ? request.api_key_id.slice(0, 10) : tr('Unknown key'))}</span>
                 </td>
-                <td class="req-duration">{requestDuration(request)}</td>
+                <td class="req-duration">{requestDuration(request, liveClockMs)}</td>
                 <td class="req-status">
                   <span
                     class="status-badge"
