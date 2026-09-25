@@ -1,77 +1,17 @@
-use super::OperationalSettingsRecord;
+//! LMDB record codec for the operational settings.
+//!
+//! Owns both directions of the record: encoding `OperationalSettings` and
+//! decoding it back together with its revision and override flags.
+
+use super::fields::{field_usize, usize_field};
 use crate::{
-    config::{GatewayResourceLimits, OperationalSettings, UpstreamSettings},
+    config::{OperationalSettings, UpstreamSettings},
+    infra::settings_record::OperationalSettingsRecord,
     infra::storage::{Field, Record, StorageError},
-    support::output_styles::{self, OutputStyleSelection, OutputStylesSnapshot},
 };
 use std::time::Duration;
 
-pub(super) fn gateway_limits_record(limits: GatewayResourceLimits) -> Result<Record, StorageError> {
-    Ok(Record::new()
-        .with(
-            "gateway_body_limit_bytes",
-            usize_field(limits.gateway_body_limit_bytes, "gateway body limit")?,
-        )
-        .with(
-            "gateway_body_processing_concurrency",
-            usize_field(
-                limits.gateway_body_processing_concurrency,
-                "gateway body concurrency",
-            )?,
-        )
-        .with(
-            "sse_frame_limit_bytes",
-            usize_field(limits.sse_frame_limit_bytes, "SSE frame limit")?,
-        )
-        .with(
-            "sse_buffer_limit_bytes",
-            usize_field(limits.sse_buffer_limit_bytes, "SSE buffer limit")?,
-        )
-        .with(
-            "provider_max_concurrency",
-            usize_field(limits.provider_max_concurrency, "provider concurrency")?,
-        )
-        .with(
-            "stream_continuity_enabled",
-            Field::Bool(limits.stream_continuity_enabled),
-        )
-        .with(
-            "stream_continuity_max_concurrency",
-            usize_field(
-                limits.stream_continuity_max_concurrency,
-                "stream continuity concurrency",
-            )?,
-        ))
-}
-
-pub(crate) fn gateway_limits_from_record(
-    record: &Record,
-) -> Result<GatewayResourceLimits, StorageError> {
-    let limits = GatewayResourceLimits {
-        gateway_body_limit_bytes: field_usize(record, "gateway_body_limit_bytes")?,
-        gateway_body_processing_concurrency: field_usize(
-            record,
-            "gateway_body_processing_concurrency",
-        )?,
-        sse_frame_limit_bytes: field_usize(record, "sse_frame_limit_bytes")?,
-        sse_buffer_limit_bytes: field_usize(record, "sse_buffer_limit_bytes")?,
-        provider_max_concurrency: field_usize(record, "provider_max_concurrency")?,
-        stream_continuity_enabled: record.boolean("stream_continuity_enabled")?,
-        // Records written before the configurable continuity gate was added
-        // remain valid and retain the former bounded default.
-        stream_continuity_max_concurrency: optional_field_usize(
-            record,
-            "stream_continuity_max_concurrency",
-        )?
-        .unwrap_or(GatewayResourceLimits::DEFAULT_STREAM_CONTINUITY_MAX_CONCURRENCY),
-    };
-    limits
-        .validate()
-        .map_err(|error| StorageError::Invalid(error.to_owned()))?;
-    Ok(limits)
-}
-
-pub(super) fn operational_settings_record(
+pub(crate) fn operational_settings_record(
     settings: OperationalSettings,
     revision: i64,
     overridden: bool,
@@ -617,99 +557,4 @@ pub(crate) fn operational_settings_from_record(
         revision,
         overridden: record.boolean("overridden")?,
     })
-}
-
-pub(crate) fn output_styles_record(
-    snapshot: &OutputStylesSnapshot,
-) -> Result<Record, StorageError> {
-    if snapshot.revision < 0 || snapshot.revision == i64::MAX {
-        return Err(StorageError::Invalid(
-            "output styles revision is invalid".to_owned(),
-        ));
-    }
-    let styles = output_styles::validate_styles(&snapshot.styles).map_err(StorageError::Invalid)?;
-    if !snapshot.overridden && !styles.is_empty() {
-        return Err(StorageError::Invalid(
-            "output styles defaults cannot contain enabled styles".to_owned(),
-        ));
-    }
-    let encoded = bincode::serialize(&styles)
-        .map_err(|error| StorageError::Codec(format!("output styles encoding failed: {error}")))?;
-    if encoded.len() > output_styles::MAX_STYLES_PAYLOAD_BYTES {
-        return Err(StorageError::Invalid(
-            "output styles configuration is too large".to_owned(),
-        ));
-    }
-    Ok(Record::new()
-        .with(
-            "format_version",
-            Field::I64(output_styles::OUTPUT_STYLE_FORMAT_VERSION),
-        )
-        .with("styles", Field::Bytes(encoded))
-        .with("revision", Field::I64(snapshot.revision))
-        .with("overridden", Field::Bool(snapshot.overridden)))
-}
-
-pub(crate) fn output_styles_from_record(
-    record: &Record,
-) -> Result<OutputStylesSnapshot, StorageError> {
-    if record.integer("format_version")? != output_styles::OUTPUT_STYLE_FORMAT_VERSION {
-        return Err(StorageError::Invalid(
-            "output styles record format is unsupported".to_owned(),
-        ));
-    }
-    let encoded = record.bytes("styles")?;
-    if encoded.len() > output_styles::MAX_STYLES_PAYLOAD_BYTES {
-        return Err(StorageError::Invalid(
-            "output styles configuration is too large".to_owned(),
-        ));
-    }
-    let styles: Vec<OutputStyleSelection> = bincode::deserialize(encoded).map_err(|error| {
-        StorageError::Codec(format!("output styles record is invalid: {error}"))
-    })?;
-    let normalized = output_styles::validate_styles(&styles).map_err(StorageError::Invalid)?;
-    if normalized != styles {
-        return Err(StorageError::Invalid(
-            "output styles record is not in canonical order".to_owned(),
-        ));
-    }
-    let revision = record.integer("revision")?;
-    if revision < 0 || revision == i64::MAX {
-        return Err(StorageError::Invalid(
-            "output styles revision is invalid".to_owned(),
-        ));
-    }
-    let overridden = record.boolean("overridden")?;
-    if !overridden && !normalized.is_empty() {
-        return Err(StorageError::Invalid(
-            "output styles defaults cannot contain enabled styles".to_owned(),
-        ));
-    }
-    Ok(OutputStylesSnapshot {
-        styles: normalized,
-        revision,
-        overridden,
-    })
-}
-
-fn usize_field(value: usize, name: &'static str) -> Result<Field, StorageError> {
-    i64::try_from(value)
-        .map(Field::I64)
-        .map_err(|_| StorageError::Invalid(format!("{name} is outside the supported range")))
-}
-
-fn field_usize(record: &Record, name: &str) -> Result<usize, StorageError> {
-    usize::try_from(record.integer(name)?)
-        .map_err(|_| StorageError::Invalid(format!("LMDB record field '{name}' is invalid")))
-}
-
-fn optional_field_usize(record: &Record, name: &str) -> Result<Option<usize>, StorageError> {
-    record
-        .optional_integer(name)?
-        .map(|value| {
-            usize::try_from(value).map_err(|_| {
-                StorageError::Invalid(format!("LMDB record field '{name}' is invalid"))
-            })
-        })
-        .transpose()
 }
