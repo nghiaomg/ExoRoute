@@ -8,7 +8,8 @@
 import { localizedError } from '../../lib/errors';
   import type { OperationalSettingsSnapshot, OperationalSettingsValues } from '../../lib/types';
   import ConfigHelpDialog from './ConfigHelpDialog.svelte';
-  import { coreHelpMap, defaults, upstreamFields, type ConfigHelp, type UpstreamKey } from './operational-settings.config';
+  import SettingsField from './SettingsField.svelte';
+  import { coreHelpMap, coreLimitFields, coreTimeoutFields, defaults, isValidOperationalSettings, sameOperationalSettings, upstreamFields, type ConfigHelp, type UpstreamKey } from './operational-settings.config';
 
   export let tr: Translate;
   export let refreshToken = 0;
@@ -22,70 +23,37 @@ import { localizedError } from '../../lib/errors';
   let reloadConflict = false;
   let unlimitedWarningOpen = false;
   let activeHelp: ConfigHelp | null = null;
-  let help: ConfigHelp | null = null;
   let active = true;
   let requestGeneration = 0;
   let observedRefreshToken = 0;
 
-  function openHelp(help: ConfigHelp): void {
-    help = help;
+  function openHelp(next: ConfigHelp): void {
+    activeHelp = next;
   }
 
-  $: draftIsValid = Number.isSafeInteger(draft.connect_timeout_ms)
-    && draft.connect_timeout_ms >= 100 && draft.connect_timeout_ms <= 120_000
-    && Number.isSafeInteger(draft.request_timeout_ms)
-    && draft.request_timeout_ms >= 100 && draft.request_timeout_ms <= 86_400_000
-    && Number.isSafeInteger(draft.stream_idle_timeout_ms)
-    && draft.stream_idle_timeout_ms >= 100 && draft.stream_idle_timeout_ms <= 3_600_000
-    && Number.isSafeInteger(draft.circuit_breaker_threshold)
-    && draft.circuit_breaker_threshold >= 1 && draft.circuit_breaker_threshold <= 100
-    && Number.isSafeInteger(draft.circuit_breaker_cooldown_seconds)
-    && draft.circuit_breaker_cooldown_seconds >= 1 && draft.circuit_breaker_cooldown_seconds <= 86_400
-    && Number.isSafeInteger(draft.gateway_max_in_flight)
-    && (draft.gateway_max_in_flight === 0 || (draft.gateway_max_in_flight >= 1 && draft.gateway_max_in_flight <= 64))
-    && Number.isSafeInteger(draft.upstream_response_limit_mib)
-    && draft.upstream_response_limit_mib >= 1 && draft.upstream_response_limit_mib <= 16
-    && Number.isSafeInteger(draft.admin_api_max_requests)
-    && draft.admin_api_max_requests >= 1 && draft.admin_api_max_requests <= 4_294_967_295
-    && Number.isSafeInteger(draft.admin_api_window_seconds)
-    && draft.admin_api_window_seconds >= 1 && draft.admin_api_window_seconds <= 86_400
-    && Number.isSafeInteger(draft.gateway_key_capacity)
-    && draft.gateway_key_capacity >= 1 && draft.gateway_key_capacity <= 4_294_967_295
-    && Number.isSafeInteger(draft.gateway_key_refill_tokens)
-    && draft.gateway_key_refill_tokens >= 1 && draft.gateway_key_refill_tokens <= 4_294_967_295
-    && Number.isSafeInteger(draft.gateway_key_refill_interval_ms)
-    && draft.gateway_key_refill_interval_ms >= 1 && draft.gateway_key_refill_interval_ms <= 86_400_000
-    && Number.isSafeInteger(draft.request_log_retention_days)
-    && draft.request_log_retention_days >= 1 && draft.request_log_retention_days <= 365
-    && Number.isSafeInteger(draft.request_log_max_rows)
-    && draft.request_log_max_rows >= 1 && draft.request_log_max_rows <= 100_000
-    && upstreamIsValid;
-  $: upstreamIsValid = upstreamFields.every((field) => {
-    const value = draft.upstream[field.key];
-    return Number.isSafeInteger(value) && value >= field.min && value <= field.max;
-  })
-    && draft.upstream.continuity_replay_bytes_total_mib >= draft.upstream.continuity_replay_bytes_per_run_mib
-    && draft.upstream.continuity_retry_max_delay_ms >= draft.upstream.continuity_retry_base_delay_ms
-    && draft.upstream.provider_live_events_keepalive_seconds < draft.upstream.provider_live_events_max_duration_seconds
-    && draft.upstream.command_code_optional_usage_timeout_seconds <= draft.upstream.command_code_usage_timeout_seconds
-    && draft.upstream.remote_image_total_max_mib >= draft.upstream.remote_image_max_mib;
+  $: draftIsValid = isValidOperationalSettings(draft);
   $: hasChanges = snapshot !== null
-    && (!snapshot.overridden || !sameSettings(draft, snapshot.settings));
+    && (!snapshot.overridden || !sameOperationalSettings(draft, snapshot.settings));
   $: if (refreshToken > observedRefreshToken) {
     observedRefreshToken = refreshToken;
     void load();
   }
 
-  function sameSettings(left: OperationalSettingsValues, right: OperationalSettingsValues): boolean {
-    const topLevelKeys = (Object.keys(defaults) as (keyof OperationalSettingsValues)[])
-      .filter((key) => key !== 'upstream');
-    return topLevelKeys.every((key) => left[key] === right[key])
-      && upstreamFields.every(({ key }) => left.upstream[key] === right.upstream[key]);
-  }
-
   function updateUpstream(key: UpstreamKey, event: Event): void {
     const value = Number((event.currentTarget as HTMLInputElement).value);
     draft = { ...draft, upstream: { ...draft.upstream, [key]: value } };
+  }
+
+  function fieldHelp(field: (typeof upstreamFields)[number]): ConfigHelp {
+    return {
+      titleKey: field.label,
+      descKey: field.descKey,
+      violationKey: field.violationKey,
+      httpStatus: field.httpStatus,
+      errorCode: field.errorCode,
+      defaultVal: field.defaultVal,
+      safeRange: field.safeRange,
+    };
   }
 
   function applySnapshot(result: OperationalSettingsSnapshot): void {
@@ -163,7 +131,7 @@ import { localizedError } from '../../lib/errors';
           const latest = await api.operationalSettings();
           if (!active) return;
           snapshot = latest;
-          if (latest.overridden && sameSettings(latest.settings, values)) {
+          if (latest.overridden && sameOperationalSettings(latest.settings, values)) {
             draft = { ...latest.settings };
             successMessage = tr('Settings were saved; the response was interrupted.');
           } else {
@@ -267,66 +235,21 @@ import { localizedError } from '../../lib/errors';
 
       <form class="resource-limits-form" onsubmit={save}>
         <div class="resource-limits-grid">
-          <label class="resource-limit-field" for="operational-connect-timeout">
-            <div class="field-title-row">
-              <span>{tr('Upstream connect timeout')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.connect_timeout_ms);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-connect-timeout" type="number" min="100" max="120000" step="1" bind:value={draft.connect_timeout_ms} disabled={busy !== ''} /><small>ms</small></span>
-            <small>{tr('Allowed range: 100–120000 ms. Default: 10000 ms.')}</small>
-          </label>
-          <label class="resource-limit-field" for="operational-request-timeout">
-            <div class="field-title-row">
-              <span>{tr('Upstream request timeout')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.request_timeout_ms);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-request-timeout" type="number" min="100" max="86400000" step="1" bind:value={draft.request_timeout_ms} disabled={busy !== ''} /><small>ms</small></span>
-            <small>{tr('Allowed range: 100 ms–24 hours. Default: 300000 ms.')}</small>
-          </label>
-          <label class="resource-limit-field" for="operational-stream-timeout">
-            <div class="field-title-row">
-              <span>{tr('Stream idle timeout')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.stream_idle_timeout_ms);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-stream-timeout" type="number" min="100" max="3600000" step="1" bind:value={draft.stream_idle_timeout_ms} disabled={busy !== ''} /><small>ms</small></span>
-            <small>{tr('Allowed range: 100 ms–1 hour. Default: 120000 ms.')}</small>
-          </label>
+          {#each coreTimeoutFields as field (field.key)}
+            <SettingsField
+              tr={tr}
+              id={field.id}
+              title={tr(field.labelKey)}
+              bind:value={draft[field.key]}
+              min={field.min}
+              max={field.max}
+              unit={field.unit ?? (field.unitKey ? tr(field.unitKey) : '')}
+              hint={field.hintKey ? tr(field.hintKey) : ''}
+              help={coreHelpMap[field.key]}
+              onHelp={openHelp}
+              disabled={busy !== ''}
+            />
+          {/each}
           <div class="resource-limit-field">
             <div class="field-title-row">
               <span>{tr('Circuit breaker')}</span>
@@ -347,220 +270,21 @@ import { localizedError } from '../../lib/errors';
             <ArkCheckbox checked={draft.circuit_breaker_enabled} disabled={busy !== ''} label={tr(draft.circuit_breaker_enabled ? 'Enabled' : 'Disabled')} onCheckedChange={(checked) => draft = { ...draft, circuit_breaker_enabled: checked === true }} />
             <small>{tr('Disabling it bypasses open circuits while preserving their failure state.')}</small>
           </div>
-          <label class="resource-limit-field" for="operational-circuit-threshold">
-            <div class="field-title-row">
-              <span>{tr('Circuit breaker failure threshold')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.circuit_breaker_threshold);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-circuit-threshold" type="number" min="1" max="100" step="1" bind:value={draft.circuit_breaker_threshold} disabled={busy !== ''} /><small>{tr('failures')}</small></span>
-          </label>
-          <label class="resource-limit-field" for="operational-circuit-cooldown">
-            <div class="field-title-row">
-              <span>{tr('Circuit breaker cooldown')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.circuit_breaker_cooldown_seconds);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-circuit-cooldown" type="number" min="1" max="86400" step="1" bind:value={draft.circuit_breaker_cooldown_seconds} disabled={busy !== ''} /><small>{tr('seconds')}</small></span>
-          </label>
-          <label class="resource-limit-field" for="operational-gateway-in-flight">
-            <div class="field-title-row">
-              <span>{tr('Total concurrent gateway requests')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.gateway_max_in_flight);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-gateway-in-flight" type="number" min="0" max="64" step="1" bind:value={draft.gateway_max_in_flight} disabled={busy !== ''} /><small>{tr('requests')}</small></span>
-            <small>{tr('Choose 1–64, or 0 for unlimited. Default: 64.')}</small>
-          </label>
-          <label class="resource-limit-field" for="operational-response-limit">
-            <div class="field-title-row">
-              <span>{tr('Upstream response limit')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.upstream_response_limit_mib);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-response-limit" type="number" min="1" max="16" step="1" bind:value={draft.upstream_response_limit_mib} disabled={busy !== ''} /><small>MiB</small></span>
-            <small>{tr('Allowed range: 1–16 MiB. The hard ceiling remains 16 MiB.')}</small>
-          </label>
-          <label class="resource-limit-field" for="operational-admin-api-limit">
-            <div class="field-title-row">
-              <span>{tr('Authenticated admin API requests')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.admin_api_max_requests);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-admin-api-limit" type="number" min="1" max="4294967295" step="1" bind:value={draft.admin_api_max_requests} disabled={busy !== ''} /><small>{tr('requests')}</small></span>
-          </label>
-          <label class="resource-limit-field" for="operational-admin-api-window">
-            <div class="field-title-row">
-              <span>{tr('Authenticated admin API window')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.admin_api_window_seconds);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-admin-api-window" type="number" min="1" max="86400" step="1" bind:value={draft.admin_api_window_seconds} disabled={busy !== ''} /><small>{tr('seconds')}</small></span>
-            <small>{tr('Login and authentication-failure throttles remain fixed.')}</small>
-          </label>
-          <label class="resource-limit-field" for="operational-gateway-burst">
-            <div class="field-title-row">
-              <span>{tr('Gateway API key token capacity')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.gateway_key_capacity);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-gateway-burst" type="number" min="1" max="4294967295" step="1" bind:value={draft.gateway_key_capacity} disabled={busy !== ''} /><small>{tr('tokens')}</small></span>
-          </label>
-          <label class="resource-limit-field" for="operational-gateway-refill-tokens">
-            <div class="field-title-row">
-              <span>{tr('Gateway API key refill amount')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.gateway_key_refill_tokens);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-gateway-refill-tokens" type="number" min="1" max="4294967295" step="1" bind:value={draft.gateway_key_refill_tokens} disabled={busy !== ''} /><small>{tr('tokens')}</small></span>
-          </label>
-          <label class="resource-limit-field" for="operational-gateway-refill-interval">
-            <div class="field-title-row">
-              <span>{tr('Gateway API key refill interval')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.gateway_key_refill_interval_ms);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-gateway-refill-interval" type="number" min="1" max="86400000" step="1" bind:value={draft.gateway_key_refill_interval_ms} disabled={busy !== ''} /><small>ms</small></span>
-            <small>{tr('Refill amount and interval define the token-bucket refill rate.')}</small>
-          </label>
-          <label class="resource-limit-field" for="operational-log-retention">
-            <div class="field-title-row">
-              <span>{tr('Request log retention')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.request_log_retention_days);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-log-retention" type="number" min="1" max="365" step="1" bind:value={draft.request_log_retention_days} disabled={busy !== ''} /><small>{tr('days')}</small></span>
-          </label>
-          <label class="resource-limit-field" for="operational-log-rows">
-            <div class="field-title-row">
-              <span>{tr('Maximum request log rows')}</span>
-              <button
-                type="button"
-                class="config-help-trigger"
-                title={tr('Config guidance and error codes')}
-                aria-label={tr('Config guidance and error codes')}
-                onclick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openHelp(coreHelpMap.request_log_max_rows);
-                }}
-              >
-                <CircleHelp size={13.5} />
-              </button>
-            </div>
-            <span class="resource-limit-input"><input id="operational-log-rows" type="number" min="1" max="100000" step="1" bind:value={draft.request_log_max_rows} disabled={busy !== ''} /><small>{tr('rows')}</small></span>
-            <small>{tr('The maximum remains 100000 rows.')}</small>
-          </label>
+          {#each coreLimitFields as field (field.key)}
+            <SettingsField
+              tr={tr}
+              id={field.id}
+              title={tr(field.labelKey)}
+              bind:value={draft[field.key]}
+              min={field.min}
+              max={field.max}
+              unit={field.unit ?? (field.unitKey ? tr(field.unitKey) : '')}
+              hint={field.hintKey ? tr(field.hintKey) : ''}
+              help={coreHelpMap[field.key]}
+              onHelp={openHelp}
+              disabled={busy !== ''}
+            />
+          {/each}
           <div class="settings-subsection-heading">
             <h3>{tr('Upstream limits')}</h3>
             <p>{tr('Configure retry, stream continuity, provider usage, media, and client-cache limits.')}</p>
@@ -577,15 +301,7 @@ import { localizedError } from '../../lib/errors';
                   onclick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    openHelp({
-                      titleKey: field.label,
-                      descKey: field.descKey,
-                      violationKey: field.violationKey,
-                      httpStatus: field.httpStatus,
-                      errorCode: field.errorCode,
-                      defaultVal: field.defaultVal,
-                      safeRange: field.safeRange,
-                    });
+                    openHelp(fieldHelp(field));
                   }}
                 >
                   <CircleHelp size={13.5} />
