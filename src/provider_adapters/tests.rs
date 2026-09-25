@@ -350,6 +350,14 @@ fn registry_has_unique_ids_and_valid_metadata() {
             .expect("OpenCode Zen capability")
             .api_key_usage
     );
+    for adapter_id in [OPENCODE_GO_ADAPTER_ID, OPENCODE_ZEN_ADAPTER_ID] {
+        assert!(
+            capabilities(adapter_id)
+                .expect("OpenCode capability")
+                .model_protocol_routing,
+            "OpenCode adapters route by documented per-model upstream protocol"
+        );
+    }
     let openrouter_capabilities =
         capabilities(OPENROUTER_ADAPTER_ID).expect("OpenRouter capability");
     assert!(openrouter_capabilities.api_keys);
@@ -651,6 +659,67 @@ fn openrouter_accepts_its_three_protocols_and_requires_bearer_auth() {
         model_upstream_protocol(OPENROUTER_ADAPTER_ID, "anthropic/claude-test"),
         None,
         "OpenRouter model IDs must not imply an upstream protocol"
+    );
+}
+
+#[test]
+fn opencode_models_route_to_documented_upstream_protocols() {
+    use UpstreamProtocol::{ChatCompletions, Messages, Responses};
+    // Go: Responses-only models previously fell back to the provider's
+    // preferred chat_completions endpoint and upstream rejected them with
+    // HTTP 400 "Invalid request parameters".
+    for model in ["grok-4.7", "grok-4.6", "gpt-6-luna", "gpt-5.6-luna"] {
+        assert_eq!(
+            model_upstream_protocol(OPENCODE_GO_ADAPTER_ID, model),
+            Some(Responses),
+            "Go {model} must use the Responses endpoint"
+        );
+    }
+    for model in ["minimax-m3", "qwen3.8-flash"] {
+        assert_eq!(
+            model_upstream_protocol(OPENCODE_GO_ADAPTER_ID, model),
+            Some(Messages),
+            "Go {model} must use the Messages endpoint"
+        );
+    }
+    for model in [
+        "glm-5.3",
+        "kimi-k3",
+        "deepseek-v4.1-flash",
+        "mimo-v2.6-flash",
+        "space-bunny-free",
+    ] {
+        assert_eq!(
+            model_upstream_protocol(OPENCODE_GO_ADAPTER_ID, model),
+            Some(ChatCompletions)
+        );
+    }
+    // Zen additions verified against the published endpoint table.
+    assert_eq!(
+        model_upstream_protocol(OPENCODE_ZEN_ADAPTER_ID, "grok-4.7"),
+        Some(Responses)
+    );
+    assert_eq!(
+        model_upstream_protocol(OPENCODE_ZEN_ADAPTER_ID, "claude-opus-5-5"),
+        Some(Messages)
+    );
+    assert_eq!(
+        model_upstream_protocol(OPENCODE_ZEN_ADAPTER_ID, "gpt-6-sol"),
+        Some(Responses)
+    );
+    assert_eq!(
+        model_upstream_protocol(OPENCODE_ZEN_ADAPTER_ID, "gpt-6-luna"),
+        Some(Responses)
+    );
+    assert_eq!(
+        model_upstream_protocol(OPENCODE_ZEN_ADAPTER_ID, "glm-5"),
+        Some(ChatCompletions)
+    );
+    // Models behind the dedicated /systemone endpoint are not routable
+    // through the three OpenAI/Anthropic surfaces.
+    assert_eq!(
+        model_upstream_protocol(OPENCODE_ZEN_ADAPTER_ID, "jev-1.13"),
+        None
     );
 }
 

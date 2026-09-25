@@ -124,7 +124,7 @@ providers:
       usage_limits: false
       api_key_usage: true
       api_key_usage_status: unverified
-      model_protocol_routing: false
+      model_protocol_routing: true
       supported_upstream_protocols: [chat_completions, responses, messages]
       api_key_auth_assist: false
       model_catalog_authoritative: false
