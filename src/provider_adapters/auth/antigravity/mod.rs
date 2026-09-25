@@ -60,8 +60,9 @@ mod tests;
 mod transport;
 mod usage;
 pub(crate) use account::{AntigravityAccount, RefreshError};
-use account_store::load_account_for_use;
-pub(crate) use account_store::{account_for_use, save_account};
+pub(in crate::provider_adapters) use account_store::{
+    account_for_use, load_account_for_use, save_account,
+};
 pub(crate) use catalog::{is_stale_unsupported_model, normalize_model_id};
 use catalog::{is_supported_model, log_discovery_shape, model_id, parse_model_list};
 pub(crate) use oauth::{authorization_url, exchange_code, pkce_challenge};
