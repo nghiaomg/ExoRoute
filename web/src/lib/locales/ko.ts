@@ -160,6 +160,8 @@ export const ko: Catalog = {
   "Could not open provider details. Reload the page and try again.": "제공업체 세부정보를 열 수 없습니다. 페이지를 새로고침하고 다시 시도하세요.",
   "Custom provider settings are unavailable. Reload the page and try again.": "맞춤 공급자 설정을 사용할 수 없습니다. 페이지를 새로고침하고 다시 시도하세요.",
   "Saved models": "저장된 모델",
+  "Manual": "수동",
+  "Imported {count} models. Kept {kept} manual models.": "{count}개 모델을 가져왔습니다. 수동 모델 {kept}개를 유지했습니다.",
   "Manage saved models for this provider. Import a list, add a model ID manually, or test models below.": "이 공급자에 대해 저장된 모델을 관리합니다. 목록을 가져오거나, 모델 ID를 수동으로 추가하거나, 아래에서 모델을 테스트하세요.",
   "Give your model an endpoint": "모델에 엔드포인트 제공",
   "BASE URL": "기본 URL",

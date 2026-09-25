@@ -224,6 +224,19 @@
   background: #fee2e2;
 }
 
+.model-source-chip {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border: 1px solid #d8dae6;
+  border-radius: 5px;
+  color: #6b6f86;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .model-card-footer .state-label {
   margin: 0;
   padding: 2px 7px;

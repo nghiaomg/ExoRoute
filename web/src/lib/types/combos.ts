@@ -50,6 +50,7 @@ export interface ModelTestResponse {
 
 export interface ProviderModelCatalog {
   models: string[];
+  manual_models: string[];
   has_more?: boolean;
 }
 
@@ -84,4 +85,5 @@ export interface ProviderModelImportResult {
   available: boolean;
   truncated: boolean;
   pruned?: string[];
+  manual_kept?: number;
 }

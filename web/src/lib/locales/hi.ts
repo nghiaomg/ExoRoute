@@ -160,6 +160,8 @@ export const hi: Catalog = {
   "Could not open provider details. Reload the page and try again.": "Could not open provider details. Reload the page and try again.",
   "Custom provider settings are unavailable. Reload the page and try again.": "Custom provider settings are unavailable. Reload the page and try again.",
   "Saved models": "Saved models",
+  "Manual": "मैन्युअल",
+  "Imported {count} models. Kept {kept} manual models.": "{count} मॉडल आयात किए गए। {kept} मैन्युअल मॉडल रखे गए।",
   "Manage saved models for this provider. Import a list, add a model ID manually, or test models below.": "Manage saved models for this provider. Import a list, add a model ID manually, or test models below.",
   "Give your model an endpoint": "Give your model an endpoint",
   "BASE URL": "BASE URL",

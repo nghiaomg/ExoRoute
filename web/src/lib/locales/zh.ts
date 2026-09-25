@@ -160,6 +160,8 @@ export const zh: Catalog = {
   'Could not open provider details. Reload the page and try again.': '无法打开服务提供商详情。请重新加载页面后重试。',
   'Custom provider settings are unavailable. Reload the page and try again.': '自定义服务提供商设置不可用。请重新加载页面后重试。',
   'Saved models': '已保存的模型',
+  'Manual': '手动',
+  'Imported {count} models. Kept {kept} manual models.': '已导入 {count} 个模型。保留了 {kept} 个手动模型。',
   'Manage saved models for this provider. Import a list, add a model ID manually, or test models below.': '管理此服务提供商已保存的模型。可导入列表或在下方测试模型。',
   'Give your model an endpoint': '为模型设置接口',
   'BASE URL': '基础 URL',
