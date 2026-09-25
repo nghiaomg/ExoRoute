@@ -6,22 +6,25 @@ This file is the working agreement for agents making changes in ExoRoute. Follow
 
 ExoRoute is a Rust AI protocol gateway with an Axum HTTP server, a Svelte 5 / TypeScript single-page dashboard, and an embedded LMDB environment. The Rust binary embeds the built dashboard from `web/dist` with `RustEmbed`.
 
-- `src/main.rs`: startup, CLI, server construction, and middleware.
-- `src/config.rs`: environment and file configuration.
-- `src/state.rs`: shared application state and initialized services.
-- `src/db.rs`: LMDB initialization, process lock, and typed domain storage operations.
-- `src/storage.rs`: the only module that opens and operates on the LMDB environment.
-- `src/admin.rs`: authenticated dashboard API.
-- `src/gateway.rs`: public model API, provider selection, retries, streaming, and request logs.
-- `src/egress.rs`: outbound provider URL validation and DNS/IP protections.
-- `src/security.rs`, `src/rate_limit.rs`, `src/client_ip.rs`: authentication and request-safety controls.
-- `src/protocol.rs`: protocol conversion between supported client and provider formats.
+- `src/main.rs`: the module roots and process entry point.
+- `src/app/`: bootstrap, router assembly, startup banner, and background workers.
+- `src/config/`: environment and file configuration, resolved limits, and `.env` secret handling.
+- `src/state/`: shared application state, runtime gates, and initialized services.
+- `src/infra/db/`: LMDB initialization, process lock, and typed domain storage operations.
+- `src/infra/storage/`: the only module that opens and operates on the LMDB environment.
+- `src/infra/telemetry/`: request analytics and statistics rollups.
+- `src/admin/`: authenticated dashboard API, split per resource (`providers/`, `combos/`, `database/`, `settings/`, `sessions/`, ...).
+- `src/gateway/`: public model API, provider selection, retries, streaming, and request logs. `continuity/` owns stream retry, `streaming/` the SSE translation, `execution/` target preparation.
+- `src/security/`: authentication and request-safety controls. `egress/` splits provider URL policy, header-name policy, and the pinned client cache; `rate_limit/` splits policy types from the stateful engine.
+- `src/protocol/`: protocol conversion between supported client and provider formats.
+- `src/provider_adapters/`: one directory module per upstream provider, plus the adapter registry, auth flows, and model testing.
+- `src/support/`: cross-cutting helpers. `test_support.rs` provides the isolated LMDB fixture every Rust test uses, and `mock_upstream.rs` the shared mock HTTP upstreams (axum router servers, scripted raw-socket responses, silent servers, SSE responses).
 - `src/static_assets.rs`: serving the embedded frontend.
-- `web/src/`: Svelte application, shared API/types/i18n modules, and components.
-- `scripts/`: maintenance and benchmark tools.
+- `web/src/`: Svelte application. `lib/` holds the shared API client, types, i18n, formatting, session flow, and the feature registry; `features/` holds per-page feature modules and their components.
+- `scripts/`: maintenance and benchmark tools. `scripts/check_source_boundaries.mjs` enforces the source layout in CI.
 - `.github/workflows/release.yml`, `build.bat`: release and Windows build workflows.
 
-The application stores its `.env` file and LMDB environment under the current user's `~/.exoroute` directory (on Windows, `%USERPROFILE%\.exoroute`); the default environment path is `exoroute.lmdb`. `EXOROUTE_DATABASE_PATH`, when set, names the LMDB environment directory. Environment variables override values from the app `.env` file. Relative data paths follow the resolution rules in `src/config.rs`.
+The application stores its `.env` file and LMDB environment under the current user's `~/.exoroute` directory (on Windows, `%USERPROFILE%\.exoroute`); the default environment path is `exoroute.lmdb`. `EXOROUTE_DATABASE_PATH`, when set, names the LMDB environment directory. Environment variables override values from the app `.env` file. Relative data paths follow the resolution rules in `src/config/`.
 
 The database is local-filesystem-only and is owned by one ExoRoute process at a time. Never put it on a network filesystem or open it from another process. Existing SQLite files are intentionally ignored: ExoRoute does not migrate SQLite databases or accept SQLite backups. Do not delete, inspect, or repurpose an old SQLite file as part of an LMDB change.
 
@@ -30,6 +33,7 @@ Use `README.md`, the current code, and existing tests as the source of truth whe
 ## Working in the codebase
 
 - Inspect neighboring code and reuse its established patterns before adding abstractions, dependencies, or parallel implementations.
+- Keep test modules in one `tests.rs` per feature, or split them into a `tests/` directory holding one file per concern plus a shared `support` module for harness code. Feature-specific fixtures belong in that feature's `support` module; mock upstream servers come from `src/support/mock_upstream.rs` instead of being rebuilt per test. `scripts/check_source_boundaries.mjs` rejects the `_tests.rs` naming and a module that has both `<name>.rs` and `<name>/mod.rs`.
 - Keep Rust handlers, database operations, and protocol conversion in their existing modules. Keep frontend HTTP calls and shared types in `web/src/lib/` where appropriate.
 - Make API changes consistently across the Rust handler, frontend client/types, and tests. Keep user-facing text translated in both English and Vietnamese in `web/src/lib/i18n.ts`.
 - Match the current Svelte and CSS conventions. The project uses Svelte 5 but existing components may use legacy reactive syntax; do not migrate components to runes as part of unrelated work.
@@ -59,7 +63,7 @@ These rules apply to production Rust code, including handlers, workers, migratio
 - Bound memory and work before allocation or expensive processing: request and response bytes, parsed collections, caches, queues, spawned tasks, retries, and per-request fan-out. Use pagination or lazy iteration for large datasets. Any cache or map keyed by deletable entities needs an explicit cleanup or capacity policy. Preserve the user requirement that a provider may have an unlimited number of API keys; do not add an arbitrary key cap—make routing and administration lazy/paginated instead.
 - Async code must not perform blocking file, network, CPU-heavy, or synchronous database work on Tokio workers. Use `spawn_blocking` only for bounded blocking work and protect it with concurrency limits. Avoid `std::sync::Mutex` in contended async request paths; do not hold locks across `.await`, database calls, or network calls unless serialization is required and the reason, contention behavior, and cancellation behavior are documented. Never create an unbounded channel or unbounded task fan-out.
 - Review cancellation and backpressure as normal control flow. Every acquired permit, half-open probe, temporary file, queue item, and background task must be released, drained, retried, or safely abandoned when its future is cancelled, a client disconnects, a timeout fires, or shutdown begins. Use RAII where possible and test the cancellation path for stateful streaming or retry logic.
-- Keep LMDB reads and writes behind `src/storage.rs` and domain operations in `src/db.rs` or the owning feature module. Use typed records, bounded prefix scans and secondary indexes; avoid per-request full-table reads and eager materialization of user-growable data. Update secondary indexes atomically with primary records, preserve transaction/rollback behavior, and validate backup/import records before replacing live data. Never use a live user database as a test fixture.
+- Keep LMDB reads and writes behind `src/infra/storage/` and domain operations in `src/infra/db/` or the owning feature module. Use typed records, bounded prefix scans and secondary indexes; avoid per-request full-table reads and eager materialization of user-growable data. Update secondary indexes atomically with primary records, preserve transaction/rollback behavior, and validate backup/import records before replacing live data. Never use a live user database as a test fixture.
 - Network calls need explicit connect, request/idle, and overall time limits, bounded response consumption, safe retry semantics, and useful redacted errors. Preserve egress validation, DNS pinning, redirect policy, and local-provider exceptions. Do not retry an inference when the upstream may have accepted or billed it unless the protocol makes retry safe.
 - Avoid `unsafe`. If FFI or unsafe code is unavoidable, isolate the smallest block, document the safety invariants at that block, and add focused tests for assumptions that can be tested. Do not use unsafe for speculative micro-optimization.
 - Add a dependency only when the standard library and existing dependencies cannot meet the need cleanly. Review default features, duplicate runtimes, compile impact, license/maintenance, and the lockfile; keep `Cargo.lock` with this binary project and update it intentionally.
@@ -118,7 +122,7 @@ Treat these as security boundaries. Changes that affect them need focused tests 
 ## Frontend and API conventions
 
 - Build the frontend before building or running the Rust binary when dashboard assets may have changed; the binary embeds `web/dist` at compile time.
-- Use `web/src/lib/api.ts` for dashboard API calls and `web/src/lib/types.ts` for shared request/response types. Preserve the backend as the authority for authorization and validation.
+- Use `web/src/lib/api/` for dashboard API calls and `web/src/lib/types/` for shared request/response types. Preserve the backend as the authority for authorization and validation.
 - Keep login and redirect handling centralized. Validate any post-login return path so it cannot redirect to an untrusted external URL.
 - Follow existing loading, empty, error, and success-state patterns. Make forms keyboard-accessible and expose validation or provider-key test warnings clearly.
 - Add or update both English and Vietnamese strings when changing visible text. Do not hard-code new UI copy in a component if it belongs in the shared dictionaries.
@@ -136,6 +140,12 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 cargo check --workspace --all-targets --all-features
 cargo check --release
+```
+
+Also run the source-layout check, which CI enforces:
+
+```powershell
+node scripts/check_source_boundaries.mjs
 ```
 
 If a baseline check already fails, record that baseline and ensure the change adds no new failures. Do not hide warnings with broad `allow` attributes or claim the full verification passed when only one command passed. Run platform-specific checks for touched `cfg`/FFI code, migrations for schema changes, and relevant integration or cancellation tests for network/streaming changes. A load test or benchmark is required before making a performance claim, not for every routine change.
