@@ -3,6 +3,7 @@
 //! The paged and legacy unpaged list shapes stay here so search and the
 //! combo editor share one bounded read path.
 
+use super::models_store::manual_model_names;
 use super::*;
 use crate::infra::storage::{Record, StorageError, Table};
 
@@ -59,7 +60,7 @@ async fn list_provider_models_page(
             .filter(|value| !value.is_empty());
         let provider_id = id.clone();
         let search = search.map(str::to_lowercase);
-        let (provider_exists, mut models) = state
+        let (provider_exists, models, manual_models, has_more) = state
             .db
             .read(move |transaction| {
                 let provider_exists =
@@ -68,7 +69,7 @@ async fn list_provider_models_page(
                         None => false,
                     };
                 if !provider_exists {
-                    return Ok((false, Vec::new()));
+                    return Ok((false, Vec::new(), Vec::new(), false));
                 }
                 let prefix = crate::infra::db::provider_model_index_prefix(&provider_id)?;
                 let scan_limit = if search.is_some() {
@@ -84,7 +85,7 @@ async fn list_provider_models_page(
                 if search.is_some() && rows.len() > MAX_PROVIDER_SCAN_ROWS {
                     return Err(StorageError::Busy);
                 }
-                let models = rows
+                let mut models = rows
                     .into_iter()
                     .map(|(_, model)| model)
                     .filter(|model| {
@@ -94,20 +95,27 @@ async fn list_provider_models_page(
                     })
                     .take(limit.saturating_add(1))
                     .collect::<Vec<_>>();
-                Ok((true, models))
+                let has_more = models.len() > limit;
+                models.truncate(limit);
+                // Only the returned page is enriched, so the extra record
+                // reads stay bounded by the page size.
+                let manual_models = manual_model_names(transaction, &provider_id, &models)?;
+                Ok((true, models, manual_models, has_more))
             })
             .await
             .map_err(internal)?;
         if !provider_exists {
             return Err(fail(StatusCode::NOT_FOUND, "provider not found"));
         }
-        let has_more = models.len() > limit;
-        models.truncate(limit);
-        return Ok(Json(json!({"models":models,"has_more":has_more})));
+        return Ok(Json(json!({
+            "models": models,
+            "manual_models": manual_models,
+            "has_more": has_more,
+        })));
     }
 
     let provider_id = id.clone();
-    let (exists, models) = state
+    let (exists, models, manual_models) = state
         .db
         .read(move |transaction| {
             let exists = match transaction.get::<Record>(Table::Providers, &provider_id)? {
@@ -115,7 +123,7 @@ async fn list_provider_models_page(
                 None => false,
             };
             if !exists {
-                return Ok((false, Vec::new()));
+                return Ok((false, Vec::new(), Vec::new()));
             }
             let prefix = crate::infra::db::provider_model_index_prefix(&provider_id)?;
             let rows = transaction.scan_prefix::<String>(
@@ -126,17 +134,19 @@ async fn list_provider_models_page(
             if rows.len() > MAX_PROVIDER_SCAN_ROWS {
                 return Err(StorageError::Busy);
             }
-            Ok((
-                true,
-                rows.into_iter().map(|(_, model)| model).collect::<Vec<_>>(),
-            ))
+            let models = rows.into_iter().map(|(_, model)| model).collect::<Vec<_>>();
+            let manual_models = manual_model_names(transaction, &provider_id, &models)?;
+            Ok((true, models, manual_models))
         })
         .await
         .map_err(internal)?;
     if !exists {
         return Err(fail(StatusCode::NOT_FOUND, "provider not found"));
     }
-    Ok(Json(json!({"models":models})))
+    Ok(Json(json!({
+        "models": models,
+        "manual_models": manual_models,
+    })))
 }
 
 #[derive(Debug, Default, Deserialize)]

@@ -157,6 +157,8 @@ export const vi: Record<TranslationKey, string> = {
   'Could not open provider details. Reload the page and try again.': 'Không thể mở chi tiết nhà cung cấp. Hãy tải lại trang rồi thử lại.',
   'Custom provider settings are unavailable. Reload the page and try again.': 'Cài đặt nhà cung cấp tùy chỉnh không khả dụng. Hãy tải lại trang rồi thử lại.',
   'Saved models': 'Mô hình đã lưu',
+  'Manual': 'Thủ công',
+  'Imported {count} models. Kept {kept} manual models.': 'Đã nhập {count} mô hình. Giữ lại {kept} mô hình thủ công.',
   'Manage saved models for this provider. Import a list, add a model ID manually, or test models below.': 'Quản lý mô hình đã lưu của nhà cung cấp này. Nhập danh sách, thêm ID mô hình thủ công hoặc kiểm tra mô hình bên dưới.',
   'Give your model an endpoint': 'Tạo endpoint cho mô hình',
   'BASE URL': 'URL CƠ SỞ',

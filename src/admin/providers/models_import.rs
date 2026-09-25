@@ -4,7 +4,7 @@
 //! catalog, or per-credential probing) and persists the merged result via
 //! `models_store`.
 
-use super::models_store::{prune_stale_models, store_provider_models};
+use super::models_store::{ProviderModelSource, prune_stale_models, store_provider_models};
 use super::*;
 use crate::infra::storage::{Record, Table};
 
@@ -132,16 +132,21 @@ async fn import_oauth_models(
                 } else {
                     Vec::new()
                 };
-                store_provider_models(
+                let outcome = store_provider_models(
                     &state.db,
                     id,
                     &models,
+                    ProviderModelSource::Import,
                     provider_adapters::model_catalog_authoritative(adapter_id),
                 )
                 .await?;
-                return Ok(Json(
-                    json!({"models":models,"available":true,"truncated":false,"pruned":pruned}),
-                ));
+                return Ok(Json(json!({
+                    "models": models,
+                    "available": true,
+                    "truncated": false,
+                    "pruned": pruned,
+                    "manual_kept": outcome.manual_kept,
+                })));
             }
             Err(error) => last_error = Some(error),
         }
@@ -185,7 +190,7 @@ async fn import_public_catalog_models(
             "Cline model catalog is unavailable",
         ));
     };
-    store_provider_models(&state.db, id, &models, false).await?;
+    store_provider_models(&state.db, id, &models, ProviderModelSource::Import, false).await?;
     Ok(Json(json!({
         "models": models,
         "available": true,
@@ -260,16 +265,20 @@ async fn import_credential_probed_models(
         .await
         {
             Ok(provider_adapters::ModelDiscoveryResult::Available { models, truncated }) => {
-                store_provider_models(
+                let outcome = store_provider_models(
                     &state.db,
                     id,
                     &models,
+                    ProviderModelSource::Import,
                     provider_adapters::model_catalog_authoritative(adapter_id),
                 )
                 .await?;
-                return Ok(Json(
-                    json!({"models":models,"available":true,"truncated":truncated}),
-                ));
+                return Ok(Json(json!({
+                    "models": models,
+                    "available": true,
+                    "truncated": truncated,
+                    "manual_kept": outcome.manual_kept,
+                })));
             }
             Ok(provider_adapters::ModelDiscoveryResult::Unsupported) => unsupported = true,
             Err(error) => last_error = Some(error),
