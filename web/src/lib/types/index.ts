@@ -28,6 +28,7 @@ export type {
   ProviderKeyStrategyResult,
   ProviderAuthStartResult,
   ProviderAuthStatus,
+  ProviderAuthPollResult,
   ProviderAuthCompletionResult,
   ProviderApiKeyAuthStartResult,
   ProviderApiKeyAuthStatus,
