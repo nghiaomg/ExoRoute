@@ -1,4 +1,5 @@
 use super::*;
+use crate::provider_adapters::AdapterOAuthAccount;
 use std::net::IpAddr;
 
 pub(crate) const LEGACY_PROVIDER_AUTH_CALLBACK_URL: &str = "http://localhost:1455/auth/callback";
@@ -171,7 +172,10 @@ pub(crate) fn has_active_provider_auth_flow(
     now: std::time::Instant,
 ) -> bool {
     flows.values().any(|flow| {
-        flow.expires_at > now
+        // Only authorization-code flows need the loopback listener; a pending
+        // device authorization must not keep the port bound.
+        flow.method.authorization_code().is_some()
+            && flow.expires_at > now
             && matches!(
                 flow.status,
                 ProviderAuthFlowStatus::Pending | ProviderAuthFlowStatus::Processing
@@ -422,7 +426,11 @@ pub(crate) fn claim_provider_auth_callback_flow(
         Some(expected_flow_id.to_owned())
     } else {
         flows.iter().find_map(|(flow_id, flow)| {
-            secure_eq(flow.oauth_state.as_bytes(), callback_state.as_bytes())
+            flow.method
+                .authorization_code()
+                .is_some_and(|(oauth_state, _, _)| {
+                    secure_eq(oauth_state.as_bytes(), callback_state.as_bytes())
+                })
                 .then(|| flow_id.clone())
         })
     };
@@ -446,7 +454,13 @@ pub(crate) fn claim_provider_auth_callback_flow(
             "OAuth callback state is invalid or expired; start sign-in again",
         ));
     }
-    if !secure_eq(flow.oauth_state.as_bytes(), callback_state.as_bytes()) {
+    let Some((oauth_state, _, _)) = flow.method.authorization_code() else {
+        return Err(fail(
+            StatusCode::GONE,
+            "OAuth callback state is invalid or expired; start sign-in again",
+        ));
+    };
+    if !secure_eq(oauth_state.as_bytes(), callback_state.as_bytes()) {
         return Err(fail(
             StatusCode::BAD_REQUEST,
             "OAuth callback state does not match this sign-in attempt",
@@ -489,13 +503,15 @@ pub(crate) fn claim_embedded_provider_auth_callback_flow_without_state(
             matches!(
                 flow.status,
                 ProviderAuthFlowStatus::Pending | ProviderAuthFlowStatus::Processing
-            ) && provider_adapters::accepts_embedded_oauth_callback_without_state(
-                &flow.adapter_id,
-                code,
-            ) && expected_flow.is_none_or(|(expected_provider_id, expected_flow_id)| {
-                flow.provider_id == expected_provider_id
-                    && candidate_flow_id.as_str() == expected_flow_id
-            })
+            ) && flow.method.authorization_code().is_some()
+                && provider_adapters::accepts_embedded_oauth_callback_without_state(
+                    &flow.adapter_id,
+                    code,
+                )
+                && expected_flow.is_none_or(|(expected_provider_id, expected_flow_id)| {
+                    flow.provider_id == expected_provider_id
+                        && candidate_flow_id.as_str() == expected_flow_id
+                })
         })
         .map(|(flow_id, _)| flow_id.clone());
 
@@ -555,52 +571,84 @@ fn spawn_provider_auth_completion(
 ) {
     let mut app_shutdown = state.shutdown_receiver();
     tokio::spawn(async move {
-        let result = tokio::select! {
-            _ = app_shutdown.changed() => return,
-            result = async {
-                let account = provider_adapters::exchange_oauth_code(
-                    &flow.adapter_id,
-                    &code,
-                    &flow.verifier,
-                    &flow.redirect_uri,
-                    Duration::from_secs(3),
-                    Duration::from_secs(10),
-                    state.operational_settings().settings.upstream,
-                )
-                .await?;
-                provider_adapters::save_oauth_account(
-                    &flow.adapter_id,
-                    &state,
-                    &flow.provider_id,
-                    account,
-                )
-                .await
-            } => result,
-        };
-        let succeeded = result.is_ok();
-        let status_message = match result {
-            Ok(()) => provider_adapters::preset_for_adapter(&flow.adapter_id)
-                .map(|preset| format!("{} account connected", preset.name))
-                .unwrap_or_else(|| "provider account connected".to_owned()),
-            Err(message) => message,
-        };
-        if let Some(current) = state
-            .admin
-            .provider_auth_flows
-            .lock()
-            .await
-            .get_mut(&flow_id)
-            && current.status == ProviderAuthFlowStatus::Processing
-        {
-            current.status = if succeeded {
-                ProviderAuthFlowStatus::Connected
-            } else {
-                ProviderAuthFlowStatus::Failed
-            };
-            current.message = Some(status_message);
-            current.expires_at = std::time::Instant::now() + PROVIDER_AUTH_FLOW_TTL;
+        // A shutdown cancels the exchange before the account is stored; every
+        // other outcome is published on the flow by `finish_provider_auth_flow`.
+        tokio::select! {
+            _ = app_shutdown.changed() => {}
+            _ = async {
+                let exchanged = async {
+                    let (_, verifier, redirect_uri) = flow
+                        .method
+                        .authorization_code()
+                        .ok_or_else(|| "provider sign-in did not use a redirect flow".to_owned())?;
+                    provider_adapters::exchange_oauth_code(
+                        &flow.adapter_id,
+                        &code,
+                        verifier,
+                        redirect_uri,
+                        Duration::from_secs(3),
+                        Duration::from_secs(10),
+                        state.operational_settings().settings.upstream,
+                    )
+                    .await
+                }
+                .await;
+                match exchanged {
+                    Ok(account) => {
+                        finish_provider_auth_flow(
+                            &state,
+                            &flow_id,
+                            &flow.adapter_id,
+                            &flow.provider_id,
+                            account,
+                        )
+                        .await
+                    }
+                    Err(message) => fail_provider_auth_flow(&state, &flow_id, &message).await,
+                }
+            } => {}
         }
     });
+}
+
+/// Stores the account a sign-in just returned and publishes the terminal flow
+/// status the dashboard polls. Used by both the redirect callback and the
+/// device-authorization poll so the two paths report identically.
+pub(crate) async fn finish_provider_auth_flow(
+    state: &AppState,
+    flow_id: &str,
+    adapter_id: &str,
+    provider_id: &str,
+    account: AdapterOAuthAccount,
+) {
+    let result =
+        provider_adapters::save_oauth_account(adapter_id, state, provider_id, account).await;
+    let succeeded = result.is_ok();
+    let status_message = match result {
+        Ok(()) => provider_adapters::preset_for_adapter(adapter_id)
+            .map(|preset| format!("{} account connected", preset.name))
+            .unwrap_or_else(|| "provider account connected".to_owned()),
+        Err(message) => message,
+    };
+    if let Some(current) = state
+        .admin
+        .provider_auth_flows
+        .lock()
+        .await
+        .get_mut(flow_id)
+        && matches!(
+            current.status,
+            ProviderAuthFlowStatus::Pending | ProviderAuthFlowStatus::Processing
+        )
+    {
+        current.status = if succeeded {
+            ProviderAuthFlowStatus::Connected
+        } else {
+            ProviderAuthFlowStatus::Failed
+        };
+        current.message = Some(status_message);
+        current.expires_at = std::time::Instant::now() + PROVIDER_AUTH_FLOW_TTL;
+    }
 }
 
 pub(crate) async fn provider_auth_callback(State(state): State<AppState>, uri: Uri) -> Response {

@@ -92,6 +92,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/providers/{id}/auth/{flow_id}",
             get(provider_auth_status),
         )
+        .route(
+            "/api/v1/admin/providers/{id}/auth/{flow_id}/poll",
+            post(provider_auth::provider_auth_poll),
+        )
         .merge(provider_auth_callback_routes)
         .route(
             "/api/v1/admin/providers/{id}/api-key-auth/start",

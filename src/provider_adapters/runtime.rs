@@ -1,8 +1,8 @@
 use super::{
-    AdapterApiKeyRequest, AdapterKeyTestOutcome, AdapterModelTestOutcome, AdapterModelTestRequest,
-    AdapterOAuthAccount, ApiKeyAuthCallback, CODEX_ADAPTER_ID, GENERIC_ADAPTER_ID,
-    OAuthRequestAuth, ProviderAdapter, ProviderUsageSnapshot, UpstreamAuthContext, auth, opencode,
-    presets, registry,
+    AdapterApiKeyRequest, AdapterDeviceAuthorization, AdapterDevicePoll, AdapterKeyTestOutcome,
+    AdapterModelTestOutcome, AdapterModelTestRequest, AdapterOAuthAccount, ApiKeyAuthCallback,
+    CODEX_ADAPTER_ID, GENERIC_ADAPTER_ID, OAuthRequestAuth, ProviderAdapter, ProviderUsageSnapshot,
+    UpstreamAuthContext, auth, opencode, presets, registry,
 };
 use crate::{protocol::UpstreamProtocol, state::AppState};
 use http::StatusCode;
@@ -280,6 +280,38 @@ pub fn authorization_url(
 
 pub fn supports_custom_oauth_redirect_uri(adapter_id: &str) -> bool {
     adapter(adapter_id).is_some_and(ProviderAdapter::supports_custom_oauth_redirect_uri)
+}
+
+/// Whether the adapter signs in with a device-authorization grant.
+pub fn uses_device_authorization(adapter_id: &str) -> bool {
+    adapter(adapter_id).is_some_and(ProviderAdapter::uses_device_authorization)
+}
+
+pub async fn start_device_authorization(
+    adapter_id: &str,
+    state: &AppState,
+) -> Result<AdapterDeviceAuthorization, String> {
+    let Some(adapter) = adapter(adapter_id) else {
+        return Err("provider adapter is not registered".to_owned());
+    };
+    if !adapter.uses_device_authorization() {
+        return Err("provider adapter does not support device authorization".to_owned());
+    }
+    adapter.start_device_authorization(state).await
+}
+
+pub async fn poll_device_authorization(
+    adapter_id: &str,
+    state: &AppState,
+    device_code: &str,
+) -> Result<AdapterDevicePoll, String> {
+    let Some(adapter) = adapter(adapter_id) else {
+        return Err("provider adapter is not registered".to_owned());
+    };
+    if !adapter.uses_device_authorization() {
+        return Err("provider adapter does not support device authorization".to_owned());
+    }
+    adapter.poll_device_authorization(state, device_code).await
 }
 
 pub fn pkce_challenge(adapter_id: &str, verifier: &str) -> Result<String, String> {

@@ -70,6 +70,9 @@
 .codex-oauth-notice { padding: 8px 10px; border: none; border-radius: 7px; color: #666a7c; background: #f5f5fa; font-size: 12px; line-height: 1.5; }
 .codex-oauth-notice.success { color: #26734e; background: #effaf4; }
 .codex-oauth-notice.error { color: #a6404a; background: #fff3f4; }
+.device-code-hint { margin: 0; color: #666a7c; font-size: 12px; line-height: 1.5; }
+.device-code-value { display: flex; align-items: center; gap: 8px; }
+.device-code-value code { padding: 4px 8px; border: 1px solid #e3e3ee; border-radius: 7px; color: #343746; background: #f7f7fc; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
 .codex-oauth-remote-help { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid #e5d8a8; border-radius: 8px; color: #65521c; background: #fffaf0; font-size: 12px; line-height: 1.55; }
 .codex-oauth-remote-help p { margin: 0; }
 .oauth-manual-steps { display: grid; gap: 16px; width: 100%; min-width: 0; max-width: 100%; padding: 0; border: none; border-radius: 0; background: transparent; box-shadow: none; box-sizing: border-box; }

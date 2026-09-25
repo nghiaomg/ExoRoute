@@ -14,7 +14,7 @@ use crate::{
     provider_adapters::{self},
     security::egress,
     security::{decrypt_secret, secure_eq, token_hash},
-    state::{AppState, PendingProviderAuthFlow, ProviderAuthFlowStatus},
+    state::{AppState, PendingProviderAuthFlow, ProviderAuthFlowMethod, ProviderAuthFlowStatus},
 };
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
 

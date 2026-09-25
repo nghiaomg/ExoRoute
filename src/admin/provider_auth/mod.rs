@@ -5,19 +5,22 @@
 use super::*;
 
 mod callback;
+mod device;
 
 pub(crate) use callback::{
     LEGACY_PROVIDER_AUTH_CALLBACK_URL, complete_provider_auth_callback,
     complete_provider_auth_callback_for_flow, ensure_provider_auth_callback_listener_locked,
-    validate_provider_auth_redirect_uri,
+    finish_provider_auth_flow, validate_provider_auth_redirect_uri,
 };
 #[cfg(test)]
 pub(crate) use callback::{
     claim_embedded_provider_auth_callback_flow_without_state, claim_provider_auth_callback_flow,
     has_active_provider_auth_flow, localhost_loopback_addresses, parse_provider_auth_callback_url,
 };
+pub(crate) use device::{provider_auth_poll, start_provider_device_auth};
 
 pub(crate) const PROVIDER_AUTH_FLOW_TTL: Duration = Duration::from_secs(5 * 60);
+pub(crate) const PROVIDER_AUTH_CALLBACK_METHOD: &str = "authorization_code";
 pub(crate) const MAX_PROVIDER_AUTH_CALLBACK_URL_BYTES: usize = 16 * 1024;
 pub(crate) const MAX_PROVIDER_AUTH_CALLBACK_BODY_BYTES: usize = 20 * 1024;
 pub(crate) const PROVIDER_AUTH_LISTENER_IDLE_GRACE: Duration = Duration::from_secs(30);
@@ -77,6 +80,17 @@ pub(crate) async fn start_provider_auth(
     }
 
     let requested_callback_url = request.and_then(|request| request.0.callback_url);
+    if provider_adapters::uses_device_authorization(&adapter_id) {
+        // A device sign-in has no redirect URI, so a caller-supplied callback
+        // URL is a client error rather than something to ignore.
+        if requested_callback_url.is_some() {
+            return Err(fail(
+                StatusCode::BAD_REQUEST,
+                "this provider signs in with a device code and does not accept a callback URL",
+            ));
+        }
+        return start_provider_device_auth(state, id, adapter_id).await;
+    }
     let redirect_uri = if let Some(callback_url) = requested_callback_url {
         let redirect_uri = validate_provider_auth_redirect_uri(&callback_url)
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
@@ -128,9 +142,11 @@ pub(crate) async fn start_provider_auth(
             PendingProviderAuthFlow {
                 adapter_id,
                 provider_id: provider_id_for_flow,
-                oauth_state,
-                verifier,
-                redirect_uri,
+                method: ProviderAuthFlowMethod::AuthorizationCode {
+                    oauth_state,
+                    verifier,
+                    redirect_uri,
+                },
                 expires_at: std::time::Instant::now() + PROVIDER_AUTH_FLOW_TTL,
                 status: ProviderAuthFlowStatus::Pending,
                 message: None,
@@ -138,9 +154,49 @@ pub(crate) async fn start_provider_auth(
         )
         .await
         .map_err(|message| fail(StatusCode::TOO_MANY_REQUESTS, message))?;
-    Ok(Json(
-        json!({"flow_id":flow_id,"authorization_url":authorization_url}),
-    ))
+    Ok(Json(json!({
+        "flow_id": flow_id,
+        "authorization_url": authorization_url,
+        "method": PROVIDER_AUTH_CALLBACK_METHOD,
+    })))
+}
+
+/// Publishes a failure the dashboard can show for a provider sign-in that is
+/// still pending, so a failed attempt never leaves the panel spinning.
+pub(super) async fn fail_provider_auth_flow(state: &AppState, flow_id: &str, message: &str) {
+    if let Some(flow) = state
+        .admin
+        .provider_auth_flows
+        .lock()
+        .await
+        .get_mut(flow_id)
+        && matches!(
+            flow.status,
+            ProviderAuthFlowStatus::Pending | ProviderAuthFlowStatus::Processing
+        )
+    {
+        flow.status = ProviderAuthFlowStatus::Failed;
+        flow.message = Some(message.to_owned());
+        flow.expires_at = std::time::Instant::now() + PROVIDER_AUTH_FLOW_TTL;
+    }
+}
+
+/// Records a progress note on a pending sign-in without changing its status.
+/// An empty message clears a previous note.
+pub(super) async fn note_provider_auth_flow(state: &AppState, flow_id: &str, message: &str) {
+    if let Some(flow) = state
+        .admin
+        .provider_auth_flows
+        .lock()
+        .await
+        .get_mut(flow_id)
+        && matches!(
+            flow.status,
+            ProviderAuthFlowStatus::Pending | ProviderAuthFlowStatus::Processing
+        )
+    {
+        flow.message = (!message.is_empty()).then(|| message.to_owned());
+    }
 }
 
 pub(crate) async fn provider_auth_status(
@@ -176,19 +232,78 @@ pub(crate) async fn provider_auth_status(
     ) {
         state.reap_provider_auth_flow_if_terminal(&flow_id).await;
     }
-    Ok(Json(json!({"status":status,"message":flow.message})))
+    let (user_code, verification_url) = match &flow.method {
+        // A device sign-in is approved in the provider's own page. Re-sending
+        // the code lets a reloaded dashboard keep showing it while it polls.
+        ProviderAuthFlowMethod::DeviceCode {
+            user_code,
+            verification_uri,
+            ..
+        } => (Some(user_code.as_str()), Some(verification_uri.as_str())),
+        ProviderAuthFlowMethod::AuthorizationCode { .. } => (None, None),
+    };
+    Ok(Json(json!({
+        "status": status,
+        "message": flow.message,
+        "user_code": user_code,
+        "verification_url": verification_url,
+    })))
 }
 #[cfg(test)]
 mod provider_auth_callback_listener_tests {
     use super::{
-        LEGACY_PROVIDER_AUTH_CALLBACK_URL, PendingProviderAuthFlow, ProviderAuthFlowStatus,
-        has_active_provider_auth_flow, localhost_loopback_addresses,
+        LEGACY_PROVIDER_AUTH_CALLBACK_URL, PendingProviderAuthFlow, ProviderAuthFlowMethod,
+        ProviderAuthFlowStatus, has_active_provider_auth_flow, localhost_loopback_addresses,
     };
     use std::net::SocketAddr;
     use std::{
         collections::HashMap,
         time::{Duration, Instant},
     };
+
+    #[test]
+    fn a_pending_device_sign_in_does_not_keep_the_callback_listener_alive() {
+        let now = Instant::now();
+        let mut flows = HashMap::from([(
+            "flow-device".to_owned(),
+            PendingProviderAuthFlow {
+                adapter_id: crate::provider_adapters::KILOCODE_ADAPTER_ID.to_owned(),
+                provider_id: "kilocode".to_owned(),
+                method: ProviderAuthFlowMethod::DeviceCode {
+                    device_code: "device-code".to_owned(),
+                    user_code: "device-code".to_owned(),
+                    verification_uri: "https://api.kilo.ai/device".to_owned(),
+                    interval: 3,
+                    last_poll_at: None,
+                },
+                expires_at: now + Duration::from_secs(300),
+                status: ProviderAuthFlowStatus::Pending,
+                message: None,
+            },
+        )]);
+        assert!(
+            !has_active_provider_auth_flow(&flows, now),
+            "a device sign-in must not hold the loopback callback port"
+        );
+
+        // The same flow shape using a redirect does hold it.
+        flows.insert(
+            "flow-redirect".to_owned(),
+            PendingProviderAuthFlow {
+                adapter_id: crate::provider_adapters::KILOCODE_ADAPTER_ID.to_owned(),
+                provider_id: "kilocode".to_owned(),
+                method: ProviderAuthFlowMethod::AuthorizationCode {
+                    oauth_state: "state".to_owned(),
+                    verifier: "verifier".to_owned(),
+                    redirect_uri: LEGACY_PROVIDER_AUTH_CALLBACK_URL.to_owned(),
+                },
+                expires_at: now + Duration::from_secs(300),
+                status: ProviderAuthFlowStatus::Pending,
+                message: None,
+            },
+        );
+        assert!(has_active_provider_auth_flow(&flows, now));
+    }
 
     #[test]
     fn localhost_callback_binds_each_resolved_loopback_family_only() {
@@ -212,9 +327,11 @@ mod provider_auth_callback_listener_tests {
             PendingProviderAuthFlow {
                 adapter_id: crate::provider_adapters::CODEX_ADAPTER_ID.to_owned(),
                 provider_id: "codex".to_owned(),
-                oauth_state: "state".to_owned(),
-                verifier: "verifier".to_owned(),
-                redirect_uri: LEGACY_PROVIDER_AUTH_CALLBACK_URL.to_owned(),
+                method: ProviderAuthFlowMethod::AuthorizationCode {
+                    oauth_state: "state".to_owned(),
+                    verifier: "verifier".to_owned(),
+                    redirect_uri: LEGACY_PROVIDER_AUTH_CALLBACK_URL.to_owned(),
+                },
                 expires_at: now + Duration::from_secs(60),
                 status: ProviderAuthFlowStatus::Pending,
                 message: None,
@@ -239,8 +356,8 @@ mod provider_auth_callback_listener_tests {
 #[cfg(test)]
 mod provider_auth_callback_flow_tests {
     use super::{
-        LEGACY_PROVIDER_AUTH_CALLBACK_URL, PendingProviderAuthFlow, ProviderAuthFlowStatus,
-        claim_embedded_provider_auth_callback_flow_without_state,
+        LEGACY_PROVIDER_AUTH_CALLBACK_URL, PendingProviderAuthFlow, ProviderAuthFlowMethod,
+        ProviderAuthFlowStatus, claim_embedded_provider_auth_callback_flow_without_state,
         claim_provider_auth_callback_flow,
     };
     use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -252,9 +369,11 @@ mod provider_auth_callback_flow_tests {
         PendingProviderAuthFlow {
             adapter_id: crate::provider_adapters::CODEX_ADAPTER_ID.to_owned(),
             provider_id: "provider-1".to_owned(),
-            oauth_state: "expected-state".to_owned(),
-            verifier: "pkce-verifier".to_owned(),
-            redirect_uri: LEGACY_PROVIDER_AUTH_CALLBACK_URL.to_owned(),
+            method: ProviderAuthFlowMethod::AuthorizationCode {
+                oauth_state: "expected-state".to_owned(),
+                verifier: "pkce-verifier".to_owned(),
+                redirect_uri: LEGACY_PROVIDER_AUTH_CALLBACK_URL.to_owned(),
+            },
             expires_at: now + Duration::from_secs(60),
             status: ProviderAuthFlowStatus::Pending,
             message: None,
@@ -265,9 +384,11 @@ mod provider_auth_callback_flow_tests {
         PendingProviderAuthFlow {
             adapter_id: crate::provider_adapters::CLINE_ADAPTER_ID.to_owned(),
             provider_id: "cline-provider".to_owned(),
-            oauth_state: "cline-state".to_owned(),
-            verifier: "pkce-verifier".to_owned(),
-            redirect_uri: LEGACY_PROVIDER_AUTH_CALLBACK_URL.to_owned(),
+            method: ProviderAuthFlowMethod::AuthorizationCode {
+                oauth_state: "cline-state".to_owned(),
+                verifier: "pkce-verifier".to_owned(),
+                redirect_uri: LEGACY_PROVIDER_AUTH_CALLBACK_URL.to_owned(),
+            },
             expires_at: now + Duration::from_secs(60),
             status: ProviderAuthFlowStatus::Pending,
             message: None,
@@ -476,7 +597,7 @@ mod provider_auth_callback_url_tests {
 
 #[cfg(test)]
 mod provider_auth_flow_lifetime_tests {
-    use super::PendingProviderAuthFlow;
+    use super::{PendingProviderAuthFlow, ProviderAuthFlowMethod};
     use crate::provider_adapters::CODEX_ADAPTER_ID;
     use crate::state::{AppState, PROVIDER_AUTH_TERMINAL_FLOW_TTL, ProviderAuthFlowStatus};
     use crate::support::test_support::TestDatabase;
@@ -486,9 +607,11 @@ mod provider_auth_flow_lifetime_tests {
         PendingProviderAuthFlow {
             adapter_id: CODEX_ADAPTER_ID.to_owned(),
             provider_id: "provider-1".to_owned(),
-            oauth_state: "oauth-state".to_owned(),
-            verifier: "pkce-verifier".to_owned(),
-            redirect_uri: "http://localhost:1455/auth/callback".to_owned(),
+            method: ProviderAuthFlowMethod::AuthorizationCode {
+                oauth_state: "oauth-state".to_owned(),
+                verifier: "pkce-verifier".to_owned(),
+                redirect_uri: "http://localhost:1455/auth/callback".to_owned(),
+            },
             expires_at: now + Duration::from_secs(300),
             status,
             message: None,

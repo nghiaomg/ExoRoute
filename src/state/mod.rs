@@ -37,7 +37,8 @@ mod settings;
 pub(crate) use auth::{
     AdminRequestContext, AdminSession, AdminStepUpProof, AdminStepUpScope,
     MAX_ADMIN_STEP_UP_PROOFS, PendingProviderApiKeyAuthFlow, PendingProviderAuthFlow,
-    ProviderApiKeyAuthFlowStatus, ProviderAuthFlowStatus, admin_token_digest, new_admin_token,
+    ProviderApiKeyAuthFlowStatus, ProviderAuthFlowMethod, ProviderAuthFlowStatus,
+    admin_token_digest, new_admin_token,
 };
 pub(crate) use freebuff::{FreebuffSessionCacheEntry, FreebuffSessionRuntime};
 #[cfg(test)]
