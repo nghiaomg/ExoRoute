@@ -160,6 +160,8 @@ export const id: Catalog = {
   'Could not open provider details. Reload the page and try again.': 'Detail penyedia tidak dapat dibuka. Muat ulang halaman lalu coba lagi.',
   'Custom provider settings are unavailable. Reload the page and try again.': 'Pengaturan penyedia khusus tidak tersedia. Muat ulang halaman lalu coba lagi.',
   'Saved models': 'Model tersimpan',
+  'Manual': 'Manual',
+  'Imported {count} models. Kept {kept} manual models.': 'Mengimpor {count} model. {kept} model manual dipertahankan.',
   'Manage saved models for this provider. Import a list, add a model ID manually, or test models below.': 'Kelola model tersimpan untuk penyedia ini. Impor daftar atau uji model di bawah.',
   'Give your model an endpoint': 'Tetapkan endpoint untuk model Anda',
   'BASE URL': 'URL DASAR',

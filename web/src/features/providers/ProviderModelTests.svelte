@@ -14,6 +14,7 @@ import { localizedError } from '../../lib/errors';
 
   export let provider: Provider;
   export let models: ModelTestTarget[];
+  export let manualModels: string[] = [];
   export let tr: Translate;
   export let onDeleteModel: (model: string) => Promise<void>;
 
@@ -35,6 +36,7 @@ import { localizedError } from '../../lib/errors';
   let confirmDeleteTimer: ReturnType<typeof setTimeout> | undefined;
 
   $: modelPrefix = provider?.model_prefix || provider?.id || '';
+  $: manualModelSet = new Set(manualModels);
 
   $: pruneRemovedModels(models);
   $: filteredModels = models.filter((item) => item.model.toLowerCase().includes(query.toLowerCase()));
@@ -326,6 +328,9 @@ import { localizedError } from '../../lib/errors';
           <div class="model-title-wrap">
             <Cpu size={14} class="model-icon" />
             <strong class="model-name" title={model.model}>{model.model}</strong>
+            {#if manualModelSet.has(model.model)}
+              <span class="model-source-chip" title={tr('Manual')}>{tr('Manual')}</span>
+            {/if}
           </div>
           <code class="model-routed-code" title={formattedId}>{formattedId}</code>
         </div>
