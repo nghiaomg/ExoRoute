@@ -759,7 +759,10 @@ async fn terminal_stream_without_output_is_failed_instead_of_completed() {
 
     let body = String::from_utf8(body.to_vec()).expect("translated SSE text");
     assert!(body.contains("\"type\":\"upstream_error\""), "{body}");
-    assert!(!body.ends_with("data: [DONE]\n\n"), "{body}");
+    // The failure event must still be followed by the Chat Completions
+    // terminal sentinel so client SSE parsers end on a deliberate
+    // terminator instead of treating the failure as a dropped connection.
+    assert!(body.ends_with("data: [DONE]\n\n"), "{body}");
     assert!(outcome.failed());
     assert!(!outcome.completed());
 }
@@ -1331,4 +1334,134 @@ async fn chat_tool_call_stream_translates_to_messages_client() {
         translated.ends_with("event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"),
         "{translated}"
     );
+}
+
+/// Streams `body` over a real TCP upstream and then holds the connection
+/// open (without closing) for `hold_after_body` so the reader observes a
+/// transport idle timeout after the sent frames, or closes cleanly when
+/// `None`. Returns the translated client SSE text and the stream outcome.
+async fn run_truncated_chat_stream_test(
+    body: &str,
+    hold_after_body: Option<Duration>,
+    idle_timeout: Duration,
+) -> (String, StreamOutcome) {
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpListener,
+    };
+
+    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+        .await
+        .expect("truncated stream test listener");
+    let address = listener
+        .local_addr()
+        .expect("truncated stream test address");
+    let body = body.to_owned();
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener
+            .accept()
+            .await
+            .expect("truncated stream test request");
+        let mut request = [0_u8; 1024];
+        let _ = socket.read(&mut request).await;
+        let headers = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        socket
+            .write_all(headers.as_bytes())
+            .await
+            .expect("truncated stream test headers");
+        socket
+            .write_all(body.as_bytes())
+            .await
+            .expect("truncated stream test body");
+        if let Some(hold) = hold_after_body {
+            // Keep the socket open and silent so the gateway reader hits its
+            // idle timeout while the connection is still established.
+            tokio::time::sleep(hold).await;
+        }
+    });
+
+    let upstream = reqwest::Client::new()
+        .get(format!("http://{address}/stream"))
+        .send()
+        .await
+        .expect("truncated stream test upstream response");
+    let (_shutdown_sender, shutdown) = watch::channel(false);
+    let outcome = StreamOutcome::default();
+    let response = stream_translation(
+        upstream,
+        StreamTranslationConfig {
+            upstream_protocol: UpstreamProtocol::ChatCompletions,
+            client_protocol: Protocol::ChatCompletions,
+            request_id: "truncated-stream-test".to_owned(),
+            model: "command-code/model".to_owned(),
+            idle_timeout,
+            continuity_enabled: false,
+            overall_timeout: None,
+            outcome: outcome.clone(),
+            analytics: None,
+            resource_limits: GatewayResourceLimits::default(),
+            shutdown,
+            log: None,
+        },
+    );
+    let translated = axum::body::to_bytes(response.into_body(), 64 * 1024)
+        .await
+        .expect("truncated stream test body");
+    server.await.expect("truncated stream test server");
+    (
+        String::from_utf8(translated.to_vec()).expect("truncated stream test SSE text"),
+        outcome,
+    )
+}
+
+/// A transport idle timeout after the upstream finish signal means the
+/// response is already complete; the stalled connection must not inject an
+/// error event into the client stream or mark the outcome failed.
+#[tokio::test]
+async fn chat_stream_error_after_finish_signal_completes_cleanly() {
+    let body = concat!(
+        "data: {\"id\":\"c1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"hello\"},\"finish_reason\":null}]}\n\n",
+        "data: {\"id\":\"c1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+    );
+    let (translated, outcome) = run_truncated_chat_stream_test(
+        body,
+        Some(Duration::from_millis(600)),
+        Duration::from_millis(150),
+    )
+    .await;
+    assert!(
+        translated.contains("\"finish_reason\":\"stop\""),
+        "{translated}"
+    );
+    assert!(!translated.contains("upstream_error"), "{translated}");
+    assert!(translated.ends_with("data: [DONE]\n\n"), "{translated}");
+    assert!(outcome.completed());
+    assert!(!outcome.failed());
+}
+
+/// A genuine mid-stream failure must still surface the error event, but the
+/// Chat Completions terminal sentinel must follow so client SSE parsers end
+/// on a deliberate terminator instead of a dropped connection mid-frame.
+#[tokio::test]
+async fn chat_stream_mid_stream_error_still_yields_done_sentinel() {
+    let body = "data: {\"id\":\"c1\",\"object\":\"chat.completion.chunk\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"partial\"},\"finish_reason\":null}]}\n\n";
+    let (translated, outcome) = run_truncated_chat_stream_test(
+        body,
+        Some(Duration::from_millis(600)),
+        Duration::from_millis(150),
+    )
+    .await;
+    assert!(
+        translated.contains("upstream stream ended before a terminal success event"),
+        "{translated}"
+    );
+    assert!(
+        translated.ends_with("data: [DONE]\n\n"),
+        "chat sentinel must terminate the failed stream: {translated}"
+    );
+    assert!(outcome.failed());
+    assert!(!outcome.completed());
 }
