@@ -25,13 +25,49 @@ pub enum ProviderAuthFlowStatus {
     Failed,
 }
 
+/// How a pending provider sign-in completes.
+#[derive(Clone)]
+pub enum ProviderAuthFlowMethod {
+    /// Authorization-code redirect: the provider sends a code back to the
+    /// loopback callback listener, which exchanges it for the account.
+    AuthorizationCode {
+        oauth_state: String,
+        verifier: String,
+        redirect_uri: String,
+    },
+    /// Device authorization: the operator approves the displayed code in the
+    /// provider's own page and the flow polls with the device code.
+    DeviceCode {
+        device_code: String,
+        user_code: String,
+        verification_uri: String,
+        /// The cadence the device grant asked for, in seconds.
+        interval: u64,
+        /// When the dashboard last polled upstream, so a fast or repeated poll
+        /// cannot hammer the device endpoint.
+        last_poll_at: Option<Instant>,
+    },
+}
+
+impl ProviderAuthFlowMethod {
+    /// The OAuth state a callback must echo. Only redirect flows carry one.
+    pub fn authorization_code(&self) -> Option<(&str, &str, &str)> {
+        match self {
+            Self::AuthorizationCode {
+                oauth_state,
+                verifier,
+                redirect_uri,
+            } => Some((oauth_state, verifier, redirect_uri)),
+            Self::DeviceCode { .. } => None,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct PendingProviderAuthFlow {
     pub adapter_id: String,
     pub provider_id: String,
-    pub oauth_state: String,
-    pub verifier: String,
-    pub redirect_uri: String,
+    pub method: ProviderAuthFlowMethod,
     pub expires_at: Instant,
     pub status: ProviderAuthFlowStatus,
     pub message: Option<String>,

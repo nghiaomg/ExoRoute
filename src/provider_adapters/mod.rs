@@ -28,6 +28,7 @@ mod generic;
 mod images;
 pub(crate) mod keys;
 mod kilo;
+mod kilocode;
 mod model_test;
 mod nvidia_nim;
 mod opencode;
@@ -66,6 +67,7 @@ use command_code::{
 pub const GENERIC_ADAPTER_ID: &str = "generic";
 pub const CODEX_ADAPTER_ID: &str = "openai_codex";
 pub const KILO_GATEWAY_ADAPTER_ID: &str = "kilo_gateway";
+pub const KILOCODE_ADAPTER_ID: &str = "kilocode";
 pub const COMMAND_CODE_ADAPTER_ID: &str = "command_code";
 pub const OPENCODE_GO_ADAPTER_ID: &str = "opencode_go";
 pub const OPENCODE_ZEN_ADAPTER_ID: &str = "opencode_zen";
@@ -157,6 +159,30 @@ type AdapterFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 pub struct AdapterOAuthAccount {
     pub payload: Value,
     pub display_name: String,
+}
+
+/// A device-authorization grant shown to the operator while a provider signs in
+/// without a redirect URI. The dashboard displays `user_code` next to
+/// `verification_uri` and the adapter polls `device_code` until it is approved.
+pub struct AdapterDeviceAuthorization {
+    pub device_code: String,
+    pub user_code: String,
+    pub verification_uri: String,
+    pub expires_in: std::time::Duration,
+    pub interval: std::time::Duration,
+}
+
+/// One device-authorization poll result.
+pub enum AdapterDevicePoll {
+    /// The operator has not approved the request yet.
+    Pending,
+    /// The upstream asked for a slower poll cadence.
+    SlowDown,
+    /// The operator denied the request; the flow cannot continue.
+    Denied,
+    /// The upstream grant expired; the flow must be restarted.
+    Expired,
+    Approved(AdapterOAuthAccount),
 }
 
 pub struct AdapterKeyTestOutcome {
@@ -514,6 +540,33 @@ pub trait ProviderAdapter: Sync {
         Err("provider adapter does not support OAuth".to_owned())
     }
 
+    /// Whether this adapter signs in with a device-authorization grant instead
+    /// of an authorization-code redirect. Callers branch on this before
+    /// generating PKCE state or binding the loopback callback listener.
+    fn uses_device_authorization(&self) -> bool {
+        false
+    }
+
+    /// Requests a device-authorization grant. Adapters that return a grant do
+    /// not use [`ProviderAdapter::authorization_url`] or a redirect URI; the
+    /// operator approves the displayed code in the provider's own page instead.
+    fn start_device_authorization<'a>(
+        &'a self,
+        _state: &'a AppState,
+    ) -> AdapterFuture<'a, Result<AdapterDeviceAuthorization, String>> {
+        Box::pin(async { Err("provider adapter does not support device authorization".to_owned()) })
+    }
+
+    /// Polls a device-authorization grant. Called only for a flow created by
+    /// [`ProviderAdapter::start_device_authorization`].
+    fn poll_device_authorization<'a>(
+        &'a self,
+        _state: &'a AppState,
+        _device_code: &'a str,
+    ) -> AdapterFuture<'a, Result<AdapterDevicePoll, String>> {
+        Box::pin(async { Err("provider adapter does not support device authorization".to_owned()) })
+    }
+
     fn supports_custom_oauth_redirect_uri(&self) -> bool {
         false
     }
@@ -596,7 +649,6 @@ pub use dispatch::{
 
 mod discovery;
 mod sse;
-#[cfg(test)]
 pub(crate) use discovery::parse_provider_model_page;
 pub(crate) use discovery::{
     GenericModelDiscoveryRequest, discover_api_key_models, discover_generic_api_key_models,

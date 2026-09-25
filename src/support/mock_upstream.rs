@@ -45,6 +45,17 @@ pub(crate) fn sse_response(body: impl Into<Vec<u8>>) -> Response {
 pub(crate) struct MockRequest {
     pub(crate) request_line: String,
     pub(crate) authorization: Option<String>,
+    pub(crate) headers: Vec<(String, String)>,
+}
+
+impl MockRequest {
+    /// One received header value, matched case-insensitively.
+    pub(crate) fn header(&self, name: &str) -> Option<&str> {
+        self.headers
+            .iter()
+            .find(|(header, _)| header.eq_ignore_ascii_case(name))
+            .map(|(_, value)| value.as_str())
+    }
 }
 
 /// One scripted HTTP/1.1 response served by [`spawn_mock_http_server`].
@@ -157,6 +168,7 @@ async fn read_request_head(stream: &mut BufReader<TcpStream>) -> MockRequest {
         .await
         .expect("mock request line");
     let mut authorization = None;
+    let mut headers = Vec::new();
     loop {
         let mut line = String::new();
         stream
@@ -166,15 +178,17 @@ async fn read_request_head(stream: &mut BufReader<TcpStream>) -> MockRequest {
         if line == "\r\n" || line.is_empty() {
             break;
         }
-        if let Some((name, value)) = line.trim_end().split_once(':')
-            && name.eq_ignore_ascii_case("authorization")
-        {
-            authorization = Some(value.trim().to_owned());
+        if let Some((name, value)) = line.trim_end().split_once(':') {
+            if name.eq_ignore_ascii_case("authorization") {
+                authorization = Some(value.trim().to_owned());
+            }
+            headers.push((name.trim().to_owned(), value.trim().to_owned()));
         }
     }
     MockRequest {
         request_line: request_line.trim_end().to_owned(),
         authorization,
+        headers,
     }
 }
 
