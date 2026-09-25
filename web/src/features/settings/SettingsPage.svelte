@@ -17,6 +17,7 @@ import { localizedError } from '../../lib/errors';
   import GatewayResourceLimitsPanel from './GatewayResourceLimitsPanel.svelte';
   import OperationalSettingsPanel from './OperationalSettingsPanel.svelte';
   import OutputStylesPanel from './OutputStylesPanel.svelte';
+  import { createUpdateCheckStore } from './update-check';
 
   export let tr: Translate;
   export let locale: Locale;
@@ -38,8 +39,9 @@ import { localizedError } from '../../lib/errors';
   let updateCheck: UpdateCheckResult | null = null;
   let updateCheckLoading = false;
   let updateCheckFailed = false;
-  let updateCheckGeneration = 0;
-  let updateCheckTimer: number | undefined;
+  const updateCheckStore = createUpdateCheckStore();
+
+  $: ({ result: updateCheck, loading: updateCheckLoading, failed: updateCheckFailed } = $updateCheckStore);
 
   async function load(): Promise<void> {
     const requestGeneration = ++generation;
@@ -53,7 +55,7 @@ import { localizedError } from '../../lib/errors';
       onGatewayAddressChange(settingsResult.host, settingsResult.port);
       overview = overviewResult;
       onConnectionChange('loaded');
-      void checkForUpdates();
+      updateCheckStore.check();
     } catch (error) {
       if (requestGeneration !== generation) return;
       errorMessage = localizedError(error, 'Something went wrong while loading this page.', tr);
@@ -63,22 +65,8 @@ import { localizedError } from '../../lib/errors';
     }
   }
 
-  async function checkForUpdates(): Promise<void> {
-    if (updateCheckLoading) return;
-    const requestGeneration = ++updateCheckGeneration;
-    updateCheckLoading = true;
-    updateCheckFailed = false;
-    try {
-      const result = await api.updateCheck();
-      if (requestGeneration !== updateCheckGeneration) return;
-      updateCheck = result;
-    } catch {
-      if (requestGeneration !== updateCheckGeneration) return;
-      updateCheck = null;
-      updateCheckFailed = true;
-    } finally {
-      if (requestGeneration === updateCheckGeneration) updateCheckLoading = false;
-    }
+  function checkForUpdates(): void {
+    updateCheckStore.check();
   }
 
   function selectTab(newTab: SettingsTab): void {
@@ -115,13 +103,10 @@ import { localizedError } from '../../lib/errors';
       // Ignore
     }
     void load();
-    updateCheckTimer = window.setInterval(() => { void checkForUpdates(); }, 24 * 60 * 60 * 1000);
   });
 
   onDestroy(() => {
     generation += 1;
-    updateCheckGeneration += 1;
-    if (updateCheckTimer !== undefined) window.clearInterval(updateCheckTimer);
   });
 </script>
 

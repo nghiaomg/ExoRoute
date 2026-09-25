@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { Portal } from '@ark-ui/svelte/portal';
   import { Check, Command, Copy, ExternalLink, LoaderCircle, X } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
+  import PortalToast from './PortalToast.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -322,24 +322,7 @@ import { localizedError } from '../../lib/errors';
 </section>
 
 {#if toast}
-  <Portal>
-    <div class="model-test-toast" class:success={toast.tone === 'success'} class:error={toast.tone === 'error'} role="status">
-      <span class="model-test-toast-mark">
-        {#if toast.tone === 'success'}
-          <Check size={15} />
-        {:else}
-          <X size={15} />
-        {/if}
-      </span>
-      <div class="model-test-toast-copy">
-        <strong>{toast.title}</strong>
-        <small>{toast.message}</small>
-      </div>
-      <button class="model-test-toast-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissToast}>
-        <X size={14} />
-      </button>
-    </div>
-  </Portal>
+  <PortalToast {toast} {tr} onDismiss={dismissToast} />
 {/if}
 
 <ArkDialog

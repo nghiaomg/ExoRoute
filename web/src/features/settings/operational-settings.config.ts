@@ -204,6 +204,97 @@ import type { OperationalSettingsValues, OperationalUpstreamSettingsValues } fro
   };
 
   export type UpstreamKey = keyof OperationalUpstreamSettingsValues;
+
+  /** Pure draft validation mirroring the backend's bounded safe ranges. */
+  export function isValidOperationalSettings(draft: OperationalSettingsValues): boolean {
+    return Number.isSafeInteger(draft.connect_timeout_ms)
+      && draft.connect_timeout_ms >= 100 && draft.connect_timeout_ms <= 120_000
+      && Number.isSafeInteger(draft.request_timeout_ms)
+      && draft.request_timeout_ms >= 100 && draft.request_timeout_ms <= 86_400_000
+      && Number.isSafeInteger(draft.stream_idle_timeout_ms)
+      && draft.stream_idle_timeout_ms >= 100 && draft.stream_idle_timeout_ms <= 3_600_000
+      && Number.isSafeInteger(draft.circuit_breaker_threshold)
+      && draft.circuit_breaker_threshold >= 1 && draft.circuit_breaker_threshold <= 100
+      && Number.isSafeInteger(draft.circuit_breaker_cooldown_seconds)
+      && draft.circuit_breaker_cooldown_seconds >= 1 && draft.circuit_breaker_cooldown_seconds <= 86_400
+      && Number.isSafeInteger(draft.gateway_max_in_flight)
+      && (draft.gateway_max_in_flight === 0 || (draft.gateway_max_in_flight >= 1 && draft.gateway_max_in_flight <= 64))
+      && Number.isSafeInteger(draft.upstream_response_limit_mib)
+      && draft.upstream_response_limit_mib >= 1 && draft.upstream_response_limit_mib <= 16
+      && Number.isSafeInteger(draft.admin_api_max_requests)
+      && draft.admin_api_max_requests >= 1 && draft.admin_api_max_requests <= 4_294_967_295
+      && Number.isSafeInteger(draft.admin_api_window_seconds)
+      && draft.admin_api_window_seconds >= 1 && draft.admin_api_window_seconds <= 86_400
+      && Number.isSafeInteger(draft.gateway_key_capacity)
+      && draft.gateway_key_capacity >= 1 && draft.gateway_key_capacity <= 4_294_967_295
+      && Number.isSafeInteger(draft.gateway_key_refill_tokens)
+      && draft.gateway_key_refill_tokens >= 1 && draft.gateway_key_refill_tokens <= 4_294_967_295
+      && Number.isSafeInteger(draft.gateway_key_refill_interval_ms)
+      && draft.gateway_key_refill_interval_ms >= 1 && draft.gateway_key_refill_interval_ms <= 86_400_000
+      && Number.isSafeInteger(draft.request_log_retention_days)
+      && draft.request_log_retention_days >= 1 && draft.request_log_retention_days <= 365
+      && Number.isSafeInteger(draft.request_log_max_rows)
+      && draft.request_log_max_rows >= 1 && draft.request_log_max_rows <= 100_000
+      && upstreamFields.every((field) => {
+        const value = draft.upstream[field.key];
+        return Number.isSafeInteger(value) && value >= field.min && value <= field.max;
+      })
+      && draft.upstream.continuity_replay_bytes_total_mib >= draft.upstream.continuity_replay_bytes_per_run_mib
+      && draft.upstream.continuity_retry_max_delay_ms >= draft.upstream.continuity_retry_base_delay_ms
+      && draft.upstream.provider_live_events_keepalive_seconds < draft.upstream.provider_live_events_max_duration_seconds
+      && draft.upstream.command_code_optional_usage_timeout_seconds <= draft.upstream.command_code_usage_timeout_seconds
+      && draft.upstream.remote_image_total_max_mib >= draft.upstream.remote_image_max_mib;
+  }
+
+  /** Field-wise comparison across the top level and every upstream key. */
+  export function sameOperationalSettings(left: OperationalSettingsValues, right: OperationalSettingsValues): boolean {
+    const topLevelKeys = (Object.keys(defaults) as (keyof OperationalSettingsValues)[])
+      .filter((key) => key !== 'upstream');
+    return topLevelKeys.every((key) => left[key] === right[key])
+      && upstreamFields.every(({ key }) => left.upstream[key] === right.upstream[key]);
+  }
+
+  /** Keys of the top-level settings whose value is numeric. */
+  type NumericSettingKey = {
+    [K in keyof OperationalSettingsValues]: OperationalSettingsValues[K] extends number ? K : never;
+  }[keyof OperationalSettingsValues];
+
+  export type CoreNumericField = {
+    key: NumericSettingKey;
+    id: string;
+    labelKey: string;
+    min: number;
+    max: number;
+    /** Locale-neutral unit suffix (e.g. "ms", "MiB"). */
+    unit?: string;
+    /** Translation key for a translatable unit suffix. */
+    unitKey?: string;
+    /** Translation key for the hint line, when the field has one. */
+    hintKey?: string;
+  };
+
+  /** Numeric fields rendered above the circuit-breaker checkbox. */
+  export const coreTimeoutFields: CoreNumericField[] = [
+    { key: 'connect_timeout_ms', id: 'operational-connect-timeout', labelKey: 'Upstream connect timeout', min: 100, max: 120_000, unit: 'ms', hintKey: 'Allowed range: 100–120000 ms. Default: 10000 ms.' },
+    { key: 'request_timeout_ms', id: 'operational-request-timeout', labelKey: 'Upstream request timeout', min: 100, max: 86_400_000, unit: 'ms', hintKey: 'Allowed range: 100 ms–24 hours. Default: 300000 ms.' },
+    { key: 'stream_idle_timeout_ms', id: 'operational-stream-timeout', labelKey: 'Stream idle timeout', min: 100, max: 3_600_000, unit: 'ms', hintKey: 'Allowed range: 100 ms–1 hour. Default: 120000 ms.' },
+  ];
+
+  /** Numeric fields rendered below the circuit-breaker checkbox. */
+  export const coreLimitFields: CoreNumericField[] = [
+    { key: 'circuit_breaker_threshold', id: 'operational-circuit-threshold', labelKey: 'Circuit breaker failure threshold', min: 1, max: 100, unitKey: 'failures' },
+    { key: 'circuit_breaker_cooldown_seconds', id: 'operational-circuit-cooldown', labelKey: 'Circuit breaker cooldown', min: 1, max: 86_400, unitKey: 'seconds' },
+    { key: 'gateway_max_in_flight', id: 'operational-gateway-in-flight', labelKey: 'Total concurrent gateway requests', min: 0, max: 64, unitKey: 'requests', hintKey: 'Choose 1–64, or 0 for unlimited. Default: 64.' },
+    { key: 'upstream_response_limit_mib', id: 'operational-response-limit', labelKey: 'Upstream response limit', min: 1, max: 16, unit: 'MiB', hintKey: 'Allowed range: 1–16 MiB. The hard ceiling remains 16 MiB.' },
+    { key: 'admin_api_max_requests', id: 'operational-admin-api-limit', labelKey: 'Authenticated admin API requests', min: 1, max: 4_294_967_295, unitKey: 'requests' },
+    { key: 'admin_api_window_seconds', id: 'operational-admin-api-window', labelKey: 'Authenticated admin API window', min: 1, max: 86_400, unitKey: 'seconds', hintKey: 'Login and authentication-failure throttles remain fixed.' },
+    { key: 'gateway_key_capacity', id: 'operational-gateway-burst', labelKey: 'Gateway API key token capacity', min: 1, max: 4_294_967_295, unitKey: 'tokens' },
+    { key: 'gateway_key_refill_tokens', id: 'operational-gateway-refill-tokens', labelKey: 'Gateway API key refill amount', min: 1, max: 4_294_967_295, unitKey: 'tokens' },
+    { key: 'gateway_key_refill_interval_ms', id: 'operational-gateway-refill-interval', labelKey: 'Gateway API key refill interval', min: 1, max: 86_400_000, unit: 'ms', hintKey: 'Refill amount and interval define the token-bucket refill rate.' },
+    { key: 'request_log_retention_days', id: 'operational-log-retention', labelKey: 'Request log retention', min: 1, max: 365, unitKey: 'days' },
+    { key: 'request_log_max_rows', id: 'operational-log-rows', labelKey: 'Maximum request log rows', min: 1, max: 100_000, unitKey: 'rows', hintKey: 'The maximum remains 100000 rows.' },
+  ];
+
   export type UpstreamField = {
     key: UpstreamKey;
     label: string;

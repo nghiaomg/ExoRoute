@@ -1,12 +1,14 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { Cpu, KeyRound, Layers, LoaderCircle, Plus, Server, Sliders } from '@lucide/svelte';
+  import { LoaderCircle, Plus, Sliders } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import EmptyState from '../../components/EmptyState.svelte';
   import GatewayError from '../../components/GatewayError.svelte';
   import InlineLoading from '../../components/InlineLoading.svelte';
   import PageHeading from '../../components/PageHeading.svelte';
   import PageSearch from '../../components/PageSearch.svelte';
+  import DeleteProviderDialog from './DeleteProviderDialog.svelte';
+  import ProvidersMetricsBanner from './ProvidersMetricsBanner.svelte';
   import { api } from '../../lib/api';
   import type { FeatureActionRequest } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
@@ -55,12 +57,6 @@ import { localizedError } from '../../lib/errors';
   $: viewingProvider = viewingProviderId
     ? providers.find((p) => p.id === viewingProviderId) ?? null
     : null;
-
-  $: totalCredentials = providers.reduce(
-    (sum, p) => sum + (p.api_key_count ?? (p.api_key ? 1 : 0)),
-    0
-  );
-  $: totalModels = providers.reduce((sum, p) => sum + (p.model_count ?? 0), 0);
 
   $: if (actionRequest?.page === 'providers' && actionRequest.id !== handledActionId) {
     handledActionId = actionRequest.id;
@@ -308,36 +304,7 @@ import { localizedError } from '../../lib/errors';
       <InlineLoading label={'Loading {page}…'} {tr} vars={{ page: tr('Providers').toLowerCase() }} />
     {:else}
       <!-- Quick Metrics Banner -->
-      <section class="providers-metrics-banner" aria-label={tr('Quick Overview')}>
-        <div class="metric-chip">
-          <div class="metric-chip-icon providers-icon"><Server size={18} /></div>
-          <div class="metric-chip-info">
-            <strong>{providers.length}</strong>
-            <span>{tr('Connected Providers')}</span>
-          </div>
-        </div>
-        <div class="metric-chip">
-          <div class="metric-chip-icon credentials-icon"><KeyRound size={18} /></div>
-          <div class="metric-chip-info">
-            <strong>{totalCredentials}</strong>
-            <span>{tr('Total Credentials')}</span>
-          </div>
-        </div>
-        <div class="metric-chip">
-          <div class="metric-chip-icon models-icon"><Cpu size={18} /></div>
-          <div class="metric-chip-info">
-            <strong>{totalModels}</strong>
-            <span>{tr('Saved Models')}</span>
-          </div>
-        </div>
-        <div class="metric-chip">
-          <div class="metric-chip-icon presets-icon"><Layers size={18} /></div>
-          <div class="metric-chip-info">
-            <strong>{availablePresets.length + 1}</strong>
-            <span>{tr('Available Presets')}</span>
-          </div>
-        </div>
-      </section>
+      <ProvidersMetricsBanner {providers} presets={availablePresets} {tr} />
 
       <!-- Section 1: Custom Provider -->
       <section class="provider-category-section">
@@ -416,31 +383,11 @@ import { localizedError } from '../../lib/errors';
 <ProviderCreateDialog bind:open={createOpen} {presets} {tr} onSaved={providerSaved} />
 <ProviderKeysDialog bind:open={keysOpen} provider={activeProvider} {tr} {locale} onChanged={refreshProviders} />
 
-<ArkDialog
-  open={providerToDelete !== null}
-  role="alertdialog"
-  closeLabel={tr('Close dialog')}
-  title={tr('Are you absolutely sure?')}
-  kicker={tr('EXOROUTE CONTROL PLANE')}
-  onClose={() => { providerToDelete = null; }}
->
-  <div class="modal-form">
-    <p class="modal-description">
-      {tr('Delete {name}? This cannot be undone.', { name: providerToDelete?.name ?? '' })}
-    </p>
-    <div class="modal-actions" style="margin-top: 16px;">
-      <button type="button" class="secondary-button" disabled={Boolean(deletingId)} onclick={() => { providerToDelete = null; }}>
-        {tr('Cancel')}
-      </button>
-      <button
-        type="button"
-        class="primary-button danger"
-        disabled={Boolean(deletingId)}
-        onclick={confirmRemoveProvider}
-      >
-        {#if deletingId}<LoaderCircle size={14} class="spin" />{tr('Deleting…')}{:else}{tr('Delete provider')}{/if}
-      </button>
-    </div>
-  </div>
-</ArkDialog>
+<DeleteProviderDialog
+  provider={providerToDelete}
+  {deletingId}
+  {tr}
+  onConfirm={confirmRemoveProvider}
+  onCancel={() => { providerToDelete = null; }}
+/>
 

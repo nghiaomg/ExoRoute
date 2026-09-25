@@ -5,21 +5,19 @@
   import GatewayError from '../../components/GatewayError.svelte';
   import PageHeading from '../../components/PageHeading.svelte';
   import type { DashboardPage } from '../../lib/navigation';
-  import { api } from '../../lib/api';
   import type { Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';
-import { localizedError } from '../../lib/errors';
   import type { Provider } from '../../lib/types';
   import QuotaCredentialCard from './QuotaCredentialCard.svelte';
   import {
     credentialStateFor,
     createCredentialState,
     hasCredentialItems,
-    mergeProviderUsage,
     supportsCredentialUsage,
     supportsQuota,
     type CredentialState,
   } from './quota.state';
+  import { createQuotaCredentialsController } from './quota.credentials';
 
   export let tr: Translate;
   export let locale: Locale;
@@ -27,14 +25,10 @@ import { localizedError } from '../../lib/errors';
   export let onConnectionChange: (state: 'idle' | 'loading' | 'loaded' | 'error') => void;
   export let onProviderCountChange: (count: number) => void;
 
-  const PROVIDER_REQUEST_CONCURRENCY = 4;
-
   let providers: Provider[] = [];
   let credentialStates: Record<string, CredentialState> = {};
   let providersLoading = true;
   let providerError = '';
-  let providerGeneration = 0;
-  let lifecycleGeneration = 0;
 
   $: quotaProviders = providers.filter(supportsQuota);
   $: credentialProviders = quotaProviders.filter(supportsCredentialUsage);
@@ -47,202 +41,27 @@ import { localizedError } from '../../lib/errors';
   $: hasCredentialKeys = credentialProviders.some((provider) => hasCredentialItems(credentialStates[provider.id]));
   $: isInitialLoading = providersLoading || (quotaProviders.length > 0 && credentialsLoading && !visibleQuotaProviders.length);
 
-  function updateCredentialState(providerId: string, patch: Partial<CredentialState>): void {
-    credentialStates = {
-      ...credentialStates,
-      [providerId]: { ...credentialStateFor(providerId, credentialStates), ...patch },
-    };
-  }
+  // Data flow lives in quota.credentials.ts; the component stays reactive and
+  // passes these callbacks so the controller can update this state.
+  const credentials = createQuotaCredentialsController({
+    getProviders: () => providers,
+    getCredentialStates: () => credentialStates,
+    onProviders: (next) => { providers = next; },
+    onCredentialStates: (next) => { credentialStates = next; },
+    onProvidersLoading: (loading) => { providersLoading = loading; },
+    onProviderError: (message) => { providerError = message; },
+    onConnectionChange,
+    onProviderCountChange,
+    tr,
+  });
 
-  async function loadProviders(): Promise<void> {
-    const generation = ++providerGeneration;
-    const lifecycle = lifecycleGeneration;
-    providersLoading = true;
-    providerError = '';
-    onConnectionChange('loading');
-    try {
-      const result = await api.providers();
-      if (generation !== providerGeneration || lifecycle !== lifecycleGeneration) return;
-      providers = result;
-      onProviderCountChange(result.length);
-      const supported = result.filter(supportsQuota);
-      const nextCredentialStates: Record<string, CredentialState> = {};
-      for (const provider of supported) {
-        nextCredentialStates[provider.id] = credentialStates[provider.id] ?? createCredentialState();
-      }
-      credentialStates = nextCredentialStates;
-      await loadCredentialPages(supported, generation, lifecycle);
-      if (generation !== providerGeneration || lifecycle !== lifecycleGeneration) return;
-      onConnectionChange('loaded');
-    } catch (error) {
-      if (generation !== providerGeneration || lifecycle !== lifecycleGeneration) return;
-      providerError = localizedError(error, 'Something went wrong while loading this page.', tr);
-      onConnectionChange('error');
-    } finally {
-      if (generation === providerGeneration && lifecycle === lifecycleGeneration) providersLoading = false;
-    }
-  }
-
-  async function loadCredentialPages(
-    supported: Provider[],
-    providerGenerationToken: number,
-    lifecycleToken: number,
-  ): Promise<void> {
-    const providersWithUsage = supported.filter(supportsCredentialUsage);
-    for (let index = 0; index < providersWithUsage.length; index += PROVIDER_REQUEST_CONCURRENCY) {
-      if (providerGenerationToken !== providerGeneration || lifecycleToken !== lifecycleGeneration) return;
-      const batch = providersWithUsage.slice(index, index + PROVIDER_REQUEST_CONCURRENCY);
-      await Promise.all(batch.map((provider) => (
-        loadCredentialPage(provider.id, providerGenerationToken, lifecycleToken)
-      )));
-    }
-  }
-
-  async function loadCredentialPage(
-    providerId: string,
-    providerGenerationToken = providerGeneration,
-    lifecycleToken = lifecycleGeneration,
-  ): Promise<void> {
-    const provider = providers.find((candidate) => candidate.id === providerId && supportsQuota(candidate));
-    if (!provider || !supportsCredentialUsage(provider)) return;
-
-    const current = credentialStateFor(providerId, credentialStates);
-    const generation = current.generation + 1;
-    const cursor = current.pageCursors[current.pageCursors.length - 1] ?? undefined;
-    updateCredentialState(providerId, {
-      loading: true,
-      refreshing: false,
-      error: '',
-      generation,
-    });
-    try {
-      const [keyPageRes, usagePageRes] = await Promise.allSettled([
-        api.providerKeys(providerId, cursor),
-        api.providerUsage(providerId, cursor),
-      ]);
-
-      if (
-        providerGenerationToken !== providerGeneration
-        || lifecycleToken !== lifecycleGeneration
-        || credentialStates[providerId]?.generation !== generation
-      ) return;
-
-      if (keyPageRes.status === 'rejected' && usagePageRes.status === 'rejected') {
-        const primaryError = keyPageRes.reason || usagePageRes.reason;
-        updateCredentialState(providerId, {
-          error: localizedError(primaryError, 'Could not load usage limits.', tr),
-          loading: false,
-        });
-        return;
-      }
-
-      const keyPage = keyPageRes.status === 'fulfilled' ? keyPageRes.value : { keys: [], next_cursor: null };
-      const usagePage = usagePageRes.status === 'fulfilled' ? usagePageRes.value : { accounts: [], next_cursor: null };
-
-      const merged = mergeProviderUsage(
-        keyPage.keys ?? [],
-        usagePage.accounts ?? [],
-        (id) => tr('Account ({id})', { id: id.slice(0, 8) }),
-      );
-
-      updateCredentialState(providerId, {
-        keys: merged.keys,
-        usageByKey: merged.usageByKey,
-        nextCursor: keyPage.next_cursor ?? usagePage.next_cursor ?? null,
-        loading: false,
-        error: '',
-      });
-    } catch (error) {
-      if (
-        providerGenerationToken === providerGeneration
-        && lifecycleToken === lifecycleGeneration
-        && credentialStates[providerId]?.generation === generation
-      ) {
-        updateCredentialState(providerId, {
-          error: localizedError(error, 'Could not load usage limits.', tr),
-          loading: false,
-        });
-      }
-    } finally {
-      // Unconditionally reset loading to ensure UI never hangs on loading spinner
-      if (lifecycleToken === lifecycleGeneration) {
-        updateCredentialState(providerId, { loading: false });
-      }
-    }
-  }
-
-  async function refreshCredentials(): Promise<void> {
-    const targets = credentialProviders.filter((provider) => {
-      const state = credentialStates[provider.id];
-      return hasCredentialItems(state) && !state?.loading && !state?.refreshing;
-    });
-    for (let index = 0; index < targets.length; index += PROVIDER_REQUEST_CONCURRENCY) {
-      const batch = targets.slice(index, index + PROVIDER_REQUEST_CONCURRENCY);
-      await Promise.all(batch.map((provider) => refreshProviderCredentials(provider.id)));
-    }
-  }
-
-  async function refreshProviderCredentials(providerId: string): Promise<void> {
-    const provider = providers.find((candidate) => candidate.id === providerId && supportsQuota(candidate));
-    const current = credentialStateFor(providerId, credentialStates);
-    if (!provider || !supportsCredentialUsage(provider) || !hasCredentialItems(current) || current.loading || current.refreshing) return;
-
-    const providerGenerationToken = providerGeneration;
-    const lifecycleToken = lifecycleGeneration;
-    const generation = current.generation + 1;
-    const cursor = current.pageCursors[current.pageCursors.length - 1] ?? undefined;
-    updateCredentialState(providerId, { refreshing: true, error: '', generation });
-    try {
-      const result = await api.refreshProviderUsage(providerId, cursor);
-      if (
-        providerGenerationToken !== providerGeneration
-        || lifecycleToken !== lifecycleGeneration
-        || credentialStates[providerId]?.generation !== generation
-      ) return;
-
-      const merged = mergeProviderUsage(
-        current.keys,
-        result.accounts ?? [],
-        (id) => tr('Account ({id})', { id: id.slice(0, 8) }),
-      );
-
-      updateCredentialState(providerId, {
-        keys: merged.keys,
-        usageByKey: merged.usageByKey,
-        nextCursor: result.next_cursor ?? current.nextCursor,
-        refreshing: false,
-      });
-    } catch (error) {
-      if (
-        providerGenerationToken === providerGeneration
-        && lifecycleToken === lifecycleGeneration
-        && credentialStates[providerId]?.generation === generation
-      ) {
-        updateCredentialState(providerId, {
-          error: localizedError(error, 'Could not load usage limits.', tr),
-          refreshing: false,
-        });
-      }
-    } finally {
-      if (lifecycleToken === lifecycleGeneration) {
-        updateCredentialState(providerId, { refreshing: false });
-      }
-    }
-  }
-
-  async function nextPage(providerId: string): Promise<void> {
-    const state = credentialStateFor(providerId, credentialStates);
-    if (!state.nextCursor || state.loading || state.refreshing) return;
-    updateCredentialState(providerId, { pageCursors: [...state.pageCursors, state.nextCursor] });
-    await loadCredentialPage(providerId);
-  }
-
-  async function previousPage(providerId: string): Promise<void> {
-    const state = credentialStateFor(providerId, credentialStates);
-    if (state.pageCursors.length <= 1 || state.loading || state.refreshing) return;
-    updateCredentialState(providerId, { pageCursors: state.pageCursors.slice(0, -1) });
-    await loadCredentialPage(providerId);
-  }
+  // Thin delegations keep the original template handler names.
+  function loadProviders(): Promise<void> { return credentials.load(); }
+  function refreshCredentials(): Promise<void> { return credentials.refreshAll(); }
+  function refreshProviderCredentials(providerId: string): Promise<void> { return credentials.refreshProvider(providerId); }
+  function loadCredentialPage(providerId: string): Promise<void> { return credentials.reloadProvider(providerId); }
+  function nextPage(providerId: string): Promise<void> { return credentials.nextPage(providerId); }
+  function previousPage(providerId: string): Promise<void> { return credentials.previousPage(providerId); }
 
   interface QuotaToast {
     tone: 'success' | 'error';
@@ -268,12 +87,10 @@ import { localizedError } from '../../lib/errors';
   }
 
   onMount(() => {
-    lifecycleGeneration += 1;
-    void loadProviders();
+    void credentials.load();
   });
   onDestroy(() => {
-    providerGeneration += 1;
-    lifecycleGeneration += 1;
+    credentials.destroy();
     if (toastTimer) clearTimeout(toastTimer);
   });
 </script>
