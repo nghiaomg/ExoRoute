@@ -9,7 +9,9 @@
   import DocsIntegrationsPage from './features/docs/DocsIntegrationsPage.svelte';
   import DocsReferencePage from './features/docs/DocsReferencePage.svelte';
   import type { ComponentType } from 'svelte';
-  import { api, getAdminAccessToken, notifyAdminLogout, restoreAdminSession, setAdminAccessToken, type AdminAccessResult, type AdminLoginResult } from './lib/api';
+  import { api, getAdminAccessToken, notifyAdminLogout, setAdminAccessToken, type AdminAccessResult, type AdminLoginResult } from './lib/api';
+  import { createSessionRetryCountdown, restoreSessionOnce } from './lib/auth-flow';
+  import { featureComponentLoader } from './lib/feature-registry';
   import { getStoredLocale, saveLocale, t, type Locale } from './lib/i18n';
   import { isDocsPage, pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type DocsPage, type FeatureActionRequest, type Page } from './lib/navigation';
   import type { Translate } from './lib/format';
@@ -90,19 +92,6 @@
       activeFeature = null;
       activeFeaturePage = requestedPage;
       activeFeatureRefreshKey = requestedRefreshKey;
-    }
-  }
-
-  function featureComponentLoader(page: DashboardPage): () => Promise<unknown> {
-    switch (page) {
-      case 'overview': return () => import('./features/overview/OverviewPage.svelte');
-      case 'providers': return () => import('./features/providers/ProvidersPage.svelte');
-      case 'combos': return () => import('./features/combos/CombosPage.svelte');
-      case 'quota': return () => import('./features/quota/QuotaPage.svelte');
-      case 'requests': return () => import('./features/requests/RequestsPage.svelte');
-      case 'statistics': return () => import('./features/statistics/StatisticsPage.svelte');
-      case 'api-keys': return () => import('./features/api-keys/ApiKeysPage.svelte');
-      case 'settings': return () => import('./features/settings/SettingsPage.svelte');
     }
   }
 
@@ -287,43 +276,31 @@
     window.addEventListener('exoroute:auth-required', handleAuthRequired);
     window.addEventListener('exoroute:password-change-required', handlePasswordChangeRequired);
     let disposed = false;
-    let sessionRetryTimer: number | null = null;
-    const stopSessionRetryTimer = (): void => {
-      if (sessionRetryTimer !== null) window.clearInterval(sessionRetryTimer);
-      sessionRetryTimer = null;
-    };
-    const startSessionRetryTimer = (seconds: number): void => {
-      stopSessionRetryTimer();
-      sessionRetryAfterSeconds = Math.max(0, Math.min(3600, Math.ceil(seconds)));
-      if (sessionRetryAfterSeconds === 0) return;
-      const retryAt = Date.now() + sessionRetryAfterSeconds * 1000;
-      sessionRetryTimer = window.setInterval(() => {
-        sessionRetryAfterSeconds = Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
-        if (sessionRetryAfterSeconds === 0) stopSessionRetryTimer();
-      }, 250);
-    };
+    const sessionRetryCountdown = createSessionRetryCountdown((seconds) => {
+      sessionRetryAfterSeconds = seconds;
+    });
     const initializeAuthentication = async (manualRetry = false): Promise<void> => {
       if (manualRetry && sessionRetryAfterSeconds > 0) return;
       if (manualRetry) sessionCheckStatus = 'checking';
       else authBootstrap = 'checking';
-      const result = await restoreAdminSession();
+      const outcome = await restoreSessionOnce();
       if (disposed) return;
-      if (result.unavailable) {
+      if (outcome.kind === 'unavailable') {
         authBootstrap = 'unavailable';
-        sessionCheckStatus = result.error?.status === 429 ? 'rate_limited' : 'unavailable';
-        startSessionRetryTimer(result.error?.status === 429 ? result.error.retryAfterSeconds || 5 : 0);
+        sessionCheckStatus = outcome.checkStatus;
+        sessionRetryCountdown.start(outcome.retryAfterSeconds);
         mustChangePassword = false;
         currentPassword = '';
         syncWithLocation();
         return;
       }
-      stopSessionRetryTimer();
+      sessionRetryCountdown.stop();
       sessionRetryAfterSeconds = 0;
       sessionCheckStatus = null;
-      mustChangePassword = result.authenticated && result.mustChangePassword;
+      mustChangePassword = outcome.mustChangePassword;
       currentPassword = '';
       authBootstrap = 'ready';
-      if (result.authenticated && !mustChangePassword) authVersion += 1;
+      if (outcome.authenticated && !mustChangePassword) authVersion += 1;
       if (mustChangePassword && window.location.pathname !== pagePaths.login) {
         window.history.replaceState(null, '', pagePaths.login);
       }
@@ -333,7 +310,7 @@
     void initializeAuthentication();
     return () => {
       disposed = true;
-      stopSessionRetryTimer();
+      sessionRetryCountdown.stop();
       mediaQuery.removeEventListener('change', handleSystemThemeChange);
       window.removeEventListener('popstate', syncWithLocation);
       window.removeEventListener('exoroute:auth-required', handleAuthRequired);
