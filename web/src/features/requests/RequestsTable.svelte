@@ -1,6 +1,12 @@
 <script lang="ts">
-  import { getIntlLocale, type Locale } from '../../lib/i18n';
-  import { formatDate, type Translate } from '../../lib/format';
+  import type { Locale } from '../../lib/i18n';
+  import {
+    formatDate,
+    formatTokenCount,
+    requestCreatedAt,
+    requestDuration,
+    type Translate,
+  } from '../../lib/format';
   import type { RequestLiveRow, RequestLog } from '../../lib/types';
   import { isLiveRequest } from './request.state';
 
@@ -10,22 +16,8 @@
   export let liveClockMs: number = Date.now();
   export let onViewError: (request: RequestLog | RequestLiveRow) => void = () => {};
 
-  $: numberFormat = new Intl.NumberFormat(getIntlLocale(locale));
-
-  function requestCreatedAt(request: RequestLog | RequestLiveRow): string {
-    return isLiveRequest(request) ? new Date(request.started_at_ms).toISOString() : request.created_at;
-  }
-
-  function requestDuration(request: RequestLog | RequestLiveRow): string {
-    return isLiveRequest(request) ? `${Math.max(0, liveClockMs - request.started_at_ms)} ms` : request.duration_ms != null ? `${request.duration_ms} ms` : '—';
-  }
-
-  function formatTokenCount(value: number | undefined): string {
-    return value == null || !Number.isFinite(value) ? '—' : numberFormat.format(value);
-  }
-
   function tokenUsageLabel(request: RequestLog | RequestLiveRow): string {
-    return `${tr('Input tokens')}: ${formatTokenCount(request.input_tokens)} / ${tr('Output tokens')}: ${formatTokenCount(request.output_tokens)}`;
+    return `${tr('Input tokens')}: ${formatTokenCount(request.input_tokens, locale)} / ${tr('Output tokens')}: ${formatTokenCount(request.output_tokens, locale)}`;
   }
 </script>
 
@@ -37,12 +29,12 @@
         <td class="req-model strong-cell" title={request.model}>{request.model}</td>
         <td class="req-alias" title={request.route_alias ?? ''}>{request.route_alias ?? '—'}</td>
         <td class="req-provider" title={request.provider_id ?? ''}>{request.provider_id ?? (isLiveRequest(request) ? tr('Routing…') : '—')}</td>
-        <td class="req-duration">{requestDuration(request)}</td>
+        <td class="req-duration">{requestDuration(request, liveClockMs)}</td>
         <td class="req-tokens" aria-label={tokenUsageLabel(request)}>
           <div class="req-token-lines">
-            <strong class="req-token-value req-token-input">{formatTokenCount(request.input_tokens)}</strong>
+            <strong class="req-token-value req-token-input">{formatTokenCount(request.input_tokens, locale)}</strong>
             <span class="req-token-separator" aria-hidden="true">/</span>
-            <strong class="req-token-value req-token-output">{formatTokenCount(request.output_tokens)}</strong>
+            <strong class="req-token-value req-token-output">{formatTokenCount(request.output_tokens, locale)}</strong>
           </div>
         </td>
         <td class="req-status"><span class="status-badge" class:live={isLiveRequest(request)} class:success={!isLiveRequest(request) && request.status != null && request.status >= 200 && request.status < 300} class:failure={!isLiveRequest(request) && request.status != null && (request.status < 200 || request.status >= 300)}>{isLiveRequest(request) ? tr('In progress') : request.status ?? '—'}</span></td>
