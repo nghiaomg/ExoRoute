@@ -1,11 +1,28 @@
-/* Explicit view-level resets. Keep this file last in the light cascade. */
+/* Explicit view-level Soft Neo-Brutalism overrides.
+   Keep this file last in the light cascade: it deliberately re-applies the
+   ink borders and hard offset shadows that the old zero-resets removed.
+   NB vocabulary: 2px var(--ink) border + hard offset var(--ink) shadow,
+   hover lifts away from the shadow, active presses back into it. */
 
-/* ─── Scoped Zero-Border and Zero-Shadow Guarantee for Overview View ─── */
+:root {
+  --nb-border: 2px solid var(--ink);
+  --nb-shadow-sm: 2px 2px 0 var(--ink);
+  --nb-shadow-md: 3px 3px 0 var(--ink);
+  --nb-shadow-lg: 4px 4px 0 var(--ink);
+  --nb-radius: 10px;
+}
+
+/* Soft Neo-Brutalism: Overview View.
+   Section/side cards and the quick-action strip carry the NB frame; chips,
+   mini rows and strip buttons stay flat because they live inside those
+   frames (no card-in-card). */
 .overview-view .section-card,
 .overview-view .side-card,
-.overview-view .quick-action-strip,
+.overview-view .quick-action-strip {
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
+}
 .overview-view .quick-strip-btn,
-.overview-view .quick-strip-label,
 .overview-view .combo-mini-item,
 .overview-view .provider-mini-row,
 .overview-view .mini-target-chip,
@@ -14,60 +31,115 @@
   box-shadow: none !important;
 }
 
-/* ─── Scoped Zero-Border and Zero-Shadow Guarantee for API Keys View ─── */
+/* Soft Neo-Brutalism: API Keys View.
+   Only the card itself carries the NB frame; the id code, date tiles and
+   revoke button stay flat so the card does not read as a card-in-card. */
 .api-keys-view .api-key-summary,
-.api-keys-view .api-key-card,
-.api-keys-view .api-key-card:hover,
-.api-keys-view .api-key-card:active,
+.api-keys-view .api-key-card {
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
+}
 .api-keys-view .api-key-card-heading code,
 .api-keys-view .api-key-card-dates > div,
 .api-keys-view .api-key-revoke {
   border: none !important;
   box-shadow: none !important;
 }
+.api-keys-view .api-key-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--nb-shadow-md) !important;
+}
+.api-keys-view .api-key-card:active {
+  transform: translate(1px, 1px);
+  box-shadow: var(--nb-shadow-sm) !important;
+}
 
-/* ─── Scoped Zero-Border and Zero-Shadow Guarantee for Provider Views ─── */
-.providers-view .detail-hero-banner,
+/* Soft Neo-Brutalism: Provider Views */
 .providers-view .detail-card,
 .providers-view .preset-card,
-.providers-view .provider-card,
 .providers-view .metric-chip,
-.providers-view .back-link-btn,
-.providers-view .detail-copy-btn,
-.providers-view .detail-delete-btn,
+.providers-view .provider-model-card {
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
+}
+/* Key rows and routing-table rows live inside NB cards: keep them flat. */
 .providers-view .provider-key-item,
-.providers-view .provider-model-card,
 .providers-view .model-routing-table tr {
   border: none !important;
   box-shadow: none !important;
 }
+.providers-view .back-link-btn,
+.providers-view .detail-copy-btn,
+.providers-view .detail-delete-btn {
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
+}
+.providers-view .back-link-btn:hover,
+.providers-view .detail-copy-btn:hover,
+.providers-view .detail-delete-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--nb-shadow-md) !important;
+}
+.providers-view .back-link-btn:active,
+.providers-view .detail-copy-btn:active,
+.providers-view .detail-delete-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: var(--nb-shadow-sm) !important;
+}
 
-/* ─── Scoped Zero-Border and Zero-Shadow Guarantee for Combos View ─── */
+/* Soft Neo-Brutalism: Combos View.
+   Cards, summary tiles and empty state get the NB frame; badges, chips and
+   pipeline rows stay flat because they sit inside a framed card. */
 .combos-view .combo-card,
-.combos-view .combo-card:hover,
-.combos-view .combo-card:active,
 .combos-view .summary-metric-card,
-.combos-view .summary-metric-card:hover,
+.combos-view .empty-state {
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
+}
 .combos-view .strategy-badge,
 .combos-view .pipeline-target-item,
 .combos-view .pipeline-target-item.is-primary,
 .combos-view .target-model-chip,
-.combos-view .pipeline-connector .connector-badge,
-.combos-view .empty-state,
+.combos-view .pipeline-connector .connector-badge {
+  border: none !important;
+  box-shadow: none !important;
+}
+.combos-view .combo-card:hover,
+.combos-view .summary-metric-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--nb-shadow-md) !important;
+}
+.combos-view .combo-card:active {
+  transform: translate(1px, 1px);
+  box-shadow: var(--nb-shadow-sm) !important;
+}
+
+/* Soft Neo-Brutalism: Combo Target Editor */
 .combo-target-card,
 .combo-target-card.is-primary,
 .target-icon-btn,
 .add-target-dashed-btn {
-  border: none !important;
-  box-shadow: none !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
+  border-radius: var(--nb-radius);
+}
+.target-icon-btn:hover,
+.add-target-dashed-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--nb-shadow-md) !important;
+}
+.target-icon-btn:active,
+.add-target-dashed-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: var(--nb-shadow-sm) !important;
 }
 
-/* ─── Scoped Zero-Border and Zero-Shadow Guarantee for Operational Help Modal ─── */
+/* Soft Neo-Brutalism: Operational Help Modal */
 .config-help-trigger,
 .config-help-desc-box,
 .config-help-violation-box,
 .config-help-violation-box .violation-badge,
 .config-help-violation-box .violation-code {
-  border: none !important;
-  box-shadow: none !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
 }

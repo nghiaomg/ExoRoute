@@ -9,7 +9,6 @@ use crate::security::egress;
 use serde_json::Value;
 use std::time::Duration;
 
-const DEVICE_AUTH_URL: &str = "https://api.kilo.ai/api/device-auth/codes";
 const DEFAULT_CODE_TTL_SECONDS: u64 = 300;
 const POLL_INTERVAL_SECONDS: u64 = 3;
 const MAX_DEVICE_BODY_BYTES: usize = 64 * 1024;
@@ -28,14 +27,22 @@ pub(crate) enum DevicePoll {
     Approved(Value),
 }
 
-/// Requests a new device-authorization grant.
+/// Requests a new device-authorization grant from the provider's endpoint.
 pub(super) async fn start_authorization(
+    device_auth_url: &str,
+    allow_local: bool,
     connect_timeout: Duration,
     request_timeout: Duration,
     upstream: crate::config::UpstreamSettings,
 ) -> Result<AdapterDeviceAuthorization, String> {
-    let (url, client) =
-        device_client(DEVICE_AUTH_URL, connect_timeout, request_timeout, upstream).await?;
+    let (url, client) = device_client(
+        device_auth_url,
+        allow_local,
+        connect_timeout,
+        request_timeout,
+        upstream,
+    )
+    .await?;
     // The gateway expects a JSON content type and no body, so no payload is sent.
     let response = client
         .post(url)
@@ -67,7 +74,9 @@ pub(super) async fn start_authorization(
 
 /// Polls a device-authorization grant the operator may have approved already.
 pub(super) async fn poll_authorization(
+    device_auth_url: &str,
     device_code: &str,
+    allow_local: bool,
     connect_timeout: Duration,
     request_timeout: Duration,
     upstream: crate::config::UpstreamSettings,
@@ -75,15 +84,21 @@ pub(super) async fn poll_authorization(
     if device_code.is_empty() || device_code.len() > MAX_DEVICE_CODE_INPUT_BYTES {
         return Err("Kilo Code device code is invalid".to_owned());
     }
-    let mut url = reqwest::Url::parse(DEVICE_AUTH_URL)
+    let mut url = reqwest::Url::parse(device_auth_url)
         .map_err(|_| "Kilo Code device authorization URL is invalid".to_owned())?;
     // Pushing a path segment percent-encodes the code, so an unexpected
     // character can never change the polled endpoint.
     url.path_segments_mut()
         .map_err(|_| "Kilo Code device authorization URL is invalid".to_owned())?
         .push(device_code);
-    let (url, client) =
-        device_client(url.as_str(), connect_timeout, request_timeout, upstream).await?;
+    let (url, client) = device_client(
+        url.as_str(),
+        allow_local,
+        connect_timeout,
+        request_timeout,
+        upstream,
+    )
+    .await?;
     let response = client
         .get(url)
         .header(http::header::ACCEPT, "application/json")
@@ -176,13 +191,14 @@ pub(crate) fn parse_device_poll_response(value: &Value) -> Result<DevicePoll, St
 
 async fn device_client(
     endpoint: &str,
+    allow_local: bool,
     connect_timeout: Duration,
     request_timeout: Duration,
     upstream: crate::config::UpstreamSettings,
 ) -> Result<(reqwest::Url, reqwest::Client), String> {
     egress::provider_client(
         endpoint,
-        false,
+        allow_local,
         connect_timeout.min(DEVICE_CONNECT_TIMEOUT_CAP),
         request_timeout.min(DEVICE_REQUEST_TIMEOUT_CAP),
         false,

@@ -8,7 +8,7 @@ mod usage;
 
 use auth::{
     apply_opencode_auth, apply_opencode_session_header, inject_opencode_go_reasoning_content,
-    validate_opencode_config,
+    strip_opencode_boolean_reasoning, validate_opencode_config,
 };
 pub(super) use routing::model_protocol;
 use routing::{google_generate_content_endpoint, open_code_aux_endpoint, open_code_endpoint};
@@ -57,7 +57,9 @@ impl ProviderAdapter for OpenCodeGoAdapter {
         open_code_aux_endpoint(base_url, "models")
     }
 
-    fn prepare_body(&self, _body: &mut Value, _request_id: &str) {}
+    fn prepare_body(&self, body: &mut Value, _request_id: &str) {
+        strip_opencode_boolean_reasoning(body);
+    }
 
     fn prepare_upstream_request<'a>(
         &'a self,
@@ -154,7 +156,9 @@ impl ProviderAdapter for OpenCodeZenAdapter {
         open_code_aux_endpoint(base_url, "models")
     }
 
-    fn prepare_body(&self, _body: &mut Value, _request_id: &str) {}
+    fn prepare_body(&self, body: &mut Value, _request_id: &str) {
+        strip_opencode_boolean_reasoning(body);
+    }
 
     fn apply_client_headers(
         &self,

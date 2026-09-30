@@ -44,7 +44,7 @@ pub(crate) async fn start_provider_auth(
     request: Option<Json<ProviderAuthStartRequest>>,
 ) -> ApiResult {
     let lookup_id = id.clone();
-    let adapter_id = state
+    let (adapter_id, base_url) = state
         .db
         .read(move |transaction| {
             transaction
@@ -52,7 +52,12 @@ pub(crate) async fn start_provider_auth(
                     crate::infra::storage::Table::Providers,
                     &lookup_id,
                 )?
-                .map(|provider| provider.text("adapter_id").map(str::to_owned))
+                .map(|provider| {
+                    Ok::<_, crate::infra::storage::StorageError>((
+                        provider.text("adapter_id")?.to_owned(),
+                        provider.text("base_url")?.to_owned(),
+                    ))
+                })
                 .transpose()
         })
         .await
@@ -89,7 +94,7 @@ pub(crate) async fn start_provider_auth(
                 "this provider signs in with a device code and does not accept a callback URL",
             ));
         }
-        return start_provider_device_auth(state, id, adapter_id).await;
+        return start_provider_device_auth(state, id, adapter_id, base_url).await;
     }
     let redirect_uri = if let Some(callback_url) = requested_callback_url {
         let redirect_uri = validate_provider_auth_redirect_uri(&callback_url)

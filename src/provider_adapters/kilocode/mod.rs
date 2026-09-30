@@ -20,6 +20,9 @@ use probe::test_kilocode_oauth_model;
 
 /// Fixed upstream root. The provider row stores this value as its base URL.
 pub(super) const KILOCODE_BASE_URL: &str = "https://api.kilo.ai/api/openrouter";
+/// The one device-authorization path Kilo Code exposes, resolved against the
+/// provider row's own host rather than a hard-coded origin.
+pub(super) const DEVICE_AUTH_PATH: &str = "/api/device-auth/codes";
 /// Header the Kilo gateway uses to attribute the calling editor.
 pub(super) const EDITOR_NAME_HEADER: &str = "x-kilocode-editorname";
 pub(super) const EDITOR_NAME: &str = "ExoRoute";
@@ -133,24 +136,37 @@ impl ProviderAdapter for KilocodeAdapter {
     fn start_device_authorization<'a>(
         &'a self,
         state: &'a AppState,
+        base_url: &'a str,
     ) -> AdapterFuture<'a, Result<AdapterDeviceAuthorization, String>> {
         let operational = state.operational_settings().settings;
-        Box::pin(device::start_authorization(
-            operational.connect_timeout,
-            operational.request_timeout,
-            operational.upstream,
-        ))
+        let allow_local = state.config.allow_private_provider_urls;
+        Box::pin(async move {
+            let endpoint = device_auth_url(base_url)?;
+            device::start_authorization(
+                endpoint.as_str(),
+                allow_local,
+                operational.connect_timeout,
+                operational.request_timeout,
+                operational.upstream,
+            )
+            .await
+        })
     }
 
     fn poll_device_authorization<'a>(
         &'a self,
         state: &'a AppState,
+        base_url: &'a str,
         device_code: &'a str,
     ) -> AdapterFuture<'a, Result<AdapterDevicePoll, String>> {
         let operational = state.operational_settings().settings;
+        let allow_local = state.config.allow_private_provider_urls;
         Box::pin(async move {
+            let endpoint = device_auth_url(base_url)?;
             let poll = device::poll_authorization(
+                endpoint.as_str(),
                 device_code,
+                allow_local,
                 operational.connect_timeout,
                 operational.request_timeout,
                 operational.upstream,
@@ -201,6 +217,22 @@ impl ProviderAdapter for KilocodeAdapter {
             account,
         ))
     }
+}
+
+/// Builds the device-authorization endpoint from the provider's own base URL.
+/// Only the origin is taken from the row, so a row that stores the OpenRouter
+/// endpoint still signs in against `api.kilo.ai` and a self-hosted deployment
+/// signs in against its own host.
+pub(super) fn device_auth_url(base_url: &str) -> Result<reqwest::Url, String> {
+    let mut url = reqwest::Url::parse(base_url)
+        .map_err(|_| "Kilo Code provider URL is invalid".to_owned())?;
+    if url.host_str().is_none_or(str::is_empty) {
+        return Err("Kilo Code provider URL must include a host".to_owned());
+    }
+    url.set_path(DEVICE_AUTH_PATH);
+    url.set_query(None);
+    url.set_fragment(None);
+    Ok(url)
 }
 
 /// Builds a catalog or chat URL from the stored base URL. Both suffixes are

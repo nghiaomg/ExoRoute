@@ -20,6 +20,8 @@
     step?: number | string;
     class?: string;
     ariaLabel?: string;
+    /** Change callback for callers that own the value outside the component. */
+    onValueChange?: (value: string) => void;
   }
 
   let {
@@ -40,7 +42,13 @@
     step,
     class: className = '',
     ariaLabel,
+    onValueChange,
   }: Props = $props();
+
+  function handleInput(event: Event & { currentTarget: EventTarget & HTMLInputElement }): void {
+    value = event.currentTarget.value;
+    onValueChange?.(value);
+  }
 </script>
 
 <Field.Root {disabled} {required} invalid={Boolean(errorText)} class={`ark-field-root ${className}`}>
@@ -60,6 +68,7 @@
     {max}
     {step}
     aria-label={ariaLabel || label}
+    oninput={handleInput}
   />
   {#if helperText}
     <Field.HelperText class="ark-field-helper">{helperText}</Field.HelperText>

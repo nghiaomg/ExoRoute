@@ -34,3 +34,6 @@ class TestIntersectionObserver {
 Object.defineProperty(window, 'ResizeObserver', { value: TestResizeObserver });
 Object.defineProperty(window, 'IntersectionObserver', { value: TestIntersectionObserver });
 Element.prototype.scrollIntoView = () => {};
+// Ark UI's popover positioning scrolls its content element, which jsdom does
+// not implement.
+Element.prototype.scrollTo = () => {};

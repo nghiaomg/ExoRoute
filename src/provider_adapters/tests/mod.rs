@@ -16,6 +16,7 @@ use tokio::{
 
 mod codex_accounts;
 mod codex_responses;
+mod command_code_body;
 mod command_code_usage;
 mod dispatch_routing;
 mod model_test;

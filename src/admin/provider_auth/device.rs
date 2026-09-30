@@ -9,12 +9,16 @@ use super::*;
 use std::time::Duration;
 
 /// Starts a device authorization for a provider whose adapter supports it.
+///
+/// `base_url` is the provider row's own endpoint, so the sign-in reaches the
+/// same host the provider routes requests to.
 pub(crate) async fn start_provider_device_auth(
     state: AppState,
     provider_id: String,
     adapter_id: String,
+    base_url: String,
 ) -> ApiResult {
-    let authorization = provider_adapters::start_device_authorization(&adapter_id, &state)
+    let authorization = provider_adapters::start_device_authorization(&adapter_id, &state, &base_url)
         .await
         .map_err(|error| {
             tracing::warn!(adapter_id = %adapter_id, error = %error, "could not start device authorization");
@@ -50,6 +54,24 @@ pub(crate) async fn start_provider_device_auth(
         "interval": authorization.interval.as_secs(),
         "method": "device_code",
     })))
+}
+
+/// The provider row's endpoint, so a device poll reaches the same host the
+/// sign-in started against.
+async fn provider_row_base_url(state: &AppState, provider_id: &str) -> Result<String, String> {
+    let id = provider_id.to_owned();
+    state
+        .db
+        .read(move |tx| {
+            tx.get::<crate::infra::storage::Record>(crate::infra::storage::Table::Providers, &id)?
+                .ok_or(crate::infra::storage::StorageError::NotFound)?
+                .text("base_url")
+                .map(str::to_owned)
+        })
+        .await
+        .map_err(|_| {
+            "the Kilo Code provider was removed while signing in; start sign-in again".to_owned()
+        })
 }
 
 /// Polls one pending device authorization and reports the flow status.
@@ -104,48 +126,67 @@ pub(crate) async fn provider_auth_poll(
             return Ok(Json(json!({"status": "pending", "message": flow.message})));
         }
         *last_poll_at = Some(now);
-        (flow.adapter_id.clone(), device_code.clone())
+        (
+            flow.adapter_id.clone(),
+            flow.provider_id.clone(),
+            device_code.clone(),
+        )
     };
 
-    let (adapter_id, device_code) = prepared;
-    let outcome =
-        provider_adapters::poll_device_authorization(&adapter_id, &state, &device_code).await;
-    match outcome {
-        Ok(provider_adapters::AdapterDevicePoll::Approved(account)) => {
-            finish_provider_auth_flow(&state, &flow_id, &adapter_id, &provider_id, account).await;
-        }
-        Ok(provider_adapters::AdapterDevicePoll::Denied) => {
-            fail_provider_auth_flow(
+    let (adapter_id, flow_provider_id, device_code) = prepared;
+    match provider_row_base_url(&state, &flow_provider_id).await {
+        Ok(base_url) => {
+            let outcome = provider_adapters::poll_device_authorization(
+                &adapter_id,
                 &state,
-                &flow_id,
-                "The Kilo Code request was denied; start sign-in again",
+                &base_url,
+                &device_code,
             )
             .await;
-        }
-        Ok(provider_adapters::AdapterDevicePoll::Expired) => {
-            fail_provider_auth_flow(
-                &state,
-                &flow_id,
-                "The Kilo Code device code expired; start sign-in again",
-            )
-            .await;
-        }
-        Ok(provider_adapters::AdapterDevicePoll::SlowDown) => {
-            note_provider_auth_flow(
-                &state,
-                &flow_id,
-                "Kilo Code is limiting sign-in checks; the next check happens automatically",
-            )
-            .await;
-        }
-        Ok(provider_adapters::AdapterDevicePoll::Pending) => {
-            note_provider_auth_flow(&state, &flow_id, "").await;
+            match outcome {
+                Ok(provider_adapters::AdapterDevicePoll::Approved(account)) => {
+                    finish_provider_auth_flow(&state, &flow_id, &adapter_id, &provider_id, account)
+                        .await;
+                }
+                Ok(provider_adapters::AdapterDevicePoll::Denied) => {
+                    fail_provider_auth_flow(
+                        &state,
+                        &flow_id,
+                        "The Kilo Code request was denied; start sign-in again",
+                    )
+                    .await;
+                }
+                Ok(provider_adapters::AdapterDevicePoll::Expired) => {
+                    fail_provider_auth_flow(
+                        &state,
+                        &flow_id,
+                        "The Kilo Code device code expired; start sign-in again",
+                    )
+                    .await;
+                }
+                Ok(provider_adapters::AdapterDevicePoll::SlowDown) => {
+                    note_provider_auth_flow(
+                        &state,
+                        &flow_id,
+                        "Kilo Code is limiting sign-in checks; the next check happens automatically",
+                    )
+                    .await;
+                }
+                Ok(provider_adapters::AdapterDevicePoll::Pending) => {
+                    note_provider_auth_flow(&state, &flow_id, "").await;
+                }
+                Err(message) => {
+                    // A transient upstream failure must not fail a sign-in the
+                    // operator may still approve; the dashboard keeps polling
+                    // until the flow expires.
+                    note_provider_auth_flow(&state, &flow_id, &message).await;
+                }
+            }
         }
         Err(message) => {
-            // A transient upstream failure must not fail a sign-in the operator
-            // may still approve; the dashboard keeps polling until the flow
-            // expires.
-            note_provider_auth_flow(&state, &flow_id, &message).await;
+            // A provider removed during sign-in can never complete, so the flow
+            // fails instead of polling a row that no longer exists.
+            fail_provider_auth_flow(&state, &flow_id, &message).await;
         }
     }
 

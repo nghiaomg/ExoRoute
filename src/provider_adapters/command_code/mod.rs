@@ -29,7 +29,9 @@ impl ProviderAdapter for CommandCodeAdapter {
         command_code_url(base_url, "provider/v1", "models")
     }
 
-    fn prepare_body(&self, _body: &mut Value, _request_id: &str) {}
+    fn prepare_body(&self, body: &mut Value, _request_id: &str) {
+        normalize_command_code_reasoning_effort(body);
+    }
 
     fn validate_config(
         &self,
@@ -132,6 +134,34 @@ impl ProviderAdapter for CommandCodeAdapter {
             user_name: payload.user_name,
             key_name: payload.key_name,
         })
+    }
+}
+
+/// The Command Code inference proxy validates `reasoning_effort` against
+/// exactly low|medium|high|xhigh|max and answers HTTP 400 for every other
+/// value, including the OpenAI-standard "none", "minimal", and "ultra".
+/// Chat Completions requests forward client options unchanged, so normalize
+/// the values this proxy cannot represent instead of failing the whole
+/// conversation: "minimal" becomes the smallest supported tier, "ultra" the
+/// strongest, and "none" — which has no representation here — maps to the
+/// smallest supported tier so the client's least-reasoning intent survives.
+/// Every other value is left untouched so the provider stays the authority
+/// over what it accepts and its own 400 diagnostic reaches the client.
+pub(super) fn normalize_command_code_reasoning_effort(body: &mut Value) {
+    let Some(object) = body.as_object_mut() else {
+        return;
+    };
+    let Some(Value::String(effort)) = object.get("reasoning_effort") else {
+        return;
+    };
+    match effort.trim().to_ascii_lowercase().as_str() {
+        "minimal" | "none" => {
+            object.insert("reasoning_effort".to_owned(), json!("low"));
+        }
+        "ultra" => {
+            object.insert("reasoning_effort".to_owned(), json!("max"));
+        }
+        _ => {}
     }
 }
 

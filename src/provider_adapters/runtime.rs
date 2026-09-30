@@ -290,6 +290,7 @@ pub fn uses_device_authorization(adapter_id: &str) -> bool {
 pub async fn start_device_authorization(
     adapter_id: &str,
     state: &AppState,
+    base_url: &str,
 ) -> Result<AdapterDeviceAuthorization, String> {
     let Some(adapter) = adapter(adapter_id) else {
         return Err("provider adapter is not registered".to_owned());
@@ -297,12 +298,13 @@ pub async fn start_device_authorization(
     if !adapter.uses_device_authorization() {
         return Err("provider adapter does not support device authorization".to_owned());
     }
-    adapter.start_device_authorization(state).await
+    adapter.start_device_authorization(state, base_url).await
 }
 
 pub async fn poll_device_authorization(
     adapter_id: &str,
     state: &AppState,
+    base_url: &str,
     device_code: &str,
 ) -> Result<AdapterDevicePoll, String> {
     let Some(adapter) = adapter(adapter_id) else {
@@ -311,7 +313,9 @@ pub async fn poll_device_authorization(
     if !adapter.uses_device_authorization() {
         return Err("provider adapter does not support device authorization".to_owned());
     }
-    adapter.poll_device_authorization(state, device_code).await
+    adapter
+        .poll_device_authorization(state, base_url, device_code)
+        .await
 }
 
 pub fn pkce_challenge(adapter_id: &str, verifier: &str) -> Result<String, String> {

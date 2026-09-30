@@ -88,3 +88,14 @@ export type {
   UpdateCheckStatus,
   UpdateCheckResult,
 } from './system';
+export type {
+  ChatThinkingMode,
+  ChatAttachmentInput,
+  WorkspaceChatInput,
+  WorkspaceChatUsage,
+  WorkspaceChatResult,
+  WorkspaceChatModelOption,
+  WorkspaceChatModelsResult,
+  ChatConversationMessage,
+  ChatClientProtocol,
+} from './chat';

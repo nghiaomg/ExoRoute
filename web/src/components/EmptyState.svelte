@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Activity, Boxes, Cpu, KeyRound, Layers3, Plus, Search } from '@lucide/svelte';
+  import { Activity, Boxes, Cpu, KeyRound, Layers3, MessageSquare, Plus, Search } from '@lucide/svelte';
 
-  export let icon: 'search' | 'providers' | 'combos' | 'models' | 'api-keys' | 'requests' = 'requests';
+  export let icon: 'search' | 'providers' | 'combos' | 'models' | 'api-keys' | 'requests' | 'chat' = 'requests';
   export let title: string;
   export let description: string;
   export let action: string | undefined = undefined;
@@ -16,6 +16,7 @@
     {:else if icon === 'combos'}<Layers3 size={21} />
     {:else if icon === 'models'}<Cpu size={21} />
     {:else if icon === 'api-keys'}<KeyRound size={21} />
+    {:else if icon === 'chat'}<MessageSquare size={21} />
     {:else}<Activity size={21} />{/if}
   </span>
   <h2>{title}</h2>

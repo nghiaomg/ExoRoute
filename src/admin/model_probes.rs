@@ -19,6 +19,16 @@ struct SavedModelTestConfig<'a> {
     protocol: UpstreamProtocol,
 }
 
+/// Resolves the upstream protocol a model probe must use.
+///
+/// Adapters that route per model serve each saved model on exactly one
+/// endpoint, so probing with the provider's preferred protocol would hit the
+/// wrong path and the upstream would reject the probe with an HTTP 400
+/// "Model does not support this protocol". Prefer the saved per-model
+/// override, then the adapter's model-to-protocol mapping, and only fall
+/// back to the provider's preferred protocol when the adapter does not own
+/// a per-model mapping.
+
 #[derive(Clone, Debug)]
 struct ModelTestResult {
     provider_id: String,
@@ -233,7 +243,7 @@ async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
         auth_type: &auth_type,
         auth_header: auth_header.as_deref(),
         custom_headers: &custom_headers,
-        protocol,
+        protocol: probe_protocol(&adapter_id, &model, protocol),
     };
     let started = std::time::Instant::now();
     let capabilities = provider_adapters::capabilities(&adapter_id);
@@ -523,6 +533,10 @@ fn parse_model_test_protocol(value: &str) -> Result<UpstreamProtocol, String> {
     value.parse::<UpstreamProtocol>()
 }
 
+fn probe_protocol(adapter_id: &str, model: &str, preferred: UpstreamProtocol) -> UpstreamProtocol {
+    provider_adapters::model_upstream_protocol(adapter_id, model).unwrap_or(preferred)
+}
+
 fn model_test_outcome_result(
     provider_id: String,
     model: String,
@@ -614,6 +628,50 @@ mod tests {
         assert!(
             parse_model_test_protocol("unsupported_protocol").is_err(),
             "unknown protocols must still be rejected"
+        );
+    }
+
+    #[test]
+    fn model_probes_use_the_adapter_per_model_protocol_before_the_provider_default() {
+        use UpstreamProtocol::{ChatCompletions, Messages, Responses};
+        // OpenCode Go serves minimax-m3 only on /messages and muse-spark on
+        // /responses even though the provider's preferred protocol is
+        // chat_completions; probing with the preferred protocol made the
+        // upstream reject the probe with HTTP 400 ModelProtocolUnsupported.
+        assert_eq!(
+            probe_protocol(
+                crate::provider_adapters::OPENCODE_GO_ADAPTER_ID,
+                "minimax-m3",
+                ChatCompletions
+            ),
+            Messages
+        );
+        assert_eq!(
+            probe_protocol(
+                crate::provider_adapters::OPENCODE_GO_ADAPTER_ID,
+                "muse-spark-1.3-contributor",
+                ChatCompletions
+            ),
+            Responses
+        );
+        // A model the adapter mapping does not know, or an adapter without a
+        // per-model mapping, keeps probing on the provider's preferred
+        // protocol.
+        assert_eq!(
+            probe_protocol(
+                crate::provider_adapters::OPENCODE_GO_ADAPTER_ID,
+                "brand-new-model",
+                ChatCompletions
+            ),
+            ChatCompletions
+        );
+        assert_eq!(
+            probe_protocol(
+                crate::provider_adapters::OPENROUTER_ADAPTER_ID,
+                "anthropic/claude-test",
+                Responses
+            ),
+            Responses
         );
     }
 }

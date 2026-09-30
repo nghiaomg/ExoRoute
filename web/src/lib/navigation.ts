@@ -1,4 +1,4 @@
-export type DashboardPage = 'overview' | 'providers' | 'combos' | 'quota' | 'requests' | 'statistics' | 'api-keys' | 'settings';
+export type DashboardPage = 'overview' | 'providers' | 'combos' | 'quota' | 'requests' | 'statistics' | 'api-keys' | 'settings' | 'chat';
 export type DocsPage = 'docs' | 'docs-quickstart' | 'docs-integrations' | 'docs-reference';
 export type Page = 'login' | DashboardPage | DocsPage;
 export interface FeatureActionRequest { id: number; page: DashboardPage }
@@ -13,6 +13,7 @@ export const pagePaths: Record<Page, string> = {
   statistics: '/statistics',
   'api-keys': '/api-keys',
   settings: '/settings',
+  chat: '/chat',
   docs: '/docs',
   'docs-quickstart': '/docs/quickstart',
   'docs-integrations': '/docs/integrations',
@@ -35,6 +36,7 @@ export const dashboardPages: ReadonlyArray<DashboardPage> = [
   'statistics',
   'api-keys',
   'settings',
+  'chat',
 ];
 
 export function isDocsPage(page: Page): page is DocsPage {

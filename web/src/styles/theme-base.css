@@ -43,8 +43,33 @@
   background: rgba(14, 16, 26, 0.78) !important;
   backdrop-filter: blur(28px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  border: 2px solid var(--ink) !important;
+  box-shadow: 5px 5px 0 var(--ink) !important;
+}
+:root[data-theme='dark'] .session-check-notice {
+  color: #fdba74;
+  background: rgba(249, 115, 22, 0.1);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+:root[data-theme='dark'] .session-check-notice.rate-limited {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: var(--ink);
+}
+:root[data-theme='dark'] .login-screen .preference-button {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #a4a8bc;
+}
+:root[data-theme='dark'] .login-screen .preference-button:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(124, 103, 239, 0.4);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 :root[data-theme='dark'] .login-heading h1, :root[data-theme='dark'] .session-check-card h1 { color: #f0f2f8; }
 :root[data-theme='dark'] .login-heading p, :root[data-theme='dark'] .session-check-card p { color: #9aa0b6; }
@@ -53,10 +78,10 @@
 :root[data-theme='dark'] .session-check-retry { color: #a5b4fc; }
 :root[data-theme='dark'] .session-check-retry:disabled { color: #6b7086; }
 :root[data-theme='dark'] .login-icon {
-  color: #c4b5fd;
-  background: rgba(99, 102, 241, 0.16) !important;
-  border: 1px solid rgba(124, 103, 239, 0.3) !important;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  color: #fdba74;
+  background: rgba(249, 115, 22, 0.16) !important;
+  border: 2px solid var(--ink) !important;
+  box-shadow: 2px 2px 0 var(--ink) !important;
 }
 :root[data-theme='dark'] .login-footnote { color: #8e93a8; border-top: 1px solid rgba(255, 255, 255, 0.06) !important; }
 
@@ -100,8 +125,8 @@
 :root[data-theme='dark'] .login-screen .ark-password-input:focus,
 :root[data-theme='dark'] .login-screen .modal-form input:focus {
   background: rgba(255, 255, 255, 0.07) !important;
-  border-color: rgba(124, 103, 239, 0.5) !important;
-  box-shadow: 0 0 0 3px rgba(124, 103, 239, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  border-color: #f97316 !important;
+  box-shadow: 2px 2px 0 #f97316 !important;
   outline: none !important;
 }
 
@@ -113,41 +138,41 @@
 }
 
 :root[data-theme='dark'] .login-screen .primary-button {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  background: #f97316;
+  border: 2px solid var(--ink) !important;
+  box-shadow: 3px 3px 0 var(--ink) !important;
 }
 :root[data-theme='dark'] .login-screen .primary-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #7073f5, #5b53ea);
-  box-shadow: 0 6px 22px rgba(99, 102, 241, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  background: #ea580c;
+  box-shadow: 4px 4px 0 var(--ink) !important;
+}
+:root[data-theme='dark'] .login-screen .primary-button:active:not(:disabled) {
+  box-shadow: 1px 1px 0 var(--ink) !important;
 }
 
 :root[data-theme='dark'] .login-screen .secondary-button {
   background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  border: 2px solid var(--ink) !important;
+  box-shadow: 2px 2px 0 var(--ink) !important;
   color: #c4c8d8;
 }
 :root[data-theme='dark'] .login-screen .secondary-button:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(124, 103, 239, 0.35) !important;
+  background: rgba(249, 115, 22, 0.1);
+  border-color: var(--ink) !important;
   color: #ffffff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 3px 3px 0 var(--ink) !important;
 }
 
 :root[data-theme='dark'] .login-screen .form-error {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #fca5a5;
+  background: #2b1818;
+  border: 2px solid #f87171;
+  box-shadow: 2px 2px 0 #f87171;
+  color: #fecaca;
 }
 
 /* Navigation and chrome */
 :root[data-theme='dark'] .sidebar {
-  background: rgba(10, 12, 19, 0.78) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  background: #0c0d14 !important;
   border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 :root[data-theme='dark'] .brand-word { color: #f0f2f8; }
@@ -184,9 +209,7 @@
 :root[data-theme='dark'] .icon-button:hover { color: #ffffff; background: rgba(255, 255, 255, 0.08); }
 
 :root[data-theme='dark'] .topbar {
-  background: rgba(10, 12, 19, 0.72) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  background: #0b0c13 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 :root[data-theme='dark'] .breadcrumbs { color: #9499ad; }
