@@ -329,3 +329,29 @@
   .docs-mobile-nav a small { color: #999dad; font-size: 10px; line-height: 1.4; }
   .docs-mobile-login { display: flex; align-items: center; justify-content: center; gap: 5px; padding-top: 15px; border-top: 1px solid #ececf1; color: #d4510d; font-size: 12px; font-weight: 800; }
 }
+
+/* ─── Soft Neo-Brutalism pass (appended last: wins the cascade) ─── */
+.docs-primary-button { color: #fff; background: #f97316; border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); }
+.docs-primary-button:hover { background: #ea580c; transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+.docs-secondary-button { color: #44485c; border: 2px solid var(--ink); background: #fff; box-shadow: 2px 2px 0 var(--ink); }
+.docs-secondary-button:hover { background: #ffedd5; border-color: var(--ink); transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+.docs-link-card, .docs-step-card, .docs-connection-card, .docs-integration-card, .docs-reference-card, .docs-next-card { border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); }
+.docs-link-card:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); border-color: var(--ink); }
+.docs-security-callout, .docs-safety-section, .docs-endpoint-table-wrap, .docs-environment-table-wrap, .docs-troubleshooting-grid > div, .docs-sidebar-note { border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+.docs-nav-item:hover { background: #fff7ed; border-color: transparent; }
+.docs-nav-item.active { border: 2px solid var(--ink); background: #ffedd5; box-shadow: 2px 2px 0 var(--ink); }
+.docs-topbar { background: #fbfcfe; backdrop-filter: none; -webkit-backdrop-filter: none; }
+@media (max-width: 820px) {
+  .docs-mobile-sheet { border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+  .docs-mobile-nav a.active { border: 2px solid var(--ink); background: #ffedd5; box-shadow: 2px 2px 0 var(--ink); }
+}
+
+:root[data-theme='dark'] .docs-primary-button { background: #f97316; }
+:root[data-theme='dark'] .docs-secondary-button { background: rgba(255, 255, 255, 0.05); color: #e3e4ee; }
+:root[data-theme='dark'] .docs-link-card, :root[data-theme='dark'] .docs-step-card, :root[data-theme='dark'] .docs-connection-card, :root[data-theme='dark'] .docs-integration-card, :root[data-theme='dark'] .docs-reference-card, :root[data-theme='dark'] .docs-next-card { border-color: var(--ink); box-shadow: 3px 3px 0 var(--ink); }
+:root[data-theme='dark'] .docs-security-callout, :root[data-theme='dark'] .docs-safety-section, :root[data-theme='dark'] .docs-endpoint-table-wrap, :root[data-theme='dark'] .docs-environment-table-wrap, :root[data-theme='dark'] .docs-troubleshooting-grid > div, :root[data-theme='dark'] .docs-sidebar-note { border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+:root[data-theme='dark'] .docs-nav-item:hover { background: rgba(249, 115, 22, 0.08); border-color: transparent; }
+:root[data-theme='dark'] .docs-nav-item.active { background: rgba(249, 115, 22, 0.16); border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+:root[data-theme='dark'] .docs-topbar { background: #0b0c13; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-theme='dark'] .docs-mobile-sheet { border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+:root[data-theme='dark'] .docs-mobile-nav a.active { border-color: var(--ink); background: rgba(249, 115, 22, 0.16); box-shadow: 2px 2px 0 var(--ink); }

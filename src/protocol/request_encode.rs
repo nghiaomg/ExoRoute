@@ -143,7 +143,10 @@ pub(crate) fn encode_openai_family_request(
                 })
                 .collect::<Vec<_>>()
                 .join("\n");
-            let messages: Vec<Value> = request.messages.iter().filter(|m| matches!(m.role, Role::User | Role::Assistant | Role::Tool)).map(|m| json!({"role":if matches!(m.role, Role::Tool) {"user"} else {m.role.as_str()},"content":m.content.iter().filter_map(content_to_anthropic_request).collect::<Vec<_>>()})).collect();
+            let messages: Vec<Value> = request.messages.iter().filter(|m| matches!(m.role, Role::User | Role::Assistant | Role::Tool)).map(|m| {
+                let blocks: Vec<Value> = m.content.iter().filter_map(content_to_anthropic_request).filter(|block| !anthropic_content_block_is_empty(block)).collect();
+                json!({"role":if matches!(m.role, Role::Tool) {"user"} else {m.role.as_str()},"content":if blocks.is_empty() {json!("")} else {json!(blocks)}})
+            }).collect();
             let mut result = json!({"model":model,"messages":messages,"max_tokens":request.max_tokens.unwrap_or(1024),"stream":request.stream});
             if !system.is_empty() {
                 result["system"] = json!(system);
@@ -223,14 +226,33 @@ pub(crate) fn encode_chat_message(message: &Message) -> Value {
         .iter()
         .filter(|block| !assistant_message || !matches!(block, ContentBlock::Reasoning { .. }))
         .collect();
-    let mut result = json!({
-        "role":message.role.as_str(),
-        "content":visible_content.iter().filter_map(|block| content_to_chat_request(block)).collect::<Vec<_>>()
-    });
+    let calls: Vec<Value> = message.content.iter().filter_map(|block| match block {
+        ContentBlock::ToolCall {id,name,arguments} => Some(json!({"id":id,"type":"function","function":{"name":name,"arguments":arguments.to_string()}})), _ => None
+    }).collect();
+    // Content parts that carry no text must not reach the wire. A tool result
+    // with empty output collapses to a bare empty string, which is not a valid
+    // element of a content array: strict OpenAI-family validators answer HTTP
+    // 400 naming `messages.N.content`. The part is dropped here and the empty
+    // turn is replayed with the empty-string fallback below.
+    let parts: Vec<Value> = visible_content
+        .iter()
+        .filter_map(|block| content_to_chat_request(block))
+        .filter(|part| !chat_content_part_is_empty(part))
+        .collect();
+    let mut result = json!({"role":message.role.as_str()});
     if visible_content.len() == 1
         && let ContentBlock::Text { text } = visible_content[0]
     {
         result["content"] = json!(text);
+    } else if !parts.is_empty() {
+        result["content"] = json!(parts);
+    } else if calls.is_empty() {
+        // A turn with nothing to say keeps its position — dropping it would
+        // break the role alternation upstreams enforce — and an empty content
+        // array is rejected where the empty string is not. An assistant turn
+        // that still carries tool calls omits content entirely, which is the
+        // documented OpenAI shape for that message.
+        result["content"] = json!("");
     }
     if assistant_message {
         let reasoning_content = message
@@ -249,9 +271,6 @@ pub(crate) fn encode_chat_message(message: &Message) -> Value {
             result["reasoning_content"] = json!(reasoning_content);
         }
     }
-    let calls: Vec<Value> = message.content.iter().filter_map(|block| match block {
-        ContentBlock::ToolCall {id,name,arguments} => Some(json!({"id":id,"type":"function","function":{"name":name,"arguments":arguments.to_string()}})), _ => None
-    }).collect();
     if !calls.is_empty() {
         result["tool_calls"] = json!(calls);
     }
@@ -259,6 +278,23 @@ pub(crate) fn encode_chat_message(message: &Message) -> Value {
         result["name"] = json!(name);
     }
     result
+}
+
+/// True when a Chat Completions content part encodes no text at all.
+///
+/// Strict OpenAI-family validators reject both a bare empty string and an empty
+/// text part inside a `content` array, so neither may be emitted. Only exactly
+/// empty text is treated as empty: whitespace is a deliberate payload the
+/// caller chose to send.
+pub(crate) fn chat_content_part_is_empty(part: &Value) -> bool {
+    match part {
+        Value::String(text) => text.is_empty(),
+        Value::Object(object) => {
+            object.get("type").and_then(Value::as_str) == Some("text")
+                && object.get("text").and_then(Value::as_str) == Some("")
+        }
+        _ => false,
+    }
 }
 
 pub(crate) fn content_to_chat(block: &ContentBlock) -> Option<Value> {
@@ -275,17 +311,27 @@ pub(crate) fn content_to_chat(block: &ContentBlock) -> Option<Value> {
             json!({"type":"image_url","image_url":{"url":format!("data:{media_type};base64,{data}")}}),
         ),
         ContentBlock::Document { .. } => None,
-        ContentBlock::ToolResult { content, .. } => Some(json!(
-            content
+        ContentBlock::ToolResult { content, .. } => {
+            // A tool_result decoded from an Anthropic-style user message must
+            // not reach Chat Completions as a bare string inside a content
+            // array: strict OpenAI-family validators answer HTTP 400 ("invalid
+            // request error") because only objects and the legacy bare-string
+            // content field are valid parts. Every non-empty turn of text
+            // becomes a text part; an entirely empty result stays an empty
+            // string part so the turn is not silently dropped.
+            let text = content
                 .iter()
-                .filter_map(|b| if let ContentBlock::Text { text } = b {
-                    Some(text.as_str())
-                } else {
-                    None
+                .filter_map(|b| {
+                    if let ContentBlock::Text { text } = b {
+                        Some(text.as_str())
+                    } else {
+                        None
+                    }
                 })
                 .collect::<Vec<_>>()
-                .join("\n")
-        )),
+                .join("\n");
+            Some(json!({"type":"text","text":text}))
+        }
         ContentBlock::Reasoning { text } => Some(json!({"type":"text","text":text})),
         ContentBlock::Thinking { .. } | ContentBlock::RedactedThinking { .. } => None,
         ContentBlock::ToolCall { .. } => None,
@@ -408,9 +454,30 @@ pub(crate) fn content_to_anthropic(block: &ContentBlock) -> Option<Value> {
         ContentBlock::ToolResult {
             tool_call_id,
             content,
-        } => Some(
-            json!({"type":"tool_result","tool_use_id":tool_call_id,"content":content.iter().filter_map(|b| if let ContentBlock::Text{text}=b {Some(json!({"type":"text","text":text}))} else {None}).collect::<Vec<_>>()}),
-        ),
+        } => {
+            // A tool that produced no output still needs its tool_use pairing:
+            // an empty content array is rejected as `messages.N.content`. Keep
+            // the block list whenever any text survived, otherwise fall back to
+            // the empty string an Anthropic client sends for an empty result.
+            let blocks: Vec<Value> = content
+                .iter()
+                .filter_map(|block| {
+                    if let ContentBlock::Text { text } = block {
+                        Some(json!({"type":"text","text":text}))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            let has_text = blocks
+                .iter()
+                .any(|block| !anthropic_content_block_is_empty(block));
+            Some(json!({
+                "type":"tool_result",
+                "tool_use_id":tool_call_id,
+                "content":if has_text {json!(blocks)} else {json!("")}
+            }))
+        }
         ContentBlock::ToolCall {
             id,
             name,
@@ -435,6 +502,16 @@ pub(crate) fn content_to_anthropic(block: &ContentBlock) -> Option<Value> {
             Some(value)
         }
     }
+}
+
+/// True when an encoded Anthropic content block encodes no text at all.
+///
+/// Anthropic rejects an empty text block, and an empty block list is rejected
+/// at the message level, so neither may be emitted. Only an exactly empty text
+/// block counts: whitespace is a deliberate payload the caller chose to send.
+pub(crate) fn anthropic_content_block_is_empty(block: &Value) -> bool {
+    block.get("type").and_then(Value::as_str) == Some("text")
+        && block.get("text").and_then(Value::as_str) == Some("")
 }
 
 pub(crate) fn extend_object_fields(target: &mut Value, extra: &BTreeMap<String, Value>) {

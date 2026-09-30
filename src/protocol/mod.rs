@@ -35,6 +35,8 @@ pub(crate) use parse::{
     parse_string_list, parse_usage, string_field,
 };
 pub(crate) use request_encode::encode_openai_family_request;
+#[cfg(test)]
+pub(crate) use request_encode::{anthropic_content_block_is_empty, chat_content_part_is_empty};
 pub use response_encode::encode_response;
 #[cfg(test)]
 pub(crate) use thinking::INTERNAL_THINKING_BLOCK_TYPE;

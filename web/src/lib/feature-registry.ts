@@ -20,6 +20,7 @@ const featureLoaders: Record<DashboardPage, FeatureLoader> = {
   statistics: () => import('../features/statistics/StatisticsPage.svelte'),
   'api-keys': () => import('../features/api-keys/ApiKeysPage.svelte'),
   settings: () => import('../features/settings/SettingsPage.svelte'),
+  chat: () => import('../features/chat/ChatPage.svelte'),
 };
 
 /** Lazy loader for one dashboard page's feature bundle. */

@@ -263,6 +263,43 @@ async fn backup_rejects_invalid_or_adapter_unsupported_upstream_protocols() {
 }
 
 #[tokio::test]
+async fn backup_rejects_an_unknown_provider_model_source() {
+    let (_database, mut payload) = route_backup_fixture().await;
+    let model = payload
+        .entries
+        .iter_mut()
+        .find(|entry| entry.table == Table::ProviderModels)
+        .expect("provider model entry");
+    let mut model_record: Record = bincode::deserialize(&model.value).expect("decode model");
+    model_record.insert("source", Field::Text("not_a_source".to_owned()));
+    model.value = bincode::serialize(&model_record).expect("encode unknown source");
+    assert!(matches!(
+        validate_backup_payload(&payload, false, false),
+        Err("A provider model record in the backup has an invalid source.")
+    ));
+
+    // Both documented sources are accepted, and so is a row written before the
+    // field existed, which reads as imported.
+    for source in [None, Some("import"), Some("manual")] {
+        let mut accepted = route_backup_fixture().await.1;
+        if let Some(source) = source {
+            let model = accepted
+                .entries
+                .iter_mut()
+                .find(|entry| entry.table == Table::ProviderModels)
+                .expect("provider model entry");
+            let mut record: Record = bincode::deserialize(&model.value).expect("decode model");
+            record.insert("source", Field::Text(source.to_owned()));
+            model.value = bincode::serialize(&record).expect("encode model source");
+        }
+        assert!(
+            validate_backup_payload(&accepted, false, false).is_ok(),
+            "{source:?} must be an accepted provider model source"
+        );
+    }
+}
+
+#[tokio::test]
 async fn backup_rejects_cross_route_target_keys() {
     let (_database, mut payload) = route_backup_fixture().await;
     let target = payload

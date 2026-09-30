@@ -31,13 +31,11 @@ import { localizedError } from '../../lib/errors';
   let loadedProviderId = '';
   let controller: AbortController | undefined;
 
-  $: isOpencode = (() => {
-    const id = provider?.id?.toLowerCase();
-    const adapterId = provider?.adapter_id?.toLowerCase();
-    return id === 'opencode-go' || id === 'opencode_go' || id === 'opencode-zen' || id === 'opencode_zen'
-      || adapterId === 'opencode_go' || adapterId === 'opencode_zen' || adapterId === 'opencode-go' || adapterId === 'opencode-zen';
-  })();
-  $: supportsModelRouting = provider?.capabilities?.model_protocol_routing === true && !isOpencode;
+  // Adapters that route per model (OpenCode Go/Zen among them) own a default
+  // mapping, but a model the mapping does not know cannot be sent anywhere:
+  // the gateway refuses the request and asks for this override. The panel must
+  // therefore stay available for every adapter that routes per model.
+  $: supportsModelRouting = provider?.capabilities?.model_protocol_routing === true;
   $: selectorOptions = [
     { label: tr('Use default mapping'), value: '' },
     ...supportedProtocols.map((protocol) => ({ label: labelProtocol(protocol, tr), value: protocol })),

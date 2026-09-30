@@ -190,11 +190,13 @@ async fn import_public_catalog_models(
             "Cline model catalog is unavailable",
         ));
     };
-    store_provider_models(&state.db, id, &models, ProviderModelSource::Import, false).await?;
+    let outcome =
+        store_provider_models(&state.db, id, &models, ProviderModelSource::Import, false).await?;
     Ok(Json(json!({
         "models": models,
         "available": true,
         "truncated": truncated,
+        "manual_kept": outcome.manual_kept,
     })))
 }
 

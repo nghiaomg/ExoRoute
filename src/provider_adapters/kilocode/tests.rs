@@ -199,6 +199,98 @@ async fn oauth_catalog_discovery_sends_the_bearer_token_and_editor_header() {
     );
 }
 
+#[test]
+fn device_endpoint_uses_the_provider_host_and_the_fixed_path() {
+    // The row stores the OpenRouter root, so the device grant must still land
+    // on the same origin the provider routes requests to.
+    for base_url in [
+        "https://api.kilo.ai/api/openrouter",
+        "https://api.kilo.ai/api/openrouter/chat/completions",
+        "https://api.kilo.ai/api/openrouter/",
+    ] {
+        assert_eq!(
+            device_auth_url(base_url).expect("device endpoint").as_str(),
+            "https://api.kilo.ai/api/device-auth/codes",
+            "{base_url} must resolve to the Kilo Code device endpoint"
+        );
+    }
+    // A self-hosted deployment signs in against its own host and port.
+    assert_eq!(
+        device_auth_url("http://127.0.0.1:8412/api/openrouter")
+            .expect("self-hosted device endpoint")
+            .as_str(),
+        "http://127.0.0.1:8412/api/device-auth/codes"
+    );
+    for invalid in ["not a url", "mailto:ops@example.com", "/api/openrouter"] {
+        assert!(
+            device_auth_url(invalid).is_err(),
+            "{invalid} must not resolve to a device endpoint"
+        );
+    }
+}
+
+/// The device grant is exercised through the real HTTP path, because the
+/// adapter used to hard-code the public Kilo Code endpoint and no test could
+/// reach it. Both requests must go to the provider row's host.
+#[tokio::test]
+async fn device_sign_in_starts_and_polls_against_the_provider_endpoint() {
+    let (address, server) = spawn_mock_http_server(vec![
+        MockResponse::json(
+            200,
+            br#"{"code":"device-code-1","verificationUrl":"https://app.kilo.ai/device","expiresIn":120}"#
+                .to_vec(),
+        ),
+        MockResponse::json(
+            200,
+            br#"{"status":"approved","token":"access-token","userEmail":"Operator@Example.com"}"#
+                .to_vec(),
+        ),
+    ])
+    .await;
+    let database = TestDatabase::open().await;
+    let mut config = database.config();
+    config.master_key = Some(TEST_MASTER_KEY);
+    config.allow_private_provider_urls = true;
+    let state = AppState::new(config, database.db.clone());
+    let base_url = format!("http://{address}/api/openrouter");
+
+    let authorization = start_device_authorization(KILOCODE_ADAPTER_ID, &state, &base_url)
+        .await
+        .expect("device authorization");
+    assert_eq!(authorization.device_code, "device-code-1");
+    assert_eq!(authorization.user_code, "device-code-1");
+    assert_eq!(authorization.verification_uri, "https://app.kilo.ai/device");
+    assert_eq!(authorization.expires_in.as_secs(), 120);
+    assert_eq!(authorization.interval.as_secs(), 3);
+
+    let poll = poll_device_authorization(KILOCODE_ADAPTER_ID, &state, &base_url, "device-code-1")
+        .await
+        .expect("device poll");
+    let AdapterDevicePoll::Approved(account) = poll else {
+        panic!("an approved poll must yield the granted account");
+    };
+    assert_eq!(account.display_name, "Operator@Example.com");
+    let parsed = KilocodeAccount::from_device_approval(&account.payload).expect("usable account");
+    assert_eq!(parsed.access_token, "access-token");
+
+    let requests = server.await.expect("mock upstream");
+    assert_eq!(requests.len(), 2);
+    assert_eq!(
+        requests[0].request_line,
+        "POST /api/device-auth/codes HTTP/1.1"
+    );
+    assert_eq!(
+        requests[1].request_line,
+        "GET /api/device-auth/codes/device-code-1 HTTP/1.1"
+    );
+    // The grant request is unauthenticated, so it must not carry a credential.
+    assert_eq!(requests[0].authorization, None);
+    assert!(matches!(
+        requests[0].header("content-length"),
+        None | Some("0")
+    ));
+}
+
 /// Stores one enabled Kilo Code OAuth credential the way a completed sign-in
 /// would, using the test master key.
 async fn save_oauth_credential(

@@ -102,9 +102,12 @@ pub(super) async fn prepare_target<'a>(
             .then_some(provider.preferred_protocol)
         });
     let Some(upstream_protocol) = upstream_protocol else {
+        // The provider id is part of the message because the same model id can
+        // be saved on several providers, and the fix (a per-model protocol
+        // override) is applied on one provider row at a time.
         return Err(TargetPreparationError::SkipUnencodable(format!(
-            "provider model '{}' has no configured upstream protocol; set it in the provider model settings",
-            target.model
+            "provider '{}' model '{}' has no configured upstream protocol; set it in the provider model settings",
+            provider.id, target.model
         )));
     };
     if !provider_adapters::supports_upstream_protocol(&provider.adapter_id, upstream_protocol) {

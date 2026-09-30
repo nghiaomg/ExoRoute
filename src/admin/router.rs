@@ -141,6 +141,17 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
         )
         .route("/api/v1/admin/models", get(combos::list_models))
         .route("/api/v1/admin/models/test", post(model_probes::test_models))
+        .route(
+            "/api/v1/admin/workspace/chat",
+            post(workspace::send_workspace_chat),
+        )
+        .route(
+            "/api/v1/admin/workspace/chat/models",
+            get(workspace::workspace_chat_models),
+        )
+        .layer(DefaultBodyLimit::max(
+            workspace::MAX_WORKSPACE_CHAT_BODY_BYTES,
+        ))
         .route("/api/v1/admin/requests", get(request_logs::list_requests))
         .route(
             "/api/v1/admin/requests/events",

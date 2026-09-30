@@ -70,7 +70,9 @@
   .model-breakdown-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
   .model-breakdown-heading h2 { margin: 0; color: var(--ink); font-size: 15px; }
   .model-breakdown-heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
-  .model-breakdown-card { overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); }
+  /* Soft Neo-Brutalism: framed card, flat inner table rows. */
+  .model-breakdown-card { overflow: hidden; border: 2px solid var(--ink); border-radius: 13px; background: var(--paper); box-shadow: 3px 3px 0 var(--ink); }
+  .model-breakdown-card th, .model-breakdown-card td { border-color: var(--line); }
   .model-breakdown-scroll { overflow-x: auto; }
   table { width: 100%; min-width: 760px; border-collapse: collapse; }
   th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
@@ -86,5 +88,5 @@
   .success-cell strong { font: 600 12px var(--font-mono); }
   .success-cell small { margin-top: 3px; color: var(--muted); font-size: 11px; }
   .model-breakdown-note { margin: 0; padding: 10px 14px; color: var(--muted); border-top: 1px solid var(--line); font-size: 11px; }
-  .model-breakdown-empty { padding: 26px 16px; color: var(--muted); border: 1px solid var(--line); border-radius: 13px; background: var(--paper); font-size: 12px; text-align: center; }
+  .model-breakdown-empty { padding: 26px 16px; color: var(--muted); border: 2px dashed var(--ink); border-radius: 13px; background: var(--paper); font-size: 12px; text-align: center; }
 </style>

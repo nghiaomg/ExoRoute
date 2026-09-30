@@ -31,7 +31,10 @@ impl ProviderModelSource {
 
     /// Reads the stored source. A row written before the field existed is
     /// imported, which keeps the previous import behavior for old catalogs.
-    fn from_record(record: &Record) -> Result<Self, StorageError> {
+    ///
+    /// This is the only parser for the field: backup validation calls it too,
+    /// so a restored row can never carry a source the runtime would refuse.
+    pub(crate) fn from_record(record: &Record) -> Result<Self, StorageError> {
         match record.optional_text(Self::FIELD)? {
             None | Some("import") => Ok(Self::Import),
             Some("manual") => Ok(Self::Manual),

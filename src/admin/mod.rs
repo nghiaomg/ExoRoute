@@ -56,6 +56,7 @@ mod statistics;
 #[cfg(test)]
 mod tests;
 mod update_check;
+mod workspace;
 
 pub(crate) use errors::{ApiResult, fail, internal, internal_message, resource_id};
 pub(crate) use gates::{rate_limit_admin_login, require_admin};

@@ -216,6 +216,11 @@ pub(crate) fn validate_backup_payload(
                             "A provider model record in the backup has an invalid upstream protocol."
                         })?;
                 }
+                // The source is parsed by the store that owns the field, so a
+                // restored catalog can never carry an unknown source that the
+                // import path would later refuse to read.
+                crate::admin::providers::models_store::ProviderModelSource::from_record(&record)
+                    .map_err(|_| "A provider model record in the backup has an invalid source.")?;
                 let expected_key = crate::infra::db::provider_model_key(provider_id, model)
                     .map_err(|_| "A provider model record in the backup has an invalid key.")?;
                 if entry.key != expected_key

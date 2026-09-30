@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import {
-    Activity, Boxes, ChartPie, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, Moon, RefreshCw, Settings2, Sun, X,
+    Activity, BookOpen, Boxes, ChartPie, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, RefreshCw, Settings2, Sun, X,
   } from '@lucide/svelte';
   import FlyingFishLogo from './FlyingFishLogo.svelte';
   import LanguageSelect from './LanguageSelect.svelte';
@@ -41,8 +41,12 @@
     { id: 'api-keys', label: 'API keys', icon: KeyRound },
     { id: 'requests', label: 'Requests', icon: Activity },
     { id: 'statistics', label: 'Statistics', icon: ChartPie },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings2 },
   ] as const;
+
+  /** Workspace pages precede Docs in the sidebar; Docs closes the list. */
+  const docsNavItem = { id: 'docs', label: 'Docs', icon: BookOpen };
 
   const mobileNavItems = [
     { id: 'overview', label: 'Overview', icon: Gauge },
@@ -52,7 +56,7 @@
     { id: 'more', label: 'More', icon: Ellipsis },
   ] as const;
 
-  $: isMoreActive = ['api-keys', 'quota', 'statistics', 'settings'].includes(currentPage);
+  $: isMoreActive = ['api-keys', 'quota', 'statistics', 'settings', 'chat'].includes(currentPage);
 
   function navigateFromLink(event: MouseEvent, page: DashboardPage): void {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -91,7 +95,7 @@
     <a class="brand" href="/overview" onclick={(event) => navigateFromLink(event, 'overview')} aria-label={tr('ExoRoute overview')}>
       <span class="brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
       <span class="brand-word">exo<span>route</span></span>
-      <span class="brand-version">0.1</span>
+      <span class="brand-version">0.1.1</span>
     </a>
 
     <div class="workspace-label">{tr('WORKSPACE')}</div>
@@ -103,6 +107,10 @@
           {#if item.id === 'providers' && providerCount}<span class="nav-count">{providerCount}</span>{/if}
         </a>
       {/each}
+      <a class="nav-item docs-nav-item" href="/docs">
+        <svelte:component this={docsNavItem.icon} size={18} strokeWidth={1.8} />
+        <span>{tr(docsNavItem.label)}</span>
+      </a>
     </nav>
 
     <div class="sidebar-spacer"></div>
@@ -219,6 +227,10 @@
               {#if item.id === 'providers' && providerCount}<span class="nav-count">{providerCount}</span>{/if}
             </a>
           {/each}
+          <a class="mobile-sheet-nav-item" href="/docs" onclick={() => { mobileMoreOpen = false; }}>
+            <svelte:component this={docsNavItem.icon} size={18} strokeWidth={1.8} />
+            <span>{tr(docsNavItem.label)}</span>
+          </a>
         </div>
 
         <div class="mobile-sheet-status">

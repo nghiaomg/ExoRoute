@@ -36,6 +36,7 @@
     statistics: 'Statistics',
     'api-keys': 'Gateway API keys',
     settings: 'Settings',
+    chat: 'Chat',
     docs: 'Documentation',
     'docs-quickstart': 'Quickstart',
     'docs-integrations': 'Integrations',
@@ -359,8 +360,7 @@
         <button type="button" class="icon-button" aria-label={tr('Dismiss notification')} onclick={() => providerOAuthNotice = ''}>×</button>
       </div>
     {/if}
-    {#key `${currentPage}:${refreshKey}`}
-      {#if activeFeature && activeFeaturePage === currentPage && activeFeatureRefreshKey === refreshKey}
+    {#if activeFeature && activeFeaturePage === currentPage && activeFeatureRefreshKey === refreshKey}
         {#if currentPage === 'overview'}
           <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onCreateRequest={requestCreate} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} onGatewayAddressChange={updateGatewayAddress} />
         {:else if currentPage === 'providers'}
@@ -377,10 +377,11 @@
           <svelte:component this={activeFeature} {tr} {locale} {actionRequest} onConnectionChange={handleConnectionChange} />
         {:else if currentPage === 'settings'}
           <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
+        {:else if currentPage === 'chat'}
+          <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {/if}
       {:else}
         <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Loading {page}…', { page: pageTitles[currentPage] })}</p></section></main>
       {/if}
-    {/key}
   </DashboardShell>
 {/if}

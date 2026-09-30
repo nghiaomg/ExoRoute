@@ -36,6 +36,7 @@ mod openrouter;
 mod presets;
 mod registry;
 mod usage;
+mod workspace_relay;
 
 #[cfg(test)]
 use crate::infra::storage::Table;
@@ -60,8 +61,8 @@ pub use usage::{
 
 #[cfg(test)]
 use command_code::{
-    fetch_command_code_usage, parse_command_code_usage, parse_rfc3339_epoch,
-    test_command_code_api_key,
+    fetch_command_code_usage, normalize_command_code_reasoning_effort, parse_command_code_usage,
+    parse_rfc3339_epoch, test_command_code_api_key,
 };
 
 pub const GENERIC_ADAPTER_ID: &str = "generic";
@@ -547,21 +548,27 @@ pub trait ProviderAdapter: Sync {
         false
     }
 
-    /// Requests a device-authorization grant. Adapters that return a grant do
-    /// not use [`ProviderAdapter::authorization_url`] or a redirect URI; the
-    /// operator approves the displayed code in the provider's own page instead.
+    /// Requests a device-authorization grant for the provider row `base_url`.
+    /// Adapters that return a grant do not use
+    /// [`ProviderAdapter::authorization_url`] or a redirect URI; the operator
+    /// approves the displayed code in the provider's own page instead. The base
+    /// URL is the row's own endpoint so a self-hosted deployment signs in
+    /// against the host it routes to.
     fn start_device_authorization<'a>(
         &'a self,
         _state: &'a AppState,
+        _base_url: &'a str,
     ) -> AdapterFuture<'a, Result<AdapterDeviceAuthorization, String>> {
         Box::pin(async { Err("provider adapter does not support device authorization".to_owned()) })
     }
 
     /// Polls a device-authorization grant. Called only for a flow created by
-    /// [`ProviderAdapter::start_device_authorization`].
+    /// [`ProviderAdapter::start_device_authorization`] and with the same base
+    /// URL that started it.
     fn poll_device_authorization<'a>(
         &'a self,
         _state: &'a AppState,
+        _base_url: &'a str,
         _device_code: &'a str,
     ) -> AdapterFuture<'a, Result<AdapterDevicePoll, String>> {
         Box::pin(async { Err("provider adapter does not support device authorization".to_owned()) })
@@ -646,6 +653,25 @@ pub use dispatch::{
     apply_custom_headers, finish_upstream_request, prepare_provider_images, prepare_request_body,
     prepare_upstream_request, retry_upstream_response_as_key_rejection,
 };
+use workspace_relay::relay_workspace_inference_impl;
+pub use workspace_relay::{AdapterWorkspaceChatOutcome, AdapterWorkspaceChatRequest};
+
+/// Relays one prepared workspace chat request to a provider. This transport
+/// never writes credential state: unlike the model probes it only reads the
+/// stored configuration and sends the caller's prepared body.
+pub async fn relay_workspace_inference(
+    adapter_id: &str,
+    request: AdapterWorkspaceChatRequest<'_>,
+) -> Result<AdapterWorkspaceChatOutcome, AdapterRequestError> {
+    let Some(adapter) = adapter(adapter_id) else {
+        return Err(AdapterRequestError::new(
+            None,
+            None,
+            "provider adapter is not registered",
+        ));
+    };
+    relay_workspace_inference_impl(adapter, request).await
+}
 
 mod discovery;
 mod sse;
