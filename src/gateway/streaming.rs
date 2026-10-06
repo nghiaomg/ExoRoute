@@ -19,7 +19,7 @@ use std::{
     pin::Pin,
     sync::{
         Arc,
-        atomic::{AtomicU8, Ordering},
+        atomic::{AtomicBool, AtomicU8, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -91,6 +91,36 @@ pub(super) struct StreamLog {
     pub(super) _provider_permit: DynamicSemaphorePermit,
     pub(super) circuit_probe: crate::state::CircuitProbePermit,
     pub(super) sse_processing_slots: std::sync::Arc<DynamicSemaphore>,
+    /// Per-request usage handle the translation state reports into, so a
+    /// stream that is abandoned before finalization can still log the tokens
+    /// the upstream already reported.
+    pub(super) analytics: Option<RequestAnalytics>,
+    /// Set once the normal finalization logged this request. `Drop` then
+    /// leaves the record alone instead of logging the stream a second time.
+    pub(super) finalized: AtomicBool,
+    /// App shutdown signal. An abandoned stream can only be recorded from
+    /// `Drop`, where no caller is left to say why the stream ended, so the
+    /// record distinguishes a gateway shutdown from a client disconnect by
+    /// reading this watch at that point.
+    pub(super) shutdown: watch::Receiver<bool>,
+}
+
+impl StreamLog {
+    /// Marks the request as already recorded by `log_failed_stream` or
+    /// `log_completed_stream`.
+    pub(super) fn mark_finalized(&self) {
+        self.finalized.store(true, Ordering::Release);
+    }
+
+    /// Whether the gateway is shutting down, which is why the stream ended
+    /// when no client disconnect caused it.
+    pub(super) fn interrupted_by_shutdown(&self) -> bool {
+        *self.shutdown.borrow()
+    }
+
+    pub(super) fn finalized(&self) -> bool {
+        self.finalized.load(Ordering::Acquire)
+    }
 }
 
 pub(super) struct StreamTranslationConfig {
