@@ -146,6 +146,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             post(workspace::send_workspace_chat),
         )
         .route(
+            "/api/v1/admin/workspace/chat/stream",
+            post(workspace::stream_workspace_chat),
+        )
+        .route(
             "/api/v1/admin/workspace/chat/models",
             get(workspace::workspace_chat_models),
         )
@@ -217,7 +221,7 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
         )
         .route(
             "/api/v1/admin/api-keys/{id}",
-            delete(api_keys::delete_api_key),
+            delete(api_keys::delete_api_key).put(api_keys::update_api_key),
         )
         .route_layer(middleware::from_fn_with_state(state.clone(), require_admin));
 

@@ -3,6 +3,7 @@
 //! `secrets` holds the credential primitives and is re-exported here so callers
 //! keep a single `security` entry point for secret handling.
 
+pub(crate) mod api_key_scope;
 pub(crate) mod client_ip;
 mod credential_secrets;
 pub(crate) mod egress;

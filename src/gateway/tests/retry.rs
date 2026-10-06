@@ -60,6 +60,7 @@ async fn server_failure_is_retried_before_returning_to_the_client() {
                 ..OperationalSettings::default()
             },
             api_key_id: None,
+            api_key_scope: None,
             analytics: None,
             stream_continuity_retry: false,
         },
@@ -136,6 +137,7 @@ async fn empty_upstream_completion_is_retried_before_returning_to_the_client() {
                 ..OperationalSettings::default()
             },
             api_key_id: None,
+            api_key_scope: None,
             analytics: None,
             stream_continuity_retry: false,
         },
@@ -213,6 +215,7 @@ async fn empty_upstream_stream_is_retried_before_returning_to_the_client() {
                 ..OperationalSettings::default()
             },
             api_key_id: None,
+            api_key_scope: None,
             analytics: None,
             stream_continuity_retry: false,
         },

@@ -69,8 +69,7 @@ pub(super) async fn classify_response(
                     &logged_error,
                     attempt.target_model,
                 ),
-            )
-            .await;
+            );
             SendStep::Rotate
         }
         Ok(response)

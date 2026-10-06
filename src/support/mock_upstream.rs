@@ -9,6 +9,7 @@ use axum::{
     http::{StatusCode, header},
     response::Response,
 };
+use bytes::Bytes;
 use std::{net::SocketAddr, time::Duration};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -39,6 +40,24 @@ pub(crate) fn sse_response(body: impl Into<Vec<u8>>) -> Response {
         .header(header::CONTENT_TYPE, "text/event-stream")
         .body(Body::from(body.into()))
         .expect("mock upstream SSE response")
+}
+
+/// A `text/event-stream` success response that delivers `body` and then keeps
+/// the connection open without sending another frame, so the client observes a
+/// stream that never reaches its terminal event. A test can therefore abandon
+/// or shut the request down mid-stream; dropping the response drops the
+/// upstream body.
+pub(crate) fn unfinished_sse_response(body: impl Into<Vec<u8>>) -> Response {
+    let body = Bytes::from(body.into());
+    let stream = async_stream::stream! {
+        yield Ok::<Bytes, std::io::Error>(body);
+        std::future::pending::<()>().await;
+    };
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "text/event-stream")
+        .body(Body::from_stream(stream))
+        .expect("mock upstream unfinished SSE response")
 }
 
 /// The request head a scripted mock upstream received.

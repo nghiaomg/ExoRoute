@@ -300,8 +300,34 @@ pub async fn seed_api_key(
     name: &str,
     token: &str,
 ) -> Result<(), StorageError> {
+    seed_api_key_with_scope(db, id, name, token, &[], &[]).await
+}
+
+/// Seeds a gateway API key with a provider/model access scope. Empty slices
+/// keep the key unrestricted.
+pub async fn seed_api_key_with_scope(
+    db: &Database,
+    id: &str,
+    name: &str,
+    token: &str,
+    allowed_provider_ids: &[&str],
+    allowed_models: &[&str],
+) -> Result<(), StorageError> {
     let id = id.to_owned();
     let name = name.to_owned();
+    let allowed_provider_ids: Vec<String> = allowed_provider_ids
+        .iter()
+        .map(|value| (*value).to_owned())
+        .collect();
+    let allowed_models: Vec<String> = allowed_models
+        .iter()
+        .map(|value| (*value).to_owned())
+        .collect();
+    let scope = crate::security::api_key_scope::ApiKeyScope::from_entries(
+        &allowed_provider_ids,
+        &allowed_models,
+    )
+    .map_err(StorageError::Invalid)?;
     let token_hash = crate::security::token_hash(token);
     let created_at = db::utc_timestamp_now()?;
     let index_key = format!(
@@ -316,7 +342,7 @@ pub async fn seed_api_key(
         let _ = write!(token_hex, "{byte:02x}");
     }
     let token_index = format!("token/{token_hex}");
-    let record = Record::new()
+    let mut record = Record::new()
         .with("id", Field::Text(id.clone()))
         .with("name", Field::Text(name))
         .with("token_hash", Field::Bytes(token_hash))
@@ -325,6 +351,7 @@ pub async fn seed_api_key(
         .with("last_used_at", Field::Null)
         .with("request_count", Field::I64(0))
         .with("request_count_generation", Field::I64(0));
+    scope.write_to_record(&mut record)?;
     db.write(move |transaction| {
         transaction.put_if_absent(Table::ApiKeys, &id, &record)?;
         transaction.put_if_absent(Table::ApiKeyIndex, &index_key, &id)?;
