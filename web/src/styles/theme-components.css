@@ -40,6 +40,7 @@
 :root[data-theme='dark'] .ark-combobox-item[data-highlighted],
 :root[data-theme='dark'] .ark-combobox-item:hover { background: rgba(255, 255, 255, 0.08); color: #f0f2f8; }
 :root[data-theme='dark'] .ark-combobox-item[data-state="checked"] { color: #fdba74; }
+:root[data-theme='dark'] .ark-combobox-item-hint { color: #8e91a4; }
 :root[data-theme='dark'] .ark-combobox-item-indicator { color: #fdba74; }
 :root[data-theme='dark'] .ark-combobox-empty { color: #8e91a4; }
 :root[data-theme='dark'] .ark-combobox-pill .ark-combobox-input { color: #e3e4ee; background: rgba(249, 115, 22, 0.08); }

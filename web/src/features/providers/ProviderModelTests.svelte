@@ -3,7 +3,7 @@
   import { Check, Copy, Cpu, LoaderCircle, Search, Trash2, X, Zap } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import EmptyState from '../../components/EmptyState.svelte';
-  import PortalToast from './PortalToast.svelte';
+  import Toast from '../../components/Toast.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -389,5 +389,5 @@ import { localizedError } from '../../lib/errors';
 {/if}
 
 {#if toast}
-  <PortalToast {toast} {tr} onDismiss={dismissToast} />
+  <Toast {toast} {tr} onDismiss={dismissToast} />
 {/if}

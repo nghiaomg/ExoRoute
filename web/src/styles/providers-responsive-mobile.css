@@ -4,12 +4,15 @@
     width: 100% !important;
     margin-left: 0 !important;
   }
+  :root {
+    --content-gutter: 12px !important;
+  }
   .topbar {
     height: 52px;
-    padding: 0 12px;
+    padding: 0 var(--content-gutter);
   }
   .content-wrap {
-    padding: 14px 12px calc(76px + env(safe-area-inset-bottom)) !important;
+    padding: 14px var(--content-gutter) calc(76px + env(safe-area-inset-bottom)) !important;
   }
   .page-heading {
     align-items: stretch;

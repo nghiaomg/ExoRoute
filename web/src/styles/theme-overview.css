@@ -584,6 +584,9 @@
 :root[data-theme='dark'] .status-badge { color: #bcc0d2; background: rgba(255, 255, 255, 0.06); }
 :root[data-theme='dark'] .status-badge.success { color: #34d399; background: rgba(16, 185, 129, 0.14); }
 :root[data-theme='dark'] .status-badge.failure { color: #fca5a5; background: rgba(239, 68, 68, 0.16); }
+:root[data-theme='dark'] .status-badge.warning { color: #fcd34d; background: rgba(245, 158, 11, 0.16); }
+:root[data-theme='dark'] .status-badge.critical { color: #fca5a5; background: rgba(239, 68, 68, 0.24); }
+:root[data-theme='dark'] .status-badge.live { color: #fdba74; background: rgba(249, 115, 22, 0.18); }
 :root[data-theme='dark'] .protocol-pill { color: #c4b5fd; background: rgba(99, 102, 241, 0.14); }
 :root[data-theme='dark'] .protocol-pill.protocol-chat,
 :root[data-theme='dark'] .protocol-pill.chat,
