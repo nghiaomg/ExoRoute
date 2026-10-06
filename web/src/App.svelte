@@ -15,6 +15,7 @@
   import { getStoredLocale, saveLocale, t, type Locale } from './lib/i18n';
   import { isDocsPage, pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type DocsPage, type FeatureActionRequest, type Page } from './lib/navigation';
   import type { Translate } from './lib/format';
+  import { getStoredSidebarCollapsed, saveSidebarCollapsed } from './lib/sidebar';
   import { applyTheme, getStoredTheme, type Theme } from './lib/theme';
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
 
@@ -45,6 +46,7 @@
 
   let locale: Locale = 'en';
   let theme: Theme = typeof window !== 'undefined' ? getStoredTheme() : 'light';
+  let sidebarCollapsed = typeof window !== 'undefined' ? getStoredSidebarCollapsed() : false;
   let tr: Translate;
   let currentPage: Page = 'login';
   let authBootstrap: 'checking' | 'ready' | 'unavailable' = typeof window === 'undefined' ? 'ready' : 'checking';
@@ -64,6 +66,7 @@
   let activeFeature: ComponentType | null = null;
   let activeFeaturePage: DashboardPage | null = null;
   let activeFeatureRefreshKey = -1;
+  let featureLoadError: DashboardPage | null = null;
   let authVersion = 0;
   let providerOAuthNotice = '';
   let providerOAuthNoticeTone: 'info' | 'success' | 'error' = 'info';
@@ -75,6 +78,7 @@
   $: if (authBootstrap !== 'checking' && dashboardPage(currentPage) && (activeFeaturePage !== currentPage || activeFeatureRefreshKey !== refreshKey)) {
     activeFeaturePage = null;
     activeFeature = null;
+    featureLoadError = null;
     activeFeatureRefreshKey = refreshKey;
     void loadFeatureComponent(currentPage);
   }
@@ -90,15 +94,23 @@
       activeFeatureRefreshKey = requestedRefreshKey;
     } catch {
       if (currentPage !== requestedPage || refreshKey !== requestedRefreshKey) return;
+      // A failed bundle import must stay retryable: keep the page out of the
+      // loaded state so the render shows an error with a Retry action instead
+      // of an unexplained loading screen that never resolves.
       activeFeature = null;
-      activeFeaturePage = requestedPage;
-      activeFeatureRefreshKey = requestedRefreshKey;
+      activeFeaturePage = null;
+      featureLoadError = requestedPage;
     }
   }
 
   function toggleTheme(): void {
     theme = theme === 'light' ? 'dark' : 'light';
     applyTheme(theme);
+  }
+
+  function toggleSidebar(): void {
+    sidebarCollapsed = !sidebarCollapsed;
+    saveSidebarCollapsed(sidebarCollapsed);
   }
 
   function changeLocale(nextLocale: Locale): void {
@@ -168,6 +180,12 @@
     refreshKey += 1;
   }
 
+  /** Recovers from a route bundle the browser memoized as failed: only a full
+   * document load re-fetches the chunk. */
+  function reloadDashboard(): void {
+    window.location.reload();
+  }
+
   function onLogin(result: AdminLoginResult, enteredPassword: string): void {
     setAdminAccessToken(result.access_token, result.access_expires_in_seconds);
     if (result.must_change_password) {
@@ -211,6 +229,7 @@
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
     theme = getStoredTheme();
     applyTheme(theme);
+    sidebarCollapsed = getStoredSidebarCollapsed();
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemThemeChange = (e: MediaQueryListEvent): void => {
@@ -353,7 +372,7 @@
 {:else if currentPage === 'login'}
   <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
 {:else}
-  <DashboardShell currentPage={currentPage} title={pageTitle} {tr} {preferences} {gateway} {providerCount} onNavigate={navigateTo} onRefresh={refreshCurrentPage} onSignOut={signOut}>
+  <DashboardShell currentPage={currentPage} title={pageTitle} {tr} {preferences} {gateway} {providerCount} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} onNavigate={navigateTo} onRefresh={refreshCurrentPage} onSignOut={signOut}>
     {#if providerOAuthNotice}
       <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
         <span>{providerOAuthNotice}</span>
@@ -380,6 +399,15 @@
         {:else if currentPage === 'chat'}
           <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {/if}
+      {:else if featureLoadError === currentPage}
+        <main class="auth-bootstrap session-check-screen" role="alert">
+          <section class="session-check-card">
+            <h1>{tr('Could not load this page.')}</h1>
+            <p>{tr('Check the server, then try again.')}</p>
+            <button class="primary-button" type="button" onclick={refreshCurrentPage}>{tr('Retry')}</button>
+            <button class="secondary-button" type="button" onclick={reloadDashboard}>{tr('Reload page')}</button>
+          </section>
+        </main>
       {:else}
         <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Loading {page}…', { page: pageTitles[currentPage] })}</p></section></main>
       {/if}

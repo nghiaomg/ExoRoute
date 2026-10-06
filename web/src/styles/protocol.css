@@ -242,6 +242,10 @@
   margin-top: 2px;
 }
 .detail-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
   padding: 3px 8px;
   border-radius: 6px;
   background: #f3f4fa;

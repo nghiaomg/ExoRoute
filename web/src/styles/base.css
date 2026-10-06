@@ -142,7 +142,9 @@ a { color: inherit; text-decoration: none; }
   overflow-x: hidden;
   box-sizing: border-box;
 }
-.brand { display: flex; align-items: center; padding: 0 9px; height: 36px; gap: 9px; width: fit-content; }
+.sidebar-brand-row { display: flex; align-items: center; gap: 6px; }
+.sidebar-toggle { margin-left: auto; flex: 0 0 25px; width: 25px; height: 25px; }
+.brand { display: flex; align-items: center; padding: 0 9px; height: 36px; gap: 9px; width: fit-content; min-width: 0; }
 .brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: transparent; box-shadow: none; }
 .brand-word { font: 800 19px var(--font-heading); letter-spacing: -1px; color: #25263a; }
 .brand-word span { font-weight: 500; color: #ea580c; }
@@ -381,6 +383,37 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px;
 }
 
+/* ── Icon-only rail (user-collapsed sidebar) ──
+   Mirrors the tablet rail rules in provider-catalog.css. Higher specificity
+   than the responsive width overrides, so the choice survives every breakpoint
+   where the sidebar is visible; the intended narrow rail keeps no transition
+   because animating the width repaints the whole shell. */
+.sidebar.collapsed { width: 68px; align-items: center; padding: 21px 9px 13px; }
+.sidebar.collapsed .sidebar-brand-row { flex-direction: column; gap: 6px; }
+.sidebar.collapsed .brand { padding: 0; }
+.sidebar.collapsed .brand-word,
+.sidebar.collapsed .brand-version,
+.sidebar.collapsed .workspace-label,
+.sidebar.collapsed .nav-item > span,
+.sidebar.collapsed .sidebar-status > div,
+.sidebar.collapsed .sidebar-footer .profile-copy { display: none; }
+.sidebar.collapsed .sidebar-toggle { margin-left: 0; }
+.sidebar.collapsed .primary-nav { width: 100%; }
+.sidebar.collapsed .nav-item { justify-content: center; padding: 0; }
+.sidebar.collapsed .nav-item.active { box-shadow: inset 0 0 0 1px #ffedd5; }
+/* The status card keeps the connectivity light and the refresh action, stacked
+   because the rail is narrower than an expanded card. */
+.sidebar.collapsed .sidebar-status {
+  flex-direction: column;
+  gap: 8px;
+  width: 42px;
+  justify-content: center;
+  padding: 10px 0;
+}
+.sidebar.collapsed .refresh-button { display: grid; margin-left: 0; width: 25px; height: 25px; }
+.sidebar.collapsed .sidebar-footer { justify-content: center; width: 100%; padding-top: 12px; }
+.app-shell.sidebar-collapsed .main-area { width: calc(100% - 68px); margin-left: 68px; }
+
 .main-area {
   height: 100%;
   height: 100dvh;
@@ -396,12 +429,23 @@ a { color: inherit; text-decoration: none; }
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 43px;
+  padding: 0 var(--content-gutter);
   border-bottom: 1px solid var(--line);
   background: #fbfcfe;
   box-shadow: none;
   z-index: 50;
+}
+/* The topbar surface stays full-width while its content is capped to the same
+   column as .content-wrap: max-width is the column's content box, so the
+   breadcrumb and page content share one left edge at every viewport width. */
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  max-width: calc(var(--content-max-width) - var(--content-gutter) * 2);
+  margin: 0 auto;
 }
 .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .mobile-brand { display: none; }
@@ -604,10 +648,10 @@ a { color: inherit; text-decoration: none; }
 }
 .gateway-pill code { padding-left: 7px; border-left: 1px solid rgba(249, 115, 22, 0.15); color: #9b9eac; font: 500 12px var(--font-sans); }
 .content-wrap {
-  max-width: 1440px;
+  max-width: var(--content-max-width);
   width: 100%;
   margin: 0 auto;
-  padding: 36px 43px 22px;
+  padding: 36px var(--content-gutter) 22px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;

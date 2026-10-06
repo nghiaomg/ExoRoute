@@ -2,7 +2,7 @@
   import { onDestroy } from 'svelte';
   import { Check, Command, Copy, ExternalLink, LoaderCircle, X } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
-  import PortalToast from './PortalToast.svelte';
+  import Toast from '../../components/Toast.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -322,7 +322,7 @@ import { localizedError } from '../../lib/errors';
 </section>
 
 {#if toast}
-  <PortalToast {toast} {tr} onDismiss={dismissToast} />
+  <Toast {toast} {tr} onDismiss={dismissToast} />
 {/if}
 
 <ArkDialog
