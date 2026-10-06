@@ -115,7 +115,7 @@ fn preflight_accepts_chat_tool_deltas_for_every_client_protocol() {
     let chunk = json!({
         "choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"exec","arguments":"{\"cmd\":\"pwd\"}"}}]},"finish_reason":null}]
     });
-    let frame = format!("data: {}\n\n", chunk);
+    let frame = format!("data: {chunk}\n\n");
     for client_protocol in [
         Protocol::ChatCompletions,
         Protocol::Responses,
