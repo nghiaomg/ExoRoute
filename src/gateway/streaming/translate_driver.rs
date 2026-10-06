@@ -118,6 +118,11 @@ pub(in crate::gateway::streaming) fn translation_stream(
         }
 
         if terminal == StreamTerminal::Shutdown {
+            // Gateway shutdown ends the stream without a terminal event.
+            // Dropping the log records the interrupted request here instead of
+            // when the client's body is finally dropped, so a shutdown is not
+            // counted in the totals while missing from the request history.
+            drop(config.log.take());
             return;
         }
         // Some providers close the connection right after the finish signal
