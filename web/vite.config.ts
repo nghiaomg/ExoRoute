@@ -19,7 +19,11 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: process.env.EXOROUTE_API_ORIGIN ?? 'http://localhost:8686',
-        changeOrigin: true,
+        // Keep the browser's Host header. The admin auth endpoints reject any
+        // POST whose Origin does not match the request Host, so rewriting Host
+        // to the API authority made every session refresh and logout from the
+        // dev server fail with 403.
+        changeOrigin: false,
       },
     },
   },
