@@ -1,6 +1,7 @@
 use super::*;
 
 mod chat_options;
+mod decode_diagnostics;
 mod empty_content;
 mod encoding;
 mod history;

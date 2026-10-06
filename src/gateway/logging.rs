@@ -19,7 +19,13 @@ pub struct GatewayRequestLog<'a> {
     pub(super) error: Option<&'a str>,
 }
 
-pub async fn log_request(
+/// Records one bounded gateway request-log entry.
+///
+/// This is deliberately synchronous: it only builds the bounded record and
+/// hand it to the telemetry queue (a non-blocking `try_send`), so the same
+/// path can run from `Drop` when a stream is abandoned before finalization.
+/// Nothing here may await or block.
+pub fn log_request(
     state: &AppState,
     live: Option<&RequestLiveGuard>,
     record: GatewayRequestLog<'_>,
