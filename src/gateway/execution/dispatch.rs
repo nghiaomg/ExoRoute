@@ -114,8 +114,7 @@ pub(super) async fn dispatch_target(
                         &failures.last_error,
                         attempt.target_model,
                     ),
-                )
-                .await;
+                );
                 // Permits drop with the attempt, recording the failure.
                 return DispatchOutcome::Terminal;
             }

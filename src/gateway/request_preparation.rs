@@ -3,6 +3,7 @@ use crate::{
     infra::storage::{Record, StorageError, Table},
     infra::telemetry::RequestAnalytics,
     protocol::{self, Protocol, UpstreamProtocol},
+    security::api_key_scope::ApiKeyScope,
     state::AppState,
     support::output_styles,
 };
@@ -43,6 +44,7 @@ pub(super) struct PreparedGatewayRequest {
     pub(super) background_continuity: bool,
 }
 
+#[derive(Debug)]
 pub(super) enum GatewayRequestPreparationError {
     Client { status: StatusCode, message: String },
     Database(StorageError),
@@ -64,6 +66,8 @@ pub(super) struct GatewayRequestPreparation {
     pub(super) client_protocol: Protocol,
     pub(super) resource_limits: GatewayResourceLimits,
     pub(super) api_key_id: Option<String>,
+    /// Access scope of the authenticated key, enforced before dispatch.
+    pub(super) api_key_scope: Option<Arc<ApiKeyScope>>,
     pub(super) analytics: Option<RequestAnalytics>,
     pub(super) target_rotation_offset: usize,
 }
@@ -78,6 +82,7 @@ pub(super) async fn prepare_gateway_request(
         client_protocol,
         resource_limits,
         api_key_id,
+        api_key_scope,
         analytics,
         target_rotation_offset,
     } = preparation;
@@ -141,13 +146,16 @@ pub(super) async fn prepare_gateway_request(
     let route_alias = canonical.model.clone();
     let background_continuity =
         resource_limits.stream_continuity_enabled && !api_key_present && canonical.stream;
-    let targets = resolve_gateway_targets(
+    let mut targets = resolve_gateway_targets(
         &state,
         &route_alias,
         client_protocol,
         target_rotation_offset,
     )
     .await?;
+    // Enforce the key scope before any target is prepared or dispatched, so a
+    // denied request never reaches an upstream provider.
+    apply_api_key_scope(api_key_scope.as_deref(), &route_alias, &mut targets)?;
 
     Ok(PreparedGatewayRequest {
         request_id,
@@ -158,6 +166,43 @@ pub(super) async fn prepare_gateway_request(
         targets,
         background_continuity,
     })
+}
+
+/// Applies the authenticated key's access scope to the candidate targets.
+///
+/// Model rules are matched against the client-requested model (a route alias or
+/// an imported `provider/model` name), and provider rules drop targets the key
+/// may not use. Model rules intentionally restrict the client-facing name only:
+/// which upstream model an allowed alias maps to stays an operator decision,
+/// while the provider rules bound where the request can land. A key without a
+/// scope passes through unchanged.
+fn apply_api_key_scope(
+    scope: Option<&ApiKeyScope>,
+    requested_model: &str,
+    targets: &mut Vec<Target>,
+) -> Result<(), GatewayRequestPreparationError> {
+    let Some(scope) = scope else {
+        return Ok(());
+    };
+    if !scope.allows_model(requested_model) {
+        return Err(GatewayRequestPreparationError::Client {
+            status: StatusCode::FORBIDDEN,
+            message: format!("this API key is not allowed to use model '{requested_model}'"),
+        });
+    }
+    if scope.allowed_provider_ids().is_empty() {
+        return Ok(());
+    }
+    targets.retain(|target| scope.allows_provider(&target.provider_id));
+    if targets.is_empty() {
+        return Err(GatewayRequestPreparationError::Client {
+            status: StatusCode::FORBIDDEN,
+            message: format!(
+                "this API key is not allowed to use any provider configured for '{requested_model}'"
+            ),
+        });
+    }
+    Ok(())
 }
 
 async fn resolve_gateway_targets(
@@ -437,5 +482,78 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["model-a", "model-b", "model-c"]
         );
+    }
+
+    fn provider_target(provider_id: &str, model: &str) -> Target {
+        Target {
+            provider_id: provider_id.to_owned(),
+            model: model.to_owned(),
+            protocol: None,
+            model_protocol: None,
+            priority: 0,
+            enabled: true,
+        }
+    }
+
+    fn api_key_scope(providers: &[&str], models: &[&str]) -> ApiKeyScope {
+        let providers: Vec<String> = providers.iter().map(|value| (*value).to_owned()).collect();
+        let models: Vec<String> = models.iter().map(|value| (*value).to_owned()).collect();
+        ApiKeyScope::from_entries(&providers, &models).expect("valid API key scope")
+    }
+
+    fn scope_error(error: GatewayRequestPreparationError) -> (StatusCode, String) {
+        match error {
+            GatewayRequestPreparationError::Client { status, message } => (status, message),
+            GatewayRequestPreparationError::Database(_) => {
+                panic!("expected a client error from the API key scope")
+            }
+        }
+    }
+
+    #[test]
+    fn keys_without_a_scope_reach_every_target() {
+        let mut targets = vec![
+            provider_target("provider-a", "model-a"),
+            provider_target("provider-b", "model-b"),
+        ];
+        apply_api_key_scope(None, "coding", &mut targets).expect("unscoped key passes");
+        apply_api_key_scope(Some(&ApiKeyScope::default()), "coding", &mut targets)
+            .expect("unrestricted scope passes");
+        assert_eq!(targets.len(), 2);
+    }
+
+    #[test]
+    fn model_rules_reject_requests_before_target_selection() {
+        let scope = api_key_scope(&[], &["gpt-4*"]);
+        let mut allowed = vec![provider_target("provider-a", "model-a")];
+        apply_api_key_scope(Some(&scope), "gpt-4o", &mut allowed).expect("prefix rule allows");
+        let mut denied = vec![provider_target("provider-a", "model-a")];
+        let (status, message) = scope_error(
+            apply_api_key_scope(Some(&scope), "claude-3-5-sonnet", &mut denied)
+                .expect_err("model rule denies"),
+        );
+        assert_eq!(status, StatusCode::FORBIDDEN);
+        assert!(message.contains("claude-3-5-sonnet"), "{message}");
+    }
+
+    #[test]
+    fn provider_rules_filter_targets_and_fail_when_none_remain() {
+        let scope = api_key_scope(&["provider-b"], &[]);
+        let mut targets = vec![
+            provider_target("provider-a", "model-a"),
+            provider_target("provider-b", "model-b"),
+        ];
+        apply_api_key_scope(Some(&scope), "coding", &mut targets).expect("allowed provider");
+        assert_eq!(targets.len(), 1);
+        assert_eq!(targets[0].provider_id, "provider-b");
+
+        let scope = api_key_scope(&["provider-c"], &[]);
+        let mut targets = vec![provider_target("provider-a", "model-a")];
+        let (status, message) = scope_error(
+            apply_api_key_scope(Some(&scope), "coding", &mut targets)
+                .expect_err("provider rule denies"),
+        );
+        assert_eq!(status, StatusCode::FORBIDDEN);
+        assert!(message.contains("coding"), "{message}");
     }
 }

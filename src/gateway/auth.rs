@@ -1,9 +1,18 @@
 use super::*;
+use crate::security::api_key_scope::ApiKeyScope;
+use std::sync::Arc;
+
+/// An authenticated gateway client: the key ID used for attribution and the
+/// parsed access scope enforced before any upstream dispatch.
+pub(super) struct AuthenticatedClient {
+    pub(super) key_id: String,
+    pub(super) scope: Arc<ApiKeyScope>,
+}
 
 pub(super) async fn authenticate_client(
     state: &AppState,
     headers: &HeaderMap,
-) -> Result<String, Response> {
+) -> Result<AuthenticatedClient, Response> {
     let token = headers
         .get(header::AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
@@ -24,7 +33,7 @@ pub(super) async fn authenticate_client(
     let candidate = token_hash(token);
     let token_index = format!("token/{}", hex_bytes(&candidate));
     let lookup_hash = candidate.to_vec();
-    let key_id = state
+    let authenticated = state
         .db
         .read(move |transaction| {
             let Some(id) = transaction.get::<String>(Table::ApiKeyTokenIndex, &token_index)? else {
@@ -39,11 +48,14 @@ pub(super) async fn authenticate_client(
             {
                 return Ok(None);
             }
-            Ok(Some(id))
+            // The scope is parsed before the key is accepted so a corrupt
+            // record fails closed instead of granting unrestricted access.
+            let scope = ApiKeyScope::from_record(&record)?;
+            Ok(Some((id, scope)))
         })
         .await
         .map_err(gateway_database_error)?;
-    let Some(key_id) = key_id else {
+    let Some((key_id, scope)) = authenticated else {
         return Err(gateway_error(
             StatusCode::UNAUTHORIZED,
             "invalid gateway API key",
@@ -69,7 +81,10 @@ pub(super) async fn authenticate_client(
             tracing::debug!(%error, api_key_id = %key_id, "could not persist API key usage timestamp");
         }
     }
-    Ok(key_id)
+    Ok(AuthenticatedClient {
+        key_id,
+        scope: Arc::new(scope),
+    })
 }
 
 fn hex_bytes(value: &[u8]) -> String {

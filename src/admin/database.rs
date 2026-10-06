@@ -313,6 +313,7 @@ fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<
                 | Table::RouteTargetProviderIndex
         )
     };
+    let dictionary = crate::infra::storage::request_log_dictionary_from_entries(entries);
     entries.retain(|entry| !is_derived_index(entry.table));
     let mut indexes = Vec::new();
 
@@ -326,8 +327,21 @@ fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<
             | Table::ApiKeys
             | Table::RequestLogs
             | Table::UsageWindows
-            | Table::ProviderUsageMeters => bincode::deserialize(&entry.value)
-                .map_err(|_| "The backup contains an invalid primary record.")?,
+            | Table::ProviderUsageMeters => {
+                // Request logs may be stored compressed or raw depending on
+                // the build that produced the backup; both decode here, using
+                // the compression dictionary carried by the same backup.
+                if entry.table == Table::RequestLogs {
+                    crate::infra::storage::decode_request_log_bytes(
+                        &entry.value,
+                        dictionary.as_deref(),
+                    )
+                    .map_err(|_| "The backup contains an invalid primary record.")?
+                } else {
+                    bincode::deserialize(&entry.value)
+                        .map_err(|_| "The backup contains an invalid primary record.")?
+                }
+            }
             _ => continue,
         };
         match entry.table {

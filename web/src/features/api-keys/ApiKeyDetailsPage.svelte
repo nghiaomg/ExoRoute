@@ -15,6 +15,7 @@
   import { formatDate, type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
   import type { GatewayApiKey } from '../../lib/types';
+  import ApiKeyScopeEditor from './ApiKeyScopeEditor.svelte';
   import ApiKeyStatisticsView from './ApiKeyStatisticsView.svelte';
 
   export let apiKey: GatewayApiKey;
@@ -22,6 +23,7 @@ import { localizedError } from '../../lib/errors';
   export let locale: Locale;
   export let onBack: () => void;
   export let onRevoke: (key: GatewayApiKey) => void;
+  export let onUpdated: () => void;
 
   let copiedKeyId = false;
   let copyTimer: ReturnType<typeof setTimeout> | undefined;
@@ -132,6 +134,8 @@ import { localizedError } from '../../lib/errors';
       </button>
     </div>
   </header>
+
+  <ApiKeyScopeEditor {apiKey} {tr} {onUpdated} />
 
   <ApiKeyStatisticsView apiKeyId={apiKey.id} {tr} {locale} />
 

@@ -5,6 +5,7 @@ pub(super) use crate::{
     infra::storage::{Field, Record, StorageError, Table},
     infra::telemetry::RequestAnalytics,
     protocol::{Protocol, UpstreamProtocol},
+    security::api_key_scope::ApiKeyScope,
     security::rate_limit::{RateLimitPolicy, RateLimiter, RateLimiterConfig},
     security::{secure_eq, token_hash},
     state::{AppState, RequestLiveGuard, RequestLogRecord},
@@ -38,8 +39,10 @@ mod retry_policy;
 mod routes;
 mod streaming;
 
-use auth::authenticate_client;
-pub(crate) use error_sanitizer::sanitize_provider_error_body;
+use auth::{AuthenticatedClient, authenticate_client};
+pub(crate) use error_sanitizer::{
+    provider_decode_failure_message, provider_failure_message, sanitize_provider_error_body,
+};
 use error_sanitizer::{provider_http_error_message, read_provider_error_detail};
 use execution::handle_request_inner_with_adapter_base_url_override_and_limits;
 pub(super) use logging::{GatewayRequestLog, log_request};
@@ -61,6 +64,9 @@ pub(crate) struct GatewayRequestContext {
     resource_limits: GatewayResourceLimits,
     operational_settings: OperationalSettings,
     api_key_id: String,
+    /// Authorization snapshot taken when the key was authenticated. It travels
+    /// with the request so scoped keys stay scoped through continuity work.
+    api_key_scope: Arc<ApiKeyScope>,
     analytics: Option<RequestAnalytics>,
 }
 
@@ -69,6 +75,7 @@ struct GatewayExecutionSettings {
     resource_limits: GatewayResourceLimits,
     operational_settings: OperationalSettings,
     api_key_id: Option<String>,
+    api_key_scope: Option<Arc<ApiKeyScope>>,
     analytics: Option<RequestAnalytics>,
     stream_continuity_retry: bool,
 }
