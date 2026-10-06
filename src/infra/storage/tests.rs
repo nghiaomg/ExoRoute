@@ -3,6 +3,7 @@
 
 use super::environment::{MAX_DATABASE_OPERATIONS, read_map_size_marker_for_test_support};
 use super::*;
+use crate::infra::storage::codec;
 use crate::infra::storage::fs_guard::{resize_with_marker_cleanup, write_map_size_marker};
 use crate::infra::storage::{Field, Record, Table};
 use std::{
@@ -266,6 +267,45 @@ async fn operation_capacity_fails_fast_and_releases_slots_after_cancellation() {
 }
 
 #[tokio::test]
+async fn active_operations_counts_database_work_in_flight() {
+    let root = test_path("active-operations");
+    let path = root.join("exoroute.lmdb");
+    let database = Database::open_for_test(&path, 8 * 1024 * 1024)
+        .await
+        .expect("open test database");
+    assert_eq!(database.active_operations(), 0, "an idle database is empty");
+
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let (entered_sender, mut entered_receiver) = tokio::sync::mpsc::channel(1);
+    let reader = tokio::spawn({
+        let database = database.clone();
+        let barrier = barrier.clone();
+        async move {
+            database
+                .read(move |_| {
+                    entered_sender.blocking_send(()).map_err(|_| {
+                        StorageError::Task("test entry signal was closed".to_owned())
+                    })?;
+                    barrier.wait();
+                    Ok(())
+                })
+                .await
+        }
+    });
+    entered_receiver.recv().await.expect("reader entered");
+    assert_eq!(database.active_operations(), 1, "the reader holds one slot");
+
+    let release = barrier.clone();
+    tokio::task::spawn_blocking(move || release.wait())
+        .await
+        .expect("release the held reader");
+    reader.await.expect("join reader").expect("read completes");
+    assert_eq!(database.active_operations(), 0, "the slot is released");
+    drop(database);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[tokio::test]
 async fn map_growth_survives_reopen_and_stays_within_the_limit() {
     let root = test_path("map-growth");
     let path = root.join("exoroute.lmdb");
@@ -278,7 +318,9 @@ async fn map_growth_survives_reopen_and_stays_within_the_limit() {
         .write(move |transaction| {
             for index in 0..900 {
                 let key = format!("payload-{index:04}");
-                transaction.put(Table::RequestLogs, &key, &payload)?;
+                // Raw bytes: this test measures automatic map growth, and a
+                // compressible payload would shrink before the map fills.
+                transaction.put_raw(Table::RequestLogs, &key, &payload)?;
             }
             Ok(())
         })
@@ -289,11 +331,21 @@ async fn map_growth_survives_reopen_and_stays_within_the_limit() {
     let reopened = Database::open_for_test(&path, initial_map_size)
         .await
         .expect("open using persisted map size");
+    // Values were written raw above, so counting through the raw reader is
+    // the layout-neutral way to verify every row survived the reopen.
     let count = reopened
-        .read(|transaction| transaction.scan_prefix::<Vec<u8>>(Table::RequestLogs, "", 901))
+        .read(|transaction| {
+            let mut count = 0usize;
+            for index in 0..900 {
+                let key = format!("payload-{index:04}");
+                if transaction.get_raw(Table::RequestLogs, &key)?.is_some() {
+                    count += 1;
+                }
+            }
+            Ok(count)
+        })
         .await
-        .expect("read resized data")
-        .len();
+        .expect("read resized data");
     assert_eq!(count, 900);
     drop(reopened);
     let _ = fs::remove_dir_all(root);
@@ -370,7 +422,9 @@ async fn map_full_at_the_hard_limit_aborts_the_entire_write() {
     let oversized_value = vec![0x5a; 12 * 1024 * 1024];
     let result = database
         .write(move |transaction| {
-            transaction.put(Table::RequestLogs, "oversized", &oversized_value)
+            // Raw bytes: this test measures map capacity, and a compressible
+            // payload would shrink to a frame instead of exercising MapFull.
+            transaction.put_raw(Table::RequestLogs, "oversized", &oversized_value)
         })
         .await;
     assert!(matches!(result, Err(StorageError::MapFull)));
@@ -497,4 +551,415 @@ fn malformed_snapshot_keys_and_runtime_only_tables_are_rejected() {
         value: bincode::serialize(&"run".to_owned()).expect("serialize index"),
     };
     assert!(validate_snapshot_entries(&[runtime_stream_index]).is_err());
+}
+
+#[tokio::test]
+async fn request_log_writes_compress_and_reads_decode_both_layouts() {
+    let root = test_path("request-log-compression");
+    let path = root.join("exoroute.lmdb");
+    let database = Database::open_for_test(&path, 4 * 1024 * 1024)
+        .await
+        .expect("open environment");
+
+    // A realistic request-log row: repeated field names plus a long error.
+    let mut record = Record::new();
+    for index in 0..20 {
+        record.insert(format!("field-{index}"), Field::Text("value".repeat(16)));
+    }
+    record.insert(
+        "error",
+        Field::Text("upstream 500: internal error".repeat(20)),
+    );
+    let legacy_bytes = bincode::serialize(&record).expect("serialize legacy row");
+    assert_ne!(legacy_bytes[0], codec::COMPRESSED_RECORD_PREFIX);
+    assert!(legacy_bytes.len() > codec::COMPRESSED_RECORD_MIN_BYTES);
+
+    let first_row = record.clone();
+    database
+        .write(move |transaction| {
+            transaction.put(Table::RequestLogs, "compressed", &first_row)?;
+            Ok(())
+        })
+        .await
+        .expect("write compressed row");
+
+    let stored = database
+        .read(|transaction| {
+            transaction
+                .get_raw(Table::RequestLogs, "compressed")?
+                .map(|row| vec![row])
+                .ok_or_else(|| StorageError::Invalid("compressed row is missing".to_owned()))
+        })
+        .await
+        .expect("read raw row");
+    // The compressed row must be a frame and must be smaller than the raw
+    // bincode payload for this repetitive record.
+    assert!(
+        stored[0][0] == codec::COMPRESSED_RECORD_PREFIX,
+        "expected a compressed frame"
+    );
+    assert!(
+        stored[0].len() < legacy_bytes.len(),
+        "compression must shrink the row"
+    );
+
+    // Reads go through the same typed path the dashboard uses.
+    let decoded_compressed = database
+        .read(|transaction| transaction.get::<Record>(Table::RequestLogs, "compressed"))
+        .await
+        .expect("decode rows")
+        .expect("compressed decode");
+    assert_eq!(decoded_compressed, record);
+
+    // A pre-compression raw bincode value must remain readable: the decode
+    // path accepts the legacy layout without any rewrite.
+    database
+        .write(move |transaction| {
+            transaction.put_raw(Table::RequestLogs, "old-build", &legacy_bytes)?;
+            Ok(())
+        })
+        .await
+        .expect("write legacy layout");
+    let decoded_old = database
+        .read(|transaction| transaction.get::<Record>(Table::RequestLogs, "old-build"))
+        .await
+        .expect("decode legacy layout")
+        .expect("row present");
+    assert_eq!(decoded_old, record);
+
+    // The compressed row and the legacy row are the same logical record.
+    assert_eq!(decoded_old, decoded_compressed);
+
+    // Corrupt frames fail with a codec diagnostic, never a success fallback.
+    let corrupt_frame = [codec::COMPRESSED_RECORD_PREFIX, 0x00, 0x01];
+    database
+        .write(move |transaction| {
+            transaction.put_raw(Table::RequestLogs, "corrupt", &corrupt_frame)?;
+            Ok(())
+        })
+        .await
+        .expect("write corrupt frame");
+    let corrupt = database
+        .read(|transaction| transaction.get::<Record>(Table::RequestLogs, "corrupt"))
+        .await;
+    assert!(matches!(corrupt, Err(StorageError::Codec(_))));
+
+    // Small payloads stay raw so tiny rows do not pay frame overhead.
+    database
+        .write(move |transaction| transaction.put(Table::RequestLogs, "tiny", &Record::new()))
+        .await
+        .expect("write tiny row");
+    let tiny = database
+        .read(|transaction| transaction.get_raw(Table::RequestLogs, "tiny"))
+        .await
+        .expect("read tiny row")
+        .expect("tiny row present");
+    assert_ne!(tiny[0], codec::COMPRESSED_RECORD_PREFIX);
+
+    drop(database);
+    let _ = fs::remove_dir_all(root);
+}
+
+fn repetitive_request_log_row(index: usize) -> Record {
+    let mut row = Record::new();
+    row.insert("id", Field::Text(format!("log-{index:06}")));
+    row.insert("request_id", Field::Text(format!("request-{index:06}")));
+    row.insert("route_alias", Field::Text("coding".to_owned()));
+    row.insert(
+        "model",
+        Field::Text("anthropic/claude-sonnet-4.5".to_owned()),
+    );
+    row.insert(
+        "client_protocol",
+        Field::Text("chat_completions".to_owned()),
+    );
+    row.insert(
+        "upstream_protocol",
+        Field::Text("anthropic_messages".to_owned()),
+    );
+    row.insert("status", Field::I64(200));
+    row.insert("duration_ms", Field::I64(800 + (index % 40) as i64 * 37));
+    row.insert(
+        "input_tokens",
+        Field::I64(9_000 + (index % 90) as i64 * 111),
+    );
+    row.insert(
+        "output_tokens",
+        Field::I64(1_200 + (index % 50) as i64 * 83),
+    );
+    row.insert(
+        "cost_micro_usd",
+        Field::I64(50_000 + (index % 70) as i64 * 911),
+    );
+    row.insert("error", Field::Null);
+    row.insert("created_at", Field::Text("2026-10-05 13:45:12".to_owned()));
+    row
+}
+
+#[test]
+fn dictionary_frames_require_the_dictionary_and_legacy_frames_stay_decodable() {
+    let sample_record = repetitive_request_log_row(1);
+    let payload = bincode::serialize(&sample_record).expect("serialize sample");
+    let samples: Vec<&[u8]> = (0..8).map(|_| payload.as_slice()).collect();
+    let dictionary = zstd::dict::from_samples(&samples, 8 * 1024).expect("train test dictionary");
+    let leaked: &'static [u8] = Box::leak(dictionary.into_boxed_slice());
+
+    let frame = codec::compress_with_dictionary(&payload, leaked).expect("dict compress");
+    assert!(
+        frame.len() < payload.len(),
+        "dictionary must shrink the row"
+    );
+
+    // With the dictionary loaded the frame decodes...
+    let restored = codec::decompress_frame(&frame, Some(leaked)).expect("dict decompress");
+    assert_eq!(restored, payload);
+    // ...and without it the same frame is rejected, never mis-decoded.
+    assert!(codec::decompress_frame(&frame, None).is_err());
+    // The full stored layout (marker + frame) fails the same way through the
+    // public decode path when no dictionary is loaded.
+    let mut stored = Vec::with_capacity(frame.len() + 1);
+    stored.push(codec::COMPRESSED_RECORD_PREFIX);
+    stored.extend_from_slice(&frame);
+    assert!(codec::decode_request_log_bytes::<Record>(&stored, None).is_err());
+
+    // A legacy dictionary-free frame still decodes when a dictionary is
+    // loaded: zstd consults the dictionary only when a frame references it.
+    let legacy_frame =
+        zstd::bulk::compress(&payload, codec::COMPRESSED_RECORD_LEVEL).expect("plain compress");
+    let restored_legacy =
+        codec::decompress_frame(&legacy_frame, Some(leaked)).expect("legacy frame with dict");
+    assert_eq!(restored_legacy, payload);
+}
+
+#[tokio::test]
+async fn request_log_dictionary_trains_once_after_enough_rows() {
+    let root = test_path("request-log-dictionary");
+    let path = root.join("exoroute.lmdb");
+    let database = Database::open_for_test(&path, 4 * 1024 * 1024)
+        .await
+        .expect("open environment");
+
+    // Below the row threshold nothing is trained and nothing is stored.
+    database
+        .write(|transaction| {
+            for index in 0..10 {
+                transaction.put(
+                    Table::RequestLogs,
+                    &format!("log-{index:06}"),
+                    &repetitive_request_log_row(index),
+                )?;
+            }
+            Ok(())
+        })
+        .await
+        .expect("seed few rows");
+    assert!(
+        !super::dictionary::train_and_store(&database)
+            .await
+            .expect("train gate")
+    );
+    let stored = database
+        .read(|transaction| {
+            transaction.get::<Vec<u8>>(Table::Meta, super::REQUEST_LOG_DICTIONARY_KEY)
+        })
+        .await
+        .expect("read dictionary row")
+        .is_none();
+    assert!(stored, "no dictionary below the threshold");
+
+    // Production keeps this counter in Meta alongside the logs; training
+    // consults it instead of scanning the table for a row count.
+    database
+        .write(|transaction| {
+            for index in 10..300 {
+                transaction.put(
+                    Table::RequestLogs,
+                    &format!("log-{index:06}"),
+                    &repetitive_request_log_row(index),
+                )?;
+            }
+            transaction.put(Table::Meta, "request_log_count", &300_i64)?;
+            Ok(())
+        })
+        .await
+        .expect("seed rows");
+    assert!(
+        super::dictionary::train_and_store(&database)
+            .await
+            .expect("train")
+    );
+    let stored_dictionary = database
+        .read(|transaction| {
+            transaction.get::<Vec<u8>>(Table::Meta, super::REQUEST_LOG_DICTIONARY_KEY)
+        })
+        .await
+        .expect("read dictionary")
+        .expect("dictionary stored");
+    assert!(!stored_dictionary.is_empty());
+    assert!(
+        stored_dictionary.len() <= super::REQUEST_LOG_DICTIONARY_MAX_BYTES,
+        "dictionary stays within the size bound"
+    );
+    // The dictionary is trained once: a second call must not retrain or
+    // rewrite it, so frames written with the first dictionary stay readable.
+    assert!(
+        !super::dictionary::train_and_store(&database)
+            .await
+            .expect("no retrain")
+    );
+
+    drop(database);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn marker_valued_non_request_log_records_round_trip() {
+    let root = test_path("marker-valued-values");
+    let path = root.join("exoroute.lmdb");
+    let database = Database::open_for_test(&path, 4 * 1024 * 1024)
+        .await
+        .expect("open environment");
+
+    // Each of these raw bincode encodings starts with the compressed-frame
+    // marker byte 0x5A. Only request logs may be decompressed, so every value
+    // below must survive a round trip unchanged.
+    database
+        .write(|transaction| {
+            transaction.put(Table::Meta, "request_log_count", &90_i64)?;
+            transaction.put(Table::Meta, "statistics_generation", &346_i64)?;
+            transaction.put(Table::Meta, "sentinel_u32", &90_u32)?;
+            transaction.put(Table::Meta, "sentinel_blob", &vec![7_u8; 90])?;
+            transaction.put(Table::ApiKeyIndex, "sentinel-index", &"x".repeat(90))?;
+            Ok(())
+        })
+        .await
+        .expect("write marker-valued raw records");
+
+    let stored = database
+        .read(|transaction| {
+            Ok((
+                transaction
+                    .get::<i64>(Table::Meta, "request_log_count")?
+                    .expect("counter"),
+                transaction
+                    .get::<i64>(Table::Meta, "statistics_generation")?
+                    .expect("generation"),
+                transaction
+                    .get::<u32>(Table::Meta, "sentinel_u32")?
+                    .expect("u32"),
+                transaction
+                    .get::<Vec<u8>>(Table::Meta, "sentinel_blob")?
+                    .expect("blob"),
+                transaction
+                    .get::<String>(Table::ApiKeyIndex, "sentinel-index")?
+                    .expect("index string"),
+            ))
+        })
+        .await
+        .expect("read marker-valued raw records");
+
+    assert_eq!(stored.0, 90);
+    assert_eq!(stored.1, 346);
+    assert_eq!(stored.2, 90);
+    assert_eq!(stored.3, vec![7_u8; 90]);
+    assert_eq!(stored.4, "x".repeat(90));
+
+    let raw_first_bytes = database
+        .read(|transaction| {
+            Ok((
+                transaction
+                    .get_raw(Table::Meta, "request_log_count")?
+                    .expect("counter bytes")[0],
+                transaction
+                    .get_raw(Table::ApiKeyIndex, "sentinel-index")?
+                    .expect("index bytes")[0],
+            ))
+        })
+        .await
+        .expect("read raw bytes");
+    assert_eq!(raw_first_bytes.0, codec::COMPRESSED_RECORD_PREFIX);
+    assert_eq!(raw_first_bytes.1, codec::COMPRESSED_RECORD_PREFIX);
+
+    drop(database);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn request_log_record_with_marker_field_count_is_compressed() {
+    let root = test_path("marker-field-count");
+    let path = root.join("exoroute.lmdb");
+    let database = Database::open_for_test(&path, 4 * 1024 * 1024)
+        .await
+        .expect("open environment");
+
+    // Exactly 90 fields makes the raw bincode map-length prefix equal to the
+    // frame marker. The writer must compress instead of storing ambiguous raw
+    // bytes, and the read path must return the original record.
+    let mut record = Record::new();
+    for index in 0..90 {
+        record.insert(format!("f{index}"), Field::Null);
+    }
+    let expected = record.clone();
+    database
+        .write(move |transaction| transaction.put(Table::RequestLogs, "log-90", &record))
+        .await
+        .expect("write 90-field request log");
+
+    let stored_first = database
+        .read(|transaction| {
+            Ok(transaction
+                .get_raw(Table::RequestLogs, "log-90")?
+                .expect("stored log")[0])
+        })
+        .await
+        .expect("read stored log");
+    assert_eq!(stored_first, codec::COMPRESSED_RECORD_PREFIX);
+
+    let decoded = database
+        .read(|transaction| transaction.get::<Record>(Table::RequestLogs, "log-90"))
+        .await
+        .expect("decode 90-field request log")
+        .expect("log present");
+    assert_eq!(decoded, expected);
+
+    drop(database);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn snapshot_validation_decodes_request_logs_with_the_snapshots_own_dictionary() {
+    let sample = repetitive_request_log_row(1);
+    let payload = bincode::serialize(&sample).expect("serialize sample");
+    let samples: Vec<&[u8]> = (0..8).map(|_| payload.as_slice()).collect();
+    let dictionary = zstd::dict::from_samples(&samples, 8 * 1024).expect("train test dictionary");
+    let leaked: &'static [u8] = Box::leak(dictionary.clone().into_boxed_slice());
+    let frame = codec::compress_with_dictionary(&payload, leaked).expect("dict compress");
+    let mut stored = Vec::with_capacity(frame.len() + 1);
+    stored.push(codec::COMPRESSED_RECORD_PREFIX);
+    stored.extend_from_slice(&frame);
+
+    let with_dictionary = vec![
+        SnapshotEntry {
+            table: Table::Meta,
+            key: super::REQUEST_LOG_DICTIONARY_KEY.to_owned(),
+            value: bincode::serialize(&dictionary).expect("encode dictionary"),
+        },
+        SnapshotEntry {
+            table: Table::RequestLogs,
+            key: "log-1".to_owned(),
+            value: stored.clone(),
+        },
+    ];
+    validate_snapshot_entries(&with_dictionary)
+        .expect("the snapshot's own dictionary decodes its frames");
+
+    let without_dictionary = vec![SnapshotEntry {
+        table: Table::RequestLogs,
+        key: "log-1".to_owned(),
+        value: stored,
+    }];
+    assert!(
+        validate_snapshot_entries(&without_dictionary).is_err(),
+        "a dictionary-required frame must not validate without its dictionary"
+    );
 }
