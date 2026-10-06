@@ -25,9 +25,64 @@ pub(super) fn decode_upstream_response(
         ),
     }?;
     if !response_has_output(&response) {
-        return Err("upstream completed the response without content".to_owned());
+        return Err(format!(
+            "upstream completed the response without content{}",
+            protocol_mismatch_suffix(protocol, value)
+        ));
     }
     Ok(response)
+}
+
+/// Describes a payload whose shape unmistakably belongs to another supported
+/// upstream protocol than the one it was decoded as. Detection is structural
+/// only, so the message never echoes provider text, request content, or
+/// credentials; it points the operator at the model's upstream protocol.
+fn protocol_mismatch_suffix(expected: UpstreamProtocol, value: &Value) -> String {
+    let Some(detected) = detected_payload_protocol(value) else {
+        return String::new();
+    };
+    if detected == expected {
+        return String::new();
+    }
+    format!(
+        " (provider returned a {} payload; check this model's upstream protocol)",
+        detected.as_str()
+    )
+}
+
+/// The protocol a provider payload appears to belong to, judged only by
+/// fields no other supported response shape uses. Ambiguous payloads report
+/// no protocol instead of guessing.
+fn detected_payload_protocol(value: &Value) -> Option<UpstreamProtocol> {
+    let object = value.as_object()?;
+    if object.contains_key("candidates") || object.contains_key("usageMetadata") {
+        return Some(UpstreamProtocol::GoogleGenerateContent);
+    }
+    if object.get("object").and_then(Value::as_str) == Some("response")
+        || object.get("output").is_some_and(Value::is_array)
+        || object.get("output_text").is_some_and(Value::is_string)
+    {
+        return Some(UpstreamProtocol::Responses);
+    }
+    let typed_blocks = object
+        .get("content")
+        .and_then(Value::as_array)
+        .is_some_and(|blocks| {
+            blocks
+                .iter()
+                .any(|block| block.get("type").and_then(Value::as_str).is_some())
+        });
+    if typed_blocks
+        && (object.contains_key("stop_reason")
+            || object.get("role").and_then(Value::as_str) == Some("assistant")
+            || object.get("type").and_then(Value::as_str) == Some("message"))
+    {
+        return Some(UpstreamProtocol::Messages);
+    }
+    if object.contains_key("choices") {
+        return Some(UpstreamProtocol::ChatCompletions);
+    }
+    None
 }
 
 /// Returns whether a decoded assistant response contains output that can be
@@ -73,11 +128,17 @@ fn decode_openai_family_response(
 }
 
 fn decode_chat_response(v: &Value, requested_model: &str) -> Result<CanonicalResponse, String> {
-    let choice = v
-        .get("choices")
-        .and_then(Value::as_array)
-        .and_then(|a| a.first())
-        .ok_or("chat response has no choices")?;
+    let choices = v.get("choices").and_then(Value::as_array);
+    let choice = choices.and_then(|choices| choices.first()).ok_or_else(|| {
+        if choices.is_some_and(|choices| choices.is_empty()) {
+            return "chat response has no choices (the provider returned an empty choices list)"
+                .to_owned();
+        }
+        format!(
+            "chat response has no choices{}",
+            protocol_mismatch_suffix(UpstreamProtocol::ChatCompletions, v)
+        )
+    })?;
     let raw = choice
         .get("message")
         .ok_or("chat response has no message")?;
@@ -173,6 +234,38 @@ fn decode_responses_response(
                                 .to_owned(),
                         });
                     }
+                }
+            }
+            // Codex freeform tools (for example apply_patch) arrive as
+            // custom_tool_call items whose input is a freeform string that is not
+            // required to be valid JSON, unlike function_call arguments.
+            if item.get("type").and_then(Value::as_str) == Some("custom_tool_call") {
+                let name = item
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_owned();
+                // Some custom tools send structured JSON input as a string; when
+                // it parses, keep the object like function_call arguments do.
+                // Otherwise retain the raw freeform payload (apply_patch diffs).
+                let input = match item.get("input") {
+                    Some(Value::String(text)) => {
+                        serde_json::from_str(text).unwrap_or(Value::String(text.clone()))
+                    }
+                    Some(other) => other.clone(),
+                    None => json!(""),
+                };
+                if !name.is_empty() {
+                    content.push(ContentBlock::ToolCall {
+                        id: item
+                            .get("call_id")
+                            .or_else(|| item.get("id"))
+                            .and_then(Value::as_str)
+                            .unwrap_or("call")
+                            .to_owned(),
+                        name,
+                        arguments: input,
+                    });
                 }
             }
             if item.get("type").and_then(Value::as_str) == Some("function_call") {

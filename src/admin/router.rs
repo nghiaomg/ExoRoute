@@ -92,6 +92,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/providers/{id}/auth/{flow_id}",
             get(provider_auth_status),
         )
+        .route(
+            "/api/v1/admin/providers/{id}/auth/{flow_id}/poll",
+            post(provider_auth::provider_auth_poll),
+        )
         .merge(provider_auth_callback_routes)
         .route(
             "/api/v1/admin/providers/{id}/api-key-auth/start",
@@ -137,6 +141,21 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
         )
         .route("/api/v1/admin/models", get(combos::list_models))
         .route("/api/v1/admin/models/test", post(model_probes::test_models))
+        .route(
+            "/api/v1/admin/workspace/chat",
+            post(workspace::send_workspace_chat),
+        )
+        .route(
+            "/api/v1/admin/workspace/chat/stream",
+            post(workspace::stream_workspace_chat),
+        )
+        .route(
+            "/api/v1/admin/workspace/chat/models",
+            get(workspace::workspace_chat_models),
+        )
+        .layer(DefaultBodyLimit::max(
+            workspace::MAX_WORKSPACE_CHAT_BODY_BYTES,
+        ))
         .route("/api/v1/admin/requests", get(request_logs::list_requests))
         .route(
             "/api/v1/admin/requests/events",
@@ -202,7 +221,7 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
         )
         .route(
             "/api/v1/admin/api-keys/{id}",
-            delete(api_keys::delete_api_key),
+            delete(api_keys::delete_api_key).put(api_keys::update_api_key),
         )
         .route_layer(middleware::from_fn_with_state(state.clone(), require_admin));
 

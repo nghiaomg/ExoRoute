@@ -1,6 +1,7 @@
 import CodexAccountsPanel from './CodexAccountsPanel.svelte';
 import CodexOAuthPanel from './CodexOAuthPanel.svelte';
 import CommandCodeAuthAssistPanel from './CommandCodeAuthAssistPanel.svelte';
+import DeviceCodeOAuthPanel from './DeviceCodeOAuthPanel.svelte';
 
 export interface ProviderAuthPanels {
   oauth: typeof CodexOAuthPanel | null;
@@ -8,7 +9,7 @@ export interface ProviderAuthPanels {
   apiKey: typeof CommandCodeAuthAssistPanel | null;
 }
 
-export const KNOWN_AUTH_PANELS = ['openai_codex', 'command_code', 'cline'] as const;
+export const KNOWN_AUTH_PANELS = ['openai_codex', 'command_code', 'cline', 'kilocode'] as const;
 export type KnownAuthPanel = (typeof KNOWN_AUTH_PANELS)[number];
 
 export function resolveAuthPanel(panel: string | null | undefined): ProviderAuthPanels | null {
@@ -31,6 +32,11 @@ export const providerAuthPanelRegistry: Record<KnownAuthPanel, ProviderAuthPanel
   },
   cline: {
     oauth: CodexOAuthPanel,
+    accounts: CodexAccountsPanel,
+    apiKey: null,
+  },
+  kilocode: {
+    oauth: DeviceCodeOAuthPanel,
     accounts: CodexAccountsPanel,
     apiKey: null,
   },

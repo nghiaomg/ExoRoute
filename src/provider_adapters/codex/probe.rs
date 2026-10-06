@@ -37,6 +37,9 @@ pub(crate) async fn test_oauth_model_impl(
             .config
             .request_timeout
             .min(std::time::Duration::from_secs(10)),
+        // The probe consumes the entire body itself and relies on the total
+        // timeout to bound the read; keep the non-streaming client flavor.
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         state.operational_settings().settings.upstream,
     )

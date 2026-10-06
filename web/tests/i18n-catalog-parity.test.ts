@@ -78,6 +78,8 @@ test('newly introduced token usage and state keys exist and are translated', asy
   const newKeys = [
     'Token usage',
     'TOKENS',
+    'Input tokens',
+    'Output tokens',
     '{input} in / {output} out',
     'Invalid',
     'Connected',

@@ -363,21 +363,13 @@
   box-shadow: none;
 }
 
-/* Scoped Zero-Border and Zero-Shadow Guarantee for Settings View */
+/* Soft Neo-Brutalism treatment for the Settings View.
+   Panels, tiles, chips and buttons keep ink borders + hard offset shadows;
+   only rows, labels and code badges stay flat. */
 .settings-view .settings-panel,
-.settings-view .panel-heading,
-.settings-view .settings-row,
-.settings-view .settings-nav-tabs,
-.settings-view .settings-nav-tab,
 .settings-view .settings-hero-card,
-.settings-view .hero-card-icon,
-.settings-view .settings-badge-code,
-.settings-view .settings-badge-uptime,
 .settings-view .config-tile,
 .settings-view .config-status-chip,
-.settings-view .config-tile-code,
-.settings-view .settings-note,
-.settings-view .resource-limits-active,
 .settings-view .resource-limit-input input,
 .settings-view .resource-limit-input select,
 .settings-view .resource-limits-notice,
@@ -386,9 +378,26 @@
 .settings-view .database-file-label,
 .settings-view .primary-button,
 .settings-view .secondary-button,
+.settings-view .settings-nav-tab,
 .settings-view .ark-checkbox-control {
-  border: none !important;
+  border: var(--nb-border, 2px solid var(--ink)) !important;
+  box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)) !important;
+}
+/* Checkboxes keep the ink border only: a hard shadow at 17px reads as noise. */
+.settings-view .ark-checkbox-control {
   box-shadow: none !important;
+}
+.settings-view .settings-nav-tab:hover,
+.settings-view .primary-button:hover:not(:disabled),
+.settings-view .secondary-button:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)) !important;
+}
+.settings-view .settings-nav-tab:active,
+.settings-view .primary-button:active:not(:disabled),
+.settings-view .secondary-button:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)) !important;
 }
 
 .settings-view {

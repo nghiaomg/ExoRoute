@@ -120,6 +120,37 @@ fn opencode_go_replays_required_reasoning_content_without_overwriting_real_conte
 }
 
 #[test]
+fn opencode_bodies_drop_only_a_boolean_reasoning_flag() {
+    // The Go backend decodes `reasoning` into a structured value, so the OpenAI
+    // boolean form is rejected with HTTP 400 while object/string forms are the
+    // shapes the struct expects.
+    let mut boolean = json!({"model":"mimo-v2.6-flash","reasoning":true});
+    OPENCODE_GO_ADAPTER.prepare_body(&mut boolean, "request");
+    assert!(boolean.get("reasoning").is_none());
+
+    let mut disabled = json!({"model":"mimo-v2.6-flash","reasoning":false});
+    OPENCODE_ZEN_ADAPTER.prepare_body(&mut disabled, "request");
+    assert!(disabled.get("reasoning").is_none());
+
+    let mut structured = json!({
+        "model":"mimo-v2.6-flash",
+        "reasoning":{"effort":"high"},
+        "reasoning_effort":"high"
+    });
+    OPENCODE_GO_ADAPTER.prepare_body(&mut structured, "request");
+    assert_eq!(structured["reasoning"], json!({"effort":"high"}));
+    assert_eq!(structured["reasoning_effort"], "high");
+
+    let mut text = json!({"model":"mimo-v2.6-flash","reasoning":"medium"});
+    OPENCODE_GO_ADAPTER.prepare_body(&mut text, "request");
+    assert_eq!(text["reasoning"], "medium");
+
+    let mut untouched = json!({"model":"mimo-v2.6-flash"});
+    OPENCODE_GO_ADAPTER.prepare_body(&mut untouched, "request");
+    assert_eq!(untouched, json!({"model":"mimo-v2.6-flash"}));
+}
+
+#[test]
 fn quota_parser_rejects_partial_and_out_of_range_snapshots() {
     let valid = json!({"usage":{
         "rolling":{"status":"ok","percent":12.5,"resetsAt":"2026-09-15T01:00:00Z"},

@@ -136,6 +136,7 @@ pub(crate) async fn discover_generic_api_key_models_with_timeout(
             .connect_timeout
             .min(std::time::Duration::from_secs(3)),
         state.config.request_timeout.min(request_timeout_cap),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         state.operational_settings().settings.upstream,
     )

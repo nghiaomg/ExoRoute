@@ -1,4 +1,4 @@
-import type { Collection, Provider, ProviderApiKeyAuthStartResult, ProviderApiKeyAuthStatus, ProviderAuthCompletionResult, ProviderAuthStartResult, ProviderAuthStatus, ProviderCreateResult, ProviderCustomHeaderInput, ProviderKey, ProviderKeyCreateResult, ProviderKeyPage, ProviderKeyStrategyInput, ProviderKeyStrategyResult, ProviderModelCatalog, ProviderModelImportResult, ProviderModelRoutingPage, ProviderPreset, ProviderThinkingSettingsInput, ProviderThinkingSettingsResult, ProviderUpdateResult, UpstreamProtocol } from '../types';
+import type { Collection, Provider, ProviderApiKeyAuthStartResult, ProviderApiKeyAuthStatus, ProviderAuthCompletionResult, ProviderAuthPollResult, ProviderAuthStartResult, ProviderAuthStatus, ProviderCreateResult, ProviderCustomHeaderInput, ProviderKey, ProviderKeyCreateResult, ProviderKeyPage, ProviderKeyStrategyInput, ProviderKeyStrategyResult, ProviderModelCatalog, ProviderModelImportResult, ProviderModelRoutingPage, ProviderPreset, ProviderThinkingSettingsInput, ProviderThinkingSettingsResult, ProviderUpdateResult, UpstreamProtocol } from '../types';
 import { collection, request } from './core';
 
 export const providerApi = {
@@ -21,6 +21,7 @@ startProviderAuth: (id: string, callbackUrl?: string) => request<ProviderAuthSta
   ...(callbackUrl ? { body: JSON.stringify({ callback_url: callbackUrl }) } : {}),
 }),
 providerAuthStatus: (id: string, flowId: string) => request<ProviderAuthStatus>(`/providers/${encodeURIComponent(id)}/auth/${encodeURIComponent(flowId)}`),
+pollProviderAuth: (id: string, flowId: string) => request<ProviderAuthPollResult>(`/providers/${encodeURIComponent(id)}/auth/${encodeURIComponent(flowId)}/poll`, { method: 'POST' }),
 completeProviderAuthCallback: (callbackUrl: string) => request<ProviderAuthCompletionResult>('/providers/auth/callback', { method: 'POST', body: JSON.stringify({ callback_url: callbackUrl }) }),
 completeProviderAuthCallbackForFlow: (id: string, flowId: string, callbackUrl: string) => request<ProviderAuthCompletionResult>(`/providers/${encodeURIComponent(id)}/auth/${encodeURIComponent(flowId)}/complete`, { method: 'POST', body: JSON.stringify({ callback_url: callbackUrl }) }),
 startProviderApiKeyAuth: (id: string) => request<ProviderApiKeyAuthStartResult>(`/providers/${encodeURIComponent(id)}/api-key-auth/start`, { method: 'POST' }),

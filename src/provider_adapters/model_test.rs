@@ -91,6 +91,7 @@ pub(super) async fn test_api_key_credential_impl<A: ProviderAdapter + ?Sized>(
             .config
             .request_timeout
             .min(std::time::Duration::from_secs(10)),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         options.state.operational_settings().settings.upstream,
     )
@@ -169,6 +170,7 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
             .config
             .request_timeout
             .min(std::time::Duration::from_secs(10)),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         request.state.operational_settings().settings.upstream,
     )

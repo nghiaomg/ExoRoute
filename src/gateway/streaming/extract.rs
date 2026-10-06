@@ -1,5 +1,14 @@
 use super::*;
 
+/// Upper bound on the Chat Completions streamed tool calls accumulated for one
+/// response.
+const MAX_STREAM_TOOL_CALLS: usize = 128;
+
+/// Rejection used when a streamed tool call would exceed the configured
+/// response-size bound.
+const TOOL_ARGUMENT_LIMIT: &str =
+    "upstream Chat streamed tool arguments exceeded the configured response limit";
+
 pub(crate) fn extract_stream_text(
     protocol: UpstreamProtocol,
     event: &str,
@@ -51,10 +60,20 @@ pub(crate) fn extract_stream_text(
 }
 
 pub(crate) fn extract_chat_stream_tool_delta(value: &Value) -> Option<&Value> {
+    extract_chat_stream_tool_delta_at(value, 0).map(|(_, delta)| delta)
+}
+
+/// Returns the tool-call stream chunk at `upstream_choice_index` alongside its
+/// delta. Chat Completions streams one choice per call in practice, so the
+/// index identifies the call being extended or opened.
+fn extract_chat_stream_tool_delta_at(
+    value: &Value,
+    upstream_choice_index: usize,
+) -> Option<(usize, &Value)> {
     let delta = value
         .get("choices")
         .and_then(Value::as_array)
-        .and_then(|choices| choices.first())
+        .and_then(|choices| choices.get(upstream_choice_index))
         .and_then(|choice| choice.get("delta"))?;
     let has_tool_calls = delta
         .get("tool_calls")
@@ -63,7 +82,187 @@ pub(crate) fn extract_chat_stream_tool_delta(value: &Value) -> Option<&Value> {
     let has_function_call = delta
         .get("function_call")
         .is_some_and(|call| !call.is_null());
-    (has_tool_calls || has_function_call).then_some(delta)
+    (has_tool_calls || has_function_call).then_some((upstream_choice_index, delta))
+}
+
+/// Accumulated Chat Completions streamed tool calls so they can be replayed
+/// to non-Chat clients (Messages, Responses) which have no incremental tool
+/// delta form. Chunked `tool_calls` entries merge by index (streaming deltas
+/// concatenate their `function.arguments`); a legacy `function_call` delta
+/// merges by name.
+#[derive(Default)]
+pub(crate) struct ChatStreamToolCallAccumulator {
+    calls: Vec<ChatStreamToolCall>,
+    total_argument_bytes: usize,
+}
+
+struct ChatStreamToolCall {
+    stream_index: Option<usize>,
+    id: String,
+    name: String,
+    arguments: String,
+}
+
+impl ChatStreamToolCallAccumulator {
+    pub(crate) fn merge_delta(&mut self, delta: &Value, max_bytes: usize) -> Result<(), String> {
+        self.merge_indexed_tool_calls(delta, max_bytes)?;
+        self.merge_legacy_function_call(delta, max_bytes)
+    }
+
+    /// Returns a string field only when it is present and non-blank.
+    fn non_empty_text(value: Option<&Value>) -> Option<&str> {
+        value
+            .and_then(Value::as_str)
+            .filter(|text| !text.is_empty())
+    }
+
+    /// Opens a new accumulated call and returns its position. Bounded by
+    /// [`MAX_STREAM_TOOL_CALLS`] so a hostile stream cannot grow the buffer.
+    fn open_call(
+        &mut self,
+        stream_index: Option<usize>,
+        id: String,
+        name: String,
+    ) -> Result<usize, String> {
+        if self.calls.len() >= MAX_STREAM_TOOL_CALLS {
+            return Err("upstream Chat stream exceeded the tool call limit".to_owned());
+        }
+        self.calls.push(ChatStreamToolCall {
+            stream_index,
+            id,
+            name,
+            arguments: String::new(),
+        });
+        Ok(self.calls.len() - 1)
+    }
+
+    /// Appends one streamed argument fragment to `position`, enforcing the
+    /// configured response-size bound across the whole accumulator.
+    fn append_arguments(
+        &mut self,
+        position: usize,
+        arguments: &str,
+        max_bytes: usize,
+    ) -> Result<(), String> {
+        if arguments.is_empty() {
+            return Ok(());
+        }
+        let next = self.calls[position]
+            .arguments
+            .len()
+            .checked_add(arguments.len())
+            .ok_or_else(|| TOOL_ARGUMENT_LIMIT.to_owned())?;
+        if max_bytes != 0 && next > max_bytes {
+            return Err(TOOL_ARGUMENT_LIMIT.to_owned());
+        }
+        self.calls[position].arguments.push_str(arguments);
+        self.total_argument_bytes += arguments.len();
+        Ok(())
+    }
+
+    /// Merges chunked `tool_calls` deltas, which address their target by
+    /// `index`: an existing entry is extended, an unseen index opens a call.
+    fn merge_indexed_tool_calls(&mut self, delta: &Value, max_bytes: usize) -> Result<(), String> {
+        let Some(tool_calls) = delta.get("tool_calls").and_then(Value::as_array) else {
+            return Ok(());
+        };
+        for call in tool_calls {
+            let index = call
+                .get("index")
+                .and_then(Value::as_u64)
+                .and_then(|index| usize::try_from(index).ok());
+            let function = call.get("function");
+            let position = match index.and_then(|index| {
+                self.calls
+                    .iter()
+                    .position(|existing| existing.stream_index == Some(index))
+            }) {
+                Some(position) => position,
+                None => {
+                    let id = Self::non_empty_text(call.get("id"))
+                        .unwrap_or_default()
+                        .to_owned();
+                    let name = Self::non_empty_text(function.and_then(|f| f.get("name")))
+                        .unwrap_or_default()
+                        .to_owned();
+                    self.open_call(index, id, name)?
+                }
+            };
+            if let Some(id) = Self::non_empty_text(call.get("id")) {
+                self.calls[position].id = id.to_owned();
+            }
+            if let Some(name) = Self::non_empty_text(function.and_then(|f| f.get("name"))) {
+                self.calls[position].name = name.to_owned();
+            }
+            let arguments = function
+                .and_then(|f| f.get("arguments"))
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+            self.append_arguments(position, arguments, max_bytes)?;
+        }
+        Ok(())
+    }
+
+    /// Merges the legacy single `function_call` delta, which has no index and
+    /// therefore merges onto the open unindexed call with the same name.
+    fn merge_legacy_function_call(
+        &mut self,
+        delta: &Value,
+        max_bytes: usize,
+    ) -> Result<(), String> {
+        let Some(function_call) = delta.get("function_call").filter(|call| !call.is_null()) else {
+            return Ok(());
+        };
+        let name = function_call
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let position = self.calls.iter().position(|existing| {
+            existing.stream_index.is_none() && (name.is_empty() || existing.name == name)
+        });
+        let position = match position {
+            Some(position) => position,
+            None => self.open_call(None, String::new(), name.to_owned())?,
+        };
+        if name.is_empty() {
+            self.calls[position].name = name.to_owned();
+        }
+        let arguments = function_call
+            .get("arguments")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        self.append_arguments(position, arguments, max_bytes)
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.calls.is_empty()
+    }
+
+    /// Number of accumulated calls, used to reserve output block indexes
+    /// before the calls are drained.
+    pub(crate) fn call_count(&self) -> usize {
+        self.calls.len()
+    }
+
+    /// Returns the accumulated calls and clears the buffer. The finalize step
+    /// is single-shot: repeated drains without new deltas would duplicate the
+    /// calls.
+    pub(crate) fn drain(&mut self) -> Vec<GoogleStreamToolCall> {
+        self.calls
+            .drain(..)
+            .map(|call| GoogleStreamToolCall {
+                source_id: None,
+                id: if call.id.is_empty() {
+                    format!("call_{}", call.stream_index.unwrap_or(0))
+                } else {
+                    call.id
+                },
+                name: call.name,
+                arguments: serde_json::from_str(&call.arguments)
+                    .unwrap_or(Value::String(call.arguments)),
+            })
+            .collect()
+    }
 }
 
 pub(crate) fn extract_chat_stream_reasoning_delta(value: &Value) -> Option<&str> {

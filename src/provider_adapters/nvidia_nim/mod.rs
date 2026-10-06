@@ -105,6 +105,7 @@ async fn discover_nvidia_models(
             .config
             .request_timeout
             .min(operational.upstream.discovery_request_timeout),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         operational.upstream,
     )

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { Portal } from '@ark-ui/svelte/portal';
   import { Check, Copy, Cpu, LoaderCircle, Search, Trash2, X, Zap } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import EmptyState from '../../components/EmptyState.svelte';
+  import Toast from '../../components/Toast.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -14,6 +14,7 @@ import { localizedError } from '../../lib/errors';
 
   export let provider: Provider;
   export let models: ModelTestTarget[];
+  export let manualModels: string[] = [];
   export let tr: Translate;
   export let onDeleteModel: (model: string) => Promise<void>;
 
@@ -35,6 +36,7 @@ import { localizedError } from '../../lib/errors';
   let confirmDeleteTimer: ReturnType<typeof setTimeout> | undefined;
 
   $: modelPrefix = provider?.model_prefix || provider?.id || '';
+  $: manualModelSet = new Set(manualModels);
 
   $: pruneRemovedModels(models);
   $: filteredModels = models.filter((item) => item.model.toLowerCase().includes(query.toLowerCase()));
@@ -326,6 +328,9 @@ import { localizedError } from '../../lib/errors';
           <div class="model-title-wrap">
             <Cpu size={14} class="model-icon" />
             <strong class="model-name" title={model.model}>{model.model}</strong>
+            {#if manualModelSet.has(model.model)}
+              <span class="model-source-chip" title={tr('Manual')}>{tr('Manual')}</span>
+            {/if}
           </div>
           <code class="model-routed-code" title={formattedId}>{formattedId}</code>
         </div>
@@ -384,18 +389,5 @@ import { localizedError } from '../../lib/errors';
 {/if}
 
 {#if toast}
-  <Portal>
-    <div class="model-test-toast" class:success={toast.tone === 'success'} class:error={toast.tone === 'error'} role="status">
-      <span class="model-test-toast-mark">
-        {#if toast.tone === 'success'}<Check size={15} />{:else}<X size={15} />{/if}
-      </span>
-      <div class="model-test-toast-copy">
-        <strong>{toast.title}</strong>
-        <small>{toast.message}</small>
-      </div>
-      <button class="model-test-toast-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissToast}>
-        <X size={14} />
-      </button>
-    </div>
-  </Portal>
+  <Toast {toast} {tr} onDismiss={dismissToast} />
 {/if}

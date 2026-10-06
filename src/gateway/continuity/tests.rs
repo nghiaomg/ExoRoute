@@ -4,6 +4,7 @@ use crate::{
     config::{GatewayResourceLimits, UpstreamSettings},
     gateway::{GatewayRequestContext, cancel_stream, continuity::BackgroundRequestSettings},
     infra::storage::{Field, Record, StorageError, Table},
+    security::api_key_scope::ApiKeyScope,
     state::AppState,
     support::test_support::TestDatabase,
 };
@@ -169,6 +170,7 @@ async fn explicit_cancel_stops_the_worker_and_releases_its_slot() {
             resource_limits: GatewayResourceLimits::default(),
             operational_settings: state.operational_settings().settings,
             api_key_id: "owner".to_owned(),
+            api_key_scope: std::sync::Arc::new(ApiKeyScope::default()),
             analytics: None,
         }),
     )

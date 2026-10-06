@@ -33,6 +33,7 @@ pub(super) async fn test_cline_oauth_model(
         false,
         state.config.connect_timeout.min(Duration::from_secs(3)),
         state.config.request_timeout.min(Duration::from_secs(10)),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         state.operational_settings().settings.upstream,
     )

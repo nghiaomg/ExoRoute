@@ -180,6 +180,7 @@ async fn openrouter_get_json(
             operational
                 .request_timeout
                 .min(upstream.opencode_usage_timeout),
+            false,
             concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
             operational.upstream,
         )

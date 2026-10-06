@@ -278,33 +278,3 @@ pub struct CanonicalResponse {
     #[serde(default)]
     pub usage: Option<Usage>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum StreamEvent {
-    ResponseStart {
-        id: String,
-        model: String,
-    },
-    TextDelta {
-        text: String,
-    },
-    ToolCallStart {
-        id: String,
-        name: String,
-    },
-    ToolCallDelta {
-        id: String,
-        arguments: String,
-    },
-    Usage {
-        input_tokens: u64,
-        output_tokens: u64,
-    },
-    Done {
-        finish_reason: String,
-    },
-    Error {
-        message: String,
-    },
-}

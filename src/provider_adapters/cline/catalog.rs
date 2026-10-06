@@ -54,6 +54,7 @@ async fn fetch_json_models(state: &AppState, endpoint: &str) -> Result<Value, St
         operational
             .request_timeout
             .min(operational.upstream.discovery_request_timeout),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         operational.upstream,
     )

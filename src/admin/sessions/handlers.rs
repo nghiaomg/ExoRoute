@@ -17,7 +17,8 @@ pub(crate) async fn logout(
     State(state): State<AppState>,
     request: Request<Body>,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    if !same_origin_browser_post(&state, &request) {
+    if let Some(reason) = same_origin_rejection(&state, &request) {
+        tracing::debug!(reason, "rejected an admin logout that was not same-origin");
         return Err(fail(
             StatusCode::FORBIDDEN,
             "same-origin browser request required",
@@ -71,7 +72,8 @@ pub(crate) async fn refresh(
     State(state): State<AppState>,
     request: Request<Body>,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    if !same_origin_browser_post(&state, &request) {
+    if let Some(reason) = same_origin_rejection(&state, &request) {
+        tracing::debug!(reason, "rejected an admin refresh that was not same-origin");
         return Err(fail(
             StatusCode::FORBIDDEN,
             "same-origin browser request required",

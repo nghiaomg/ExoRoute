@@ -1,4 +1,5 @@
 use super::*;
+use crate::provider_adapters;
 
 pub(crate) enum PreflightFrame {
     Continue,
@@ -141,10 +142,8 @@ pub(crate) fn preflight_frame(
         || encode_responses_image_event(upstream_protocol, client_protocol, &event_name, &value)
             .is_some()
         || (upstream_protocol == UpstreamProtocol::ChatCompletions
-            && client_protocol == Protocol::ChatCompletions
             && extract_chat_stream_tool_delta(&value).is_some())
         || (upstream_protocol == UpstreamProtocol::ChatCompletions
-            && client_protocol == Protocol::ChatCompletions
             && extract_chat_stream_reasoning_delta(&value)
                 .is_some_and(|text| !text.trim().is_empty()))
         || (upstream_protocol == UpstreamProtocol::GoogleGenerateContent
@@ -159,8 +158,15 @@ pub(crate) fn preflight_frame(
         return Ok(PreflightFrame::Ready);
     }
 
+    // A finish signal without a terminal sentinel event still tells us the
+    // provider finished deliberately: retrying the same request would burn
+    // tokens to produce the same empty output again.
     let completed = (upstream_protocol == UpstreamProtocol::Messages
-        && (event_name == "message_stop" || event_type == "message_stop"))
+        && (event_name == "message_stop"
+            || event_type == "message_stop"
+            || extract_stream_finish(upstream_protocol, &event_name, &value).is_some()))
+        || (upstream_protocol == UpstreamProtocol::ChatCompletions
+            && extract_stream_finish(upstream_protocol, &event_name, &value).is_some())
         || responses_terminal.is_some()
         || google_update
             .as_ref()
@@ -277,8 +283,11 @@ pub(crate) async fn preflight_stream(
                         offset += take;
                     }
                 }
-                Ok(Some(Err(_))) => {
-                    return Err("upstream stream could not be read before output".to_owned());
+                Ok(Some(Err(error))) => {
+                    return Err(format!(
+                        "upstream stream read failed before output: {}",
+                        provider_adapters::upstream_transport_error_message(&error)
+                    ));
                 }
                 Ok(None) => {
                     stream_ended = true;

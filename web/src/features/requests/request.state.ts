@@ -1,4 +1,12 @@
-import type { RequestLiveEvent, RequestLiveRow, RequestLog, RequestLogFilters } from '../../lib/types';
+import {
+  isLiveRequest,
+  type RequestLiveEvent,
+  type RequestLiveRow,
+  type RequestLog,
+  type RequestLogFilters,
+} from '../../lib/types';
+
+export { isLiveRequest };
 
 export type RequestLiveState = {
   requests: Map<string, RequestLiveRow>;
@@ -46,10 +54,6 @@ export function matchesRequestFilters(request: RequestLog, filters: RequestLogFi
 
 export function requestIdentity(request: RequestLog): string {
   return request.id ?? `${request.request_id ?? ''}:${request.created_at}`;
-}
-
-export function isLiveRequest(request: RequestLog | RequestLiveRow): request is RequestLiveRow {
-  return 'live' in request && request.live === true;
 }
 
 export function mergeFinishedRequests(
@@ -110,6 +114,8 @@ export function applyRequestLiveEvent(
           ...request,
           id: event.latest_log_id ?? request.id,
           provider_id: event.provider_id ?? undefined,
+          input_tokens: event.input_tokens === undefined ? request.input_tokens : event.input_tokens ?? undefined,
+          output_tokens: event.output_tokens === undefined ? request.output_tokens : event.output_tokens ?? undefined,
         }),
       },
       finished: null,

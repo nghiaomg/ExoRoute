@@ -10,7 +10,8 @@ import { apiKeyApi } from './api-keys';
 import { modelTestApi } from './model-tests';
 import { requestApi } from './requests';
 import { routeApi } from './routes';
-import { statisticsApi } from './statistics';
+import { statisticsApi } from './statistics';  import { workspaceChatApi } from './workspace-chat';
+  import { workspaceChatStreamApi } from './workspace-chat-stream';
 
 /**
  * Stable dashboard API surface composed from feature-scoped endpoint modules.
@@ -28,4 +29,6 @@ export const api = {
   ...routeApi,
   ...settingsApi,
   ...statisticsApi,
+  ...workspaceChatApi,
+  ...workspaceChatStreamApi,
 };

@@ -2,7 +2,74 @@ use super::{UpstreamProtocol, adapter};
 use bytes::Bytes;
 use futures_util::StreamExt;
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, error::Error as StdError, io::ErrorKind};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum UpstreamTransportErrorKind {
+    TimedOut,
+    ConnectionReset,
+    ConnectionAborted,
+    BrokenPipe,
+    UnexpectedEof,
+    CouldNotConnect,
+    Other,
+}
+
+impl UpstreamTransportErrorKind {
+    pub(crate) const fn message(self) -> &'static str {
+        match self {
+            Self::TimedOut => "timed out",
+            Self::ConnectionReset => "connection reset by upstream server",
+            Self::ConnectionAborted => "connection aborted by upstream server",
+            Self::BrokenPipe => "connection closed while sending the request",
+            Self::UnexpectedEof => "upstream closed the connection unexpectedly",
+            Self::CouldNotConnect => "could not connect",
+            Self::Other => "failed before receiving a response",
+        }
+    }
+}
+
+pub(crate) fn classify_upstream_transport_error(
+    error: &reqwest::Error,
+) -> UpstreamTransportErrorKind {
+    classify_transport_error(
+        error.is_timeout(),
+        error.is_connect(),
+        source_io_error_kind(error),
+    )
+}
+
+pub(crate) fn upstream_transport_error_message(error: &reqwest::Error) -> &'static str {
+    classify_upstream_transport_error(error).message()
+}
+
+fn classify_transport_error(
+    is_timeout: bool,
+    is_connect: bool,
+    io_kind: Option<ErrorKind>,
+) -> UpstreamTransportErrorKind {
+    if is_timeout || io_kind == Some(ErrorKind::TimedOut) {
+        return UpstreamTransportErrorKind::TimedOut;
+    }
+    match io_kind {
+        Some(ErrorKind::ConnectionReset) => UpstreamTransportErrorKind::ConnectionReset,
+        Some(ErrorKind::ConnectionAborted) => UpstreamTransportErrorKind::ConnectionAborted,
+        Some(ErrorKind::BrokenPipe) => UpstreamTransportErrorKind::BrokenPipe,
+        Some(ErrorKind::UnexpectedEof) => UpstreamTransportErrorKind::UnexpectedEof,
+        _ if is_connect => UpstreamTransportErrorKind::CouldNotConnect,
+        _ => UpstreamTransportErrorKind::Other,
+    }
+}
+
+fn source_io_error_kind(error: &reqwest::Error) -> Option<ErrorKind> {
+    let mut current: &(dyn StdError + 'static) = error;
+    loop {
+        if let Some(io_error) = current.downcast_ref::<std::io::Error>() {
+            return Some(io_error.kind());
+        }
+        current = current.source()?;
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct AdapterSseError {
@@ -82,13 +149,71 @@ pub(crate) async fn read_limited_response(
     let mut body = Vec::new();
     let mut chunks = response.bytes_stream();
     while let Some(chunk) = chunks.next().await {
-        let chunk = chunk.map_err(|_| "upstream response body could not be read".to_owned())?;
+        let chunk = chunk.map_err(|error| {
+            format!(
+                "upstream response body could not be read: {}",
+                upstream_transport_error_message(&error)
+            )
+        })?;
         if body.len().saturating_add(chunk.len()) > max_bytes {
             return Err(format!("response exceeds the {max_bytes}-byte limit"));
         }
         body.extend_from_slice(&chunk);
     }
     Ok(Bytes::from(body))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classifies_reset_and_close_errors_before_generic_connect_errors() {
+        assert_eq!(
+            classify_transport_error(false, true, Some(ErrorKind::ConnectionReset)),
+            UpstreamTransportErrorKind::ConnectionReset
+        );
+        assert_eq!(
+            classify_transport_error(false, false, Some(ErrorKind::ConnectionAborted)),
+            UpstreamTransportErrorKind::ConnectionAborted
+        );
+        assert_eq!(
+            classify_transport_error(false, false, Some(ErrorKind::BrokenPipe)),
+            UpstreamTransportErrorKind::BrokenPipe
+        );
+        assert_eq!(
+            classify_transport_error(false, false, Some(ErrorKind::UnexpectedEof)),
+            UpstreamTransportErrorKind::UnexpectedEof
+        );
+    }
+
+    #[test]
+    fn timeout_and_connect_classification_remain_specific() {
+        assert_eq!(
+            classify_transport_error(true, false, None),
+            UpstreamTransportErrorKind::TimedOut
+        );
+        assert_eq!(
+            classify_transport_error(false, true, None),
+            UpstreamTransportErrorKind::CouldNotConnect
+        );
+        assert_eq!(
+            classify_transport_error(false, false, None),
+            UpstreamTransportErrorKind::Other
+        );
+    }
+
+    #[test]
+    fn messages_are_safe_and_actionable() {
+        assert_eq!(
+            UpstreamTransportErrorKind::ConnectionReset.message(),
+            "connection reset by upstream server"
+        );
+        assert_eq!(
+            UpstreamTransportErrorKind::BrokenPipe.message(),
+            "connection closed while sending the request"
+        );
+    }
 }
 
 #[derive(Default)]
@@ -98,6 +223,8 @@ pub(crate) struct ResponsesStreamAccumulator {
     text_done: BTreeMap<(usize, usize), String>,
     function_call_arguments: BTreeMap<usize, String>,
     function_call_arguments_done: BTreeMap<usize, String>,
+    custom_tool_call_input: BTreeMap<usize, String>,
+    custom_tool_call_input_done: BTreeMap<usize, String>,
     item_ids: BTreeMap<usize, String>,
 }
 
@@ -201,6 +328,36 @@ impl ResponsesStreamAccumulator {
                     "Responses function-call arguments",
                 )?;
             }
+            "response.custom_tool_call_input.delta" => {
+                let Some(delta) = event.get("delta").and_then(Value::as_str) else {
+                    return Ok(());
+                };
+                let Some(output_index) = self.event_output_index(event) else {
+                    return Ok(());
+                };
+                append_bounded(
+                    self.custom_tool_call_input.entry(output_index).or_default(),
+                    delta,
+                    max_bytes,
+                    "Responses custom tool-call input",
+                )?;
+            }
+            "response.custom_tool_call_input.done" => {
+                let Some(input) = event.get("input").and_then(Value::as_str) else {
+                    return Ok(());
+                };
+                let Some(output_index) = self.event_output_index(event) else {
+                    return Ok(());
+                };
+                if max_bytes != 0 && input.len() > max_bytes {
+                    return Err(
+                        "Responses completed custom tool-call input exceeded the configured response limit"
+                            .to_owned(),
+                    );
+                }
+                self.custom_tool_call_input_done
+                    .insert(output_index, input.to_owned());
+            }
             "response.function_call_arguments.done" => {
                 let Some(arguments) = event.get("arguments").and_then(Value::as_str) else {
                     return Ok(());
@@ -285,6 +442,26 @@ impl ResponsesStreamAccumulator {
                 && item.get("type").and_then(Value::as_str) == Some("function_call")
             {
                 item["arguments"] = Value::String(arguments);
+            }
+        }
+
+        // Custom (freeform) tool calls such as Codex apply_patch stream their
+        // input through custom_tool_call_input events; without merging them a
+        // reconstructed item keeps an empty input and the call loses its payload.
+        let mut custom_tool_inputs = self.custom_tool_call_input.clone();
+        for (output_index, input) in &self.custom_tool_call_input_done {
+            if !input.is_empty() {
+                custom_tool_inputs.insert(*output_index, input.clone());
+            }
+        }
+        for (output_index, input) in custom_tool_inputs {
+            if input.is_empty() {
+                continue;
+            }
+            if let Some(item) = output_items.get_mut(&output_index)
+                && item.get("type").and_then(Value::as_str) == Some("custom_tool_call")
+            {
+                item["input"] = Value::String(input);
             }
         }
 

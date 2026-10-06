@@ -66,7 +66,8 @@
 </section>
 
 <style>
-  .donut-card { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+  /* Soft Neo-Brutalism: 2px ink frame + hard offset shadow. */
+  .donut-card { min-width: 0; padding: 20px; border: 2px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 3px 3px 0 var(--ink); }
   .donut-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
   .donut-heading h2 { margin: 0; color: var(--ink); font: 650 15px/1.35 var(--font-sans); }
   .donut-heading > span { color: var(--muted); font-size: 12px; white-space: nowrap; }

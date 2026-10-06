@@ -41,6 +41,7 @@ pub(super) async fn freebuff_client(
                 .upstream
                 .freebuff_auxiliary_timeout,
         ),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         state.operational_settings().settings.upstream,
     )

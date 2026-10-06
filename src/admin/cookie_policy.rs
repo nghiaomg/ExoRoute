@@ -97,48 +97,70 @@ fn trusted_forwarded_scheme(state: &AppState, request: &Request<Body>) -> Option
     }
 }
 
-pub(super) fn same_origin_browser_post(state: &AppState, request: &Request<Body>) -> bool {
-    let origins = request.headers().get_all(header::ORIGIN);
+/// Returns why a POST is not an acceptable same-origin browser request, or
+/// `None` when it is.
+///
+/// The reason is a fixed label rather than anything derived from the request,
+/// so a rejection can be logged without echoing client-controlled header
+/// content.
+///
+/// `Sec-Fetch-Site` is validated when present but is deliberately not required.
+/// Engines predating Fetch Metadata (Safari before 16.4) send no `Sec-Fetch-*`
+/// headers at all, and the header is documented as being sent only to
+/// potentially trustworthy URLs, which excludes a plain-HTTP dashboard reached
+/// through a host name other than `localhost`/`127.0.0.1`. Requiring it rejected
+/// legitimate first-party requests. The authoritative test stays the
+/// `Origin`/`Host` comparison: page script cannot forge either header, and a
+/// cross-site page always sends its own `Origin`.
+pub(super) fn same_origin_rejection(
+    state: &AppState,
+    request: &Request<Body>,
+) -> Option<&'static str> {
     let fetch_sites = request.headers().get_all("sec-fetch-site");
-    if origins.iter().count() != 1 || fetch_sites.iter().count() != 1 {
-        return false;
+    if fetch_sites.iter().count() > 1 {
+        return Some("duplicate-sec-fetch-site");
     }
-    if fetch_sites
-        .iter()
-        .next()
-        .and_then(|value| value.to_str().ok())
-        .is_none_or(|value| value != "same-origin")
+    if let Some(value) = fetch_sites.iter().next()
+        && value.to_str().ok() != Some("same-origin")
     {
-        return false;
+        return Some("cross-site-fetch-metadata");
     }
     let Some(scheme) = trusted_forwarded_scheme(state, request) else {
-        return false;
+        return Some("unusable-forwarded-scheme");
     };
     let hosts = request.headers().get_all(header::HOST);
     if hosts.iter().count() != 1 {
-        return false;
+        return Some("missing-or-ambiguous-host");
     }
     let Some(host) = hosts.iter().next().and_then(|value| value.to_str().ok()) else {
-        return false;
+        return Some("invalid-host");
     };
+    let origins = request.headers().get_all(header::ORIGIN);
+    if origins.iter().count() != 1 {
+        return Some("missing-or-ambiguous-origin");
+    }
     let Some(origin) = origins.iter().next().and_then(|value| value.to_str().ok()) else {
-        return false;
+        return Some("invalid-origin");
     };
     let Some((origin_scheme, origin_authority)) = origin.split_once("://") else {
-        return false;
+        return Some("malformed-origin");
     };
-    if origin_scheme != scheme
-        || origin_authority.is_empty()
+    if origin_scheme != scheme {
+        return Some("origin-scheme-mismatch");
+    }
+    if origin_authority.is_empty()
         || origin_authority.contains('@')
         || origin_authority
             .chars()
             .any(|character| matches!(character, '/' | '?' | '#'))
     {
-        return false;
+        return Some("malformed-origin-authority");
     }
-    normalized_authority(origin_authority, &scheme)
-        .zip(normalized_authority(host, &scheme))
-        .is_some_and(|(origin, host)| origin == host)
+    match normalized_authority(origin_authority, &scheme).zip(normalized_authority(host, &scheme)) {
+        Some((origin, host)) if origin == host => None,
+        Some(_) => Some("origin-host-mismatch"),
+        None => Some("unnormalizable-authority"),
+    }
 }
 
 fn normalized_authority(value: &str, scheme: &str) -> Option<(String, u16)> {

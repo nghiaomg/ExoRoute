@@ -26,6 +26,26 @@
 :root[data-theme='dark'] .ark-select-item-indicator { color: #fdba74; }
 :root[data-theme='dark'] .ark-select-empty { color: #8e91a4; }
 
+/* Ark Combobox (searchable select) */
+:root[data-theme='dark'] .ark-combobox-label { color: #d0d2df; }
+:root[data-theme='dark'] .ark-combobox-input { color: #e3e4ee; background: #222330; border-color: #404252; }
+:root[data-theme='dark'] .ark-combobox-input:focus, :root[data-theme='dark'] .ark-combobox-root[data-state="open"] .ark-combobox-input { border-color: #fdba74; box-shadow: 0 0 0 3px #7862e933; }
+:root[data-theme='dark'] .ark-combobox-input[data-disabled] { background: #1c1d28; }
+:root[data-theme='dark'] .ark-combobox-input::placeholder { color: #8e91a4; }
+:root[data-theme='dark'] .ark-combobox-indicators { color: #8e91a4; }
+:root[data-theme='dark'] .ark-combobox-clear { color: #8e91a4; }
+:root[data-theme='dark'] .ark-combobox-clear:hover { color: #e3e4ee; }
+:root[data-theme='dark'] .ark-combobox-content { background: #1b1c29; border-color: #3a3c4b; box-shadow: 0 16px 40px #0008; }
+:root[data-theme='dark'] .ark-combobox-item { color: #d0d2df; }
+:root[data-theme='dark'] .ark-combobox-item[data-highlighted],
+:root[data-theme='dark'] .ark-combobox-item:hover { background: rgba(255, 255, 255, 0.08); color: #f0f2f8; }
+:root[data-theme='dark'] .ark-combobox-item[data-state="checked"] { color: #fdba74; }
+:root[data-theme='dark'] .ark-combobox-item-hint { color: #8e91a4; }
+:root[data-theme='dark'] .ark-combobox-item-indicator { color: #fdba74; }
+:root[data-theme='dark'] .ark-combobox-empty { color: #8e91a4; }
+:root[data-theme='dark'] .ark-combobox-pill .ark-combobox-input { color: #e3e4ee; background: rgba(249, 115, 22, 0.08); }
+:root[data-theme='dark'] .ark-combobox-pill .ark-combobox-input:focus { background: #222330; }
+
 :root[data-theme='dark'] .ark-tooltip-content { background: #28253f; color: #f0edff; border: 1px solid #464064; box-shadow: 0 6px 18px #0009; }
 
 :root[data-theme='dark'] .ark-field-label { color: #d0d2df; }

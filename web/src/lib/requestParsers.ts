@@ -114,7 +114,14 @@ export function parseRequestLiveEvent(eventName: string, data: string): RequestL
       const providerId = optionalString(value.provider_id, 256);
       const latestLogId = optionalString(value.latest_log_id, 128);
       if (!liveId || providerId === undefined || latestLogId === undefined) return null;
-      return { type: 'updated', live_id: liveId, provider_id: providerId, latest_log_id: latestLogId };
+      return {
+        type: 'updated',
+        live_id: liveId,
+        provider_id: providerId,
+        latest_log_id: latestLogId,
+        ...(value.input_tokens !== undefined ? { input_tokens: optionalSafeInteger(value.input_tokens) ?? null } : {}),
+        ...(value.output_tokens !== undefined ? { output_tokens: optionalSafeInteger(value.output_tokens) ?? null } : {}),
+      };
     }
     if (eventName === 'request-finished') {
       const liveId = boundedString(value.live_id, 128);

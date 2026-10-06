@@ -1,11 +1,11 @@
 use super::request_preparation::GatewayRequestPreparation;
 use super::{
-    GatewayExecutionSettings, GatewayRequestLog, GatewayResourceLimits, OperationalSettings,
-    PreparedGatewayRequest, RequestAnalytics, RequestLiveGuard, StreamLog, StreamOutcome,
-    StreamTranslationConfig, attach_request_live_guard, can_fail_over_after_provider_rejection,
-    gateway_database_error, gateway_error, is_retryable, log_request, preflight_stream,
-    prepare_gateway_request, provider_http_error_message, read_provider_error_detail,
-    stream_translation_from_chunks,
+    ApiKeyScope, GatewayExecutionSettings, GatewayRequestLog, GatewayResourceLimits,
+    OperationalSettings, PreparedGatewayRequest, RequestAnalytics, RequestLiveGuard, StreamLog,
+    StreamOutcome, StreamTranslationConfig, attach_request_live_guard,
+    can_fail_over_after_provider_rejection, gateway_database_error, gateway_error, is_retryable,
+    log_request, preflight_stream, prepare_gateway_request, provider_http_error_message,
+    read_provider_error_detail, stream_translation_from_chunks,
 };
 use crate::{
     infra::storage::{Record, StorageError, Table},
@@ -85,6 +85,7 @@ pub(super) async fn handle_request_inner_with_adapter_base_url_override_and_limi
         resource_limits: execution_settings.resource_limits,
         operational_settings: execution_settings.operational_settings,
         api_key_id: execution_settings.api_key_id,
+        api_key_scope: execution_settings.api_key_scope,
         analytics: execution_settings.analytics,
         target_rotation_offset,
     }

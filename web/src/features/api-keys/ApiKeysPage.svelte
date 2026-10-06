@@ -188,6 +188,7 @@ import { localizedError } from '../../lib/errors';
       {locale}
       onBack={closeDetails}
       onRevoke={revoke}
+      onUpdated={() => { void load(); }}
     />
   {:else}
     <PageHeading title={tr('Gateway API keys')} subtitle={tr('Manage client keys for requests to /v1.')} {tr}>

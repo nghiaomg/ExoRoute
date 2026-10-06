@@ -3,8 +3,9 @@
 pub const OPENAI_CODEX: &str = "openai_codex";
 pub const COMMAND_CODE: &str = "command_code";
 pub const CLINE: &str = "cline";
+pub const KILOCODE: &str = "kilocode";
 
-pub const KNOWN_PANELS: [&str; 3] = [OPENAI_CODEX, COMMAND_CODE, CLINE];
+pub const KNOWN_PANELS: [&str; 4] = [OPENAI_CODEX, COMMAND_CODE, CLINE, KILOCODE];
 
 /// Single capability contract shared by build-time validation in build.rs,
 /// backend capability checks in provider_adapters, and the dashboard
@@ -25,6 +26,7 @@ mod tests {
             assert!(seen.insert(panel), "duplicate auth panel");
         }
         assert!(is_known(OPENAI_CODEX));
+        assert!(is_known(KILOCODE));
         assert!(!is_known("unknown_panel"));
         assert!(!is_known("toString"));
     }

@@ -175,6 +175,10 @@ async fn restore_application_data_inner(
             tracing::warn!(%error, "LMDB backup transaction failed; current data was retained");
             "Database import failed. The current database was left unchanged."
         })?;
+    // The imported database may carry a different request-log compression
+    // dictionary (or none); realign the runtime copy so frames written from
+    // now on stay decodable after a restart.
+    crate::infra::storage::load_request_log_dictionary(database).await;
     if let Some(state) = runtime_state {
         // Publish synchronously after the durable transaction commits, before
         // the next await can leave database and runtime settings inconsistent.

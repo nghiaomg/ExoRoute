@@ -97,6 +97,7 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
         "header",
         "codex_oauth",
         "antigravity_oauth",
+        "kilocode_oauth",
     ];
     const PROTOCOLS: &[&str] = &[
         "chat_completions",
@@ -237,7 +238,10 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
             ));
         }
         if let Some(panel) = capabilities.auth_panel.as_deref()
-            && !matches!(panel, "openai_codex" | "command_code" | "cline")
+            && !matches!(
+                panel,
+                "openai_codex" | "command_code" | "cline" | "kilocode"
+            )
         {
             return Err(format!(
                 "provider preset {} has an unsupported authentication panel",

@@ -18,6 +18,8 @@ pub(crate) mod overview;
 pub(crate) mod probes;
 pub(crate) mod provider_keys;
 pub(crate) mod provider_view;
+#[cfg(test)]
+mod tests;
 pub(crate) mod usage;
 pub(crate) mod validation;
 

@@ -3,14 +3,15 @@
   import {
     CircleHelp,
     LoaderCircle,
-    RefreshCw,
+    
     Save,
-    ShieldCheck,
+    
     SlidersHorizontal,
-    Sparkles,
-    Zap,
+    
+    
   } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
+  import ContinuityGuideDialog from './ContinuityGuideDialog.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -384,125 +385,9 @@ import { localizedError } from '../../lib/errors';
   </div>
 </ArkDialog>
 
-<ArkDialog
+<ContinuityGuideDialog
+  tr={tr}
   open={continuityHelpOpen}
-  wide
-  closeLabel={tr('Close dialog')}
-  title={tr('Stream Continuity Guide')}
-  kicker={tr('Gateway Architecture')}
-  class="continuity-guide-dialog"
   onClose={() => { continuityHelpOpen = false; }}
->
-  <div class="continuity-guide-container">
-    <div class="continuity-hero">
-      <div class="continuity-hero-badge">
-        <Sparkles size={14} />
-        <span>{tr('Resilient Streaming & Zero-Loss Recovery')}</span>
-      </div>
-      <p class="continuity-hero-desc">
-        {tr('Stream Continuity keeps AI inference streams running in the background when client connections drop, buffering tokens into local storage so they can be resumed seamlessly without loss.')}
-      </p>
-    </div>
-
-    <div class="continuity-section">
-      <h3 class="continuity-section-title">{tr('Key Benefits')}</h3>
-      <div class="continuity-grid">
-        <div class="continuity-card">
-          <div class="continuity-card-icon is-emerald">
-            <ShieldCheck size={18} />
-          </div>
-          <div class="continuity-card-body">
-            <h4>{tr('Zero Data Loss on Disconnect')}</h4>
-            <p>{tr('Long generations, complex code generation, or multi-step reasoning often take minutes. If your Wi-Fi flickers, IDE reloads, or proxy times out, the stream continues running and 100% of generated tokens are preserved.')}</p>
-          </div>
-        </div>
-
-        <div class="continuity-card">
-          <div class="continuity-card-icon is-amber">
-            <Zap size={18} />
-          </div>
-          <div class="continuity-card-body">
-            <h4>{tr('Cost & Time Efficiency')}</h4>
-            <p>{tr('Avoid double-billing and wasted tokens. You never need to re-run expensive prompts from scratch because a transient network blip interrupted the response.')}</p>
-          </div>
-        </div>
-
-        <div class="continuity-card">
-          <div class="continuity-card-icon is-blue">
-            <RefreshCw size={18} />
-          </div>
-          <div class="continuity-card-body">
-            <h4>{tr('Automatic Upstream Retry')}</h4>
-            <p>{tr('If an upstream provider encounters transient errors (HTTP 429 rate limits, 5xx server errors, or timeouts), ExoRoute automatically retries the background task before failing.')}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="continuity-section">
-      <h3 class="continuity-section-title">{tr('How it Works')}</h3>
-      <div class="continuity-steps">
-        <div class="continuity-step">
-          <div class="step-num">1</div>
-          <div class="step-content">
-            <h5>{tr('Stream Identification')}</h5>
-            <p>{tr('Every streaming response includes an “x-exoroute-stream-id: <stream_id>” header and sequential SSE event IDs.')}</p>
-            <pre class="continuity-code"><code>HTTP/1.1 200 OK
-content-type: text/event-stream
-x-exoroute-stream-id: run_01jb9w4...
-id: 124</code></pre>
-          </div>
-        </div>
-
-        <div class="continuity-step">
-          <div class="step-num">2</div>
-          <div class="step-content">
-            <h5>{tr('Resume Stream')}</h5>
-            <p>{tr('Send “GET /v1/streams/<stream_id>” with the “Last-Event-ID” header to replay missed chunks and continue receiving live tokens.')}</p>
-            <pre class="continuity-code"><code>GET /v1/streams/run_01jb9w4...
-Last-Event-ID: 124
-Authorization: Bearer exo_live_...</code></pre>
-          </div>
-        </div>
-
-        <div class="continuity-step">
-          <div class="step-num">3</div>
-          <div class="step-content">
-            <h5>{tr('Explicit Cancellation')}</h5>
-            <p>{tr('Send “DELETE /v1/streams/<stream_id>” when a user cancels the generation to immediately release upstream and gateway resources.')}</p>
-            <pre class="continuity-code"><code>DELETE /v1/streams/run_01jb9w4...
-Authorization: Bearer exo_live_...</code></pre>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="continuity-section">
-      <h3 class="continuity-section-title">{tr('Safety & System Limits')}</h3>
-      <ul class="continuity-limits">
-        <li>
-          <span class="continuity-limit-bullet"></span>
-          <span>{tr('Up to {limit} concurrent background continuity tasks. This limit is always finite; 0 is unlimited only for body processing, provider concurrency, and SSE size settings.', { limit: limits?.active.stream_continuity_max_concurrency ?? 16 })}</span>
-        </li>
-        <li>
-          <span class="continuity-limit-bullet"></span>
-          <span>{tr('Bounded replay buffer: max 8 MiB or 50,000 events per stream (128 MiB gateway total)')}</span>
-        </li>
-        <li>
-          <span class="continuity-limit-bullet"></span>
-          <span>{tr('Completed streams are retained for up to 24 hours (max 128 finished runs) in embedded LMDB storage')}</span>
-        </li>
-        <li>
-          <span class="continuity-limit-bullet"></span>
-          <span>{tr('Per-request override available via “X-ExoRoute-Stream-Continuity: true”')}</span>
-        </li>
-      </ul>
-    </div>
-
-    <div class="modal-actions" style="margin-top: 24px;">
-      <button type="button" class="primary-button" onclick={() => { continuityHelpOpen = false; }}>
-        {tr('Understood')}
-      </button>
-    </div>
-  </div>
-</ArkDialog>
+  continuityCapacity={limits?.active.stream_continuity_max_concurrency ?? 16}
+/>
