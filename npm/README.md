@@ -15,8 +15,8 @@ are Linux x64/arm64, macOS x64/arm64, and Windows x64.
 To install a specific release, use the matching npm package version:
 
 ```sh
-npm install -g exoroute@0.1.0
+npm install -g exoroute@0.1.1
 ```
 
 The `EXOROUTE_VERSION` environment variable can override the release tag for
-testing, for example `v0.1.0` or `latest`.
+testing, for example `v0.1.1` or `latest`.
