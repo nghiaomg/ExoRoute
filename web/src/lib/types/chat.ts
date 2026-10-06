@@ -12,6 +12,16 @@ export interface ChatAttachmentInput {
   filename?: string | null;
 }
 
+/**
+ * One replayed prior turn. Text only by design: the relay accepts a bounded
+ * slice of the in-memory scratchpad, and attachments belong to the turn that
+ * uploaded them.
+ */
+export interface WorkspaceChatHistoryMessage {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
 export interface WorkspaceChatInput {
   provider_id: string;
   model: string;
@@ -20,6 +30,11 @@ export interface WorkspaceChatInput {
   thinking_mode?: ChatThinkingMode;
   thinking_override?: string | null;
   attachments?: ChatAttachmentInput[];
+  /** Prior turns, oldest first. Omitted or empty means a single-turn ask. */
+  history?: WorkspaceChatHistoryMessage[] | null;
+  temperature?: number | null;
+  top_p?: number | null;
+  max_tokens?: number | null;
 }
 
 export interface WorkspaceChatUsage {
@@ -60,6 +75,8 @@ export interface ChatConversationMessage {
   duration_ms?: number;
   attachmentCount?: number;
   error?: string | null;
+  /** Set when a user turn was edited and resent, branching the thread. */
+  edited?: boolean;
 }
 
 /** Stable request protocol the relay speaks upstream-side. */

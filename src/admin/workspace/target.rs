@@ -8,7 +8,9 @@
 
 use super::*;
 
-use super::input::{ChatAttachment, ChatTextInput, ChatThinkingMode, fail_request};
+use super::input::{
+    ChatAttachment, ChatHistoryRole, ChatTextInput, ChatThinkingMode, fail_request,
+};
 use crate::infra::storage::{Record, StorageError, Table};
 use crate::protocol::{
     CanonicalRequest, ContentBlock, DEFAULT_THINKING_MODE, DocumentSource, Message, Protocol, Role,
@@ -109,8 +111,14 @@ fn resolve_chat_upstream_protocol(
 }
 
 /// Builds the canonical request for one workspace turn. Attachments are
-/// inlined as base64 so the relay never fetches remote content.
-fn build_chat_request(text: &ChatTextInput, attachments: &[ChatAttachment]) -> CanonicalRequest {
+/// inlined as base64 so the relay never fetches remote content, and the prior
+/// turns the dashboard still holds in memory are replayed as text so the model
+/// sees a conversation instead of an isolated prompt.
+fn build_chat_request(
+    text: &ChatTextInput,
+    attachments: &[ChatAttachment],
+    stream: bool,
+) -> CanonicalRequest {
     let mut content = Vec::with_capacity(attachments.len().saturating_add(1));
     for attachment in attachments {
         if attachment.is_image {
@@ -134,12 +142,24 @@ fn build_chat_request(text: &ChatTextInput, attachments: &[ChatAttachment]) -> C
     content.push(ContentBlock::Text {
         text: text.message.clone(),
     });
-    let mut messages = Vec::with_capacity(2);
+    let mut messages = Vec::with_capacity(text.history.len().saturating_add(2));
     if let Some(system_prompt) = &text.system_prompt {
         messages.push(Message {
             role: Role::System,
             content: vec![ContentBlock::Text {
                 text: system_prompt.clone(),
+            }],
+            name: None,
+        });
+    }
+    for turn in &text.history {
+        messages.push(Message {
+            role: match turn.role {
+                ChatHistoryRole::User => Role::User,
+                ChatHistoryRole::Assistant => Role::Assistant,
+            },
+            content: vec![ContentBlock::Text {
+                text: turn.text.clone(),
             }],
             name: None,
         });
@@ -155,11 +175,13 @@ fn build_chat_request(text: &ChatTextInput, attachments: &[ChatAttachment]) -> C
         messages,
         tools: Vec::new(),
         tool_choice: None,
-        temperature: None,
-        top_p: None,
-        max_tokens: None,
+        // Sampling knobs are validated as f64 for a precise range check; the
+        // canonical request stores f32, so the cast is the stored precision.
+        temperature: text.temperature.map(|value| value as f32),
+        top_p: text.top_p.map(|value| value as f32),
+        max_tokens: text.max_tokens,
         stop: Vec::new(),
-        stream: false,
+        stream,
         metadata: std::collections::BTreeMap::new(),
         output_styles_applied: false,
     }
@@ -308,6 +330,7 @@ pub(super) async fn prepare_chat_turn(
     model: &str,
     text: &ChatTextInput,
     attachments: &[ChatAttachment],
+    stream: bool,
 ) -> Result<PreparedChatTurn, (StatusCode, Json<Value>)> {
     let Some(target) = load_provider_chat_target(state, provider_id, model).await? else {
         return Err(fail_request(
@@ -376,7 +399,7 @@ pub(super) async fn prepare_chat_turn(
         ChatThinkingChoice::Remove => ThinkingHandling::Remove,
         ChatThinkingChoice::Override(text) => ThinkingHandling::Override(text.as_str()),
     };
-    let canonical = build_chat_request(text, attachments);
+    let canonical = build_chat_request(text, attachments, stream);
     let mut upstream_body = crate::protocol::encode_upstream_request_with_thinking(
         upstream_protocol,
         &canonical,
