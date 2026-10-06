@@ -17,6 +17,10 @@ pub(crate) mod workers;
 
 const SERVER_SHUTDOWN_GRACE_PERIOD: std::time::Duration = std::time::Duration::from_secs(2);
 pub(crate) const RUNTIME_SHUTDOWN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+/// Total budget for draining queued telemetry before the process exits. The
+/// telemetry writer is given a slightly smaller budget of its own so its
+/// timeout, not this one, produces the diagnostic when the writer is stuck.
+const TELEMETRY_SHUTDOWN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 pub(crate) use bootstrap::*;
 pub(crate) use router::*;
