@@ -6,7 +6,7 @@
 use crate::infra::storage::{
     Field, MAX_KEY_BYTES, MAX_RECORD_FIELD_BYTES, MAX_RECORD_FIELD_NAME_BYTES, MAX_RECORD_FIELDS,
     MAX_SNAPSHOT_ENTRIES, MAX_SNAPSHOT_RECORD_BYTES, Record, SnapshotEntry, StorageError, Table,
-    codec, keys,
+    codec, dictionary, keys,
 };
 
 pub(super) fn excluded_from_snapshot(table: Table, include_request_logs: bool) -> bool {
@@ -32,12 +32,58 @@ pub(super) fn excluded_from_snapshot(table: Table, include_request_logs: bool) -
         ))
 }
 
-fn validate_snapshot_value(table: Table, value: &[u8]) -> Result<(), StorageError> {
+fn validate_record_shape(record: &Record) -> Result<(), StorageError> {
+    if record.fields.len() > MAX_RECORD_FIELDS {
+        return Err(StorageError::Invalid(
+            "backup contains a record with too many fields".to_owned(),
+        ));
+    }
+    for (name, field) in &record.fields {
+        if name.is_empty() || name.len() > MAX_RECORD_FIELD_NAME_BYTES {
+            return Err(StorageError::Invalid(
+                "backup contains a record with an invalid field name".to_owned(),
+            ));
+        }
+        let size = match field {
+            Field::Text(value) => value.len(),
+            Field::Bytes(value) => value.len(),
+            Field::Null | Field::Bool(_) | Field::I64(_) => 0,
+        };
+        if size > MAX_RECORD_FIELD_BYTES {
+            return Err(StorageError::Invalid(
+                "backup contains an oversized record field".to_owned(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_snapshot_value(
+    table: Table,
+    key: &str,
+    value: &[u8],
+    dictionary: Option<&[u8]>,
+) -> Result<(), StorageError> {
     match table {
         Table::Meta => {
-            if bincode::deserialize::<i64>(value).is_err() {
+            if key == dictionary::REQUEST_LOG_DICTIONARY_KEY {
+                let dictionary: Vec<u8> = bincode::deserialize(value)
+                    .map_err(|error| StorageError::Codec(error.to_string()))?;
+                if dictionary.len() > dictionary::REQUEST_LOG_DICTIONARY_MAX_BYTES {
+                    return Err(StorageError::Invalid(
+                        "snapshot contains an oversized request-log dictionary".to_owned(),
+                    ));
+                }
+            } else if bincode::deserialize::<i64>(value).is_err() {
                 let _: u32 = codec::decode_record(value)?;
             }
+        }
+        Table::RequestLogs => {
+            // Request-log values may be a compressed frame or raw bincode.
+            // Decode them with the dictionary carried by the same snapshot so
+            // a backup from another installation validates correctly.
+            let record: Record = codec::decode_request_log_bytes(value, dictionary)?;
+            validate_record_shape(&record)?;
         }
         Table::Indexes
         | Table::RequestLogIndex
@@ -60,28 +106,7 @@ fn validate_snapshot_value(table: Table, value: &[u8]) -> Result<(), StorageErro
         }
         _ => {
             let record: Record = codec::decode_record(value)?;
-            if record.fields.len() > MAX_RECORD_FIELDS {
-                return Err(StorageError::Invalid(
-                    "backup contains a record with too many fields".to_owned(),
-                ));
-            }
-            for (name, field) in &record.fields {
-                if name.is_empty() || name.len() > MAX_RECORD_FIELD_NAME_BYTES {
-                    return Err(StorageError::Invalid(
-                        "backup contains a record with an invalid field name".to_owned(),
-                    ));
-                }
-                let size = match field {
-                    Field::Text(value) => value.len(),
-                    Field::Bytes(value) => value.len(),
-                    Field::Null | Field::Bool(_) | Field::I64(_) => 0,
-                };
-                if size > MAX_RECORD_FIELD_BYTES {
-                    return Err(StorageError::Invalid(
-                        "backup contains an oversized record field".to_owned(),
-                    ));
-                }
-            }
+            validate_record_shape(&record)?;
         }
     }
     Ok(())
@@ -89,13 +114,15 @@ fn validate_snapshot_value(table: Table, value: &[u8]) -> Result<(), StorageErro
 
 /// Validate a full snapshot before it is written or restored. Keeps the
 /// backup path from persisting oversized records, unknown table indices, or
-/// keys that would corrupt LMDB B-tree ordering.
+/// keys that would corrupt LMDB B-tree ordering. Request-log frames are
+/// decoded with the dictionary stored in the snapshot itself.
 pub fn validate_snapshot_entries(entries: &[SnapshotEntry]) -> Result<(), StorageError> {
     if entries.len() > MAX_SNAPSHOT_ENTRIES {
         return Err(StorageError::Invalid(
             "snapshot exceeds the maximum number of entries".to_owned(),
         ));
     }
+    let dictionary = dictionary::request_log_dictionary_from_entries(entries);
     for entry in entries {
         if excluded_from_snapshot(entry.table, true) {
             return Err(StorageError::Invalid(format!(
@@ -113,7 +140,7 @@ pub fn validate_snapshot_entries(entries: &[SnapshotEntry]) -> Result<(), Storag
                 "snapshot contains an oversized record".to_owned(),
             ));
         }
-        validate_snapshot_value(entry.table, &entry.value)?;
+        validate_snapshot_value(entry.table, &entry.key, &entry.value, dictionary.as_deref())?;
         keys::validate_key(&entry.key)?;
     }
     Ok(())

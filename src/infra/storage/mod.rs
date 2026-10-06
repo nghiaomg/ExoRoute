@@ -12,6 +12,20 @@
 //! typed record model.
 
 mod codec;
+/// Decode for stored request-log bytes: accepts both the compressed frame
+/// format and the legacy raw bincode layout, using an explicit dictionary.
+/// Exposed for the backup path, which must decode a snapshot's frames with the
+/// dictionary carried in that same snapshot.
+pub(crate) use codec::decode_request_log_bytes;
+mod dictionary;
+/// Request-log compression dictionary lifecycle: startup load, backup-restore
+/// reload, and one-shot training from the telemetry maintenance tick. Training
+/// itself stays module-internal; tests reach it through `dictionary::`.
+pub(crate) use dictionary::{
+    REQUEST_LOG_DICTIONARY_KEY, REQUEST_LOG_DICTIONARY_MAX_BYTES,
+    ensure_request_log_dictionary_trained, load_request_log_dictionary,
+    request_log_dictionary_from_entries,
+};
 mod environment;
 pub(crate) mod fs_guard;
 mod keys;

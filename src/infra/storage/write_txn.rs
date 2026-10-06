@@ -34,7 +34,7 @@ impl WriteTxn<'_, '_> {
         keys::validate_key(key)?;
         self.database(table)?
             .get(&*self.txn, key)?
-            .map(codec::decode_record)
+            .map(|bytes| codec::decode_stored_record(table, bytes))
             .transpose()
     }
 
@@ -73,7 +73,7 @@ impl WriteTxn<'_, '_> {
                 if !key.starts_with(prefix) {
                     break;
                 }
-                values.push((key.to_owned(), codec::decode_record(value)?));
+                values.push((key.to_owned(), codec::decode_stored_record(table, value)?));
                 if values.len() == limit {
                     break;
                 }
@@ -81,7 +81,7 @@ impl WriteTxn<'_, '_> {
         } else if prefix.is_empty() {
             for item in database.iter(&*self.txn)? {
                 let (key, value) = item?;
-                values.push((key.to_owned(), codec::decode_record(value)?));
+                values.push((key.to_owned(), codec::decode_stored_record(table, value)?));
                 if values.len() == limit {
                     break;
                 }
@@ -89,7 +89,7 @@ impl WriteTxn<'_, '_> {
         } else {
             for item in database.prefix_iter(&*self.txn, prefix)? {
                 let (key, value) = item?;
-                values.push((key.to_owned(), codec::decode_record(value)?));
+                values.push((key.to_owned(), codec::decode_stored_record(table, value)?));
                 if values.len() == limit {
                     break;
                 }
@@ -105,7 +105,11 @@ impl WriteTxn<'_, '_> {
         value: &T,
     ) -> Result<(), StorageError> {
         keys::validate_key(key)?;
-        let encoded = codec::encode_record(value)?;
+        let encoded = if table == Table::RequestLogs {
+            codec::encode_record_maybe_compressed(value)?
+        } else {
+            codec::encode_record(value)?
+        };
         let database = self.database_mut(table)?;
         database.put(&mut *self.txn, key, &encoded)?;
         Ok(())
@@ -122,6 +126,21 @@ impl WriteTxn<'_, '_> {
             return Err(StorageError::Conflict);
         }
         self.put(table, key, value)
+    }
+
+    /// Write already-encoded bytes verbatim, bypassing record encoding and
+    /// compression. Restore uses this to put exported bytes back exactly;
+    /// tests use it to reproduce layouts written by older builds.
+    pub(crate) fn put_raw(
+        &mut self,
+        table: Table,
+        key: &str,
+        value: &[u8],
+    ) -> Result<(), StorageError> {
+        keys::validate_key(key)?;
+        let database = self.database_mut(table)?;
+        database.put(&mut *self.txn, key, value)?;
+        Ok(())
     }
 
     pub fn delete(&mut self, table: Table, key: &str) -> Result<bool, StorageError> {
@@ -180,8 +199,9 @@ impl WriteTxn<'_, '_> {
         self.put(Table::Meta, "storage_format_version", &storage_version)?;
 
         for entry in entries {
-            let database = self.database_mut(entry.table)?;
-            database.put(&mut *self.txn, &entry.key, &entry.value)?;
+            // Restore writes the exported bytes back verbatim so a round-trip
+            // through backup neither inflates nor re-compresses every row.
+            self.put_raw(entry.table, &entry.key, &entry.value)?;
         }
         Ok(())
     }
