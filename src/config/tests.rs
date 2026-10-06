@@ -139,6 +139,39 @@ fn initialize_app_dir_creates_a_starter_env_without_overwriting_it() {
 }
 
 #[test]
+fn stale_env_temp_files_are_removed_but_active_ones_are_kept() {
+    use std::time::SystemTime;
+
+    let app_dir = env::temp_dir().join(format!("exoroute-env-temp-{}", uuid::Uuid::new_v4()));
+    initialize_app_dir(&app_dir).expect("initialize app directory");
+    let env_path = app_dir.join(".env");
+
+    // An orphan left by a process killed between writing a secret and renaming
+    // it into place.
+    let orphan = app_dir.join(".env.tmp-orphan-left-behind");
+    fs::write(&orphan, b"EXOROUTE_MASTER_KEY=\"partial\"").expect("write orphaned temp file");
+    let long_ago = SystemTime::now() - Duration::from_secs(6 * 60 * 60);
+    fs::File::options()
+        .write(true)
+        .open(&orphan)
+        .expect("open orphaned temp file")
+        .set_modified(long_ago)
+        .expect("age the orphaned temp file");
+
+    // A temp file a live process may still be about to rename.
+    let active = app_dir.join(".env.tmp-still-being-written");
+    fs::write(&active, b"EXOROUTE_MASTER_KEY=\"partial\"").expect("write fresh temp file");
+
+    let removed = cleanup_stale_env_temp_files(&app_dir).expect("clean temporary env files");
+
+    assert_eq!(removed, 1);
+    assert!(!orphan.exists(), "the orphan is removed");
+    assert!(active.exists(), "a fresh temp file is left alone");
+    assert!(env_path.is_file(), "the settings file is untouched");
+    fs::remove_dir_all(app_dir).expect("remove temporary app directory");
+}
+
+#[test]
 fn remove_bootstrap_password_preserves_other_environment_settings() {
     let app_dir = env::temp_dir().join(format!("exoroute-env-remove-{}", uuid::Uuid::new_v4()));
     initialize_app_dir(&app_dir).expect("initialize app directory");
