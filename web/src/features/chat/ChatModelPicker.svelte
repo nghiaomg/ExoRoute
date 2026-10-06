@@ -2,6 +2,7 @@
   import ArkCombobox from '../../components/ArkCombobox.svelte';
   import type { Translate } from '../../lib/format';
   import type { WorkspaceChatModelOption } from '../../lib/types';
+  import { modelDisplayName, modelProviderPrefix } from './chat.state';
 
   interface Props {
     tr: Translate;
@@ -14,7 +15,17 @@
 
   let { tr, options = [], disabled = false, modelId = '', onModelIdChange }: Props = $props();
 
-  const items = $derived(options.map((option) => ({ label: option.id, value: option.id })));
+  // A `{prefix}/{vendor}/{model}` id is unreadably long in the list and the
+  // pill, so the row shows the model name with the routing prefix as a muted
+  // hint; the full id stays searchable and is exposed as the row tooltip.
+  const items = $derived(
+    options.map((option) => ({
+      label: modelDisplayName(option.id),
+      hint: modelProviderPrefix(option.id) || undefined,
+      keywords: option.id,
+      value: option.id,
+    })),
+  );
 </script>
 
 <div class="chat-model-picker">
@@ -23,7 +34,8 @@
     value={modelId}
     {disabled}
     pill
-    ariaLabel={tr('Model (prefix/model)', { prefix: 'prefix', model: 'model' })}
+    clearable={false}
+    ariaLabel={tr('Model ({prefix}/{model})', { prefix: 'prefix', model: 'model' })}
     placeholder={tr('Select a model')}
     noOptionsText={tr('No saved models yet. Import a provider model list first.')}
     onValueChange={onModelIdChange}
@@ -32,7 +44,7 @@
 
 <style>
   .chat-model-picker {
-    width: 250px;
-    max-width: 46vw;
+    width: 100%;
+    max-width: 360px;
   }
 </style>

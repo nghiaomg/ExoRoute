@@ -69,6 +69,7 @@ export type {
   GatewayApiKeyStatistics,
   GatewayApiKey,
   GatewayApiKeyPage,
+  GatewayApiKeyScopeInput,
   Overview,
   UpstreamLiveSnapshot,
 } from './statistics';
@@ -92,6 +93,7 @@ export type {
   ChatThinkingMode,
   ChatAttachmentInput,
   WorkspaceChatInput,
+  WorkspaceChatHistoryMessage,
   WorkspaceChatUsage,
   WorkspaceChatResult,
   WorkspaceChatModelOption,

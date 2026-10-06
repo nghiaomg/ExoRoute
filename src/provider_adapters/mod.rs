@@ -653,8 +653,8 @@ pub use dispatch::{
     apply_custom_headers, finish_upstream_request, prepare_provider_images, prepare_request_body,
     prepare_upstream_request, retry_upstream_response_as_key_rejection,
 };
-use workspace_relay::relay_workspace_inference_impl;
 pub use workspace_relay::{AdapterWorkspaceChatOutcome, AdapterWorkspaceChatRequest};
+use workspace_relay::{relay_workspace_inference_impl, relay_workspace_inference_stream_impl};
 
 /// Relays one prepared workspace chat request to a provider. This transport
 /// never writes credential state: unlike the model probes it only reads the
@@ -673,6 +673,24 @@ pub async fn relay_workspace_inference(
     relay_workspace_inference_impl(adapter, request).await
 }
 
+/// Relays one prepared workspace chat request as a live streaming response.
+/// Exactly one upstream attempt is made — a stream that already reached the
+/// provider must never be retried — and nothing is persisted. The caller owns
+/// idle/overall deadlines and reads the body incrementally.
+pub async fn relay_workspace_inference_stream(
+    adapter_id: &str,
+    request: AdapterWorkspaceChatRequest<'_>,
+) -> Result<reqwest::Response, AdapterRequestError> {
+    let Some(adapter) = adapter(adapter_id) else {
+        return Err(AdapterRequestError::new(
+            None,
+            None,
+            "provider adapter is not registered",
+        ));
+    };
+    relay_workspace_inference_stream_impl(adapter, request).await
+}
+
 mod discovery;
 mod sse;
 pub(crate) use discovery::parse_provider_model_page;
@@ -683,11 +701,13 @@ pub(crate) use discovery::{
 pub use presets::{
     capabilities, default_models, preset_for_adapter, presets, supported_upstream_protocols,
 };
+pub(crate) use sse::is_event_stream_content_type;
 pub(crate) use sse::{
     AdapterSseError, ResponsesStreamAccumulator, accepts_event_stream_response,
     adapter_sse_error_can_fail_over, parse_adapter_event_stream, read_adapter_event_stream,
     read_codex_event_stream, read_limited_response, upstream_transport_error_message,
 };
+pub(crate) use workspace_relay::MAX_WORKSPACE_CHAT_RESPONSE_BYTES;
 mod runtime;
 pub use runtime::*;
 
