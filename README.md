@@ -102,7 +102,7 @@ For remote access, keep `EXOROUTE_HOST=127.0.0.1` and configure a TLS reverse pr
    The Freebuff preset uses a Freebuff or CodeBuff Bearer auth token at `https://www.codebuff.com/api/v1`, imports its nine curated model IDs, and accepts manual passthrough model IDs. No Freebuff provider quota API has been verified, so ExoRoute does not report or track quota for it.
    The Antigravity preset connects Google accounts through browser OAuth, uses the `ag/` model prefix, and discovers Gemini, Claude, and supported open models through Google Cloud Code. Release builds include the upstream public desktop OAuth client, so users normally do not need to configure OAuth variables; `EXOROUTE_ANTIGRAVITY_OAUTH_CLIENT_ID` and `EXOROUTE_ANTIGRAVITY_OAUTH_CLIENT_SECRET` remain available as optional overrides. Its model and weekly quota snapshots come from the undocumented Cloud Code usage APIs when available; missing or stale upstream quota is shown as unavailable, and ExoRoute does not run a credit probe or create a local Antigravity quota meter.
 3. Under **Combos**, create an alias (e.g. `coding-model`) pointing to one or more provider models, with ordered or round-robin fallback.
-4. Under **API Keys**, generate a client API key.
+4. Under **API Keys**, generate a client API key. Each key can optionally be scoped to specific providers and to model names or `prefix*` rules; a scoped key receives `403` for anything outside its scope, and `GET /v1/models` only lists the models that key may call. Leave both lists empty to keep a key unrestricted.
 
 ### 3. Send Requests
 Use standard OpenAI SDKs or `curl`:

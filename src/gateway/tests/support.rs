@@ -1,6 +1,31 @@
 use super::*;
 
-pub(super) use crate::support::mock_upstream::{spawn_upstream, sse_response};
+pub(super) use crate::support::mock_upstream::{
+    spawn_upstream, sse_response, unfinished_sse_response,
+};
+
+/// One Chat Completions frame carrying text plus the provider's usage report,
+/// which is what the streaming translation records on the analytics counters.
+pub(super) const CHAT_USAGE_FRAME: &str = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"},\"finish_reason\":null}],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":5}}\n\n";
+
+/// [`CHAT_USAGE_FRAME`] followed by the stop frame and the terminal sentinel.
+pub(super) const COMPLETE_CHAT_STREAM: &str = concat!(
+    "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"},\"finish_reason\":null}],\"usage\":{\"prompt_tokens\":11,\"completion_tokens\":5}}\n\n",
+    "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+    "data: [DONE]\n\n",
+);
+
+/// Serves one complete Chat Completions stream and then keeps later connections
+/// open without another frame, so a test can let one request finish and abandon
+/// the next one mid-stream.
+pub(super) async fn complete_then_unfinished_chat_stream(
+    State(calls): State<Arc<AtomicUsize>>,
+) -> axum::response::Response {
+    if calls.fetch_add(1, Ordering::Relaxed) > 0 {
+        return unfinished_sse_response(CHAT_USAGE_FRAME);
+    }
+    sse_response(COMPLETE_CHAT_STREAM)
+}
 
 pub(super) async fn key_rotation_upstream(
     State(calls): State<Arc<AtomicUsize>>,
@@ -290,6 +315,32 @@ pub(super) async fn seed_round_robin_provider(
     state
 }
 
+/// Serves one JSON completion per call and counts calls, so a test can prove a
+/// scoped request never reached an upstream provider.
+pub(super) async fn counted_completion_upstream(
+    State(calls): State<Arc<AtomicUsize>>,
+    Json(body): Json<Value>,
+) -> axum::response::Response {
+    calls.fetch_add(1, Ordering::Relaxed);
+    Json(json!({
+        "id":"scoped-success",
+        "model":body["model"],
+        "choices":[{"message":{"role":"assistant","content":"served"},"finish_reason":"stop"}],
+        "usage":{"prompt_tokens":1,"completion_tokens":1}
+    }))
+    .into_response()
+}
+
+/// Streaming variant of [`counted_completion_upstream`].
+pub(super) async fn counted_stream_upstream(
+    State(calls): State<Arc<AtomicUsize>>,
+) -> axum::response::Response {
+    calls.fetch_add(1, Ordering::Relaxed);
+    sse_response(
+        "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"},\"finish_reason\":null}]}\n\ndata: [DONE]\n\n",
+    )
+}
+
 pub(super) async fn gateway_completion(state: &AppState) -> StatusCode {
     let response = handle_request_inner_with_adapter_base_url_override(
         state.clone(),
@@ -311,6 +362,7 @@ pub(super) fn retry_execution_settings() -> GatewayExecutionSettings {
             ..OperationalSettings::default()
         },
         api_key_id: None,
+        api_key_scope: None,
         analytics: None,
         stream_continuity_retry: false,
     }

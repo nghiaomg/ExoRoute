@@ -149,8 +149,11 @@
 
 /* ─── 7. Mobile Large / Phablet (min-width: 401px) and (max-width: 650px) [414px iPhone Plus, 428px iPhone 14 Pro Max] ─── */
 @media (min-width: 401px) and (max-width: 650px) {
+  :root {
+    --content-gutter: 14px !important;
+  }
   .content-wrap {
-    padding: 14px 14px calc(76px + env(safe-area-inset-bottom)) !important;
+    padding: 14px var(--content-gutter) calc(76px + env(safe-area-inset-bottom)) !important;
   }
   .providers-metrics-banner {
     gap: 10px;
@@ -201,8 +204,11 @@
 
 /* ─── 8. Mobile Standard & Small (min-width: 361px) and (max-width: 400px) [375px iPhone SE / mini, 390px iPhone 12/13/14] ─── */
 @media (min-width: 361px) and (max-width: 400px) {
+  :root {
+    --content-gutter: 10px !important;
+  }
   .content-wrap {
-    padding: 12px 10px calc(76px + env(safe-area-inset-bottom)) !important;
+    padding: 12px var(--content-gutter) calc(76px + env(safe-area-inset-bottom)) !important;
   }
   .providers-metrics-banner {
     gap: 8px;
@@ -314,8 +320,11 @@
 
 /* ─── 9. Ultra-compact Displays (max-width: 360px) [360px Galaxy, Android nhỏ] ─── */
 @media (max-width: 360px) {
+  :root {
+    --content-gutter: 8px !important;
+  }
   .content-wrap {
-    padding: 10px 8px calc(76px + env(safe-area-inset-bottom)) !important;
+    padding: 10px var(--content-gutter) calc(76px + env(safe-area-inset-bottom)) !important;
   }
   .providers-metrics-banner {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;

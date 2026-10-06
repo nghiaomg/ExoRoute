@@ -159,16 +159,28 @@ pub(crate) fn preflight_backup_reader(
     if entry_count > crate::infra::storage::MAX_SNAPSHOT_ENTRIES as u64 {
         return Err("The backup contains too many records.");
     }
+    let mut key_buffer = [0_u8; 500];
     for _ in 0..entry_count {
         let table_index = read_u32(file, &mut offset, payload_len)? as usize;
         let Some(table) = Table::ALL.get(table_index).copied() else {
             return Err("The backup contains an unknown record type.");
         };
         let key_len = read_u64(file, &mut offset, payload_len)?;
-        if key_len == 0 || key_len > 500 {
+        if key_len == 0 || key_len > key_buffer.len() as u64 {
             return Err("The backup contains an invalid storage key.");
         }
-        skip(file, &mut offset, payload_len, key_len)?;
+        let key_len =
+            usize::try_from(key_len).map_err(|_| "The backup contains an invalid storage key.")?;
+        if offset
+            .checked_add(key_len as u64)
+            .is_none_or(|end| end > payload_len)
+        {
+            return Err("The backup payload is truncated.");
+        }
+        file.read_exact(&mut key_buffer[..key_len])
+            .map_err(|_| "The backup payload is truncated.")?;
+        offset += key_len as u64;
+        let key = &key_buffer[..key_len];
         let value_len = read_u64(file, &mut offset, payload_len)?;
         if value_len > crate::infra::storage::MAX_SNAPSHOT_RECORD_BYTES as u64 {
             return Err("The backup contains a record larger than the supported limit.");
@@ -179,10 +191,25 @@ pub(crate) fn preflight_backup_reader(
         if value_end > payload_len {
             return Err("The backup payload is truncated.");
         }
+        let dictionary_entry = table == Table::Meta
+            && key == crate::infra::storage::REQUEST_LOG_DICTIONARY_KEY.as_bytes();
         if table == Table::Meta && matches!(value_len, 4 | 8) {
             skip(file, &mut offset, payload_len, value_len)?;
+        } else if dictionary_entry
+            && value_len <= crate::infra::storage::REQUEST_LOG_DICTIONARY_MAX_BYTES as u64
+        {
+            // The request-log compression dictionary is opaque bytes; the
+            // length bound above and snapshot validation do the real checks.
+            skip(file, &mut offset, payload_len, value_len)?;
+        } else if dictionary_entry {
+            return Err("The backup contains an invalid request-log dictionary.");
         } else if table_has_index_string_value(table) {
             preflight_index_string(file, &mut offset, value_end)?;
+        } else if table == Table::RequestLogs {
+            // Stored request-log bytes are either a bincode record or a zstd
+            // frame (see `infra::storage::codec`), so preflight only enforces
+            // the length bound here; restore validation decodes both layouts.
+            skip(file, &mut offset, payload_len, value_len)?;
         } else {
             preflight_record(file, &mut offset, value_end)?;
         }

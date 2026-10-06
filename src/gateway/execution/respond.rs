@@ -53,8 +53,7 @@ pub(super) async fn stream_response(
                         &error,
                         &target_model,
                     ),
-                )
-                .await;
+                );
                 drop(provider_permit);
                 return None;
             }
@@ -79,14 +78,17 @@ pub(super) async fn stream_response(
                     &error,
                     &target_model,
                 ),
-            )
-            .await;
+            );
             drop(provider_permit);
             return None;
         }
     };
 
     let outcome = StreamOutcome::default();
+    // The stream log keeps its own handle on the request's usage counters so a
+    // stream abandoned before finalization can still record the tokens the
+    // upstream already reported.
+    let log_analytics = analytics.clone();
     let mut producer = stream_translation_from_chunks(
         upstream_chunks,
         StreamTranslationConfig {
@@ -122,6 +124,9 @@ pub(super) async fn stream_response(
                 _provider_permit: provider_permit,
                 circuit_probe,
                 sse_processing_slots: scope.state.gates.gateway_sse_processing.clone(),
+                analytics: log_analytics,
+                finalized: std::sync::atomic::AtomicBool::new(false),
+                shutdown: scope.state.shutdown_receiver(),
             }),
         },
     );
@@ -176,8 +181,7 @@ pub(super) async fn decode_response(
                     &failures.last_error,
                     &target_model,
                 ),
-            )
-            .await;
+            );
             drop(provider_permit);
             return None;
         }
@@ -189,7 +193,8 @@ pub(super) async fn decode_response(
             Err(error) => {
                 circuit_probe.failed();
                 failures.last_status = StatusCode::BAD_GATEWAY;
-                failures.last_error = format!("could not decode provider response: {error}");
+                failures.last_error =
+                    crate::gateway::provider_decode_failure_message(&error, &upstream_value);
                 log_request(
                     &scope.state,
                     Some(live),
@@ -201,8 +206,7 @@ pub(super) async fn decode_response(
                         &failures.last_error,
                         &target_model,
                     ),
-                )
-                .await;
+                );
                 drop(provider_permit);
                 return None;
             }
@@ -247,8 +251,7 @@ pub(super) async fn decode_response(
                 .as_ref()
                 .and_then(|usage| usage.cost_micro_usd),
         ),
-    )
-    .await;
+    );
     drop(provider_permit);
 
     let mut result = protocol::encode_response(scope.client_protocol, &decoded);
@@ -332,8 +335,7 @@ pub(super) async fn final_failure_response(
             cache_input_tokens: None,
             error: Some(&failures.last_error),
         },
-    )
-    .await;
+    );
     let mut response = gateway_error(final_status, &failures.last_error);
     if let Some(retry_after) = failures.upstream_retry_after {
         response

@@ -60,6 +60,7 @@ async fn priority_combo_retries_from_the_next_target_after_backoff() {
                 ..OperationalSettings::default()
             },
             api_key_id: None,
+            api_key_scope: None,
             analytics: None,
             stream_continuity_retry: false,
         },

@@ -1,4 +1,10 @@
-import type { GatewayApiKey, GatewayApiKeyPage, GatewayApiKeyStatistics, RequestStatistics } from '../types';
+import type {
+  GatewayApiKey,
+  GatewayApiKeyPage,
+  GatewayApiKeyScopeInput,
+  GatewayApiKeyStatistics,
+  RequestStatistics,
+} from '../types';
 import { request } from './core';
 
 export const apiKeyApi = {
@@ -13,10 +19,19 @@ export const apiKeyApi = {
       `/api-keys/${encodeURIComponent(id)}/statistics?range=${range}`,
       signal ? { signal } : {},
     ),
-  createApiKey: (name: string) =>
+  createApiKey: (name: string, scope?: GatewayApiKeyScopeInput) =>
     request<GatewayApiKey & { key: string; warning: string }>('/api-keys', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(scope ? { name, ...scope } : { name }),
+    }),
+  /** Both scope lists are sent together; the backend rejects a partial update. */
+  updateApiKey: (
+    id: string,
+    input: { name?: string; enabled?: boolean } & Partial<GatewayApiKeyScopeInput>,
+  ) =>
+    request<GatewayApiKey>(`/api-keys/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
     }),
   deleteApiKey: (id: string) => request<void>(`/api-keys/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };

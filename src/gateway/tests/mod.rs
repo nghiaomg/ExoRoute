@@ -15,11 +15,14 @@ use std::sync::{
 use tokio::sync::Mutex;
 
 mod analytics;
+mod api_key_scope;
 mod combo_fallback;
 mod fallback_chat;
 mod fallback_messages;
 mod key_rotation;
 mod protocol_selection;
+mod provider_decode;
+mod request_logging;
 mod retry;
 mod routing;
 mod stream_continuity;

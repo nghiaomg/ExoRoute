@@ -73,8 +73,7 @@ pub(super) async fn all_credentials_rejected(
             &failures.last_error,
             attempt.target_model,
         ),
-    )
-    .await;
+    );
     // These explicit 4xx responses reject the request, so trying the next
     // configured provider cannot duplicate a completed inference.
     DispatchOutcome::TargetFailed
@@ -128,8 +127,7 @@ pub(super) async fn record_credential_rejection(
             &logged_error,
             attempt.target_model,
         ),
-    )
-    .await;
+    );
     Ok(())
 }
 
@@ -158,8 +156,7 @@ async fn adapter_sse_failure_outcome(
                 &failures.last_error,
                 attempt.target_model,
             ),
-        )
-        .await;
+        );
         // This was an explicit terminal Codex failure, and the non-streaming
         // caller has not received a response body.
     }
@@ -197,8 +194,7 @@ pub(super) async fn transport_failure(
             &failures.last_error,
             attempt.target_model,
         ),
-    )
-    .await;
+    );
     // The server retry policy owns 5xx/transport failures. Try the next
     // configured target in this attempt before the bounded request-level
     // retry loop runs again.
@@ -265,8 +261,7 @@ pub(super) async fn unsuccessful_status(
             &logged_error,
             attempt.target_model,
         ),
-    )
-    .await;
+    );
     // Explicit 4xx rejections and server failures are handled inside the
     // gateway; the outer bounded retry loop prevents either outcome from
     // being returned immediately to the client.

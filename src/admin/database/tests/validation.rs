@@ -440,3 +440,120 @@ async fn invalid_route_target_backup_does_not_change_live_database() {
     assert!(current_provider.is_some());
     assert!(route_target.is_some());
 }
+
+#[tokio::test]
+async fn request_logs_stored_compressed_validate_and_rebuild_indexes() {
+    let database = TestDatabase::open().await;
+    let now = crate::infra::db::utc_timestamp_now().expect("timestamp");
+    // A repetitive log row large enough to be stored as a compressed frame.
+    let record = Record::new()
+        .with("id", Field::Text("compressed-log".to_owned()))
+        .with("request_id", Field::Text("request".repeat(40)))
+        .with("route_alias", Field::Text("route".to_owned()))
+        .with("model", Field::Text("model".to_owned()))
+        .with(
+            "client_protocol",
+            Field::Text("chat_completions".to_owned()),
+        )
+        .with("status", Field::I64(200))
+        .with("duration_ms", Field::I64(1))
+        .with("error", Field::Text("upstream 500: unavailable".repeat(24)))
+        .with("created_at", Field::Text(now.clone()));
+    database
+        .db
+        .write(move |transaction| transaction.put(Table::RequestLogs, "compressed-log", &record))
+        .await
+        .expect("seed compressed log");
+
+    let entries = database
+        .db
+        .snapshot_entries(true, 1024 * 1024)
+        .await
+        .expect("snapshot with request logs");
+    let entry = entries
+        .iter()
+        .find(|entry| entry.table == Table::RequestLogs && entry.key == "compressed-log")
+        .expect("log entry in snapshot");
+    // The exported bytes are the stored frame; the backup path must decode it.
+    assert!(
+        !entry.value.is_empty(),
+        "compressed log entry has stored bytes"
+    );
+
+    let mut rebuilt = entries.clone();
+    super::rebuild_backup_secondary_indexes(&mut rebuilt)
+        .expect("rebuild indexes over compressed logs");
+    let rebuilt_log = rebuilt
+        .iter()
+        .find(|entry| entry.table == Table::RequestLogs && entry.key == "compressed-log")
+        .expect("log entry survives rebuild");
+    let decoded: Record = crate::infra::storage::decode_request_log_bytes(&rebuilt_log.value, None)
+        .expect("compressed log decodes through the backup path");
+    assert_eq!(decoded.text("id").expect("id"), "compressed-log");
+
+    // Merge the compressed log into a complete, otherwise-valid backup and
+    // round-trip it through the real export/import archive: the streaming
+    // preflight must treat compressed request-log values as opaque, while
+    // restore validation decodes both stored layouts.
+    let compressed_entry = entry.clone();
+    let (_fixture_database, mut payload) = route_backup_fixture().await;
+    payload.entries.push(compressed_entry);
+
+    let root = std::env::temp_dir().join(format!(
+        "exoroute-compressed-log-backup-test-{}",
+        uuid::Uuid::new_v4().simple()
+    ));
+    std::fs::create_dir(&root).expect("create isolated backup folder");
+    let destination = root.join("backup.exoroute");
+    write_backup_archive(&destination, payload.entries).expect("write backup archive");
+    let decoded_payload =
+        decode_backup_file(&destination).expect("decode backup containing compressed request logs");
+    validate_backup_payload(&decoded_payload, false, false)
+        .expect("validate backup containing compressed request logs");
+    let restored = decoded_payload
+        .entries
+        .iter()
+        .find(|entry| entry.table == Table::RequestLogs && entry.key == "compressed-log")
+        .expect("log entry survives import decode");
+    let restored_record: Record =
+        crate::infra::storage::decode_request_log_bytes(&restored.value, None)
+            .expect("compressed log decodes after import");
+    assert_eq!(restored_record.text("id").expect("id"), "compressed-log");
+    crate::config::ensure_private_file(&destination).expect("secure test backup");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn backup_meta_dictionary_entry_round_trips_the_import_path() {
+    let (_database, mut payload) = route_backup_fixture().await;
+    // The request-log compression dictionary is an opaque Meta value; it must
+    // pass the streaming preflight, snapshot validation, and import decode.
+    let dictionary = vec![0x5A_u8; 4096];
+    payload.entries.push(SnapshotEntry {
+        table: Table::Meta,
+        key: crate::infra::storage::REQUEST_LOG_DICTIONARY_KEY.to_owned(),
+        value: bincode::serialize(&dictionary).expect("encode dictionary entry"),
+    });
+
+    let root = std::env::temp_dir().join(format!(
+        "exoroute-dictionary-backup-test-{}",
+        uuid::Uuid::new_v4().simple()
+    ));
+    std::fs::create_dir(&root).expect("create isolated backup folder");
+    let destination = root.join("backup.exoroute");
+    write_backup_archive(&destination, payload.entries).expect("write backup archive");
+    let decoded = decode_backup_file(&destination).expect("decode backup with dictionary entry");
+    validate_backup_payload(&decoded, false, false).expect("validate backup with dictionary entry");
+    let entry = decoded
+        .entries
+        .iter()
+        .find(|entry| {
+            entry.table == Table::Meta
+                && entry.key == crate::infra::storage::REQUEST_LOG_DICTIONARY_KEY
+        })
+        .expect("dictionary entry survives the import path");
+    let restored: Vec<u8> = bincode::deserialize(&entry.value).expect("decode restored dictionary");
+    assert_eq!(restored, dictionary);
+    crate::config::ensure_private_file(&destination).expect("secure test backup");
+    let _ = std::fs::remove_dir_all(root);
+}
