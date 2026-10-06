@@ -5,7 +5,7 @@
 //! cross-module constants and small crypto/clock helpers.
 
 use super::cookie_policy::{
-    clear_refresh_cookie, refresh_cookie, same_origin_browser_post, set_refresh_cookie,
+    clear_refresh_cookie, refresh_cookie, same_origin_rejection, set_refresh_cookie,
 };
 use super::*;
 use crate::infra::storage::StorageError;
