@@ -67,20 +67,26 @@
 .model-test-result.success { color: #278e6d; }
 .model-test-result.error { color: #c65c62; }
 .model-test-result small { grid-column: 1 / -1; display: block; overflow: hidden; max-width: 150px; color: #9699aa; font-size: 12px; font-weight: 500; text-overflow: ellipsis; }
-.model-test-toast { position: fixed; z-index: 100000 !important; top: 24px; right: 24px; display: flex; align-items: flex-start; gap: 10px; width: min(420px, calc(100vw - 32px)); padding: 13px 12px; border: 2px solid var(--ink); border-radius: 11px; background: #fff; box-shadow: 4px 4px 0 var(--ink); animation: toast-in .22s ease-out; pointer-events: auto; }
-.model-test-toast.success { border-color: #cfe9dd; }
-.model-test-toast.error { border-color: #f0d5d6; }
-.model-test-toast-mark { display: grid; place-items: center; width: 27px; height: 27px; flex: 0 0 27px; border: 2px solid var(--ink); border-radius: 8px; color: #278e6d; background: #e8f8f2; box-shadow: 2px 2px 0 var(--ink); }
-.model-test-toast.error .model-test-toast-mark { color: #c65c62; background: #fff0ef; }
-.model-test-toast-copy { min-width: 0; flex: 1; }
-.model-test-toast-copy strong, .model-test-toast-copy small { display: block; }
-.model-test-toast-copy strong { margin: 1px 0 4px; color: #484c60; font-size: 12px; }
-.model-test-toast-copy small { overflow-wrap: anywhere; color: #85899a; font-size: 12px; line-height: 1.5; }
-.model-test-toast-dismiss { display: grid; place-items: center; width: 23px; height: 23px; flex: 0 0 23px; padding: 0; color: #9b9eac; border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
-.model-test-toast-dismiss:hover { color: #ea580c; background: #fff7ed; }
+.app-toast { position: fixed; z-index: 100000 !important; top: 24px; right: 24px; display: flex; align-items: flex-start; gap: 10px; width: min(420px, calc(100vw - 32px)); padding: 13px 12px; border: 2px solid var(--ink); border-radius: 11px; background: #fff; box-shadow: 4px 4px 0 var(--ink); animation: toast-in .22s ease-out; pointer-events: auto; }
+.app-toast.success { border-color: #cfe9dd; }
+.app-toast.error { border-color: #f0d5d6; }
+.app-toast-mark { display: grid; place-items: center; width: 27px; height: 27px; flex: 0 0 27px; border: 2px solid var(--ink); border-radius: 8px; color: #278e6d; background: #e8f8f2; box-shadow: 2px 2px 0 var(--ink); }
+.app-toast.error .app-toast-mark { color: #c65c62; background: #fff0ef; }
+.app-toast-copy { min-width: 0; flex: 1; }
+.app-toast-copy strong, .app-toast-copy small { display: block; }
+/* The first line reserves the icon's height and centres its text, so the icon
+   sits on the title's centre line instead of drifting below it. */
+.app-toast-copy strong { display: flex; align-items: center; min-height: 27px; margin: 0 0 4px; color: #484c60; font-size: 12px; }
+.app-toast-copy small { overflow-wrap: anywhere; color: #85899a; font-size: 12px; line-height: 1.5; }
+.app-toast-dismiss { display: grid; place-items: center; width: 23px; height: 23px; flex: 0 0 23px; padding: 0; color: #9b9eac; border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
+/* A title-only toast keeps the icon and copy vertically centred as one line. */
+.app-toast.compact { align-items: center; }
+.app-toast.compact .app-toast-mark { width: 23px; height: 23px; flex: 0 0 23px; box-shadow: 1px 1px 0 var(--ink); }
+.app-toast.compact .app-toast-copy strong { min-height: 0; margin: 0; }
+.app-toast-dismiss:hover { color: #ea580c; background: #fff7ed; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 640px) {
-  .model-test-toast {
+  .app-toast {
     top: max(16px, env(safe-area-inset-top));
     right: 16px;
     left: 16px;

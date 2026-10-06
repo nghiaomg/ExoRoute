@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Check, Gauge, LoaderCircle, RefreshCw, X } from '@lucide/svelte';
+  import { Gauge, LoaderCircle, RefreshCw } from '@lucide/svelte';
   import { onDestroy, onMount } from 'svelte';
-  import { Portal } from '@ark-ui/svelte/portal';
   import GatewayError from '../../components/GatewayError.svelte';
   import PageHeading from '../../components/PageHeading.svelte';
+  import Toast from '../../components/Toast.svelte';
   import type { DashboardPage } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';
@@ -220,23 +220,4 @@
   </div>
 {/if}
 
-{#if toast}
-  <Portal>
-    <div class="model-test-toast" class:success={toast.tone === 'success'} class:error={toast.tone === 'error'} role="status">
-      <span class="model-test-toast-mark">
-        {#if toast.tone === 'success'}
-          <Check size={15} />
-        {:else}
-          <X size={15} />
-        {/if}
-      </span>
-      <div class="model-test-toast-copy">
-        <strong>{toast.title}</strong>
-        <small>{toast.message}</small>
-      </div>
-      <button class="model-test-toast-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissToast}>
-        <X size={14} />
-      </button>
-    </div>
-  </Portal>
-{/if}
+<Toast {toast} {tr} onDismiss={dismissToast} />

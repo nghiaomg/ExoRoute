@@ -6,9 +6,12 @@
 
 /* ─── 1. Ultra-wide & 2K/4K Displays (2560px+) ─── */
 @media (min-width: 1921px) {
+  :root {
+    --content-max-width: 1720px;
+    --content-gutter: 56px;
+  }
   .content-wrap {
-    max-width: 1720px;
-    padding: 44px 56px 36px;
+    padding: 44px var(--content-gutter) 36px;
   }
   .preset-cards-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -204,8 +207,11 @@
 
 /* ─── 5. Tablets (min-width: 651px) and (max-width: 890px) [768px iPad, 820px iPad Air] ─── */
 @media (min-width: 651px) and (max-width: 890px) {
+  :root {
+    --content-gutter: 24px;
+  }
   .content-wrap {
-    padding: 20px 24px 32px;
+    padding: 20px var(--content-gutter) 32px;
   }
   .preset-cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

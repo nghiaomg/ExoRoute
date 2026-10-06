@@ -362,15 +362,15 @@
 :root[data-theme='dark'] .model-test-result.success { color: #83d8b8; }
 :root[data-theme='dark'] .model-test-result.error { color: #ffabad; }
 :root[data-theme='dark'] .model-test-result small { color: #a3a6b8; }
-:root[data-theme='dark'] .model-test-toast { background: #1b1c29; box-shadow: 0 14px 36px #0008; }
-:root[data-theme='dark'] .model-test-toast.success { border-color: #315747; }
-:root[data-theme='dark'] .model-test-toast.error { border-color: #694047; }
-:root[data-theme='dark'] .model-test-toast-mark { color: #83d8b8; background: #1d342d; }
-:root[data-theme='dark'] .model-test-toast.error .model-test-toast-mark { color: #ffabad; background: #392529; }
-:root[data-theme='dark'] .model-test-toast-copy strong { color: #e0e1eb; }
-:root[data-theme='dark'] .model-test-toast-copy small { color: #a5a8ba; }
-:root[data-theme='dark'] .model-test-toast-dismiss { color: #a5a8b9; }
-:root[data-theme='dark'] .model-test-toast-dismiss:hover { color: #fdba74; background: #2b2118; }
+:root[data-theme='dark'] .app-toast { background: #1b1c29; box-shadow: 0 14px 36px #0008; }
+:root[data-theme='dark'] .app-toast.success { border-color: #315747; }
+:root[data-theme='dark'] .app-toast.error { border-color: #694047; }
+:root[data-theme='dark'] .app-toast-mark { color: #83d8b8; background: #1d342d; }
+:root[data-theme='dark'] .app-toast.error .app-toast-mark { color: #ffabad; background: #392529; }
+:root[data-theme='dark'] .app-toast-copy strong { color: #e0e1eb; }
+:root[data-theme='dark'] .app-toast-copy small { color: #a5a8ba; }
+:root[data-theme='dark'] .app-toast-dismiss { color: #a5a8b9; }
+:root[data-theme='dark'] .app-toast-dismiss:hover { color: #fdba74; background: #2b2118; }
 
 /* Preserve accent buttons, but keep disabled and keyboard-focus states legible. */
 :root[data-theme='dark'] .primary-button:focus-visible,
