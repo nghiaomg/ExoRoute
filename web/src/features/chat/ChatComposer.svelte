@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { FileText, Image as ImageIcon, Paperclip, SendHorizontal, Settings2, X } from '@lucide/svelte';
-  import { tick } from 'svelte';
+  import { FileText, Image as ImageIcon, Paperclip, SendHorizontal, Settings2, Square, X } from '@lucide/svelte';
+  import { afterUpdate } from 'svelte';
   import ArkField from '../../components/ArkField.svelte';
   import ArkSelect from '../../components/ArkSelect.svelte';
   import type { Translate } from '../../lib/format';
@@ -21,6 +21,9 @@
   export let draft: ChatDraft;
   export let onDraftChange: (draft: ChatDraft) => void;
   export let onSend: (draft: ChatDraft) => void;
+  /** True while a turn is in flight: the send affordance becomes Stop. */
+  export let sending = false;
+  export let onStop: () => void = () => {};
 
   let attachmentError = '';
   let fileInput: HTMLInputElement | null = null;
@@ -102,17 +105,18 @@
     onSend(draft);
   }
 
-  async function resizeInput(): Promise<void> {
-    await tick();
-    if (messageInput) {
-      messageInput.style.height = 'auto';
-      messageInput.style.height = `${Math.min(messageInput.scrollHeight, 160)}px`;
-    }
+  /** Autosizes the input to its content, capped by the CSS max height. */
+  function resizeInput(): void {
+    if (!messageInput) return;
+    messageInput.style.height = 'auto';
+    messageInput.style.height = `${Math.min(messageInput.scrollHeight, 160)}px`;
   }
 
-  $: if (messageInput && draft.message !== undefined) {
-    void resizeInput();
-  }
+  // afterUpdate runs once the DOM already reflects the draft, so measuring here
+  // needs no tick(). Awaiting tick() inside a `$:` statement kept the legacy
+  // pre-effect dirty and could flush forever while the page waited on a pending
+  // request, which starved timers and froze the chat page.
+  afterUpdate(resizeInput);
 
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -127,6 +131,15 @@
 
   function toggleSettings(): void {
     settingsOpen = !settingsOpen;
+  }
+
+  /**
+   * The model picker lives inside the composer form, so Enter there would
+   * implicitly submit the draft. Enter only ever selects a model; sending
+   * stays a decision made in the message field or on the send button.
+   */
+  function blockSubmitEnter(event: KeyboardEvent): void {
+    if (event.key === 'Enter') event.preventDefault();
   }
 </script>
 
@@ -169,6 +182,27 @@
           onValueChange={(value) => updateDraft({ thinkingOverride: value })}
         />
       {/if}
+      <ArkField
+        label={tr('Temperature')}
+        value={draft.temperature}
+        placeholder={tr('Leave empty to use the provider default.')}
+        {disabled}
+        onValueChange={(value) => updateDraft({ temperature: value })}
+      />
+      <ArkField
+        label={tr('Top P')}
+        value={draft.topP}
+        placeholder={tr('Leave empty to use the provider default.')}
+        {disabled}
+        onValueChange={(value) => updateDraft({ topP: value })}
+      />
+      <ArkField
+        label={tr('Max tokens')}
+        value={draft.maxTokens}
+        placeholder={tr('Leave empty to use the provider default.')}
+        {disabled}
+        onValueChange={(value) => updateDraft({ maxTokens: value })}
+      />
     </div>
   {/if}
 
@@ -213,9 +247,20 @@
         <Settings2 size={14} />
       </button>
     </div>
-    <button class="chat-send-button" type="submit" disabled={!canSend} title={tr('Send')} aria-label={tr('Send')}>
-      <SendHorizontal size={15} />
-    </button>
+    <!-- Layout-only wrapper: it exists to intercept Enter before the form can
+         treat it as an implicit submit. -->
+    <div class="chat-composer-model" role="presentation" on:keydown={blockSubmitEnter}>
+      <slot name="model-picker" />
+    </div>
+    {#if sending}
+      <button class="chat-stop-button" type="button" on:click={onStop} title={tr('Stop')} aria-label={tr('Stop')}>
+        <Square size={14} />
+      </button>
+    {:else}
+      <button class="chat-send-button" type="submit" disabled={!canSend} title={tr('Send')} aria-label={tr('Send')}>
+        <SendHorizontal size={15} />
+      </button>
+    {/if}
   </div>
   <p class="chat-hint">{tr('Enter to send, Shift+Enter for a new line. Attach up to {count} images or documents.', { count: MAX_CHAT_ATTACHMENTS })}</p>
 </form>
@@ -340,6 +385,14 @@
     gap: 4px;
   }
 
+  .chat-composer-model {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
   .chat-tool-button {
     display: inline-flex;
     align-items: center;
@@ -409,6 +462,32 @@
     box-shadow: none;
   }
 
+  .chat-stop-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    background: #fee2e2;
+    box-shadow: 2px 2px 0 var(--ink);
+    color: #b91c1c;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  .chat-stop-button:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+
+  .chat-stop-button:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+
   .chat-hint {
     margin: 0;
     padding: 0 2px;
@@ -424,6 +503,7 @@
   :global(:root[data-theme='dark']) .chat-tool-button { background: rgba(255, 255, 255, 0.04); }
   :global(:root[data-theme='dark']) .chat-tool-button.active { background: rgba(249, 115, 22, 0.16); }
   :global(:root[data-theme='dark']) .chat-send-button:disabled { background: rgba(255, 255, 255, 0.06); }
+  :global(:root[data-theme='dark']) .chat-stop-button { background: rgba(248, 113, 113, 0.16); color: #fecaca; }
   :global(:root[data-theme='dark']) .chat-attachment-list li { background: rgba(249, 115, 22, 0.1); }
   :global(:root[data-theme='dark']) .chat-attachment-error { color: #fecaca; }
 </style>
