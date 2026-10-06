@@ -56,6 +56,52 @@ fn provider_error_details_keep_diagnostics_without_credentials_or_request_conten
 }
 
 #[test]
+fn decode_failure_messages_keep_redacted_provider_diagnostics() {
+    let detail = provider_decode_failure_message(
+        "chat response has no choices",
+        &json!({"error":{"message":"model 'gpt-x' is not available on this plan"}}),
+    );
+    assert_eq!(
+        detail,
+        "could not decode provider response: chat response has no choices (provider said: model 'gpt-x' is not available on this plan)"
+    );
+
+    // A provider that echoes credential material into its diagnostic keeps the
+    // redaction every other provider error body gets.
+    let redacted = provider_decode_failure_message(
+        "chat response has no choices",
+        &json!({"error":{"message":"bad key api_key=sk-live-1234"}}),
+    );
+    assert!(redacted.contains("api_key=[redacted]"), "{redacted}");
+    assert!(!redacted.contains("sk-live-1234"), "{redacted}");
+
+    // A payload that reports no diagnostic of its own keeps the plain summary.
+    let plain = provider_decode_failure_message(
+        "chat response has no choices",
+        &json!({"success":true,"data":{}}),
+    );
+    assert_eq!(
+        plain,
+        "could not decode provider response: chat response has no choices"
+    );
+
+    // A long diagnostic is truncated and flattened to one line.
+    let long = provider_decode_failure_message(
+        "chat response has no choices",
+        &json!({"detail": format!("first line\n{}", "a".repeat(600))}),
+    );
+    assert!(long.ends_with("...)"), "{long}");
+    assert!(!long.contains('\n'), "{long}");
+    // The diagnostic is capped at 300 characters, so even the longest provider
+    // message keeps the decode failure to one short, client-visible line.
+    assert!(
+        long.len() < 400,
+        "diagnostic must stay bounded: {}",
+        long.len()
+    );
+}
+
+#[test]
 fn endpoint_url_respects_versioned_base_url() {
     assert_eq!(
         endpoint_url("https://example.com/v1/", Protocol::ChatCompletions)

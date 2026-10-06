@@ -30,6 +30,63 @@ pub(super) fn provider_http_error_message(
     }
 }
 
+/// How much of a provider's own diagnostic text is kept in a client-visible
+/// decode-failure message. Long provider messages are truncated, never echoed
+/// in full into an API response.
+const MAX_PROVIDER_DIAGNOSTIC_CHARS: usize = 300;
+
+/// Builds the client-visible message for a provider response that could not be
+/// decoded: the decoder's own summary plus the provider's diagnostic when the
+/// payload carries one. Providers answer an undecodable body with HTTP 200
+/// often enough that the decode summary alone hides the real cause; the
+/// diagnostic is redacted like every other provider error body and bounded, so
+/// credential material and request content never reach the client.
+pub(crate) fn provider_decode_failure_message(decode_error: &str, body: &Value) -> String {
+    provider_failure_message(
+        &format!("could not decode provider response: {decode_error}"),
+        body,
+    )
+}
+
+/// Appends the provider's own sanitized diagnostic to a provider failure
+/// summary, so a body that arrives in the wrong shape still tells the caller
+/// what the provider reported. Payloads without a diagnostic keep `summary`.
+pub(crate) fn provider_failure_message(summary: &str, body: &Value) -> String {
+    match provider_response_diagnostic(body) {
+        Some(detail) => format!("{summary} (provider said: {detail})"),
+        None => summary.to_owned(),
+    }
+}
+
+/// The provider's own diagnostic from a decoded JSON body, redacted to one
+/// whitespace-normalized line and bounded; `None` when the payload reports no
+/// error of its own.
+fn provider_response_diagnostic(body: &Value) -> Option<String> {
+    let text = ["error", "detail", "message", "error_description"]
+        .iter()
+        .find_map(|field| provider_diagnostic_text(body.get(*field)))?;
+    let text = redact_provider_error_text(text);
+    let text = text.trim();
+    if text.is_empty() {
+        return None;
+    }
+    let mut bounded: String = text.chars().take(MAX_PROVIDER_DIAGNOSTIC_CHARS).collect();
+    if text.chars().nth(MAX_PROVIDER_DIAGNOSTIC_CHARS).is_some() {
+        bounded.push_str("...");
+    }
+    Some(bounded)
+}
+
+/// The diagnostic a provider error field carries: a plain string, or the
+/// `message` of an error object.
+fn provider_diagnostic_text(value: Option<&Value>) -> Option<&str> {
+    match value? {
+        Value::String(text) => Some(text.as_str()),
+        Value::Object(fields) => fields.get("message").and_then(Value::as_str),
+        _ => None,
+    }
+}
+
 pub(crate) fn sanitize_provider_error_body(body: &[u8]) -> String {
     if body.is_empty() {
         return String::new();

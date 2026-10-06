@@ -12,7 +12,8 @@ pub(in crate::gateway::streaming) enum StreamTerminal {
     CleanEnd,
     /// The loop ended on a failure carrying this message.
     Error(String),
-    /// Server shutdown; nothing is emitted or logged.
+    /// Server shutdown; nothing is emitted, and the request is logged as
+    /// interrupted before the stream ends.
     Shutdown,
 }
 
