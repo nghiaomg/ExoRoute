@@ -2,7 +2,7 @@
 //! family-cap eviction, step-up proofs, and cookie policy.
 
 use super::super::cookie_policy::{
-    cookie_is_secure, cookie_name, refresh_cookie, same_origin_browser_post,
+    cookie_is_secure, cookie_name, refresh_cookie, same_origin_rejection,
 };
 use super::*;
 use crate::state::AdminStepUpScope;
@@ -299,7 +299,7 @@ async fn cookie_scope_origin_and_trusted_proxy_scheme_are_enforced() {
         )
         .body(Body::empty())
         .expect("same-origin request");
-    assert!(same_origin_browser_post(&state, &request));
+    assert!(same_origin_rejection(&state, &request).is_none());
     assert_eq!(
         refresh_cookie(request.headers(), &state),
         Some(cookie_value.clone())
@@ -330,15 +330,104 @@ async fn cookie_scope_origin_and_trusted_proxy_scheme_are_enforced() {
         IpAddr::V4(Ipv4Addr::LOCALHOST),
         50_000,
     )));
-    assert!(same_origin_browser_post(&state, &proxied));
+    assert!(same_origin_rejection(&state, &proxied).is_none());
     assert!(cookie_is_secure(&state, &proxied));
 
     proxied.extensions_mut().insert(ConnectInfo(SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2)),
         50_000,
     )));
-    assert!(!same_origin_browser_post(&state, &proxied));
+    assert!(same_origin_rejection(&state, &proxied).is_some());
     assert!(!cookie_is_secure(&state, &proxied));
+}
+
+#[tokio::test]
+async fn same_origin_posts_from_browsers_without_fetch_metadata_are_accepted() {
+    let state = test_state(false).await;
+    let post = |host: &'static str, origin: &'static str| {
+        Request::builder()
+            .method("POST")
+            .uri("/api/v1/admin/auth/refresh")
+            .header(header::HOST, host)
+            .header(header::ORIGIN, origin)
+            .body(Body::empty())
+            .expect("same-origin request")
+    };
+
+    // A plain-HTTP origin that is not `localhost` receives no `Sec-Fetch-*`
+    // headers from the browser, and engines older than Safari 16.4 send none at
+    // all. The Origin/Host comparison still proves the request is same-origin.
+    assert!(
+        same_origin_rejection(
+            &state,
+            &post("exoroute.lan:8686", "http://exoroute.lan:8686")
+        )
+        .is_none()
+    );
+    assert!(
+        same_origin_rejection(&state, &post("localhost:8686", "http://localhost:8686")).is_none()
+    );
+
+    // When the browser does send Fetch Metadata it stays authoritative, because
+    // page script cannot forge it.
+    let cross_site = Request::builder()
+        .method("POST")
+        .uri("/api/v1/admin/auth/refresh")
+        .header(header::HOST, "localhost:8686")
+        .header(header::ORIGIN, "http://localhost:8686")
+        .header("sec-fetch-site", "cross-site")
+        .body(Body::empty())
+        .expect("cross-site request");
+    assert_eq!(
+        same_origin_rejection(&state, &cross_site),
+        Some("cross-site-fetch-metadata")
+    );
+    let duplicated = Request::builder()
+        .method("POST")
+        .uri("/api/v1/admin/auth/refresh")
+        .header(header::HOST, "localhost:8686")
+        .header(header::ORIGIN, "http://localhost:8686")
+        .header("sec-fetch-site", "same-origin")
+        .header("sec-fetch-site", "same-origin")
+        .body(Body::empty())
+        .expect("duplicated fetch metadata");
+    assert_eq!(
+        same_origin_rejection(&state, &duplicated),
+        Some("duplicate-sec-fetch-site")
+    );
+
+    // Without an Origin the initiator is unknown: a non-browser client gets the
+    // same rejection as before.
+    let no_origin = Request::builder()
+        .method("POST")
+        .uri("/api/v1/admin/auth/refresh")
+        .header(header::HOST, "localhost:8686")
+        .body(Body::empty())
+        .expect("header-less request");
+    assert!(same_origin_rejection(&state, &no_origin).is_some());
+
+    // A dashboard reached over HTTPS behind a proxy still has to declare the
+    // proxied scheme, otherwise the origin scheme cannot be verified.
+    assert_eq!(
+        same_origin_rejection(
+            &state,
+            &post("exoroute.example:443", "https://exoroute.example")
+        ),
+        Some("origin-scheme-mismatch")
+    );
+
+    // The development dashboard is served from the Vite port and proxied to the
+    // API, so Origin and Host describe the dev server rather than the API. That
+    // passes while the proxy forwards the browser's Host header; a proxy that
+    // rewrites Host into the API authority makes every refresh and logout look
+    // cross-origin, which is what the Vite configuration now avoids.
+    assert!(
+        same_origin_rejection(&state, &post("localhost:5173", "http://localhost:5173")).is_none()
+    );
+    assert_eq!(
+        same_origin_rejection(&state, &post("localhost:8686", "http://localhost:5173")),
+        Some("origin-host-mismatch")
+    );
 }
 
 #[tokio::test]
