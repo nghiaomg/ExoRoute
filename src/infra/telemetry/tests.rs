@@ -38,7 +38,10 @@ async fn shutdown_flush_still_applies_queued_events() {
         .expect("seed API key");
     let telemetry = Telemetry::new(database.clone());
     telemetry.record_api_key_request("key-shutdown".to_owned());
-    telemetry.shutdown().await.expect("bounded shutdown drain");
+    telemetry
+        .shutdown(Duration::from_secs(2))
+        .await
+        .expect("bounded shutdown drain");
 
     let api_key = database
         .read(|transaction| transaction.get::<Record>(Table::ApiKeys, "key-shutdown"))
@@ -46,6 +49,59 @@ async fn shutdown_flush_still_applies_queued_events() {
         .expect("read API key")
         .expect("stored API key");
     assert_eq!(api_key.integer("request_count").unwrap(), 1);
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
+async fn shutdown_reports_a_stuck_writer_within_its_budget() {
+    let (database, path) = test_db().await;
+    let telemetry = Telemetry::new(database.clone());
+
+    // Hold the single LMDB writer so the telemetry writer cannot answer the
+    // flush. This is exactly the shutdown case the budget exists for: the
+    // database is still committing while the process wants to exit.
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let (entered_sender, mut entered_receiver) = tokio::sync::mpsc::channel(1);
+    let blocker = tokio::spawn({
+        let database = database.clone();
+        let barrier = barrier.clone();
+        async move {
+            database
+                .write(move |_| {
+                    entered_sender.blocking_send(()).map_err(|_| {
+                        StorageError::Task("test entry signal was closed".to_owned())
+                    })?;
+                    barrier.wait();
+                    Ok(())
+                })
+                .await
+        }
+    });
+    entered_receiver
+        .recv()
+        .await
+        .expect("blocking write entered");
+
+    telemetry.record_api_key_request("key-stuck".to_owned());
+    let error = telemetry
+        .shutdown(Duration::from_millis(700))
+        .await
+        .expect_err("a stuck writer cannot drain inside the budget");
+    assert!(
+        error.contains("bounded drain"),
+        "shutdown reported an unexpected error: {error}"
+    );
+
+    let release = barrier.clone();
+    tokio::task::spawn_blocking(move || release.wait())
+        .await
+        .expect("release the held LMDB writer");
+    blocker
+        .await
+        .expect("join blocker")
+        .expect("write completes");
     drop(telemetry);
     drop(database);
     let _ = fs::remove_dir_all(&path);
@@ -103,6 +159,11 @@ async fn telemetry_persists_log_usage_and_statistics_in_one_backend() {
         .await
         .expect("statistics snapshot");
     assert_eq!(snapshot["total_requests"], 1);
+    assert_eq!(snapshot["logged_requests"], 1);
+    assert_eq!(
+        snapshot["model_breakdown_incomplete"], false,
+        "a request that is in history keeps the breakdown complete"
+    );
     assert_eq!(snapshot["input_tokens"], 10);
     assert_eq!(snapshot["cached_tokens"], 6);
     assert_eq!(snapshot["cache_ratio"], 60.0);
@@ -148,6 +209,58 @@ async fn telemetry_persists_log_usage_and_statistics_in_one_backend() {
 }
 
 #[tokio::test]
+async fn statistics_flag_history_that_covers_fewer_requests_than_the_totals() {
+    let (database, path) = test_db().await;
+    let telemetry = Telemetry::new(database.clone());
+    // The rollup counts three requests while only one request-log row is
+    // retained, which is what a bounded request history looks like once the
+    // retained rows or retention days cover less traffic than the selected
+    // statistics range. The totals stay authoritative; the model breakdown
+    // reports that it covers less.
+    for _ in 0..3 {
+        let analytics = telemetry.start_request("key-1".to_owned());
+        analytics.set_requested_model(Some("provider/model"));
+        analytics.set_token_usage(Some(10), Some(4));
+        analytics.finish(true);
+    }
+    telemetry.enqueue_request_log(RequestLogRecord {
+        id: "log-retained".to_owned(),
+        request_id: "request-retained".to_owned(),
+        route_alias: "default".to_owned(),
+        provider_id: Some("provider".to_owned()),
+        provider_credential_id: None,
+        api_key_id: Some("key-1".to_owned()),
+        model: "provider/model".to_owned(),
+        client_protocol: "chat_completions".to_owned(),
+        upstream_protocol: Some("chat_completions".to_owned()),
+        status: 200,
+        duration_ms: 12,
+        input_tokens: Some(10),
+        output_tokens: Some(4),
+        cached_tokens: None,
+        cache_input_tokens: None,
+        cost_micro_usd: None,
+        error: None,
+    });
+    telemetry.flush().await.expect("flush telemetry");
+
+    let snapshot = statistics_snapshot(&database, "30d", 30 * 24 * 60, &telemetry)
+        .await
+        .expect("statistics snapshot");
+    assert_eq!(snapshot["total_requests"], 3);
+    assert_eq!(snapshot["logged_requests"], 1);
+    assert_eq!(snapshot["model_breakdown_incomplete"], true);
+    assert_eq!(snapshot["model_breakdown_truncated"], false);
+    assert_eq!(
+        snapshot["model_breakdown"][0]["requests"], 1,
+        "the retained history is reported as-is"
+    );
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
 async fn request_logs_survive_telemetry_and_database_restart() {
     let (database, path) = test_db().await;
     let telemetry = Telemetry::new(database.clone());
@@ -171,7 +284,7 @@ async fn request_logs_survive_telemetry_and_database_restart() {
         error: None,
     });
     telemetry
-        .shutdown()
+        .shutdown(Duration::from_secs(2))
         .await
         .expect("shutdown flushes request log");
     drop(telemetry);

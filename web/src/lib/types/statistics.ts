@@ -38,6 +38,10 @@ export interface RequestStatistics {
   models: { top: StatisticsDimension[]; others: number };
   model_breakdown: ModelBreakdown[];
   model_breakdown_truncated: boolean;
+  /** Request-log rows the retained history covers for this range. */
+  logged_requests: number;
+  /** True when the retained history covers fewer requests than the totals. */
+  model_breakdown_incomplete: boolean;
 }
 
 export interface GatewayApiKeyStatistics extends Omit<RequestStatistics, 'api_keys'> {
@@ -52,6 +56,20 @@ export interface GatewayApiKey {
   created_at: string;
   last_used_at?: string | null;
   request_count?: number;
+  /** Provider IDs this key may use. Empty allows every provider. */
+  allowed_provider_ids?: string[] | null;
+  /** Exact model names or trailing-`*` prefixes. Empty allows every model. */
+  allowed_models?: string[] | null;
+  /** True when the key has at least one provider or model restriction. */
+  scope_restricted?: boolean;
+  /** False when the stored scope is unreadable and the gateway rejects the key. */
+  scope_valid?: boolean;
+}
+
+/** Provider and model restrictions submitted together for one API key. */
+export interface GatewayApiKeyScopeInput {
+  allowed_provider_ids: string[];
+  allowed_models: string[];
 }
 
 export interface GatewayApiKeyPage {
