@@ -53,6 +53,9 @@ pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
     if let Err(error) = crate::admin::cleanup_stale_database_temp_dirs(&config.app_dir) {
         tracing::warn!(%error, "could not remove temporary LMDB backup directories from a previous run");
     }
+    if let Err(error) = crate::config::cleanup_stale_env_temp_files(&config.app_dir) {
+        tracing::warn!(%error, "could not remove orphaned temporary settings files from a previous run");
+    }
     let db = crate::infra::db::connect(&config.database_path).await?;
     let gateway_resource_limits = crate::infra::db::load_gateway_resource_limits(&db)
         .await
@@ -154,16 +157,19 @@ pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
     let result =
         serve_with_shutdown_signal(listener, app, state.clone(), shutdown_signal(state.clone()))
             .await;
-    let telemetry_result = tokio::time::timeout(
-        std::time::Duration::from_secs(2),
-        state.telemetry.shutdown(),
-    )
-    .await
-    .unwrap_or_else(|_| {
-        Err("Telemetry shutdown timed out before the writer could drain.".to_owned())
-    });
-    if let Err(error) = telemetry_result {
+    // `shutdown` bounds its own drain, so the failure it reports names the
+    // reason instead of a bare outer-deadline timeout.
+    if let Err(error) = state.telemetry.shutdown(TELEMETRY_SHUTDOWN_TIMEOUT).await {
         tracing::warn!(%error, "telemetry did not drain before shutdown");
+    }
+    // Report in-flight database work before the runtime shutdown deadline can
+    // abandon it without leaving any other trace.
+    let in_flight_operations = state.db.active_operations();
+    if in_flight_operations > 0 {
+        tracing::warn!(
+            in_flight_operations,
+            "LMDB operations were still in flight when the server stopped; the runtime shutdown deadline can abandon them before they commit"
+        );
     }
     result?;
     Ok(())
