@@ -148,6 +148,13 @@ impl Database {
         &self.inner.path
     }
 
+    /// How many LMDB operations currently hold an operation slot. Shutdown
+    /// reads this to report work that the runtime deadline is about to
+    /// abandon, instead of letting it disappear without a trace.
+    pub(crate) fn active_operations(&self) -> usize {
+        MAX_DATABASE_OPERATIONS.saturating_sub(self.inner.operation_slots.available_permits())
+    }
+
     pub async fn snapshot_entries(
         &self,
         include_request_logs: bool,
