@@ -18,6 +18,7 @@ pub(in crate::gateway) async fn gateway_json_request(
         resource_limits: context.resource_limits,
         operational_settings: context.operational_settings,
         api_key_id: Some(context.api_key_id.clone()),
+        api_key_scope: Some(context.api_key_scope.clone()),
         analytics: context.analytics.clone(),
         stream_continuity_retry: false,
     };
@@ -253,6 +254,7 @@ pub(in crate::gateway) async fn handle_request_inner_with_adapter_base_url_overr
             resource_limits,
             operational_settings,
             api_key_id: None,
+            api_key_scope: None,
             analytics: None,
             stream_continuity_retry: false,
         },

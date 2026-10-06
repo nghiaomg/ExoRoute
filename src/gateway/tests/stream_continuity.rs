@@ -65,6 +65,7 @@ async fn stream_continuity_retries_rate_limit_and_server_failures_before_emittin
                 ..OperationalSettings::default()
             },
             api_key_id: Some("owner".to_owned()),
+            api_key_scope: None,
             analytics: None,
             stream_continuity_retry: false,
         },
@@ -143,6 +144,7 @@ async fn stream_continuity_retries_upstream_timeout_before_emitting_an_error() {
                 ..OperationalSettings::default()
             },
             api_key_id: Some("owner".to_owned()),
+            api_key_scope: None,
             analytics: None,
             stream_continuity_retry: false,
         },
