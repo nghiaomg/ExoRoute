@@ -1,4 +1,62 @@
 use super::*;
+use std::time::SystemTime;
+
+/// Prefix of the temporary file a secret is written to before it is renamed
+/// over the settings file.
+const ENV_TEMP_PREFIX: &str = ".env.tmp-";
+
+/// Temporary settings files older than this are treated as orphans left by a
+/// process killed between writing a secret and renaming it into place. A live
+/// write holds its temporary file for the duration of one small write and one
+/// rename, so the threshold cannot delete a concurrent process's file.
+const ENV_TEMP_ORPHAN_AGE: Duration = Duration::from_secs(60 * 60);
+
+fn env_temp_path(path: &Path) -> PathBuf {
+    path.with_file_name(format!(
+        "{ENV_TEMP_PREFIX}{}",
+        uuid::Uuid::new_v4().simple()
+    ))
+}
+
+/// Remove temporary settings files left behind by a process that was killed
+/// before its rename completed. Returns how many were removed. The caller
+/// treats this as best-effort: an orphaned temporary file never holds a
+/// committed secret, so failing to remove it must not block startup.
+pub(crate) fn cleanup_stale_env_temp_files(app_dir: &Path) -> io::Result<usize> {
+    let mut removed = 0;
+    for entry in fs::read_dir(app_dir)? {
+        let entry = entry?;
+        if !entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with(ENV_TEMP_PREFIX)
+        {
+            continue;
+        }
+        // `read_dir` reports the link itself, so a symlink placed here is
+        // skipped rather than followed.
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        // A file with an unreadable or future timestamp is left alone: it may
+        // belong to a process that is still writing it.
+        let Ok(modified) = entry.metadata().and_then(|metadata| metadata.modified()) else {
+            continue;
+        };
+        let Ok(age) = SystemTime::now().duration_since(modified) else {
+            continue;
+        };
+        if age < ENV_TEMP_ORPHAN_AGE {
+            continue;
+        }
+        match fs::remove_file(entry.path()) {
+            Ok(()) => removed += 1,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(removed)
+}
 
 pub fn ensure_admin_key(env_file: &Path, configured: Option<String>) -> io::Result<(String, bool)> {
     if let Some(key) = configured.filter(|value| !value.is_empty()) {
@@ -52,7 +110,7 @@ pub(crate) fn persist_env_value(path: &Path, name: &str, value: &str) -> io::Res
     let mut updated = lines.join("\n");
     updated.push('\n');
 
-    let temp_path = path.with_file_name(format!(".env.tmp-{}", uuid::Uuid::new_v4().simple()));
+    let temp_path = env_temp_path(path);
     let mut options = fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
@@ -88,7 +146,7 @@ pub fn remove_env_value(path: &Path, name: &str) -> io::Result<()> {
         updated.push('\n');
     }
 
-    let temp_path = path.with_file_name(format!(".env.tmp-{}", uuid::Uuid::new_v4().simple()));
+    let temp_path = env_temp_path(path);
     let mut options = fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
