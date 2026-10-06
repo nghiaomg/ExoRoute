@@ -84,6 +84,24 @@ pub(super) fn inject_opencode_go_reasoning_content(model: &str, body: &mut Value
     }
 }
 
+/// Removes a boolean `reasoning` field from an OpenCode request body.
+///
+/// The OpenCode Go and Zen backends decode the request into a Go struct whose
+/// `reasoning` field is a structured `openai.Reasoning` value, so a client that
+/// sends the OpenAI boolean form (`"reasoning": true`) is rejected with HTTP
+/// 400 ("cannot unmarshal bool into Go struct field
+/// ChatCompletionRequest.reasoning"). Object and string forms match the Go
+/// struct and are forwarded untouched; dropping the boolean lets the upstream
+/// apply its own default reasoning behavior instead of failing the request.
+pub(super) fn strip_opencode_boolean_reasoning(body: &mut Value) {
+    let Some(object) = body.as_object_mut() else {
+        return;
+    };
+    if object.get("reasoning").is_some_and(Value::is_boolean) {
+        object.remove("reasoning");
+    }
+}
+
 pub(super) fn apply_opencode_session_header(
     request: reqwest::RequestBuilder,
     headers: &HeaderMap,

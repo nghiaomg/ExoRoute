@@ -17,6 +17,7 @@ mod paths;
 #[cfg(windows)]
 mod windows;
 
+pub(crate) use env_secrets::cleanup_stale_env_temp_files;
 pub use env_secrets::{ensure_admin_key, ensure_master_key, remove_env_value};
 pub use limits::GatewayResourceLimits;
 pub use operational::{OperationalSettings, UpstreamSettings};

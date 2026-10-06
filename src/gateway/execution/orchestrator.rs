@@ -11,6 +11,7 @@ pub(super) struct Orchestrator {
     pub(super) resource_limits: GatewayResourceLimits,
     pub(super) operational_settings: OperationalSettings,
     pub(super) api_key_id: Option<String>,
+    pub(super) api_key_scope: Option<Arc<ApiKeyScope>>,
     pub(super) analytics: Option<RequestAnalytics>,
     pub(super) target_rotation_offset: usize,
 }
@@ -35,6 +36,7 @@ impl Orchestrator {
             client_protocol: self.client_protocol,
             resource_limits: self.resource_limits,
             api_key_id: self.api_key_id.clone(),
+            api_key_scope: self.api_key_scope.clone(),
             analytics: self.analytics.clone(),
             target_rotation_offset: self.target_rotation_offset,
         })

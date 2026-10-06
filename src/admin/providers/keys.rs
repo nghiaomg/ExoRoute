@@ -1,5 +1,23 @@
-use super::*;
+use super::{
+    DEFAULT_PROVIDER_KEY_PAGE_SIZE, MAX_PROVIDER_ID_BYTES, MAX_PROVIDER_KEY_BYTES,
+    MAX_PROVIDER_KEY_PAGE_SIZE, MAX_PROVIDER_NAME_BYTES, ProviderApiKeyRecordData,
+    ensure_provider_not_deleting, provider_api_key_identity_index_key, provider_api_key_index_keys,
+    provider_api_key_order_position, provider_api_key_record, store_provider_api_key,
+    test_provider_credential,
+};
+use crate::admin::{ApiResult, fail, internal};
 use crate::infra::storage::{Field, Record, StorageError, Table};
+use crate::provider_adapters;
+use crate::security::encrypt_secret;
+use crate::state::AppState;
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::StatusCode,
+};
+use base64::Engine;
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct ProviderKeyInput {
@@ -23,30 +41,6 @@ struct ProviderKeyView {
     created_at: String,
     last_tested_at: Option<String>,
     last_used_at: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct ProviderUsageAccountView {
-    pub(super) key_id: String,
-    pub(super) name: String,
-    pub(super) status: &'static str,
-    pub(super) snapshot: Option<Value>,
-    pub(super) provider_quota: Value,
-    pub(super) local_meter: Option<Value>,
-    pub(super) fetched_at_ms: Option<i64>,
-    pub(super) message: Option<String>,
-}
-
-pub(crate) struct ProviderUsageKey {
-    pub(super) id: String,
-    pub(super) name: String,
-    pub(super) credential_type: &'static str,
-    pub(super) encrypted_secret: Option<Vec<u8>>,
-    pub(super) usage_budget_5h_micros: Option<i64>,
-    pub(super) usage_budget_7d_micros: Option<i64>,
-    pub(super) usage_budget_30d_micros: Option<i64>,
-    pub(super) enabled: bool,
-    pub(super) invalid: bool,
 }
 
 #[derive(Debug, Default, Deserialize)]

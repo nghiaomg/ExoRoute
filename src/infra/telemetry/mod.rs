@@ -48,6 +48,16 @@ const MAX_PROVIDER_METER_READ_ROWS: usize = PROVIDER_METER_RETENTION_MINUTES as 
 const MAX_PROVIDER_METER_EXPIRY_ROWS: usize = 2_048;
 const STATISTICS_TOP_PREFIX: &str = "top/";
 
+/// Interactive flush budget for callers that are not racing a process exit
+/// (admin export/import, manual save). It only bounds a stuck writer.
+const FLUSH_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Headroom carved out of a caller's shutdown budget before the flush starts.
+/// The flush's own timeout must fire first, so a stuck writer is reported with
+/// a useful diagnostic instead of being cancelled by the caller's outer
+/// deadline, which can only say that the whole shutdown timed out.
+const SHUTDOWN_FLUSH_HEADROOM: Duration = Duration::from_millis(500);
+
 #[derive(Clone)]
 pub struct Telemetry {
     sender: mpsc::Sender<TelemetryMessage>,
@@ -241,7 +251,12 @@ impl Telemetry {
     }
 
     pub async fn flush(&self) -> Result<(), String> {
-        tokio::time::timeout(Duration::from_secs(10), async {
+        self.flush_within(FLUSH_TIMEOUT).await
+    }
+
+    /// Ask the writer to persist everything queued, waiting at most `budget`.
+    async fn flush_within(&self, budget: Duration) -> Result<(), String> {
+        tokio::time::timeout(budget, async {
             let (sender, receiver) = oneshot::channel();
             self.sender
                 .send(TelemetryMessage::FlushHistory(sender))
@@ -255,10 +270,14 @@ impl Telemetry {
         .map_err(|_| "Saving request history timed out.".to_owned())?
     }
 
-    pub async fn shutdown(&self) -> Result<(), String> {
+    /// Drain the writer before the process exits, spending at most `budget` in
+    /// total. The writer receives `budget` minus [`SHUTDOWN_FLUSH_HEADROOM`],
+    /// so a stuck writer is reported by the flush's own timeout rather than
+    /// silently cancelled by an outer timer.
+    pub async fn shutdown(&self, budget: Duration) -> Result<(), String> {
         const SHUTDOWN_POLICY: &str =
             "bounded drain, oldest queued events may be dropped on timeout or writer failure";
-        self.flush()
+        self.flush_within(budget.saturating_sub(SHUTDOWN_FLUSH_HEADROOM))
             .await
             .map_err(|error| format!("{error} ({SHUTDOWN_POLICY})."))
     }

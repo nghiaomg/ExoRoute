@@ -3,11 +3,19 @@
   import DashboardShell from './components/DashboardShell.svelte';
   import LoginPage from './components/LoginPage.svelte';
   import ProviderOAuthCallbackFlow from './features/providers/ProviderOAuthCallbackFlow.svelte';
+  import DocsShell from './features/docs/DocsShell.svelte';
+  import DocsHomePage from './features/docs/DocsHomePage.svelte';
+  import DocsQuickstartPage from './features/docs/DocsQuickstartPage.svelte';
+  import DocsIntegrationsPage from './features/docs/DocsIntegrationsPage.svelte';
+  import DocsReferencePage from './features/docs/DocsReferencePage.svelte';
   import type { ComponentType } from 'svelte';
-  import { api, getAdminAccessToken, notifyAdminLogout, restoreAdminSession, setAdminAccessToken, type AdminAccessResult, type AdminLoginResult } from './lib/api';
+  import { api, getAdminAccessToken, notifyAdminLogout, setAdminAccessToken, type AdminAccessResult, type AdminLoginResult } from './lib/api';
+  import { createSessionRetryCountdown, restoreSessionOnce } from './lib/auth-flow';
+  import { featureComponentLoader } from './lib/feature-registry';
   import { getStoredLocale, saveLocale, t, type Locale } from './lib/i18n';
-  import { pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type FeatureActionRequest, type Page } from './lib/navigation';
+  import { isDocsPage, pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type DocsPage, type FeatureActionRequest, type Page } from './lib/navigation';
   import type { Translate } from './lib/format';
+  import { getStoredSidebarCollapsed, saveSidebarCollapsed } from './lib/sidebar';
   import { applyTheme, getStoredTheme, type Theme } from './lib/theme';
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
 
@@ -29,10 +37,16 @@
     statistics: 'Statistics',
     'api-keys': 'Gateway API keys',
     settings: 'Settings',
+    chat: 'Chat',
+    docs: 'Documentation',
+    'docs-quickstart': 'Quickstart',
+    'docs-integrations': 'Integrations',
+    'docs-reference': 'API reference',
   };
 
   let locale: Locale = 'en';
   let theme: Theme = typeof window !== 'undefined' ? getStoredTheme() : 'light';
+  let sidebarCollapsed = typeof window !== 'undefined' ? getStoredSidebarCollapsed() : false;
   let tr: Translate;
   let currentPage: Page = 'login';
   let authBootstrap: 'checking' | 'ready' | 'unavailable' = typeof window === 'undefined' ? 'ready' : 'checking';
@@ -52,6 +66,7 @@
   let activeFeature: ComponentType | null = null;
   let activeFeaturePage: DashboardPage | null = null;
   let activeFeatureRefreshKey = -1;
+  let featureLoadError: DashboardPage | null = null;
   let authVersion = 0;
   let providerOAuthNotice = '';
   let providerOAuthNoticeTone: 'info' | 'success' | 'error' = 'info';
@@ -60,9 +75,10 @@
   $: preferences = { locale, theme, setLocale: changeLocale, toggleTheme };
   $: gateway = { state: connectionState, address: gatewayAddress };
   $: pageTitle = tr(mustChangePassword && currentPage === 'login' ? 'Set a new admin password' : pageTitles[currentPage]);
-  $: if (authBootstrap !== 'checking' && currentPage !== 'login' && (activeFeaturePage !== currentPage || activeFeatureRefreshKey !== refreshKey)) {
+  $: if (authBootstrap !== 'checking' && dashboardPage(currentPage) && (activeFeaturePage !== currentPage || activeFeatureRefreshKey !== refreshKey)) {
     activeFeaturePage = null;
     activeFeature = null;
+    featureLoadError = null;
     activeFeatureRefreshKey = refreshKey;
     void loadFeatureComponent(currentPage);
   }
@@ -78,28 +94,23 @@
       activeFeatureRefreshKey = requestedRefreshKey;
     } catch {
       if (currentPage !== requestedPage || refreshKey !== requestedRefreshKey) return;
+      // A failed bundle import must stay retryable: keep the page out of the
+      // loaded state so the render shows an error with a Retry action instead
+      // of an unexplained loading screen that never resolves.
       activeFeature = null;
-      activeFeaturePage = requestedPage;
-      activeFeatureRefreshKey = requestedRefreshKey;
-    }
-  }
-
-  function featureComponentLoader(page: DashboardPage): () => Promise<unknown> {
-    switch (page) {
-      case 'overview': return () => import('./features/overview/OverviewPage.svelte');
-      case 'providers': return () => import('./features/providers/ProvidersPage.svelte');
-      case 'combos': return () => import('./features/combos/CombosPage.svelte');
-      case 'quota': return () => import('./features/quota/QuotaPage.svelte');
-      case 'requests': return () => import('./features/requests/RequestsPage.svelte');
-      case 'statistics': return () => import('./features/statistics/StatisticsPage.svelte');
-      case 'api-keys': return () => import('./features/api-keys/ApiKeysPage.svelte');
-      case 'settings': return () => import('./features/settings/SettingsPage.svelte');
+      activeFeaturePage = null;
+      featureLoadError = requestedPage;
     }
   }
 
   function toggleTheme(): void {
     theme = theme === 'light' ? 'dark' : 'light';
     applyTheme(theme);
+  }
+
+  function toggleSidebar(): void {
+    sidebarCollapsed = !sidebarCollapsed;
+    saveSidebarCollapsed(sidebarCollapsed);
   }
 
   function changeLocale(nextLocale: Locale): void {
@@ -120,7 +131,7 @@
   }
 
   function dashboardPage(page: Page): page is DashboardPage {
-    return page !== 'login';
+    return page !== 'login' && !isDocsPage(page);
   }
 
   function redirectToLogin(returnTo: DashboardPage): void {
@@ -129,6 +140,14 @@
     connectionState = 'idle';
     const target = `${pagePaths.login}?next=${encodeURIComponent(pagePaths[returnTo])}`;
     if (`${window.location.pathname}${window.location.search}` !== target) window.history.replaceState(null, '', target);
+  }
+
+  function navigateToDocs(page: DocsPage): void {
+    const path = pagePaths[page];
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    currentPage = page;
+    actionRequest = null;
+    connectionState = 'idle';
   }
 
   function navigateTo(page: DashboardPage, updatePath = true): void {
@@ -159,6 +178,12 @@
     actionRequest = null;
     connectionState = 'idle';
     refreshKey += 1;
+  }
+
+  /** Recovers from a route bundle the browser memoized as failed: only a full
+   * document load re-fetches the chunk. */
+  function reloadDashboard(): void {
+    window.location.reload();
   }
 
   function onLogin(result: AdminLoginResult, enteredPassword: string): void {
@@ -204,6 +229,7 @@
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
     theme = getStoredTheme();
     applyTheme(theme);
+    sidebarCollapsed = getStoredSidebarCollapsed();
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemThemeChange = (e: MediaQueryListEvent): void => {
@@ -219,6 +245,12 @@
     const syncWithLocation = (): void => {
       if (authBootstrap === 'checking') return;
       const page = pageFromPath(window.location.pathname);
+      if (isDocsPage(page)) {
+        currentPage = page;
+        actionRequest = null;
+        connectionState = 'idle';
+        return;
+      }
       if (page === 'login') {
         if (getAdminAccessToken() && !mustChangePassword) {
           const destination = pageAfterLogin(window.location.search);
@@ -264,43 +296,31 @@
     window.addEventListener('exoroute:auth-required', handleAuthRequired);
     window.addEventListener('exoroute:password-change-required', handlePasswordChangeRequired);
     let disposed = false;
-    let sessionRetryTimer: number | null = null;
-    const stopSessionRetryTimer = (): void => {
-      if (sessionRetryTimer !== null) window.clearInterval(sessionRetryTimer);
-      sessionRetryTimer = null;
-    };
-    const startSessionRetryTimer = (seconds: number): void => {
-      stopSessionRetryTimer();
-      sessionRetryAfterSeconds = Math.max(0, Math.min(3600, Math.ceil(seconds)));
-      if (sessionRetryAfterSeconds === 0) return;
-      const retryAt = Date.now() + sessionRetryAfterSeconds * 1000;
-      sessionRetryTimer = window.setInterval(() => {
-        sessionRetryAfterSeconds = Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
-        if (sessionRetryAfterSeconds === 0) stopSessionRetryTimer();
-      }, 250);
-    };
+    const sessionRetryCountdown = createSessionRetryCountdown((seconds) => {
+      sessionRetryAfterSeconds = seconds;
+    });
     const initializeAuthentication = async (manualRetry = false): Promise<void> => {
       if (manualRetry && sessionRetryAfterSeconds > 0) return;
       if (manualRetry) sessionCheckStatus = 'checking';
       else authBootstrap = 'checking';
-      const result = await restoreAdminSession();
+      const outcome = await restoreSessionOnce();
       if (disposed) return;
-      if (result.unavailable) {
+      if (outcome.kind === 'unavailable') {
         authBootstrap = 'unavailable';
-        sessionCheckStatus = result.error?.status === 429 ? 'rate_limited' : 'unavailable';
-        startSessionRetryTimer(result.error?.status === 429 ? result.error.retryAfterSeconds || 5 : 0);
+        sessionCheckStatus = outcome.checkStatus;
+        sessionRetryCountdown.start(outcome.retryAfterSeconds);
         mustChangePassword = false;
         currentPassword = '';
         syncWithLocation();
         return;
       }
-      stopSessionRetryTimer();
+      sessionRetryCountdown.stop();
       sessionRetryAfterSeconds = 0;
       sessionCheckStatus = null;
-      mustChangePassword = result.authenticated && result.mustChangePassword;
+      mustChangePassword = outcome.mustChangePassword;
       currentPassword = '';
       authBootstrap = 'ready';
-      if (result.authenticated && !mustChangePassword) authVersion += 1;
+      if (outcome.authenticated && !mustChangePassword) authVersion += 1;
       if (mustChangePassword && window.location.pathname !== pagePaths.login) {
         window.history.replaceState(null, '', pagePaths.login);
       }
@@ -310,7 +330,7 @@
     void initializeAuthentication();
     return () => {
       disposed = true;
-      stopSessionRetryTimer();
+      sessionRetryCountdown.stop();
       mediaQuery.removeEventListener('change', handleSystemThemeChange);
       window.removeEventListener('popstate', syncWithLocation);
       window.removeEventListener('exoroute:auth-required', handleAuthRequired);
@@ -337,18 +357,29 @@
 
 {#if authBootstrap === 'checking'}
   <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Checking admin session…')}</p></section></main>
+{:else if isDocsPage(currentPage)}
+  <DocsShell page={currentPage} {locale} {preferences} onNavigate={navigateToDocs} onBackToLogin={() => { currentPage = 'login'; window.history.pushState(null, '', pagePaths.login); }}>
+    {#if currentPage === 'docs'}
+      <DocsHomePage {locale} onNavigate={navigateToDocs} />
+    {:else if currentPage === 'docs-quickstart'}
+      <DocsQuickstartPage {locale} />
+    {:else if currentPage === 'docs-integrations'}
+      <DocsIntegrationsPage {locale} />
+    {:else}
+      <DocsReferencePage {locale} />
+    {/if}
+  </DocsShell>
 {:else if currentPage === 'login'}
   <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
 {:else}
-  <DashboardShell currentPage={currentPage} title={pageTitle} {tr} {preferences} {gateway} {providerCount} onNavigate={navigateTo} onRefresh={refreshCurrentPage} onSignOut={signOut}>
+  <DashboardShell currentPage={currentPage} title={pageTitle} {tr} {preferences} {gateway} {providerCount} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} onNavigate={navigateTo} onRefresh={refreshCurrentPage} onSignOut={signOut}>
     {#if providerOAuthNotice}
       <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
         <span>{providerOAuthNotice}</span>
         <button type="button" class="icon-button" aria-label={tr('Dismiss notification')} onclick={() => providerOAuthNotice = ''}>×</button>
       </div>
     {/if}
-    {#key `${currentPage}:${refreshKey}`}
-      {#if activeFeature && activeFeaturePage === currentPage && activeFeatureRefreshKey === refreshKey}
+    {#if activeFeature && activeFeaturePage === currentPage && activeFeatureRefreshKey === refreshKey}
         {#if currentPage === 'overview'}
           <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onCreateRequest={requestCreate} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} onGatewayAddressChange={updateGatewayAddress} />
         {:else if currentPage === 'providers'}
@@ -365,10 +396,20 @@
           <svelte:component this={activeFeature} {tr} {locale} {actionRequest} onConnectionChange={handleConnectionChange} />
         {:else if currentPage === 'settings'}
           <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
+        {:else if currentPage === 'chat'}
+          <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {/if}
+      {:else if featureLoadError === currentPage}
+        <main class="auth-bootstrap session-check-screen" role="alert">
+          <section class="session-check-card">
+            <h1>{tr('Could not load this page.')}</h1>
+            <p>{tr('Check the server, then try again.')}</p>
+            <button class="primary-button" type="button" onclick={refreshCurrentPage}>{tr('Retry')}</button>
+            <button class="secondary-button" type="button" onclick={reloadDashboard}>{tr('Reload page')}</button>
+          </section>
+        </main>
       {:else}
         <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Loading {page}…', { page: pageTitles[currentPage] })}</p></section></main>
       {/if}
-    {/key}
   </DashboardShell>
 {/if}

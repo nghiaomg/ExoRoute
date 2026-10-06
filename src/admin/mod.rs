@@ -13,8 +13,8 @@ use crate::{
     protocol::UpstreamProtocol,
     provider_adapters::{self},
     security::egress,
-    security::{decrypt_secret, encrypt_secret, secure_eq, token_hash},
-    state::{AppState, PendingProviderAuthFlow, ProviderAuthFlowStatus},
+    security::{decrypt_secret, secure_eq, token_hash},
+    state::{AppState, PendingProviderAuthFlow, ProviderAuthFlowMethod, ProviderAuthFlowStatus},
 };
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
 
@@ -56,6 +56,7 @@ mod statistics;
 #[cfg(test)]
 mod tests;
 mod update_check;
+mod workspace;
 
 pub(crate) use errors::{ApiResult, fail, internal, internal_message, resource_id};
 pub(crate) use gates::{rate_limit_admin_login, require_admin};

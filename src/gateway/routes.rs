@@ -56,7 +56,11 @@ pub async fn require_api_key(
     }
 
     match authenticate_client(&state, request.headers()).await {
-        Ok(api_key_id) => {
+        Ok(authenticated) => {
+            let AuthenticatedClient {
+                key_id: api_key_id,
+                scope,
+            } = authenticated;
             let (operational_settings, permit) = {
                 let runtime = state
                     .runtime
@@ -116,6 +120,7 @@ pub async fn require_api_key(
                 resource_limits: state.gateway_resource_limits(),
                 operational_settings,
                 api_key_id: api_key_id.clone(),
+                api_key_scope: scope,
                 analytics: analytics.clone(),
             });
             state.request_count.fetch_add(1, Ordering::Relaxed);
@@ -154,10 +159,16 @@ pub async fn require_api_key(
     }
 }
 
-pub async fn models(State(state): State<AppState>) -> Response {
+pub async fn models(State(state): State<AppState>, request: Request<Body>) -> Response {
+    // The key scope is an authorization snapshot taken during authentication;
+    // a scoped key only discovers models it may actually call.
+    let scope = request
+        .extensions()
+        .get::<GatewayRequestContext>()
+        .map(|context| context.api_key_scope.clone());
     let models = state
         .db
-        .read(|transaction| {
+        .read(move |transaction| {
             let routes = transaction.scan_prefix::<Record>(
                 Table::Routes,
                 "",
@@ -179,7 +190,29 @@ pub async fn models(State(state): State<AppState>) -> Response {
             {
                 return Err(StorageError::Busy);
             }
-
+            // Routes reachable through at least one allowed provider. The scan
+            // runs only for keys that restrict providers.
+            let scoped_route_ids = match &scope {
+                Some(scope) if !scope.allowed_provider_ids().is_empty() => {
+                    let targets = transaction.scan_prefix::<Record>(
+                        Table::RouteTargets,
+                        "",
+                        MAX_PUBLIC_MODEL_RECORDS + 1,
+                    )?;
+                    if targets.len() > MAX_PUBLIC_MODEL_RECORDS {
+                        return Err(StorageError::Busy);
+                    }
+                    let mut allowed = std::collections::HashSet::new();
+                    for (_, target) in targets {
+                        let provider_id = target.text("provider_id")?;
+                        if scope.allows_provider(provider_id) {
+                            allowed.insert(target.text("route_id")?.to_owned());
+                        }
+                    }
+                    Some(allowed)
+                }
+                _ => None,
+            };
             let mut models = Vec::with_capacity(routes.len().saturating_add(provider_models.len()));
             let mut seen = std::collections::HashSet::with_capacity(
                 routes.len().saturating_add(provider_models.len()),
@@ -187,6 +220,15 @@ pub async fn models(State(state): State<AppState>) -> Response {
             for (_, route) in routes {
                 if route.boolean("enabled")? {
                     let id = route.text("id")?.to_owned();
+                    if scope.as_ref().is_some_and(|scope| !scope.allows_model(&id)) {
+                        continue;
+                    }
+                    if scoped_route_ids
+                        .as_ref()
+                        .is_some_and(|allowed| !allowed.contains(&id))
+                    {
+                        continue;
+                    }
                     if seen.insert(id.clone()) {
                         models.push(
                             json!({"id":id,"object":"model","created":0,"owned_by":"exoroute"}),
@@ -214,6 +256,12 @@ pub async fn models(State(state): State<AppState>) -> Response {
                 let Some(prefix) = enabled_providers.get(provider_id) else {
                     continue;
                 };
+                if scope
+                    .as_ref()
+                    .is_some_and(|scope| !scope.allows_provider(provider_id))
+                {
+                    continue;
+                }
                 let model = provider_model.text("model")?;
                 aliases.push((prefix.clone(), model.to_owned()));
             }
@@ -226,6 +274,9 @@ pub async fn models(State(state): State<AppState>) -> Response {
             });
             for (prefix, model) in aliases {
                 let id = format!("{prefix}/{model}");
+                if scope.as_ref().is_some_and(|scope| !scope.allows_model(&id)) {
+                    continue;
+                }
                 if seen.insert(id.clone()) {
                     if models.len() == MAX_PUBLIC_MODEL_RECORDS {
                         return Err(StorageError::Busy);

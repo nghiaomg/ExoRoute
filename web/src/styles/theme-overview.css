@@ -531,24 +531,34 @@
 
 /* Overview Scoped Buttons Dark Mode */
 :root[data-theme='dark'] .overview-view .primary-button {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  background: #f97316;
+  border: 2px solid var(--ink) !important;
+  box-shadow: 3px 3px 0 var(--ink) !important;
 }
 :root[data-theme='dark'] .overview-view .primary-button:hover {
-  background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
+  background: #ea580c !important;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--ink) !important;
+}
+:root[data-theme='dark'] .overview-view .primary-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink) !important;
 }
 :root[data-theme='dark'] .overview-view .secondary-button {
   background: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  border: 2px solid var(--ink) !important;
+  box-shadow: 2px 2px 0 var(--ink) !important;
   color: #c4c8d8;
 }
 :root[data-theme='dark'] .overview-view .secondary-button:hover {
-  background: rgba(255, 255, 255, 0.09) !important;
+  background: rgba(249, 115, 22, 0.12) !important;
   color: #ffffff;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink) !important;
+}
+:root[data-theme='dark'] .overview-view .secondary-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink) !important;
 }
 
 /* Tables, route/provider chips, status badges */
@@ -574,6 +584,9 @@
 :root[data-theme='dark'] .status-badge { color: #bcc0d2; background: rgba(255, 255, 255, 0.06); }
 :root[data-theme='dark'] .status-badge.success { color: #34d399; background: rgba(16, 185, 129, 0.14); }
 :root[data-theme='dark'] .status-badge.failure { color: #fca5a5; background: rgba(239, 68, 68, 0.16); }
+:root[data-theme='dark'] .status-badge.warning { color: #fcd34d; background: rgba(245, 158, 11, 0.16); }
+:root[data-theme='dark'] .status-badge.critical { color: #fca5a5; background: rgba(239, 68, 68, 0.24); }
+:root[data-theme='dark'] .status-badge.live { color: #fdba74; background: rgba(249, 115, 22, 0.18); }
 :root[data-theme='dark'] .protocol-pill { color: #c4b5fd; background: rgba(99, 102, 241, 0.14); }
 :root[data-theme='dark'] .protocol-pill.protocol-chat,
 :root[data-theme='dark'] .protocol-pill.chat,

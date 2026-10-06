@@ -19,8 +19,12 @@ pub(crate) fn encode_backup(entries: Vec<SnapshotEntry>) -> Result<Vec<u8>, &'st
         storage_format_version: crate::infra::storage::STORAGE_FORMAT_VERSION,
         entries,
     };
-    let payload_bytes =
-        bincode::serialize(&payload).map_err(|_| "Could not encode database backup.")?;
+    // Fixint encoding matches `decode_backup`'s reader (u32/u64 LE tags), and
+    // therefore also the test-only preflight parser.
+    let payload_bytes = bincode::DefaultOptions::new()
+        .with_fixint_encoding()
+        .serialize(&payload)
+        .map_err(|_| "Could not encode database backup.")?;
     let header_size = BACKUP_MAGIC
         .len()
         .saturating_add(4 + 8 + BACKUP_CHECKSUM_BYTES);

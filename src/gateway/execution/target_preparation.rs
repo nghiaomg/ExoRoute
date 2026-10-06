@@ -102,9 +102,12 @@ pub(super) async fn prepare_target<'a>(
             .then_some(provider.preferred_protocol)
         });
     let Some(upstream_protocol) = upstream_protocol else {
+        // The provider id is part of the message because the same model id can
+        // be saved on several providers, and the fix (a per-model protocol
+        // override) is applied on one provider row at a time.
         return Err(TargetPreparationError::SkipUnencodable(format!(
-            "provider model '{}' has no configured upstream protocol; set it in the provider model settings",
-            target.model
+            "provider '{}' model '{}' has no configured upstream protocol; set it in the provider model settings",
+            provider.id, target.model
         )));
     };
     if !provider_adapters::supports_upstream_protocol(&provider.adapter_id, upstream_protocol) {
@@ -197,6 +200,11 @@ pub(super) async fn prepare_target<'a>(
         state.config.allow_private_provider_urls,
         scope.operational_settings.connect_timeout,
         scope.operational_settings.request_timeout,
+        // Streaming responses must not inherit the total request timeout:
+        // reqwest's timeout spans the whole body and would abort a healthy
+        // stream once `request_timeout` elapses. The SSE reader owns stream
+        // liveness through its idle deadlines instead.
+        scope.canonical_stream || provider_adapters::wants_event_stream(&provider.adapter_id),
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         scope.operational_settings.upstream,
     )

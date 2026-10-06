@@ -8,6 +8,7 @@
   import { type Translate } from '../lib/format';
 import { localizedError } from '../lib/errors';
   import type { Locale } from '../lib/i18n';
+  import { docsCopy } from '../features/docs/docsCopy';
 
   interface Preferences {
     locale: Locale;
@@ -54,7 +55,7 @@ import { localizedError } from '../lib/errors';
       <a class="login-brand" href="/login" aria-label={tr('ExoRoute')}>
         <span class="brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
         <span class="brand-word">exo<span>route</span></span>
-        <span class="brand-version">0.1</span>
+        <span class="brand-version">0.1.1</span>
       </a>
       <div class="preference-controls" aria-label={tr('Language and appearance')}>
         <LanguageSelect locale={preferences.locale} {tr} onLocaleChange={preferences.setLocale} />
@@ -97,5 +98,6 @@ import { localizedError } from '../lib/errors';
         <button class="primary-button login-submit" disabled={saving || sessionCheckStatus === 'checking'}>{#if saving}<LoaderCircle size={15} class="spin" />{:else}<Check size={15} />{/if}{tr('Sign in')}</button>
       </form>
     {/if}
+    <a class="login-docs-link" href="/docs">{docsCopy(preferences.locale).shell.documentation} <span aria-hidden="true">→</span></a>
   </section>
 </main>

@@ -138,6 +138,7 @@ pub(crate) async fn discover_codex_models(
             .config
             .request_timeout
             .min(upstream.discovery_request_timeout),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         upstream,
     )

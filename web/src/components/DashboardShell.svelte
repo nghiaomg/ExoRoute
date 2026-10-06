@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import {
-    Activity, Boxes, ChartPie, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, Moon, RefreshCw, Settings2, Sun, X,
+    Activity, BookOpen, Boxes, ChartPie, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
   } from '@lucide/svelte';
   import FlyingFishLogo from './FlyingFishLogo.svelte';
   import LanguageSelect from './LanguageSelect.svelte';
@@ -25,6 +25,9 @@
   export let preferences: Preferences;
   export let gateway: GatewayStatus;
   export let providerCount = 0;
+  /** Icon-only rail state, owned by the app so it can persist across pages. */
+  export let collapsed = false;
+  export let onToggleCollapse: () => void = () => {};
   export let onNavigate: (page: DashboardPage) => void;
   export let onRefresh: () => void;
   export let onSignOut: () => Promise<void>;
@@ -41,8 +44,12 @@
     { id: 'api-keys', label: 'API keys', icon: KeyRound },
     { id: 'requests', label: 'Requests', icon: Activity },
     { id: 'statistics', label: 'Statistics', icon: ChartPie },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings2 },
   ] as const;
+
+  /** Workspace pages precede Docs in the sidebar; Docs closes the list. */
+  const docsNavItem = { id: 'docs', label: 'Docs', icon: BookOpen };
 
   const mobileNavItems = [
     { id: 'overview', label: 'Overview', icon: Gauge },
@@ -52,7 +59,7 @@
     { id: 'more', label: 'More', icon: Ellipsis },
   ] as const;
 
-  $: isMoreActive = ['api-keys', 'quota', 'statistics', 'settings'].includes(currentPage);
+  $: isMoreActive = ['api-keys', 'quota', 'statistics', 'settings', 'chat'].includes(currentPage);
 
   function navigateFromLink(event: MouseEvent, page: DashboardPage): void {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -86,23 +93,38 @@
   });
 </script>
 
-<div class="app-shell">
-  <aside class="sidebar">
-    <a class="brand" href="/overview" onclick={(event) => navigateFromLink(event, 'overview')} aria-label={tr('ExoRoute overview')}>
-      <span class="brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
-      <span class="brand-word">exo<span>route</span></span>
-      <span class="brand-version">0.1</span>
-    </a>
+<div class="app-shell" class:sidebar-collapsed={collapsed}>
+  <aside class="sidebar" class:collapsed>
+    <div class="sidebar-brand-row">
+      <a class="brand" href="/overview" onclick={(event) => navigateFromLink(event, 'overview')} aria-label={tr('ExoRoute overview')}>
+        <span class="brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
+        <span class="brand-word">exo<span>route</span></span>
+        <span class="brand-version">0.1.1</span>
+      </a>
+      <button
+        type="button"
+        class="icon-button sidebar-toggle"
+        aria-label={tr(collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
+        title={tr(collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
+        onclick={onToggleCollapse}
+      >
+        {#if collapsed}<PanelLeftOpen size={16} />{:else}<PanelLeftClose size={16} />{/if}
+      </button>
+    </div>
 
     <div class="workspace-label">{tr('WORKSPACE')}</div>
     <nav class="primary-nav" aria-label={tr('Main navigation')}>
       {#each navigation as item}
-        <a class:active={currentPage === item.id} class="nav-item" href={`/${item.id}`} onclick={(event) => navigateFromLink(event, item.id)}>
+        <a class:active={currentPage === item.id} class="nav-item" href={`/${item.id}`} aria-label={tr(item.label)} title={tr(item.label)} onclick={(event) => navigateFromLink(event, item.id)}>
           <svelte:component this={item.icon} size={18} strokeWidth={1.8} />
           <span>{tr(item.label)}</span>
           {#if item.id === 'providers' && providerCount}<span class="nav-count">{providerCount}</span>{/if}
         </a>
       {/each}
+      <a class="nav-item docs-nav-item" href="/docs" aria-label={tr(docsNavItem.label)} title={tr(docsNavItem.label)}>
+        <svelte:component this={docsNavItem.icon} size={18} strokeWidth={1.8} />
+        <span>{tr(docsNavItem.label)}</span>
+      </a>
     </nav>
 
     <div class="sidebar-spacer"></div>
@@ -117,20 +139,22 @@
 
   <main class="main-area">
     <header class="topbar">
-      <div class="topbar-left">
-        <a class="mobile-brand" href="/overview" onclick={(event) => navigateFromLink(event, 'overview')} aria-label={tr('ExoRoute overview')}>
-          <span class="brand-mark"><FlyingFishLogo size={22} variant="mark" /></span>
-          <span class="brand-word">exo<span>route</span></span>
-        </a>
-        <div class="breadcrumbs"><span>{tr('Workspace')}</span><span class="crumb-slash">/</span><strong>{title}</strong></div>
-      </div>
-      <div class="topbar-actions">
-        <div class="preference-controls" aria-label={tr('Language and appearance')}>
-          <LanguageSelect locale={preferences.locale} {tr} onLocaleChange={preferences.setLocale} />
-          <button class="preference-button theme-button" aria-label={tr(preferences.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.theme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.theme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</button>
+      <div class="topbar-inner">
+        <div class="topbar-left">
+          <a class="mobile-brand" href="/overview" onclick={(event) => navigateFromLink(event, 'overview')} aria-label={tr('ExoRoute overview')}>
+            <span class="brand-mark"><FlyingFishLogo size={22} variant="mark" /></span>
+            <span class="brand-word">exo<span>route</span></span>
+          </a>
+          <div class="breadcrumbs"><span>{tr('Workspace')}</span><span class="crumb-slash">/</span><strong>{title}</strong></div>
         </div>
-        <div class="gateway-pill"><span class="status-light" class:online={gateway.state === 'loaded'} class:offline={gateway.state === 'error'}></span><span>{tr(gateway.state === 'error' ? 'Disconnected' : 'Gateway')}</span><code>{gateway.address}</code></div>
-        <button class="icon-button mobile-menu-btn" aria-label={tr('Main navigation')} onclick={() => mobileMoreOpen = true}><Menu size={18} /></button>
+        <div class="topbar-actions">
+          <div class="preference-controls" aria-label={tr('Language and appearance')}>
+            <LanguageSelect locale={preferences.locale} {tr} onLocaleChange={preferences.setLocale} />
+            <button class="preference-button theme-button" aria-label={tr(preferences.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.theme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.theme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</button>
+          </div>
+          <div class="gateway-pill"><span class="status-light" class:online={gateway.state === 'loaded'} class:offline={gateway.state === 'error'}></span><span>{tr(gateway.state === 'error' ? 'Disconnected' : 'Gateway')}</span><code>{gateway.address}</code></div>
+          <button class="icon-button mobile-menu-btn" aria-label={tr('Main navigation')} onclick={() => mobileMoreOpen = true}><Menu size={18} /></button>
+        </div>
       </div>
     </header>
 
@@ -219,6 +243,10 @@
               {#if item.id === 'providers' && providerCount}<span class="nav-count">{providerCount}</span>{/if}
             </a>
           {/each}
+          <a class="mobile-sheet-nav-item" href="/docs" onclick={() => { mobileMoreOpen = false; }}>
+            <svelte:component this={docsNavItem.icon} size={18} strokeWidth={1.8} />
+            <span>{tr(docsNavItem.label)}</span>
+          </a>
         </div>
 
         <div class="mobile-sheet-status">

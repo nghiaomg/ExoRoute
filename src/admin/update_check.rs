@@ -48,6 +48,7 @@ pub(super) async fn check_for_updates(State(state): State<AppState>) -> ApiResul
         operational
             .request_timeout
             .min(UPDATE_CHECK_REQUEST_TIMEOUT),
+        false,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         operational.upstream,
     )

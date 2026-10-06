@@ -53,6 +53,10 @@ pub async fn connect(path: &Path) -> Result<Database, StorageError> {
     bootstrap::initialize_storage(&database).await?;
     request_logs::repair_request_log_indexes(&database).await?;
     bootstrap::recover_abandoned_stream_runs(&database).await?;
+    // Load the persisted request-log compression dictionary so frames match
+    // what this environment has stored; test connections skip this to keep
+    // the process-global dictionary out of parallel test runs.
+    crate::infra::storage::load_request_log_dictionary(&database).await;
     Ok(database)
 }
 

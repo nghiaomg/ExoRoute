@@ -7,6 +7,10 @@ pub(crate) fn validate_backup_payload(
 ) -> Result<RestoredRuntimeSettings, &'static str> {
     crate::infra::storage::validate_snapshot_entries(&payload.entries)
         .map_err(|_| "The backup contains invalid or unsupported LMDB records.")?;
+    // Decode request-log frames with the dictionary carried by this backup,
+    // not the runtime dictionary of the process performing the import.
+    let request_log_dictionary =
+        crate::infra::storage::request_log_dictionary_from_entries(&payload.entries);
     let mut providers = HashMap::<String, Record>::new();
     let mut routes = HashSet::<String>::new();
     let mut api_keys = HashSet::<String>::new();
@@ -150,6 +154,10 @@ pub(crate) fn validate_backup_payload(
                 let _ = record
                     .text("name")
                     .map_err(|_| "An API key record in the backup is invalid.")?;
+                // Restored scopes must stay enforceable; a malformed list is
+                // rejected here instead of failing every request of that key.
+                let _ = crate::security::api_key_scope::ApiKeyScope::from_record(&record)
+                    .map_err(|_| "The backup contains an invalid gateway API key scope.")?;
             }
             Table::ProviderApiKeys => {
                 let record: Record = bincode::deserialize(&entry.value)
@@ -216,6 +224,11 @@ pub(crate) fn validate_backup_payload(
                             "A provider model record in the backup has an invalid upstream protocol."
                         })?;
                 }
+                // The source is parsed by the store that owns the field, so a
+                // restored catalog can never carry an unknown source that the
+                // import path would later refuse to read.
+                crate::admin::providers::models_store::ProviderModelSource::from_record(&record)
+                    .map_err(|_| "A provider model record in the backup has an invalid source.")?;
                 let expected_key = crate::infra::db::provider_model_key(provider_id, model)
                     .map_err(|_| "A provider model record in the backup has an invalid key.")?;
                 if entry.key != expected_key
@@ -280,8 +293,14 @@ pub(crate) fn validate_backup_payload(
                 }
             }
             Table::RequestLogs => {
-                let record: Record = bincode::deserialize(&entry.value)
-                    .map_err(|_| "A request log record in the backup is invalid.")?;
+                // Request logs may be stored compressed or raw depending on
+                // the build that produced the backup; both are valid, and
+                // frames are decoded with the backup's own dictionary.
+                let record: Record = crate::infra::storage::decode_request_log_bytes(
+                    &entry.value,
+                    request_log_dictionary.as_deref(),
+                )
+                .map_err(|_| "A request log record in the backup is invalid.")?;
                 if record
                     .text("id")
                     .map_err(|_| "A request log record in the backup is invalid.")?

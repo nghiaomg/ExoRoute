@@ -1,0 +1,34 @@
+/* Dark-mode flattening.
+ *
+ * The light theme is Soft Neo-Brutalism: 2px ink borders with hard offset
+ * shadows. On dark surfaces that stroke language reads as visual noise, so
+ * dark mode drops border and shadow strokes globally and relies on the
+ * per-surface dark palette (surface backgrounds) for separation.
+ *
+ * Two ordering guarantees keep these rules winning the cascade:
+ * 1. main.ts imports this file after styles.css and theme.css, so it is
+ *    injected last in both the dev server and the production bundle.
+ * 2. The `[data-theme='dark']` attribute is repeated eight times purely to
+ *    raise specificity above the !important dark rules in theme-*.css
+ *    (the heaviest of which reach (0,4,0)); repeating a matching attribute
+ *    selector is a no-op semantically. Every declaration here is !important
+ *    because the theme files also declare borders and shadows with
+ *    !important at equal or lower specificity.
+ *
+ * Borders are made transparent rather than removed: the border box keeps
+ * its exact light-theme geometry, so nothing reflows when the theme flips.
+ * Because focus rings in this app are box-shadows, a plain outline keeps
+ * keyboard focus visible without reintroducing any stroke.
+ */
+:root[data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'] *,
+:root[data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'] ::before,
+:root[data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'] ::after {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'] *:focus-visible {
+  outline: 2px solid #fb923c !important;
+  outline-offset: 2px !important;
+}

@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert/strict';
 import test from 'node:test';
+import { isDocsPage, pageAfterLogin as resolveAfterLogin, pageFromPath as resolveAppPage } from '../src/lib/navigation';
 
 export type DashboardPage =
   | 'overview'
@@ -66,6 +67,24 @@ test('legacy /routes path resolves to the combos page', () => {
   assert.equal(pageFromPath('/routes'), 'combos');
   assert.equal(pageFromPath('/'), 'overview');
   assert.equal(pageFromPath('/unknown'), 'overview');
+});
+
+test('public documentation routes resolve without becoming admin redirect targets', () => {
+  const docsPages = [
+    ['/docs', 'docs'],
+    ['/docs/quickstart', 'docs-quickstart'],
+    ['/docs/integrations/', 'docs-integrations'],
+    ['/docs/reference', 'docs-reference'],
+  ] as const;
+
+  for (const [path, page] of docsPages) {
+    const resolved = resolveAppPage(path);
+    assert.equal(resolved, page);
+    assert.equal(isDocsPage(resolved), true);
+  }
+
+  assert.equal(resolveAfterLogin('?next=/docs'), 'overview');
+  assert.equal(resolveAfterLogin('?next=/docs/reference'), 'overview');
 });
 
 test('formatGatewayEndpoint displays domain/v1 when window host is present and falls back to host:port/v1', async () => {

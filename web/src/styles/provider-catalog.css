@@ -2,15 +2,10 @@
 @keyframes rise-in { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-/* ── 2K / 4K Ultra-wide Displays (2560px+) ── */
-@media (min-width: 1921px) {
-  .content-wrap { max-width: 1536px; margin: 0 auto; }
-}
-
 /* ── Laptop / Compact Desktop (1024px – 1160px) ── */
 @media (max-width: 1160px) {
-  .topbar { padding: 0 28px; }
-  .content-wrap { padding: 30px 28px 20px; }
+  :root { --content-gutter: 28px; }
+  .content-wrap { padding: 30px var(--content-gutter) 20px; }
   .sidebar { width: 220px; }
   .main-area { width: calc(100% - 220px); margin-left: 220px; }
   .overview-hero { grid-template-columns: 1fr; gap: 24px; padding: 28px; }
@@ -35,8 +30,8 @@
   .refresh-button { display: none; }
   .sidebar-footer { justify-content: center; width: 100%; padding-top: 12px; }
   .main-area { width: calc(100% - 68px); margin-left: 68px; }
-  .topbar { padding: 0 20px; }
-  .content-wrap { padding: 24px 20px 20px; }
+  :root { --content-gutter: 20px; }
+  .content-wrap { padding: 24px var(--content-gutter) 20px; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .setup-grid { grid-template-columns: 1fr; }
 }
@@ -53,7 +48,7 @@
   .mobile-brand .brand-word span { color: #f97316; }
   .breadcrumbs { display: none; }
   .mobile-menu-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e9eaf0; background: #fff; color: #53576b; cursor: pointer; }
-  .topbar { height: 54px; padding: max(0px, env(safe-area-inset-top)) 14px 0; position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .topbar { height: 54px; padding: max(0px, env(safe-area-inset-top)) var(--content-gutter) 0; position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
   .topbar-actions { gap: 6px; }
   .preference-controls { gap: 4px; }
   .preference-button { width: 30px; min-width: 30px; height: 30px; padding: 0; }
@@ -63,8 +58,9 @@
   .gateway-pill { padding: 5px 8px; gap: 6px; }
   .gateway-pill code, .gateway-pill > span:not(.status-light) { display: none; }
 
-  /* Mobile Content Padding */
-  .content-wrap { padding: 18px 14px calc(76px + env(safe-area-inset-bottom)) !important; }
+  /* Mobile Content Padding: the token keeps the topbar on the same gutter. */
+  :root { --content-gutter: 14px !important; }
+  .content-wrap { padding: 18px var(--content-gutter) calc(76px + env(safe-area-inset-bottom)) !important; }
 
   /* Mobile Heading & Actions */
   .page-heading { flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 18px; }
@@ -383,8 +379,8 @@
 
 /* ── Small Android & Old Phones (320px – 360px) ── */
 @media (max-width: 360px) {
-  .content-wrap { padding: 14px 10px calc(76px + env(safe-area-inset-bottom)) !important; }
-  .topbar { padding: max(0px, env(safe-area-inset-top)) 10px 0; }
+  :root { --content-gutter: 10px !important; }
+  .content-wrap { padding: 14px var(--content-gutter) calc(76px + env(safe-area-inset-bottom)) !important; }
   .mobile-brand .brand-word { font-size: 13px; }
   .mobile-sheet-nav-grid { grid-template-columns: 1fr; }
   .page-heading h1 { font-size: 19px; }
