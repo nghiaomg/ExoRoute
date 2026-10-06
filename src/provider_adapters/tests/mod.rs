@@ -24,3 +24,4 @@ mod opencode_usage;
 mod openrouter_usage;
 mod registry_catalog;
 mod support;
+mod workspace_relay;

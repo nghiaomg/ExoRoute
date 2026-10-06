@@ -11,6 +11,13 @@ use crate::protocol::parse_thinking_handling;
 
 const MAX_CHAT_MESSAGE_CHARS: usize = 128 * 1024;
 const MAX_CHAT_SYSTEM_PROMPT_CHARS: usize = 32 * 1024;
+/// The dashboard keeps the scratchpad in memory, so the relay accepts a bounded
+/// slice of it: enough for a working conversation, never an unbounded body.
+pub(super) const MAX_CHAT_HISTORY_TURNS: usize = 40;
+pub(super) const MAX_CHAT_HISTORY_CHARS: usize = 256 * 1024;
+/// A single reply has to fit the bounded response reader, so the request cap is
+/// generous but finite.
+pub(super) const MAX_CHAT_MAX_TOKENS: u32 = 128 * 1024;
 const MAX_CHAT_ATTACHMENTS: usize = 8;
 const MAX_CHAT_ATTACHMENT_BASE64_CHARS: usize = 6_000_000;
 const MAX_CHAT_ATTACHMENT_TOTAL_DECODED_BYTES: usize = 8 * 1024 * 1024;
@@ -30,6 +37,23 @@ pub(super) struct ChatTextInput {
     pub(super) system_prompt: Option<String>,
     pub(super) thinking_mode: ChatThinkingMode,
     pub(super) thinking_override: Option<String>,
+    /// Prior turns the dashboard kept in memory, oldest first. Text only:
+    /// attachments belong to the turn that uploaded them.
+    pub(super) history: Vec<ChatHistoryMessage>,
+    pub(super) temperature: Option<f64>,
+    pub(super) top_p: Option<f64>,
+    pub(super) max_tokens: Option<u32>,
+}
+
+pub(super) struct ChatHistoryMessage {
+    pub(super) role: ChatHistoryRole,
+    pub(super) text: String,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum ChatHistoryRole {
+    User,
+    Assistant,
 }
 
 /// Per-request thinking preference for one workspace message.
@@ -156,12 +180,130 @@ pub(super) fn parse_chat_text_input(
         parse_thinking_handling("override", Some(validated))
             .map_err(|message| fail_request(StatusCode::BAD_REQUEST, message))?;
     }
+    // Generation settings are validated against the protocol-agnostic ranges:
+    // an out-of-range value is reported, never silently clamped.
+    let temperature = parse_bounded_float(input, "temperature", 0.0, 2.0)?;
+    let top_p = parse_bounded_float(input, "top_p", 0.0, 1.0)?;
+    let max_tokens = match input.get("max_tokens") {
+        None | Some(Value::Null) => None,
+        Some(value) => {
+            let tokens = value
+                .as_u64()
+                .filter(|tokens| *tokens >= 1 && *tokens <= MAX_CHAT_MAX_TOKENS as u64)
+                .ok_or_else(|| {
+                    fail_request(
+                        StatusCode::BAD_REQUEST,
+                        format!(
+                            "max_tokens must be an integer between 1 and {MAX_CHAT_MAX_TOKENS}"
+                        ),
+                    )
+                })?;
+            Some(tokens as u32)
+        }
+    };
     Ok(ChatTextInput {
         message: message.to_owned(),
         system_prompt,
         thinking_mode,
         thinking_override,
+        history: parse_chat_history(input)?,
+        temperature,
+        top_p,
+        max_tokens,
     })
+}
+
+/// One optional bounded float field.
+fn parse_bounded_float(
+    input: &Value,
+    key: &str,
+    min: f64,
+    max: f64,
+) -> Result<Option<f64>, (StatusCode, Json<Value>)> {
+    match input.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(value) => value
+            .as_f64()
+            .filter(|number| number.is_finite() && *number >= min && *number <= max)
+            .map(Some)
+            .ok_or_else(|| {
+                fail_request(
+                    StatusCode::BAD_REQUEST,
+                    format!("{key} must be a number between {min} and {max}"),
+                )
+            }),
+    }
+}
+
+/// Parses the bounded prior-turn history, oldest first. The dashboard mirrors
+/// these budgets, so a well-behaved client never reaches them; exceeding one is
+/// reported instead of silently dropping the operator's turns.
+fn parse_chat_history(input: &Value) -> Result<Vec<ChatHistoryMessage>, (StatusCode, Json<Value>)> {
+    let Some(entries) = input.get("history") else {
+        return Ok(Vec::new());
+    };
+    if entries.is_null() {
+        return Ok(Vec::new());
+    }
+    let Some(entries) = entries.as_array() else {
+        return Err(fail_request(
+            StatusCode::BAD_REQUEST,
+            "history must be an array",
+        ));
+    };
+    if entries.is_empty() {
+        return Ok(Vec::new());
+    }
+    if entries.len() > MAX_CHAT_HISTORY_TURNS {
+        return Err(fail_request(
+            StatusCode::BAD_REQUEST,
+            format!("history exceeds the {MAX_CHAT_HISTORY_TURNS} turn limit"),
+        ));
+    }
+    let mut history = Vec::with_capacity(entries.len());
+    let mut total_chars = 0usize;
+    for entry in entries {
+        let role = match entry.get("role").and_then(Value::as_str) {
+            Some("user") => ChatHistoryRole::User,
+            Some("assistant") => ChatHistoryRole::Assistant,
+            _ => {
+                return Err(fail_request(
+                    StatusCode::BAD_REQUEST,
+                    "history role must be user or assistant",
+                ));
+            }
+        };
+        let text = entry
+            .get("text")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| {
+                fail_request(
+                    StatusCode::BAD_REQUEST,
+                    "history text must be a non-empty string",
+                )
+            })?;
+        let chars = text.chars().count();
+        if chars > MAX_CHAT_MESSAGE_CHARS {
+            return Err(fail_request(
+                StatusCode::BAD_REQUEST,
+                format!("history message exceeds the {MAX_CHAT_MESSAGE_CHARS} character limit"),
+            ));
+        }
+        total_chars = total_chars.saturating_add(chars);
+        if total_chars > MAX_CHAT_HISTORY_CHARS {
+            return Err(fail_request(
+                StatusCode::BAD_REQUEST,
+                format!("history exceeds the {MAX_CHAT_HISTORY_CHARS} character budget"),
+            ));
+        }
+        history.push(ChatHistoryMessage {
+            role,
+            text: text.to_owned(),
+        });
+    }
+    Ok(history)
 }
 
 /// Tolerant base64 decoder matching the protocol codec: padded or unpadded

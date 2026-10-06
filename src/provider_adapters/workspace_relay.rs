@@ -37,10 +37,15 @@ impl AdapterWorkspaceChatOutcome {
     }
 }
 
-pub(super) async fn relay_workspace_inference_impl<A: ProviderAdapter + ?Sized>(
+/// Builds the authenticated upstream request builder shared by the one-shot
+/// and streaming workspace relays. Egress validation, adapter headers, and
+/// auth application are identical; only the pinned client's streaming shape
+/// differs, so the caller picks the timeout profile.
+async fn prepare_workspace_request<A: ProviderAdapter + ?Sized>(
     adapter: &A,
-    request: AdapterWorkspaceChatRequest<'_>,
-) -> Result<AdapterWorkspaceChatOutcome, AdapterRequestError> {
+    request: &AdapterWorkspaceChatRequest<'_>,
+    streaming: bool,
+) -> Result<reqwest::RequestBuilder, AdapterRequestError> {
     let endpoint = adapter
         .endpoint(request.base_url, request.protocol, None)
         .map_err(|message| AdapterRequestError::new(None, None, message))?;
@@ -58,7 +63,7 @@ pub(super) async fn relay_workspace_inference_impl<A: ProviderAdapter + ?Sized>(
             .config
             .request_timeout
             .min(Duration::from_secs(30)),
-        false,
+        streaming,
         concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
         upstream,
     )
@@ -90,7 +95,16 @@ pub(super) async fn relay_workspace_inference_impl<A: ProviderAdapter + ?Sized>(
             },
         )
         .map_err(|message| AdapterRequestError::new(None, None, message))?;
-    let response = provider_request.send().await.map_err(|error| {
+    Ok(provider_request)
+}
+
+/// Sends the prepared request and maps a transport failure onto the shared
+/// sanitized error shape.
+async fn send_workspace_request(
+    request: &AdapterWorkspaceChatRequest<'_>,
+    provider_request: reqwest::RequestBuilder,
+) -> Result<reqwest::Response, AdapterRequestError> {
+    provider_request.send().await.map_err(|error| {
         AdapterRequestError::new(
             None,
             None,
@@ -100,7 +114,15 @@ pub(super) async fn relay_workspace_inference_impl<A: ProviderAdapter + ?Sized>(
                 upstream_transport_error_message(&error)
             ),
         )
-    })?;
+    })
+}
+
+pub(super) async fn relay_workspace_inference_impl<A: ProviderAdapter + ?Sized>(
+    adapter: &A,
+    request: AdapterWorkspaceChatRequest<'_>,
+) -> Result<AdapterWorkspaceChatOutcome, AdapterRequestError> {
+    let provider_request = prepare_workspace_request(adapter, &request, false).await?;
+    let response = send_workspace_request(&request, provider_request).await?;
     let status = response.status();
     if !status.is_success() {
         let provider_response_body = read_limited_response(response, MAX_MODEL_TEST_RESPONSE_BYTES)
@@ -146,14 +168,30 @@ pub(super) async fn relay_workspace_inference_impl<A: ProviderAdapter + ?Sized>(
             ),
         )
     })?;
-    adapter
-        .normalize_response(value.clone())
-        .map_err(|message| {
-            AdapterRequestError::new(Some(http::StatusCode::BAD_GATEWAY), None, message)
-        })?;
+    // The adapter's normalization is the relay's decode contract, exactly as in
+    // the gateway: a provider that wraps its completion in an adapter-specific
+    // envelope (ClinePass answers `{success, data}`) must reach the response
+    // decoder unwrapped, or every chat turn fails as an undecodable body.
+    let value = adapter.normalize_response(value).map_err(|message| {
+        AdapterRequestError::new(Some(http::StatusCode::BAD_GATEWAY), None, message)
+    })?;
     Ok(AdapterWorkspaceChatOutcome { body: value })
+}
+
+/// Relays one prepared workspace chat request and returns the live upstream
+/// response for incremental (streaming) consumption. Exactly one attempt is
+/// made: once the upstream may have accepted or billed an inference the
+/// request is never retried or failed over, and nothing is persisted. The
+/// caller owns liveness (idle and overall deadlines) and must consume or drop
+/// the body; dropping it releases the connection.
+pub(super) async fn relay_workspace_inference_stream_impl<A: ProviderAdapter + ?Sized>(
+    adapter: &A,
+    request: AdapterWorkspaceChatRequest<'_>,
+) -> Result<reqwest::Response, AdapterRequestError> {
+    let provider_request = prepare_workspace_request(adapter, &request, true).await?;
+    send_workspace_request(&request, provider_request).await
 }
 
 /// A chat reply can legitimately be large, so the relay reads up to 1 MiB of
 /// the upstream body instead of the probe path's 256 KiB.
-pub(super) const MAX_WORKSPACE_CHAT_RESPONSE_BYTES: usize = 1024 * 1024;
+pub(crate) const MAX_WORKSPACE_CHAT_RESPONSE_BYTES: usize = 1024 * 1024;

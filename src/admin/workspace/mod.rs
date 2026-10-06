@@ -17,9 +17,13 @@ use serde_json::{Value, json};
 use std::time::Instant;
 
 mod input;
+mod stream;
 mod target;
 
+mod delta;
+
 use input::{parse_chat_attachments, parse_chat_target_ids, parse_chat_text_input};
+pub(crate) use stream::stream_workspace_chat;
 use target::{prepare_chat_turn, resolve_turn_credential, workspace_model_options};
 
 /// Router body limit for the chat POST: attachments are inlined as base64, so
@@ -38,7 +42,7 @@ pub(crate) async fn send_workspace_chat(
     let (provider_id, model) = parse_chat_target_ids(&input)?;
     let text = parse_chat_text_input(&input)?;
     let attachments = parse_chat_attachments(&input)?;
-    let turn = prepare_chat_turn(&state, &provider_id, &model, &text, &attachments).await?;
+    let turn = prepare_chat_turn(&state, &provider_id, &model, &text, &attachments, false).await?;
     let credential = resolve_turn_credential(&state, &turn).await?;
     let auth = credential.as_turn_auth();
     let started = Instant::now();
@@ -74,7 +78,7 @@ pub(crate) async fn send_workspace_chat(
             .map_err(|error| {
             fail(
                 StatusCode::BAD_GATEWAY,
-                format!("could not decode provider response: {error}"),
+                crate::gateway::provider_decode_failure_message(&error, outcome.body()),
             )
         })?;
     let reply = decoded
