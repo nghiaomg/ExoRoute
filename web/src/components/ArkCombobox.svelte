@@ -2,6 +2,10 @@
   export interface ComboboxOption {
     label: string;
     value: string;
+    /** Short muted suffix rendered after the label, e.g. the provider prefix. */
+    hint?: string;
+    /** Extra text the filter also matches, e.g. the full id behind a short label. */
+    keywords?: string;
   }
 </script>
 
@@ -20,6 +24,8 @@
     pill?: boolean;
     /** Accessible name for the pill input when no visible label is shown. */
     ariaLabel?: string;
+    /** Show the clear affordance next to the chevron; off when a value is required. */
+    clearable?: boolean;
     /** Text shown when the filter matches nothing. */
     noOptionsText?: string;
     class?: string;
@@ -33,6 +39,7 @@
   export let disabled = false;
   export let pill = false;
   export let ariaLabel = '';
+  export let clearable = true;
   export let noOptionsText = 'No options';
   // `class` is a reserved word: declare an alias and re-export it under the
   // attribute name, the standard legacy-Svelte rename pattern.
@@ -41,12 +48,16 @@
   export let onValueChange: ((value: string) => void) | undefined = undefined;
 
   // Ark performs no filtering on its own: the dropdown renders whatever the
-  // caller's collection holds, so the search text narrows it here.
+  // caller's collection holds, so the search text narrows it here. The hint
+  // and keywords stay searchable even when only the short label is shown.
   let filterQuery = '';
 
-  $: filteredItems = filterQuery.trim().toLowerCase()
-    ? items.filter((item) => item.label.toLowerCase().includes(filterQuery.trim().toLowerCase()))
-    : items;
+  function searchText(item: ComboboxOption): string {
+    return `${item.label} ${item.hint ?? ''} ${item.keywords ?? ''}`.toLowerCase();
+  }
+
+  $: query = filterQuery.trim().toLowerCase();
+  $: filteredItems = query ? items.filter((item) => searchText(item).includes(query)) : items;
 
   $: collection = createListCollection({
     items: filteredItems,
@@ -80,7 +91,9 @@
   }
 </script>
 
-<div class={`ark-combobox-root ${pill ? 'ark-combobox-pill' : ''} ${className}`}>
+<div
+  class={`ark-combobox-root ${pill ? 'ark-combobox-pill' : ''} ${!clearable ? 'ark-combobox-no-clear' : ''} ${className}`}
+>
   {#if label && !pill}
     <Combobox.Label class="ark-combobox-label">{label}</Combobox.Label>
   {/if}
@@ -104,7 +117,7 @@
         aria-label={pill ? ariaLabel || label || placeholder : undefined}
       />
       <div class="ark-combobox-indicators">
-        {#if value}
+        {#if value && clearable}
           <button
             class="ark-combobox-clear"
             type="button"
@@ -126,8 +139,13 @@
             <div class="ark-combobox-empty">{noOptionsText}</div>
           </Combobox.Empty>
           {#each collection.items as item (item.value)}
-            <Combobox.Item class="ark-combobox-item" item={item}>
+            <Combobox.Item
+              class="ark-combobox-item"
+              item={item}
+              title={item.value === item.label ? undefined : item.value}
+            >
               <Combobox.ItemText class="ark-combobox-item-text">{item.label}</Combobox.ItemText>
+              {#if item.hint}<span class="ark-combobox-item-hint">{item.hint}</span>{/if}
               <Combobox.ItemIndicator class="ark-combobox-item-indicator">
                 <Check size={14} />
               </Combobox.ItemIndicator>
