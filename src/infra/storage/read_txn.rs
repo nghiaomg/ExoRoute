@@ -27,8 +27,20 @@ impl ReadTxn<'_, '_> {
         keys::validate_key(key)?;
         self.database(table)?
             .get(self.txn, key)?
-            .map(codec::decode_record)
+            .map(|bytes| codec::decode_stored_record(table, bytes))
             .transpose()
+    }
+
+    /// Read the stored bytes verbatim, without record decoding or
+    /// decompression. Tests use this to assert on the stored layout; the
+    /// typed `get` remains the only sanctioned read for domain callers.
+    #[cfg(test)]
+    pub(crate) fn get_raw(&self, table: Table, key: &str) -> Result<Option<Vec<u8>>, StorageError> {
+        keys::validate_key(key)?;
+        Ok(self
+            .database(table)?
+            .get(self.txn, key)?
+            .map(|bytes| bytes.to_vec()))
     }
 
     pub fn scan_prefix<T: DeserializeOwned>(
@@ -66,7 +78,7 @@ impl ReadTxn<'_, '_> {
                 if !key.starts_with(prefix) {
                     break;
                 }
-                values.push((key.to_owned(), codec::decode_record(value)?));
+                values.push((key.to_owned(), codec::decode_stored_record(table, value)?));
                 if values.len() == limit {
                     break;
                 }
@@ -74,7 +86,7 @@ impl ReadTxn<'_, '_> {
         } else if prefix.is_empty() {
             for item in database.iter(self.txn)? {
                 let (key, value) = item?;
-                values.push((key.to_owned(), codec::decode_record(value)?));
+                values.push((key.to_owned(), codec::decode_stored_record(table, value)?));
                 if values.len() == limit {
                     break;
                 }
@@ -82,7 +94,7 @@ impl ReadTxn<'_, '_> {
         } else {
             for item in database.prefix_iter(self.txn, prefix)? {
                 let (key, value) = item?;
-                values.push((key.to_owned(), codec::decode_record(value)?));
+                values.push((key.to_owned(), codec::decode_stored_record(table, value)?));
                 if values.len() == limit {
                     break;
                 }
