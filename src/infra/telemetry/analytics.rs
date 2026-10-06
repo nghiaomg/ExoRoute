@@ -46,6 +46,19 @@ impl super::RequestAnalytics {
         }
     }
 
+    /// Raw token counters the upstream reported so far, in the same order the
+    /// streaming translation state tracks them: input, output, cached, cache
+    /// input. All four stay zero until a usage event arrives, so a stream that
+    /// is abandoned before finalization can still record what it observed.
+    pub fn observed_tokens(&self) -> (i64, i64, i64, i64) {
+        (
+            self.inner.input_tokens.load(Ordering::Relaxed),
+            self.inner.output_tokens.load(Ordering::Relaxed),
+            self.inner.cached_tokens.load(Ordering::Relaxed),
+            self.inner.cache_input_tokens.load(Ordering::Relaxed),
+        )
+    }
+
     pub fn defer_completion(&self) {
         self.inner.deferred.store(true, Ordering::Release);
     }
