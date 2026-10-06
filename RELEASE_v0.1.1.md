@@ -99,7 +99,7 @@ The release tag must match the package version: `v0.1.1`.
 
 ## Verification
 
-The following checks passed on the merged `develop` tree that this release note describes:
+The following checks passed on the merged `develop` tree that this release note describes. The Rust checks ran on Rust 1.88.0, the toolchain the release workflow pins, which matters for lint results: a newer local toolchain had already demoted the one lint this release tripped on. The frontend checks ran on Node 24.19.0, not on the Node 22 that the workflow uses, so they are local results rather than workflow reproductions.
 
 - `cargo fmt --all -- --check`
 - `cargo clippy --workspace --all-targets --all-features -- -D warnings`
