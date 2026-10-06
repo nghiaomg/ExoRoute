@@ -173,6 +173,9 @@ import { localizedError } from '../../lib/errors';
       <ModelBreakdownTable
         items={statistics.model_breakdown}
         truncated={statistics.model_breakdown_truncated}
+        incomplete={statistics.model_breakdown_incomplete}
+        coveredRequests={statistics.logged_requests}
+        totalRequests={statistics.total_requests}
         {tr}
         {locale}
       />

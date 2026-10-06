@@ -143,15 +143,26 @@ fn request_log_created_at(index_key: &str) -> Result<&str, StorageError> {
         .ok_or_else(|| StorageError::Invalid("request log time index is malformed".to_owned()))
 }
 
+/// Groups the request-log rows inside the range by model and combo.
+///
+/// Returns the grouped rows, whether the scan or the output was truncated, and
+/// how many retained log rows this view covers. The covered count lets the
+/// caller compare the log-derived rows with the rollup totals: request history
+/// is bounded (retention days, retained rows, and the scan limit) while the
+/// rolling totals are not, so the two can legitimately describe different
+/// amounts of traffic. A client request can produce several attempt logs, so
+/// the covered count is normally not smaller than the request count; a smaller
+/// value means requests are missing from the history.
 fn model_breakdown(
     transaction: &crate::infra::storage::ReadTxn<'_, '_>,
     cutoff: &str,
     api_key_id: Option<&str>,
-) -> Result<(Vec<serde_json::Value>, bool), StorageError> {
+) -> Result<(Vec<serde_json::Value>, bool, i64), StorageError> {
     let mut groups = BTreeMap::<(String, Option<String>), ModelBreakdownCounts>::new();
     let mut after = None::<String>;
     let mut scanned = 0usize;
     let mut reached_cutoff = false;
+    let mut logged_requests = 0_i64;
 
     while scanned < MAX_MODEL_BREAKDOWN_SCAN_ROWS && !reached_cutoff {
         let batch_limit = (MAX_MODEL_BREAKDOWN_SCAN_ROWS - scanned).min(256);
@@ -181,6 +192,7 @@ fn model_breakdown(
             {
                 continue;
             }
+            logged_requests = logged_requests.saturating_add(1);
             let model = record.text("model")?.to_owned();
             if model.is_empty() {
                 continue;
@@ -235,7 +247,7 @@ fn model_breakdown(
     });
     let output_truncated = rows.len() > MAX_MODEL_BREAKDOWN_ROWS;
     rows.truncate(MAX_MODEL_BREAKDOWN_ROWS);
-    Ok((rows, scan_truncated || output_truncated))
+    Ok((rows, scan_truncated || output_truncated, logged_requests))
 }
 
 pub(crate) fn validate_prefix_for_meter(prefix: &str) -> Result<(), StorageError> {
@@ -288,7 +300,7 @@ pub(crate) async fn statistics_snapshot(
             .unwrap_or_default();
         let (api_keys, api_key_sum) = top_dimensions(transaction, window_minutes, 1, summary.requests)?;
         let (models, model_sum) = top_dimensions(transaction, window_minutes, 2, summary.requests)?;
-        let (model_breakdown, model_breakdown_truncated) =
+        let (model_breakdown, model_breakdown_truncated, logged_requests) =
             model_breakdown(transaction, &cutoff, None)?;
         let state = transaction.get::<Record>(Table::StatisticsState, "singleton")?;
         let (collection_started_at, persisted_drops, updated_at) = match state {
@@ -334,7 +346,9 @@ pub(crate) async fn statistics_snapshot(
             "api_keys": { "top": api_keys, "others": summary.requests.saturating_sub(api_key_sum) },
             "models": { "top": models, "others": summary.requests.saturating_sub(model_sum) },
             "model_breakdown": model_breakdown,
-            "model_breakdown_truncated": model_breakdown_truncated
+            "model_breakdown_truncated": model_breakdown_truncated,
+            "logged_requests": logged_requests,
+            "model_breakdown_incomplete": logged_requests < summary.requests
         }))
     }).await
 }
@@ -362,7 +376,7 @@ pub(crate) async fn api_key_statistics_snapshot(
             .unwrap_or_default();
         let (models, model_sum) =
             top_api_key_models(transaction, window_minutes, &dimension_id, summary.requests)?;
-        let (model_breakdown, model_breakdown_truncated) =
+        let (model_breakdown, model_breakdown_truncated, logged_requests) =
             model_breakdown(transaction, &cutoff, Some(&dimension_id))?;
         let api_key_name = transaction
             .get::<Record>(Table::ApiKeys, &dimension_id)?
@@ -417,7 +431,9 @@ pub(crate) async fn api_key_statistics_snapshot(
             "aggregation_current": aggregation_current,
             "models": { "top": models, "others": summary.requests.saturating_sub(model_sum) },
             "model_breakdown": model_breakdown,
-            "model_breakdown_truncated": model_breakdown_truncated
+            "model_breakdown_truncated": model_breakdown_truncated,
+            "logged_requests": logged_requests,
+            "model_breakdown_incomplete": logged_requests < summary.requests
         }))
     })
     .await
