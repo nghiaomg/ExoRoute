@@ -18,7 +18,9 @@
   export let locale: Locale;
   export let preferences: Preferences;
   export let onNavigate: (page: DocsPage) => void;
-  export let onBackToLogin: () => void;
+  // Leaves the docs for the app: the dashboard when a session is active, the
+  // login route otherwise. The shell does not know which, so it only reports.
+  export let onExitDocs: () => void;
 
   let menuOpen = false;
   $: copy = docsCopy(locale);
@@ -42,10 +44,16 @@
     return nextPage === 'docs' ? '/docs' : `/${nextPage.replace('docs-', 'docs/')}`;
   }
 
-  function backToDashboard(event: MouseEvent): void {
+  /**
+   * Every link that leaves the docs for the app goes through here, including the
+   * navbar logo. It targets the login route so a plain link or a new tab lands
+   * somewhere that resolves the session itself; the app then sends an
+   * authenticated reader on to the dashboard.
+   */
+  function exitDocs(event: MouseEvent): void {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    onBackToLogin();
+    onExitDocs();
   }
 </script>
 
@@ -57,7 +65,7 @@
 
 <div class="docs-shell">
   <header class="docs-topbar">
-    <a class="docs-brand" href="/docs" onclick={(event) => navigate(event, 'docs')} aria-label="ExoRoute documentation">
+    <a class="docs-brand" href="/login" onclick={exitDocs} aria-label={t(locale, 'ExoRoute overview')}>
       <span class="docs-brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
       <span class="brand-word">exo<span>route</span></span>
       <span class="docs-brand-divider"></span>
@@ -72,7 +80,7 @@
           {#if preferences.theme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}
         </button>
       </div>
-      <a class="docs-sign-in" href="/login" onclick={backToDashboard}>{copy.shell.signIn}<ChevronRight size={15} /></a>
+      <a class="docs-sign-in" href="/login" onclick={exitDocs}>{copy.shell.signIn}<ChevronRight size={15} /></a>
       <button class="docs-menu-button" type="button" aria-label={copy.shell.menu} aria-expanded={menuOpen} onclick={() => menuOpen = true}><Menu size={20} /></button>
     </div>
   </header>
@@ -102,7 +110,7 @@
       <div class="docs-content"><slot /></div>
       <footer class="docs-footer">
         <span><FlyingFishLogo size={14} variant="monochrome" /> ExoRoute · {copy.shell.localFirst}</span>
-        <a href="/login" onclick={backToDashboard}>{copy.shell.backToDashboard} <ChevronRight size={14} /></a>
+        <a href="/login" onclick={exitDocs}>{copy.shell.backToDashboard} <ChevronRight size={14} /></a>
       </footer>
     </main>
   </div>
@@ -123,7 +131,7 @@
           </a>
         {/each}
       </nav>
-      <a class="docs-mobile-login" href="/login" onclick={backToDashboard}>{copy.shell.signIn}<ChevronRight size={15} /></a>
+      <a class="docs-mobile-login" href="/login" onclick={exitDocs}>{copy.shell.signIn}<ChevronRight size={15} /></a>
     </div>
   {/if}
 </div>
