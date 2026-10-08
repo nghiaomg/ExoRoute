@@ -52,3 +52,10 @@ serde_yaml_ng = "0.10"
 [dev-dependencies]
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
+
+# One codegen unit per crate trades build time for a smaller binary.
+# Measured on the published Windows x86_64 artifact with rustc 1.88.0: the zip
+# dropped from 8,667,041 to 7,778,162 bytes (-10.3%) for +120s of build time.
+# Adding lto = "thin" or "fat" on top of it measured *larger*, so it stays off.
+[profile.release]
+codegen-units = 1
