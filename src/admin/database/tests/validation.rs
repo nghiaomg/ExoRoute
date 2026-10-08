@@ -557,3 +557,174 @@ async fn backup_meta_dictionary_entry_round_trips_the_import_path() {
     crate::config::ensure_private_file(&destination).expect("secure test backup");
     let _ = std::fs::remove_dir_all(root);
 }
+
+fn backup_route_entry(route_id: &str, name: &str) -> SnapshotEntry {
+    let record = Record::new()
+        .with("id", Field::Text(route_id.to_owned()))
+        .with("name", Field::Text(name.to_owned()))
+        .with("strategy", Field::Text("priority".to_owned()))
+        .with(
+            "accepted_protocols",
+            Field::Text("[\"chat_completions\"]".to_owned()),
+        )
+        .with("enabled", Field::Bool(true))
+        .with("created_at", Field::Text("2026-01-01T00:00:00Z".to_owned()))
+        .with("updated_at", Field::Text("2026-01-01T00:00:00Z".to_owned()));
+    SnapshotEntry {
+        table: Table::Routes,
+        key: route_id.to_owned(),
+        value: bincode::serialize(&record).expect("encode backup route"),
+    }
+}
+
+fn backup_nested_target_entry(route_id: &str, combo_id: &str, ordinal: u32) -> SnapshotEntry {
+    let record = Record::new()
+        .with("route_id", Field::Text(route_id.to_owned()))
+        .with("combo_id", Field::Text(combo_id.to_owned()))
+        .with("provider_id", Field::Null)
+        .with("model", Field::Null)
+        .with("protocol", Field::Null)
+        .with("priority", Field::I64(i64::from(ordinal)))
+        .with("weight", Field::Null)
+        .with("enabled", Field::Bool(true));
+    SnapshotEntry {
+        table: Table::RouteTargets,
+        key: test_route_target_key(route_id, ordinal, ordinal),
+        value: bincode::serialize(&record).expect("encode nested target"),
+    }
+}
+
+#[tokio::test]
+async fn backup_rejects_a_nested_combo_cycle() {
+    let (_database, mut payload) = route_backup_fixture().await;
+    payload
+        .entries
+        .push(backup_route_entry("combo-a", "Combo A"));
+    payload
+        .entries
+        .push(backup_route_entry("combo-b", "Combo B"));
+    payload
+        .entries
+        .push(backup_nested_target_entry("combo-a", "combo-b", 0));
+    payload
+        .entries
+        .push(backup_nested_target_entry("combo-b", "combo-a", 0));
+
+    assert!(matches!(
+        validate_backup_payload(&payload, false, false),
+        Err(
+            "The backup contains a circular, too deeply nested, or oversized combo reference graph."
+        )
+    ));
+}
+
+#[tokio::test]
+async fn backup_rejects_a_reference_to_a_combo_missing_from_the_backup() {
+    let (_database, mut payload) = route_backup_fixture().await;
+    payload
+        .entries
+        .push(backup_route_entry("combo-a", "Combo A"));
+    payload
+        .entries
+        .push(backup_nested_target_entry("combo-a", "ghost", 0));
+
+    assert!(matches!(
+        validate_backup_payload(&payload, false, false),
+        Err("A route target refers to a combo that is missing from the backup.")
+    ));
+}
+
+#[tokio::test]
+async fn backup_rejects_a_target_that_is_both_a_provider_and_a_combo() {
+    let (_database, mut payload) = route_backup_fixture().await;
+    let target = payload
+        .entries
+        .iter_mut()
+        .find(|entry| entry.table == Table::RouteTargets)
+        .expect("route target entry");
+    let mut record: Record = bincode::deserialize(&target.value).expect("decode target");
+    // The fixture row keeps its provider and model, so adding a combo ID makes
+    // the row ambiguous rather than converted.
+    record.insert("combo_id", Field::Text("route-b".to_owned()));
+    target.value = bincode::serialize(&record).expect("encode mixed target");
+
+    assert!(matches!(
+        validate_backup_payload(&payload, false, false),
+        Err("The backup contains an invalid nested combo target.")
+    ));
+}
+
+#[tokio::test]
+async fn backup_round_trips_a_nested_combo_reference_and_rebuilds_its_index() {
+    let (database, mut payload) = route_backup_fixture().await;
+    payload
+        .entries
+        .push(backup_route_entry("combo-parent", "Combo parent"));
+    payload
+        .entries
+        .push(backup_route_entry("combo-child", "Combo child"));
+    payload
+        .entries
+        .push(backup_nested_target_entry("combo-parent", "combo-child", 0));
+    assert!(validate_backup_payload(&payload, false, false).is_ok());
+
+    let index_key = crate::admin::combos::route_target_combo_index_key(
+        "combo-child",
+        &test_route_target_key("combo-parent", 0, 0),
+    )
+    .expect("combo index key");
+    rebuild_backup_secondary_indexes(&mut payload.entries).expect("rebuild backup indexes");
+    let index = payload
+        .entries
+        .iter()
+        .find(|entry| entry.table == Table::RouteTargetComboIndex && entry.key == index_key)
+        .expect("rebuilt combo index entry");
+    let owner: String = bincode::deserialize(&index.value).expect("decode combo index owner");
+    assert_eq!(owner, "combo-parent");
+
+    let path = temporary_backup_path(&database, "nested-combo.exoroute");
+    fs::write(
+        &path,
+        encode_backup(payload.entries).expect("encode nested combo backup"),
+    )
+    .expect("write nested combo backup");
+    restore_application_data(&database.db, &path)
+        .await
+        .expect("import nested combo backup");
+    let restored = database
+        .db
+        .read({
+            let index_key = index_key.clone();
+            move |transaction| transaction.get::<String>(Table::RouteTargetComboIndex, &index_key)
+        })
+        .await
+        .expect("read restored combo index");
+    assert_eq!(restored.as_deref(), Some("combo-parent"));
+}
+
+#[tokio::test]
+async fn backup_without_combo_fields_keeps_the_provider_target_index() {
+    // A backup written before nested combos has no combo_id on any target row
+    // and must still import through the provider index.
+    let (_database, mut payload) = route_backup_fixture().await;
+    assert!(validate_backup_payload(&payload, false, false).is_ok());
+
+    rebuild_backup_secondary_indexes(&mut payload.entries).expect("rebuild backup indexes");
+    let target_key = test_route_target_key("route-a", 1, 0);
+    let provider_index_key =
+        crate::admin::combos::route_target_provider_index_key("backup-provider", &target_key)
+            .expect("provider index key");
+    assert!(
+        payload
+            .entries
+            .iter()
+            .any(|entry| entry.table == Table::RouteTargetProviderIndex
+                && entry.key == provider_index_key)
+    );
+    assert!(
+        !payload
+            .entries
+            .iter()
+            .any(|entry| entry.table == Table::RouteTargetComboIndex)
+    );
+}

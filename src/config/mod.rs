@@ -20,6 +20,7 @@ mod windows;
 pub(crate) use env_secrets::cleanup_stale_env_temp_files;
 pub use env_secrets::{ensure_admin_key, ensure_master_key, remove_env_value};
 pub use limits::GatewayResourceLimits;
+pub(crate) use limits::{MAX_COMBO_NESTING_DEPTH, MAX_ROUTE_TARGETS};
 pub use operational::{OperationalSettings, UpstreamSettings};
 pub use paths::{
     app_dir, ensure_no_reparse_path_components, ensure_private_dir, ensure_private_file,
