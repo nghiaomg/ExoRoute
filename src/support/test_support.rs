@@ -294,6 +294,100 @@ pub async fn seed_route(
     .await
 }
 
+/// One stored route target row, written the way the combo store writes it.
+pub enum RouteTargetSeed<'a> {
+    Provider {
+        provider_id: &'a str,
+        model: &'a str,
+        protocol: &'a str,
+    },
+    /// A nested combo reference, which stores no provider of its own.
+    Combo { combo_id: &'a str },
+}
+
+/// Seeds a whole route with arbitrary target rows: disabled routes and nested
+/// combo references included, which `seed_route` cannot express. Rows are
+/// stored at priority = ordinal and are all enabled.
+///
+/// This writes the stored rows directly, so it can also build graphs the save
+/// path refuses, such as a reference cycle.
+pub async fn seed_route_with_targets(
+    db: &Database,
+    route_id: &str,
+    name: &str,
+    accepted_protocols: &[&str],
+    enabled: bool,
+    targets: &[RouteTargetSeed<'_>],
+) -> Result<(), StorageError> {
+    let route_id = route_id.to_owned();
+    let name = name.to_owned();
+    let accepted_protocols = serde_json::to_string(accepted_protocols)
+        .map_err(|error| StorageError::Codec(error.to_string()))?;
+    let timestamp = db::utc_timestamp_now()?;
+    let route = Record::new()
+        .with("id", Field::Text(route_id.clone()))
+        .with("name", Field::Text(name.clone()))
+        .with("strategy", Field::Text("priority".to_owned()))
+        .with("accepted_protocols", Field::Text(accepted_protocols))
+        .with("enabled", Field::Bool(enabled))
+        .with("created_at", Field::Text(timestamp.clone()))
+        .with("updated_at", Field::Text(timestamp));
+    let name_index = format!("name/{name}\u{1}{route_id}");
+    let encoded_route = hex_component(&route_id);
+    let mut rows = Vec::with_capacity(targets.len());
+    for (ordinal, target) in targets.iter().enumerate() {
+        let target_key = format!("r/{encoded_route}/{ordinal:010}/{ordinal:010}");
+        let (record, index) = match target {
+            RouteTargetSeed::Provider {
+                provider_id,
+                model,
+                protocol,
+            } => (
+                Record::new()
+                    .with("route_id", Field::Text(route_id.clone()))
+                    .with("provider_id", Field::Text((*provider_id).to_owned()))
+                    .with("model", Field::Text((*model).to_owned()))
+                    .with("protocol", Field::Text((*protocol).to_owned()))
+                    .with("priority", Field::I64(ordinal as i64))
+                    .with("weight", Field::Null)
+                    .with("enabled", Field::Bool(true)),
+                Some((
+                    Table::RouteTargetProviderIndex,
+                    format!("p/{}/{target_key}", hex_component(provider_id)),
+                )),
+            ),
+            RouteTargetSeed::Combo { combo_id } => (
+                Record::new()
+                    .with("route_id", Field::Text(route_id.clone()))
+                    .with("combo_id", Field::Text((*combo_id).to_owned()))
+                    .with("provider_id", Field::Null)
+                    .with("model", Field::Null)
+                    .with("protocol", Field::Null)
+                    .with("priority", Field::I64(ordinal as i64))
+                    .with("weight", Field::Null)
+                    .with("enabled", Field::Bool(true)),
+                Some((
+                    Table::RouteTargetComboIndex,
+                    format!("c/{}/{target_key}", hex_component(combo_id)),
+                )),
+            ),
+        };
+        rows.push((target_key, record, index));
+    }
+    db.write(move |transaction| {
+        transaction.put_if_absent(Table::Routes, &route_id, &route)?;
+        transaction.put_if_absent(Table::RouteNameIndex, &name_index, &route_id)?;
+        for (target_key, record, index) in &rows {
+            transaction.put_if_absent(Table::RouteTargets, target_key, record)?;
+            if let Some((table, index_key)) = index {
+                transaction.put_if_absent(*table, index_key, &route_id)?;
+            }
+        }
+        Ok(())
+    })
+    .await
+}
+
 pub async fn seed_api_key(
     db: &Database,
     id: &str,

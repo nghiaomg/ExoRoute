@@ -233,6 +233,41 @@
   flex-direction: column;
   gap: 0;
 }
+.target-kind-toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  margin-bottom: 9px;
+  padding: 2px;
+  border-radius: 7px;
+  background: #eef2f6;
+}
+.target-kind-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: none;
+  box-shadow: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.target-kind-btn:hover:not(.is-active) {
+  color: #0f172a;
+}
+.target-kind-btn.is-active {
+  background: #ffffff;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.target-kind-btn.is-active.is-combo {
+  color: #c2410c;
+}
 .target-card-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -268,7 +303,8 @@
 }
 
 .combo-model-field,
-.combo-provider-picker { display: grid; align-content: start; gap: 4px; min-width: 0; }
+.combo-provider-picker,
+.combo-reference-picker { display: grid; align-content: start; gap: 4px; min-width: 0; }
 .combo-combobox-control { position: relative; display: flex; align-items: center; min-width: 0; }
 .combo-combobox-input { height: 35px; padding-right: 32px; border-radius: 7px; font-size: 12.5px; }
 .combo-combobox-trigger { position: absolute; right: 8px; display: grid; place-items: center; padding: 2px; border: 0; color: #85899b; background: transparent; cursor: pointer; }

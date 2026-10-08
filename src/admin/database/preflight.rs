@@ -147,12 +147,13 @@ pub(crate) fn preflight_backup_reader(
                 | Table::ProviderModelIndex
                 | Table::RouteNameIndex
                 | Table::RouteTargetProviderIndex
+                | Table::RouteTargetComboIndex
         )
     }
 
     let mut offset = 0_u64;
     let storage_version = read_u32(file, &mut offset, payload_len)?;
-    if storage_version == 0 || storage_version > crate::infra::storage::STORAGE_FORMAT_VERSION {
+    if !crate::infra::storage::is_readable_storage_version(storage_version) {
         return Err("This LMDB storage format version is not supported by this ExoRoute build.");
     }
     let entry_count = read_u64(file, &mut offset, payload_len)?;
