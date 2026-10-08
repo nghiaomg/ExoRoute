@@ -2,6 +2,7 @@
   import { onDestroy, onMount } from 'svelte';
   import { LoaderCircle, RotateCcw, Save, Sparkles } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
+  import ArkSelect from '../../components/ArkSelect.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -39,6 +40,18 @@ import { localizedError } from '../../lib/errors';
     ponytail: null,
   };
 
+  const styleLevels: OutputStyleLevel[] = ['lite', 'full', 'ultra'];
+
+  function isOutputStyleLevel(value: string): value is OutputStyleLevel {
+    return (styleLevels as string[]).includes(value);
+  }
+
+  // The shared select speaks strings; a level the catalog does not define is
+  // dropped rather than written into the draft as an unsupported value.
+  function selectLevel(id: OutputStyleId, level: string): void {
+    if (isOutputStyleLevel(level)) setLevel(id, level);
+  }
+
   let snapshot: OutputStylesSnapshot | null = null;
   let draft: Record<OutputStyleId, OutputStyleLevel | null> = { ...emptyDraft };
   let busy: '' | 'loading' | 'saving' | 'resetting' = 'loading';
@@ -54,6 +67,10 @@ import { localizedError } from '../../lib/errors';
     const level = draft[item.id];
     return level ? [{ id: item.id, level }] : [];
   });
+  $: styleLevelItems = styleLevels.map((level) => ({
+    label: tr(level[0].toUpperCase() + level.slice(1)),
+    value: level,
+  }));
   $: hasChanges = snapshot !== null && !sameSelections(selectedStyles, snapshot.styles);
 
   $: if (refreshToken > observedRefreshToken) {
@@ -257,19 +274,17 @@ import { localizedError } from '../../lib/errors';
                 <strong>{tr(item.label)}</strong>
                 <small>{tr(item.description)}</small>
               </div>
-              <label class="output-style-level" for={`output-style-${item.id}`}>
+              <div class="output-style-level">
                 <span>{tr('style level')}</span>
-                <select
-                  id={`output-style-${item.id}`}
+                <ArkSelect
+                  ariaLabel={`${tr(item.label)} ${tr('style level')}`}
+                  items={styleLevelItems}
                   value={draft[item.id] ?? 'full'}
                   disabled={busy !== '' || draft[item.id] === null}
-                  onchange={(event) => setLevel(item.id, (event.currentTarget as HTMLSelectElement).value as OutputStyleLevel)}
-                >
-                  <option value="lite">{tr('Lite')}</option>
-                  <option value="full">{tr('Full')}</option>
-                  <option value="ultra">{tr('Ultra')}</option>
-                </select>
-              </label>
+                  class="output-style-level-select"
+                  onValueChange={(next) => selectLevel(item.id, next)}
+                />
+              </div>
             </div>
           {/each}
         </div>
