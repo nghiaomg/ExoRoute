@@ -55,6 +55,10 @@ use model_test::{
     MAX_MODEL_TEST_RESPONSE_BYTES, model_test_non_sse_response, model_test_provider_response_body,
     test_api_key_credential_impl, test_api_key_model_impl,
 };
+// The event-stream reader is only exercised from this module's tests; production
+// code calls it from inside `model_test` itself.
+#[cfg(test)]
+use model_test::{model_probe_event_stream, provider_event_stream_error};
 pub use usage::{
     ProviderUsageCreditBalance, ProviderUsageQuota, ProviderUsageResetPeriod, ProviderUsageSnapshot,
 };
@@ -424,6 +428,22 @@ pub trait ProviderAdapter: Sync {
     /// `Content-Type` header. Adapters may opt in only when their decoder
     /// validates the stream framing and terminal payload.
     fn allows_missing_event_stream_content_type(&self) -> bool {
+        false
+    }
+
+    /// Whether the model probe must ask this upstream for an event stream.
+    ///
+    /// The probe answers "are these credentials and this model usable here", so
+    /// it sends the smallest request the upstream accepts. Some free tiers
+    /// refuse a non-streaming inference outright, which would report a healthy
+    /// credential as failing, so those adapters opt in and the probe validates
+    /// the first event stream instead of a JSON body.
+    ///
+    /// This is deliberately separate from [`Self::wants_event_stream`], which
+    /// states that the adapter's gateway responses are always an event stream
+    /// the gateway must aggregate for non-streaming clients. An adapter can
+    /// require a streaming probe without (yet) owning that aggregation.
+    fn probe_requires_event_stream(&self) -> bool {
         false
     }
 
