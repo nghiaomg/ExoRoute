@@ -476,16 +476,10 @@
     letter-spacing: 0.5px;
     color: #797d93;
   }
-  .output-style-level select {
+  /* The level control is the shared Ark select, so only its share of the row is
+     set here; the trigger brings its own height, frame, and colours. */
+  .output-style-level .ark-select-root {
     flex: 0 1 160px;
-    height: 38px;
-    min-height: 38px;
-    border-radius: 8px;
-    font-size: 13px;
-    padding: 0 10px;
-    background: #ffffff;
-    color: #2b2e40;
-    border: 1px solid #dfe1ea;
   }
 
   /* Database Backup */
@@ -572,7 +566,7 @@
     padding-left: 14px;
     padding-right: 14px;
   }
-  .output-style-level select {
+  .output-style-level .ark-select-root {
     flex: 0 1 140px;
   }
 }
@@ -639,7 +633,7 @@
     padding-left: 11px;
     padding-right: 11px;
   }
-  .output-style-level select {
+  .output-style-level .ark-select-root {
     flex: 1 1 auto;
     max-width: 130px;
   }
@@ -655,6 +649,14 @@
 .provider-model-section-heading p { margin: 0; color: #9699aa; font-size: 12px; line-height: 1.5; }
 .provider-model-filter { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .provider-model-filter .search-box { min-width: 0; flex: 1; background: #f0f2f8; }
+/* The box stretches with the row, so the field has to fill what is left of it
+   after the icon. Keeping the base fixed width leaves the caret and the text
+   sitting in a narrow strip at the left of a full-width frame. */
+.provider-model-filter .search-box input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
 .model-routing-table-scroll { max-height: min(65vh, 640px); overflow: auto; overscroll-behavior: contain; border: 1px solid #e8e9f0; border-radius: 8px; }
 .model-routing-table { width: 100%; min-width: 700px; border-collapse: separate; border-spacing: 0; font-size: 12px; text-align: left; }
 .model-routing-table th { position: sticky; top: 0; z-index: 1; padding: 8px 9px; color: #777b8d; background: #f8f8fb; border-bottom: 1px solid #e8e9f0; font-size: 12px; font-weight: 700; }
