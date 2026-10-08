@@ -10,7 +10,9 @@
     
     
   } from '@lucide/svelte';
+  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
+  import ArkSelect from '../../components/ArkSelect.svelte';
   import ContinuityGuideDialog from './ContinuityGuideDialog.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
@@ -44,6 +46,15 @@ import { localizedError } from '../../lib/errors';
   let requestGeneration = 0;
   let observedRefreshToken = 0;
   const bodyProcessingChoices = [1, 2, 3, 4, 5, 6, 7, 8];
+
+  // The shared select speaks strings; the draft keeps the numbers the API reads.
+  $: bodyProcessingItems = [
+    { label: tr('Unlimited'), value: '0' },
+    ...bodyProcessingChoices.map((concurrency) => ({
+      label: `${concurrency} ${tr('requests')}`,
+      value: `${concurrency}`,
+    })),
+  ];
 
   $: draftIsValid = Number.isSafeInteger(draft.gateway_body_limit_mib)
     && draft.gateway_body_limit_mib >= 1
@@ -278,20 +289,19 @@ import { localizedError } from '../../lib/errors';
             <span class="resource-limit-input"><input id="gateway-body-limit" type="number" min="1" max="16" step="1" bind:value={draft.gateway_body_limit_mib} disabled={busy !== ''} /><small>MiB</small></span>
             <small>{tr('Maximum accepted request body size (1–16 MiB).')}</small>
           </label>
-          <label class="resource-limit-field" for="gateway-body-processing-concurrency">
-            <span>{tr('Concurrent bodies being processed')}</span>
-            <span class="resource-limit-input">
-              <select id="gateway-body-processing-concurrency" bind:value={draft.gateway_body_processing_concurrency} disabled={busy !== ''}>
-                <option value={0}>{tr('Unlimited')}</option>
-                {#each bodyProcessingChoices as concurrency}
-                  <option value={concurrency}>{concurrency} {tr('requests')}</option>
-                {/each}
-              </select>
-            </span>
+          <div class="resource-limit-field">
+            <ArkSelect
+              label={tr('Concurrent bodies being processed')}
+              items={bodyProcessingItems}
+              value={`${draft.gateway_body_processing_concurrency}`}
+              disabled={busy !== ''}
+              class="resource-limit-select"
+              onValueChange={(next) => (draft.gateway_body_processing_concurrency = Number(next))}
+            />
             <small>{tr('Choose 1–8 concurrent requests or unlimited processing.')}</small>
             <small>{tr('Unlimited processing can use all available CPU and memory under heavy traffic.')}</small>
             <small>{tr('SSE frame parsing uses the same concurrency limit.')}</small>
-          </label>
+          </div>
           <label class="resource-limit-field" for="sse-frame-limit">
             <span>{tr('SSE frame size')}</span>
             <span class="resource-limit-input"><input id="sse-frame-limit" type="number" min="0" step="1" bind:value={draft.sse_frame_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
@@ -314,9 +324,9 @@ import { localizedError } from '../../lib/errors';
           </label>
           <div class="resource-limit-field resource-continuity-field">
             <div class="resource-continuity-title-row">
-              <label for="stream-continuity-enabled" class="resource-continuity-label-text">
+              <span class="resource-continuity-label-text">
                 {tr('Stream continuity')}
-              </label>
+              </span>
               <button
                 type="button"
                 class="continuity-help-trigger"
@@ -331,10 +341,15 @@ import { localizedError } from '../../lib/errors';
                 <CircleHelp size={14} />
               </button>
             </div>
-            <label class="resource-continuity-control" for="stream-continuity-enabled">
-              <input id="stream-continuity-enabled" type="checkbox" bind:checked={draft.stream_continuity_enabled} disabled={busy !== ''} />
+            <div class="resource-continuity-control">
+              <ArkCheckbox
+                checked={draft.stream_continuity_enabled}
+                disabled={busy !== ''}
+                ariaLabel={tr('Stream continuity')}
+                onCheckedChange={(checked) => (draft.stream_continuity_enabled = checked === true)}
+              />
               <strong>{tr(draft.stream_continuity_enabled ? 'Enabled' : 'Disabled')}</strong>
-            </label>
+            </div>
             <small>{tr('Keep streamed work running after a client disconnects, for up to 24 hours. Reconnect by stream ID or send DELETE to cancel it.')}</small>
             <small>{tr('The configured continuity capacity is always finite. Replay is bounded; reaching its storage limit does not stop the task, but missed events may not be resumable.')}</small>
           </div>
