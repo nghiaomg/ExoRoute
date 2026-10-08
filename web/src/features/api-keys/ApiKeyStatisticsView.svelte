@@ -111,28 +111,30 @@
 
 <style>
   .api-key-statistics { display: grid; gap: 14px; }
-  .api-key-details-range { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
+  /* Soft Neo-Brutalism: 2px ink frames with hard offset ink shadows. Dark mode
+     flattens every border and shadow globally (styles/dark-mode.css). */
+  .api-key-details-range { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper); box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)); }
   .api-key-details-range button { padding: 6px 9px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
   .api-key-details-range button.active { color: #fff; background: var(--violet); }
   .api-key-details-loading { display: flex; align-items: center; gap: 10px; padding: 18px 2px; color: var(--muted); font-size: 12px; }
   .api-key-statistics-retry { display: flex; }
   .api-key-details-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  .api-key-details-kpi { min-width: 0; padding: 17px 18px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); }
+  .api-key-details-kpi { min-width: 0; padding: 17px 18px; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)); }
   .api-key-details-kpi > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; }
   .api-key-details-kpi > div :global(svg) { color: var(--violet); }
   .api-key-details-kpi > strong { display: block; margin: 13px 0 3px; overflow: hidden; color: var(--ink); font: 700 25px/1.15 var(--font-mono); text-overflow: ellipsis; white-space: nowrap; }
   .api-key-details-kpi > strong em { color: var(--muted); font: 500 12px var(--font-sans); }
   .api-key-details-kpi small { color: var(--muted); font-size: 12px; }
-  .api-key-details-tokens { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: var(--line); }
+  .api-key-details-tokens { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 2px solid var(--ink); border-radius: 12px; background: var(--line); box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)); }
   .api-key-details-tokens > div { min-width: 0; display: grid; gap: 8px; padding: 15px 17px; background: var(--paper); }
   .api-key-details-tokens span { color: var(--muted); font-size: 12px; }
   .api-key-details-tokens strong { overflow: hidden; color: var(--ink); font: 600 12px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
-  .api-key-details-warning { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; color: #9d4827; border: 1px solid #f3d1bf; border-radius: 10px; background: #fff8f4; }
+  .api-key-details-warning { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; color: #9d4827; border: 2px solid var(--ink); border-radius: 10px; background: #fff8f4; box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)); }
   .api-key-details-warning :global(svg) { flex: 0 0 auto; margin-top: 1px; }
   .api-key-details-warning > div { display: grid; gap: 3px; }
   .api-key-details-warning strong { font-size: 12px; }
   .api-key-details-warning span { font-size: 12px; line-height: 1.45; }
-  .api-key-details-warning.updating { color: #755621; border-color: #ebd9a9; background: #fffdf5; }
+  .api-key-details-warning.updating { color: #755621; background: #fffdf5; }
   .api-key-statistics-empty { margin: 0; color: var(--muted); font-size: 12px; }
   @media (max-width: 900px) { .api-key-details-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .api-key-details-tokens { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 620px) { .api-key-details-kpis { gap: 8px; } .api-key-details-kpi { padding: 13px; } .api-key-details-kpi > strong { font-size: 20px; } .api-key-details-tokens { grid-template-columns: 1fr 1fr; } }
