@@ -66,6 +66,7 @@
 
 /* Ark Combobox (searchable select) */
 .ark-combobox-root { position: relative; width: 100%; display: grid; gap: 6px; }
+.ark-combobox-body { display: grid; gap: 6px; width: 100%; }
 .ark-combobox-label { color: #4e5267; font-size: var(--text-xs); font-weight: var(--font-semibold); }
 .ark-combobox-control { display: flex; align-items: center; position: relative; width: 100%; }
 .ark-combobox-input { width: 100%; min-height: 38px; outline: none; padding: 0 60px 0 11px; border: 2px solid var(--ink); border-radius: var(--radius-sm); color: #44485c; background: #fff; font-size: var(--text-sm); font-family: inherit; box-sizing: border-box; transition: border-color .14s ease, box-shadow .14s ease; box-shadow: 2px 2px 0 var(--ink); }
