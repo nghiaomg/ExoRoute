@@ -355,3 +355,239 @@ fn open_code_go_rejects_invalid_canonical_sessions() {
         "OpenCode Go provider session ID is invalid"
     );
 }
+
+#[test]
+fn only_opencode_zen_requires_a_streaming_model_probe() {
+    // Zen's free tier answers a non-streaming inference with HTTP 403
+    // FreeTierError, so a non-streaming probe would report a healthy credential
+    // as failing. Go accepts a non-streaming inference.
+    assert!(OPENCODE_ZEN_ADAPTER.probe_requires_event_stream());
+    assert!(!OPENCODE_GO_ADAPTER.probe_requires_event_stream());
+}
+
+#[test]
+fn zen_declares_the_client_identity_the_free_tier_requires() {
+    let request = OPENCODE_ZEN_ADAPTER
+        .apply_client_headers(
+            reqwest::Client::new().post("https://example.test"),
+            &HeaderMap::new(),
+        )
+        .build()
+        .expect("build Zen identity request");
+    let headers = request.headers();
+
+    // A caller without an acceptable client identity gets the official one.
+    assert_eq!(
+        headers
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok()),
+        Some(client::CLIENT_USER_AGENT)
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-client")
+            .and_then(|value| value.to_str().ok()),
+        Some("desktop")
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-project")
+            .and_then(|value| value.to_str().ok()),
+        Some("global")
+    );
+}
+
+#[test]
+fn zen_keeps_a_usable_caller_agent_and_client_name() {
+    let mut client_headers = HeaderMap::new();
+    client_headers.insert(
+        http::header::USER_AGENT,
+        HeaderValue::from_static("opencode/1.20.0"),
+    );
+    client_headers.insert("x-opencode-client", HeaderValue::from_static("terminal"));
+    let request = OPENCODE_ZEN_ADAPTER
+        .apply_client_headers(
+            reqwest::Client::new().post("https://example.test"),
+            &client_headers,
+        )
+        .build()
+        .expect("build forwarded Zen identity request");
+    let headers = request.headers();
+    assert_eq!(
+        headers
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok()),
+        Some("opencode/1.20.0")
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-client")
+            .and_then(|value| value.to_str().ok()),
+        Some("terminal")
+    );
+
+    // A caller that is not the official client at an accepted version is
+    // replaced, since the upstream refuses everything else.
+    let mut foreign = HeaderMap::new();
+    foreign.insert(
+        http::header::USER_AGENT,
+        HeaderValue::from_static("claude-cli/2.0.0"),
+    );
+    let request = OPENCODE_ZEN_ADAPTER
+        .apply_client_headers(
+            reqwest::Client::new().post("https://example.test"),
+            &foreign,
+        )
+        .build()
+        .expect("build replaced Zen identity request");
+    assert_eq!(
+        request
+            .headers()
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok()),
+        Some(client::CLIENT_USER_AGENT)
+    );
+}
+
+#[tokio::test]
+async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
+    let database = crate::support::test_support::TestDatabase::open().await;
+    let state = AppState::new(database.config(), database.db.clone());
+    let seed = "5b1a1e57-0000-4000-8000-000000000000";
+    let mut body = json!({
+        "model": "exo-free",
+        "messages": [{"role": "user", "content": "hi"}],
+    });
+    let preparation = OPENCODE_ZEN_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: &state,
+                base_url: "https://opencode.ai/zen/v1",
+                adapter_base_url_override: None,
+                model: "exo-free",
+                request_id: "request-1",
+                streaming: false,
+                auth: UpstreamAuthContext {
+                    auth_type: "bearer",
+                    auth_header: None,
+                    secret: Some("key-value"),
+                    oauth_auth: None,
+                    session_id: seed,
+                    protocol: UpstreamProtocol::ChatCompletions,
+                },
+            },
+            &mut body,
+        )
+        .await
+        .expect("Zen fingerprint preparation");
+
+    let session = preparation
+        .headers
+        .get("x-opencode-session")
+        .and_then(|value| value.to_str().ok())
+        .expect("canonical session header");
+    assert_ne!(session, seed);
+    assert!(client::is_canonical_session_id(session), "{session}");
+    let request_id = preparation
+        .headers
+        .get("x-opencode-request")
+        .and_then(|value| value.to_str().ok())
+        .expect("canonical request header");
+    assert!(request_id.starts_with("msg_"), "{request_id}");
+
+    let names: Vec<&str> = body["tools"]
+        .as_array()
+        .expect("fingerprint tools")
+        .iter()
+        .filter_map(|tool| tool["function"]["name"].as_str())
+        .collect();
+    assert_eq!(names, ["bash", "glob", "grep", "read"]);
+    // The caller declared no tools, so the injected declarations must not be
+    // selectable.
+    assert_eq!(body["tool_choice"], json!("none"));
+    assert!(body["tools"][0]["function"]["parameters"]["properties"].is_object());
+
+    // A retry of the same request reuses one upstream session instead of
+    // inventing a new one.
+    let mut retry_body = json!({"model": "exo-free", "messages": []});
+    let retry = OPENCODE_ZEN_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: &state,
+                base_url: "https://opencode.ai/zen/v1",
+                adapter_base_url_override: None,
+                model: "exo-free",
+                request_id: "request-1",
+                streaming: false,
+                auth: UpstreamAuthContext {
+                    auth_type: "bearer",
+                    auth_header: None,
+                    secret: Some("key-value"),
+                    oauth_auth: None,
+                    session_id: seed,
+                    protocol: UpstreamProtocol::ChatCompletions,
+                },
+            },
+            &mut retry_body,
+        )
+        .await
+        .expect("Zen fingerprint preparation");
+    assert_eq!(
+        retry.headers.get("x-opencode-session"),
+        preparation.headers.get("x-opencode-session")
+    );
+}
+
+#[tokio::test]
+async fn zen_leaves_a_canonical_client_session_and_its_tools_alone() {
+    let database = crate::support::test_support::TestDatabase::open().await;
+    let state = AppState::new(database.config(), database.db.clone());
+    let mut body = json!({
+        "model": "exo-free",
+        "messages": [],
+        "tools": [{"type": "function", "function": {"name": "bash"}}],
+        "tool_choice": "required",
+    });
+    let session = client::canonical_session_id("genuine-client-conversation");
+    let preparation = OPENCODE_ZEN_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: &state,
+                base_url: "https://opencode.ai/zen/v1",
+                adapter_base_url_override: None,
+                model: "exo-free",
+                request_id: "request-1",
+                streaming: true,
+                auth: UpstreamAuthContext {
+                    auth_type: "bearer",
+                    auth_header: None,
+                    secret: Some("key-value"),
+                    oauth_auth: None,
+                    session_id: &session,
+                    protocol: UpstreamProtocol::ChatCompletions,
+                },
+            },
+            &mut body,
+        )
+        .await
+        .expect("Zen fingerprint preparation");
+
+    // A genuine OpenCode client keeps the session it chose.
+    assert_eq!(
+        preparation
+            .headers
+            .get("x-opencode-session")
+            .and_then(|value| value.to_str().ok()),
+        Some(session.as_str())
+    );
+    // `bash` is already declared, so it is not declared twice, and the caller's
+    // tool-choice policy is untouched.
+    let names: Vec<&str> = body["tools"]
+        .as_array()
+        .expect("tools")
+        .iter()
+        .filter_map(|tool| tool["function"]["name"].as_str())
+        .collect();
+    assert_eq!(names, ["bash", "glob", "grep", "read"]);
+    assert_eq!(body["tool_choice"], json!("required"));
+}
