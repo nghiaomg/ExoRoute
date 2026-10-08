@@ -120,13 +120,16 @@
 </section>
 
 <style>
+  /* Soft Neo-Brutalism, like every other card in the light theme. Dark mode
+     flattens the border and shadow globally (styles/dark-mode.css). */
   .scope-editor {
     display: grid;
     gap: 12px;
     padding: 18px;
-    border: 1px solid var(--line);
-    border-radius: 13px;
+    border: 2px solid var(--ink);
+    border-radius: var(--nb-radius, 10px);
     background: var(--paper);
+    box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink));
   }
   .scope-editor-heading h2 {
     margin: 0 0 4px;

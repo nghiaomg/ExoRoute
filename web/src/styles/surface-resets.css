@@ -68,23 +68,44 @@
   border: none !important;
   box-shadow: none !important;
 }
+/* Detail-page chrome shared by the provider detail page and the API-key detail
+   page (`.detail-hero-banner` and the buttons in `styles/protocol.css`). Both
+   views must take the same frame, otherwise the identical markup would render
+   two different ways. */
+.providers-view .detail-hero-banner,
+.api-keys-view .detail-hero-banner,
 .providers-view .back-link-btn,
+.api-keys-view .back-link-btn,
 .providers-view .detail-copy-btn,
-.providers-view .detail-delete-btn {
+.api-keys-view .detail-copy-btn,
+.providers-view .detail-delete-btn,
+.api-keys-view .detail-delete-btn {
   border: var(--nb-border) !important;
   box-shadow: var(--nb-shadow-sm) !important;
 }
 .providers-view .back-link-btn:hover,
+.api-keys-view .back-link-btn:hover,
 .providers-view .detail-copy-btn:hover,
-.providers-view .detail-delete-btn:hover {
+.api-keys-view .detail-copy-btn:hover,
+.providers-view .detail-delete-btn:hover,
+.api-keys-view .detail-delete-btn:hover {
   transform: translate(-1px, -1px);
   box-shadow: var(--nb-shadow-md) !important;
 }
 .providers-view .back-link-btn:active,
+.api-keys-view .back-link-btn:active,
 .providers-view .detail-copy-btn:active,
-.providers-view .detail-delete-btn:active {
+.api-keys-view .detail-copy-btn:active,
+.providers-view .detail-delete-btn:active,
+.api-keys-view .detail-delete-btn:active {
   transform: translate(1px, 1px);
   box-shadow: var(--nb-shadow-sm) !important;
+}
+/* The id chip, meta pills and state label sit inside the framed hero: flat. */
+.api-keys-view .detail-id-chip,
+.api-keys-view .detail-meta-pill {
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Soft Neo-Brutalism: Combos View.
