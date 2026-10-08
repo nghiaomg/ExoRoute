@@ -2,9 +2,10 @@
 //! deletion, and cursor handling for the requests page.
 
 use super::*;
-use crate::infra::storage::{Record, StorageError, Table};
+use crate::infra::storage::{Database, Record, StorageError, Table};
 use crate::state::{RequestLiveEvent, RequestLiveRow, RequestLiveSnapshot, RequestLogRecord};
 use axum::response::sse::{Event, KeepAlive, Sse};
+use std::collections::HashMap;
 use std::convert::Infallible;
 
 #[derive(Debug, Deserialize, Default)]
@@ -131,11 +132,16 @@ pub(super) async fn list_requests(
                     if !(matches_api_key && matches_model && matches_provider && matches_status) {
                         continue;
                     }
+                    // A key deleted after its request ran has no name left, so
+                    // the row reports the name as unknown. The raw key id stays
+                    // in `api_key_id` for filtering, but it is never presented
+                    // as if it were the key's name.
                     let api_key_name = match row_api_key_id {
-                        Some(key_id) => match transaction.get::<Record>(Table::ApiKeys, key_id)? {
-                            Some(key) => key.optional_text("name")?.map(str::to_owned),
-                            None => Some(key_id.to_owned()),
-                        },
+                        Some(key_id) => transaction
+                            .get::<Record>(Table::ApiKeys, key_id)?
+                            .map(|key| key.optional_text("name").map(|name| name.map(str::to_owned)))
+                            .transpose()?
+                            .flatten(),
                         None => None,
                     };
                     let created_at = record.text("created_at")?.to_owned();
@@ -194,6 +200,62 @@ pub(super) async fn list_requests(
 
 const REQUEST_LIVE_STREAM_DURATION: Duration = Duration::from_secs(5 * 60);
 
+/// Upper bound on the API key names one live stream remembers. Reaching it
+/// clears the cache instead of growing it, which keeps a burst of one-off keys
+/// from pinning memory for the lifetime of the connection.
+const MAX_REQUEST_LIVE_KEY_NAMES: usize = 512;
+
+/// Per-connection cache of API key ids to display names.
+///
+/// A live row carries only the key id, and each lookup costs an LMDB operation
+/// slot that the gateway's own database work also needs, so a request that
+/// starts and finishes between two dashboard repaints must not be resolved
+/// twice. A renamed key keeps its old name for the life of one connection
+/// (five minutes at most); the request history list always joins the current
+/// name.
+#[derive(Default)]
+struct RequestLiveKeyNames {
+    names: HashMap<String, Option<String>>,
+}
+
+impl RequestLiveKeyNames {
+    async fn resolve(&mut self, db: &Database, api_key_id: Option<&str>) -> Option<String> {
+        let api_key_id = api_key_id?;
+        if let Some(name) = self.names.get(api_key_id) {
+            return name.clone();
+        }
+        if self.names.len() >= MAX_REQUEST_LIVE_KEY_NAMES {
+            self.names.clear();
+        }
+        let name = lookup_request_api_key_name(db, api_key_id).await;
+        self.names.insert(api_key_id.to_owned(), name.clone());
+        name
+    }
+}
+
+/// Resolves the display name of one API key. A key that was deleted has no name
+/// to show, so the row reports the unknown-key state rather than a key id.
+pub(super) async fn lookup_request_api_key_name(db: &Database, api_key_id: &str) -> Option<String> {
+    let key_id = api_key_id.to_owned();
+    let lookup = db
+        .read(move |transaction| {
+            let Some(record) = transaction.get::<Record>(Table::ApiKeys, &key_id)? else {
+                return Ok(None);
+            };
+            record
+                .optional_text("name")
+                .map(|name| name.map(str::to_owned))
+        })
+        .await;
+    match lookup {
+        Ok(name) => name,
+        Err(error) => {
+            tracing::warn!(%error, "could not resolve an API key name for the live request stream");
+            None
+        }
+    }
+}
+
 pub(super) async fn request_events(
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
@@ -215,7 +277,8 @@ pub(super) async fn request_events(
     let events = async_stream::stream! {
         let _connection_permit = connection_permit;
         let mut shutdown = state.shutdown_receiver();
-        yield Ok::<Event, Infallible>(request_live_snapshot_event(&initial));
+        let mut names = RequestLiveKeyNames::default();
+        yield Ok::<Event, Infallible>(request_live_snapshot_event(&state.db, &mut names, &initial).await);
 
         let max_duration = tokio::time::sleep(REQUEST_LIVE_STREAM_DURATION);
         tokio::pin!(max_duration);
@@ -229,10 +292,10 @@ pub(super) async fn request_events(
                 }
                 update = updates.recv() => {
                     match update {
-                        Ok(update) => yield Ok(request_live_event(update)),
+                        Ok(update) => yield Ok(request_live_event(&state.db, &mut names, update).await),
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
                             let snapshot = state.request_live_snapshot();
-                            yield Ok(request_live_snapshot_event(&snapshot));
+                            yield Ok(request_live_snapshot_event(&state.db, &mut names, &snapshot).await);
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                     }
@@ -247,13 +310,18 @@ pub(super) async fn request_events(
     ))
 }
 
-fn request_live_snapshot_event(snapshot: &RequestLiveSnapshot) -> Event {
+async fn request_live_snapshot_event(
+    db: &Database,
+    names: &mut RequestLiveKeyNames,
+    snapshot: &RequestLiveSnapshot,
+) -> Event {
+    let mut requests = Vec::with_capacity(snapshot.requests.len());
+    for row in &snapshot.requests {
+        let name = names.resolve(db, row.api_key_id.as_deref()).await;
+        requests.push(request_live_row_value(row, name.as_deref()));
+    }
     let payload = json!({
-        "requests": snapshot
-            .requests
-            .iter()
-            .map(request_live_row_value)
-            .collect::<Vec<_>>(),
+        "requests": requests,
         "truncated": snapshot.truncated,
         "limit": snapshot.limit,
         "active_count": snapshot.active_count,
@@ -261,10 +329,15 @@ fn request_live_snapshot_event(snapshot: &RequestLiveSnapshot) -> Event {
     request_sse_event("request-snapshot", payload)
 }
 
-fn request_live_event(event: RequestLiveEvent) -> Event {
+async fn request_live_event(
+    db: &Database,
+    names: &mut RequestLiveKeyNames,
+    event: RequestLiveEvent,
+) -> Event {
     match event {
         RequestLiveEvent::Started { row, active_count } => {
-            let mut payload = request_live_row_value(&row);
+            let name = names.resolve(db, row.api_key_id.as_deref()).await;
+            let mut payload = request_live_row_value(&row, name.as_deref());
             payload["active_count"] = json!(active_count);
             request_sse_event("request-started", payload)
         }
@@ -289,15 +362,26 @@ fn request_live_event(event: RequestLiveEvent) -> Event {
             request,
             finished_at_ms,
             active_count,
-        } => request_sse_event(
-            "request-finished",
-            json!({
-                "live_id": live_id,
-                "request": request.as_ref().map(|record| request_log_value(record, finished_at_ms)),
-                "finished_at_ms": finished_at_ms,
-                "active_count": active_count,
-            }),
-        ),
+        } => {
+            let api_key_name = match request
+                .as_ref()
+                .and_then(|record| record.api_key_id.as_deref())
+            {
+                Some(api_key_id) => names.resolve(db, Some(api_key_id)).await,
+                None => None,
+            };
+            request_sse_event(
+                "request-finished",
+                json!({
+                    "live_id": live_id,
+                    "request": request
+                        .as_ref()
+                        .map(|record| request_log_value(record, finished_at_ms, api_key_name.as_deref())),
+                    "finished_at_ms": finished_at_ms,
+                    "active_count": active_count,
+                }),
+            )
+        }
         RequestLiveEvent::Capacity {
             truncated,
             limit,
@@ -313,7 +397,7 @@ fn request_sse_event(name: &'static str, payload: Value) -> Event {
     Event::default().event(name).data(payload.to_string())
 }
 
-fn request_live_row_value(row: &RequestLiveRow) -> Value {
+fn request_live_row_value(row: &RequestLiveRow, api_key_name: Option<&str>) -> Value {
     json!({
         "live": true,
         "id": row.id,
@@ -323,7 +407,7 @@ fn request_live_row_value(row: &RequestLiveRow) -> Value {
         "provider_id": row.provider_id,
         "provider_credential_id": row.provider_credential_id,
         "api_key_id": row.api_key_id,
-        "api_key_name": null,
+        "api_key_name": api_key_name,
         "model": row.model,
         "client_protocol": row.client_protocol,
         "upstream_protocol": row.upstream_protocol,
@@ -340,7 +424,11 @@ fn request_live_row_value(row: &RequestLiveRow) -> Value {
     })
 }
 
-fn request_log_value(record: &RequestLogRecord, finished_at_ms: i64) -> Value {
+fn request_log_value(
+    record: &RequestLogRecord,
+    finished_at_ms: i64,
+    api_key_name: Option<&str>,
+) -> Value {
     json!({
         "live": false,
         "id": record.id,
@@ -349,7 +437,7 @@ fn request_log_value(record: &RequestLogRecord, finished_at_ms: i64) -> Value {
         "provider_id": record.provider_id,
         "provider_credential_id": record.provider_credential_id,
         "api_key_id": record.api_key_id,
-        "api_key_name": null,
+        "api_key_name": api_key_name,
         "model": record.model,
         "client_protocol": record.client_protocol,
         "upstream_protocol": record.upstream_protocol,
@@ -438,7 +526,7 @@ pub(super) async fn delete_request_logs(State(state): State<AppState>) -> ApiRes
 }
 
 #[cfg(test)]
-mod request_log_tests {
+mod tests {
     use super::*;
     use crate::{
         infra::storage::{Field, Record, Table},
@@ -591,6 +679,120 @@ mod request_log_tests {
         assert_eq!(
             request["error"],
             "provider 'provider' returned HTTP 502: upstream unavailable"
+        );
+    }
+
+    fn api_key_record(name: &str) -> Record {
+        Record::new().with("name", Field::Text(name.to_owned()))
+    }
+
+    #[tokio::test]
+    async fn request_live_rows_carry_the_api_key_name_instead_of_the_key_id() {
+        use http_body_util::BodyExt;
+
+        const KEY_ID: &str = "key-0b1204b4";
+        let database = TestDatabase::open().await;
+        let state = AppState::new(database.config(), database.db.clone());
+        database
+            .db
+            .write(move |transaction| {
+                transaction.put(Table::ApiKeys, KEY_ID, &api_key_record("qwen"))
+            })
+            .await
+            .expect("seed API key");
+        let live = state.begin_request_live(
+            "request-live-1",
+            "coding",
+            "qwen3-max",
+            "chat_completions",
+            Some(KEY_ID),
+        );
+        let response = request_events(State(state.clone()))
+            .await
+            .expect("request live SSE response")
+            .into_response();
+        let mut body = response.into_body();
+        let frame = tokio::time::timeout(Duration::from_secs(1), body.frame())
+            .await
+            .expect("request live snapshot timeout")
+            .expect("request live snapshot frame")
+            .expect("valid request live SSE frame")
+            .into_data()
+            .expect("request live SSE data");
+        let frame = String::from_utf8_lossy(&frame);
+        assert!(frame.contains(r#""api_key_name":"qwen""#), "{frame}");
+        // The id stays available for filtering; it is never presented as the
+        // key's name.
+        assert!(frame.contains(r#""api_key_id":"key-0b1204b4""#), "{frame}");
+        drop(body);
+        drop(live);
+    }
+
+    #[tokio::test]
+    async fn request_history_rows_do_not_use_a_deleted_key_id_as_the_name() {
+        let database = TestDatabase::open().await;
+        let record = request_log_record("log-deleted-key", "2026-09-15 07:10:00", None)
+            .with("api_key_id", Field::Text("key-deleted".to_owned()));
+        database
+            .db
+            .write(move |transaction| {
+                transaction.put(Table::RequestLogs, "log-deleted-key", &record)?;
+                let index_key = crate::infra::db::request_log_index_key(
+                    "2026-09-15 07:10:00",
+                    "log-deleted-key",
+                )?;
+                transaction.put(
+                    Table::RequestLogIndex,
+                    &index_key,
+                    &"log-deleted-key".to_owned(),
+                )
+            })
+            .await
+            .expect("seed request log");
+
+        let state = AppState::new(database.config(), database.db.clone());
+        let Json(page) = list_requests(
+            State(state),
+            Query(RequestLogQuery {
+                limit: Some(1),
+                ..RequestLogQuery::default()
+            }),
+        )
+        .await
+        .expect("list request page");
+        let request = &page["requests"].as_array().expect("request array")[0];
+        assert_eq!(request["api_key_id"], "key-deleted");
+        assert!(request["api_key_name"].is_null(), "{request}");
+    }
+
+    #[tokio::test]
+    async fn api_key_name_lookup_reports_a_missing_key_as_unknown() {
+        let database = TestDatabase::open().await;
+        assert_eq!(
+            lookup_request_api_key_name(&database.db, "missing-key").await,
+            None
+        );
+        database
+            .db
+            .write(move |transaction| {
+                transaction.put(Table::ApiKeys, "key-named", &api_key_record("qwen"))
+            })
+            .await
+            .expect("seed API key");
+        assert_eq!(
+            lookup_request_api_key_name(&database.db, "key-named")
+                .await
+                .as_deref(),
+            Some("qwen")
+        );
+        database
+            .db
+            .write(move |transaction| transaction.delete(Table::ApiKeys, "key-named").map(|_| ()))
+            .await
+            .expect("delete API key");
+        assert_eq!(
+            lookup_request_api_key_name(&database.db, "key-named").await,
+            None
         );
     }
 }

@@ -137,26 +137,48 @@ export type AppliedRequestFilter = {
   key: RequestFilterKey;
   label: string;
   value: string;
+  /// The exact id behind a human-readable `value`, shown as the chip tooltip.
+  title?: string;
+};
+
+/// Display names for the two id filters, as loaded by the option controller.
+export type RequestFilterLabels = {
+  api_key_id?: string;
+  provider_id?: string;
 };
 
 /// The filters currently applied, in the order the filter form shows them.
 export function appliedRequestFilters(
   filters: RequestLogFilters,
   tr: Translate,
+  labels: RequestFilterLabels = {},
 ): AppliedRequestFilter[] {
   const entries: AppliedRequestFilter[] = [];
   const apiKey = filters.api_key_id?.trim();
   if (apiKey) {
+    // `unknown` is the gateway's marker for a request that carried no key; the
+    // raw id would be meaningless, so the chip shows the localised placeholder.
+    const unknown = apiKey.toLowerCase() === 'unknown';
+    const name = unknown ? '' : labels.api_key_id?.trim() ?? '';
     entries.push({
       key: 'api_key_id',
       label: tr('API key ID'),
-      value: apiKey.toLowerCase() === 'unknown' ? tr('Unknown key') : apiKey,
+      value: unknown ? tr('Unknown key') : name || apiKey,
+      ...(name ? { title: apiKey } : {}),
+    });
+  }
+  const provider = filters.provider_id?.trim();
+  if (provider) {
+    const name = labels.provider_id?.trim() || provider;
+    entries.push({
+      key: 'provider_id',
+      label: tr('Provider ID'),
+      value: name,
+      ...(name === provider ? {} : { title: provider }),
     });
   }
   const model = filters.model?.trim();
   if (model) entries.push({ key: 'model', label: tr('Requested model'), value: model });
-  const provider = filters.provider_id?.trim();
-  if (provider) entries.push({ key: 'provider_id', label: tr('Provider ID'), value: provider });
   if (filters.status === 'success') {
     entries.push({ key: 'status', label: tr('Outcome'), value: tr('Successful') });
   } else if (filters.status === 'failure') {

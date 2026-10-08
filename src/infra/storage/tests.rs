@@ -963,3 +963,40 @@ fn snapshot_validation_decodes_request_logs_with_the_snapshots_own_dictionary() 
         "a dictionary-required frame must not validate without its dictionary"
     );
 }
+
+#[tokio::test]
+async fn storage_version_gate_refuses_only_unknown_newer_revisions() {
+    assert!(is_readable_storage_version(STORAGE_FORMAT_VERSION));
+    for withdrawn in WITHDRAWN_STORAGE_FORMAT_VERSIONS {
+        assert!(
+            is_readable_storage_version(*withdrawn),
+            "withdrawn revision {withdrawn} stays readable"
+        );
+    }
+    assert!(!is_readable_storage_version(0), "0 is never a revision");
+    // 6 is the first revision this build has no reading path for; 5 was
+    // withdrawn before release and is handled as a re-stamp.
+    assert!(!is_readable_storage_version(6));
+
+    let root = test_path("storage-version-gate");
+    let path = root.join("exoroute.lmdb");
+    let database = Database::open_for_test(&path, 4 * 1024 * 1024)
+        .await
+        .expect("open environment");
+    database
+        .write(|transaction| transaction.put(Table::Meta, "storage_format_version", &6_u32))
+        .await
+        .expect("stamp an unknown newer revision");
+    drop(database);
+
+    let refused = Database::open_for_test(&path, 4 * 1024 * 1024).await;
+    assert!(
+        matches!(
+            refused,
+            Err(StorageError::Invalid(ref message))
+                if message.contains("is newer than this ExoRoute build")
+        ),
+        "an unknown newer revision must be refused, not opened"
+    );
+    let _ = fs::remove_dir_all(root);
+}

@@ -185,16 +185,18 @@
     margin-top: 4px;
   }
 
+  /* An inset box inside the drawer's own card, framed the way the theme frames
+     nested boxes (see `.key-reveal-field code`). */
   .request-drawer-summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 14px 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    background: #f8f9fd;
+    box-shadow: 2px 2px 0 var(--ink);
   }
 
   .request-drawer-summary-main {
@@ -205,7 +207,7 @@
 
   .request-drawer-model {
     overflow: hidden;
-    color: #0f172a;
+    color: #33374b;
     font-family: var(--font-heading);
     font-size: 16px;
     font-weight: 700;
@@ -215,7 +217,7 @@
 
   .request-drawer-subtitle {
     overflow: hidden;
-    color: #64748b;
+    color: #85899b;
     font-size: 12px;
     font-weight: 500;
     text-overflow: ellipsis;
@@ -229,18 +231,20 @@
     margin: 0;
   }
 
+  /* Flat inset tiles: they sit inside the framed summary/box, so they must not
+     read as cards of their own. */
   .request-drawer-fields > div {
     display: grid;
     gap: 2px;
     min-width: 0;
     padding: 8px 10px;
-    border: 1px solid #f1f5f9;
+    border: none;
     border-radius: 8px;
-    background: #fafbfc;
+    background: #f8f9fd;
   }
 
   .request-drawer-fields dt {
-    color: #64748b;
+    color: #85899b;
     font-size: 10.5px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -250,7 +254,7 @@
   .request-drawer-fields dd {
     margin: 0;
     overflow: hidden;
-    color: #0f172a;
+    color: #33374b;
     font-size: 12.5px;
     font-weight: 600;
     text-overflow: ellipsis;
@@ -264,10 +268,10 @@
 
   .request-drawer-error {
     padding: 12px 14px;
-    border: 1px solid #fca5a5;
-    border-radius: 12px;
-    background: #fff5f5;
-    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.05);
+    border: 2px solid #b91c1c;
+    border-radius: 10px;
+    background: #fef2f2;
+    box-shadow: 2px 2px 0 #b91c1c;
   }
 
   .request-drawer-error h3 {
@@ -305,24 +309,25 @@
   }
 
   .request-drawer-id-label {
-    color: #64748b;
+    color: #85899b;
     font-size: 10.5px;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
   }
 
+  /* Flat orange-tint code chip, matching `.api-key-card-heading code`. */
   .request-drawer-id code {
     display: inline-block;
     overflow: hidden;
-    color: #0f172a;
+    color: #ea580c;
     font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    background: #fff7ed;
+    border: none;
     border-radius: 6px;
     padding: 2px 6px;
   }

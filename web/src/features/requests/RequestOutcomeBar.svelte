@@ -39,10 +39,10 @@
     gap: 16px;
     margin: 0 0 18px;
     padding: 12px 16px;
-    border: 1px solid #e2e4ed;
-    border-radius: 14px;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
     background: #ffffff;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    box-shadow: 3px 3px 0 var(--ink);
   }
 
   .request-outcome-bar {
@@ -53,7 +53,7 @@
     overflow: hidden;
     border: none;
     border-radius: 999px;
-    background: #f1f5f9;
+    background: #eceef4;
   }
 
   .request-outcome-segment {
@@ -61,16 +61,18 @@
     min-width: 3px;
   }
 
+  /* The three segment colours are the row stripe accents, so the legend and
+     the rows always agree. */
   .request-outcome-segment.active {
     background: #f97316;
   }
 
   .request-outcome-segment.success {
-    background: #10b981;
+    background: #36c59b;
   }
 
   .request-outcome-segment.failure {
-    background: #ef4444;
+    background: #db6683;
   }
 
   .request-outcome-legend {
@@ -87,7 +89,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    color: #64748b;
+    color: #85899b;
     font-size: 12px;
     font-weight: 500;
   }
@@ -105,15 +107,15 @@
   }
 
   .request-outcome-entry.success .request-outcome-dot {
-    background: #10b981;
+    background: #36c59b;
   }
 
   .request-outcome-entry.failure .request-outcome-dot {
-    background: #ef4444;
+    background: #db6683;
   }
 
   .request-outcome-count {
-    color: #0f172a;
+    color: #33374b;
     font-family: var(--font-mono);
     font-size: 12.5px;
     font-weight: 700;
