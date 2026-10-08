@@ -306,6 +306,25 @@
   white-space: nowrap;
   max-width: 170px;
 }
+.nested-combo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #f3e8ff;
+  color: #7c3aed;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.nested-combo-chip.is-missing {
+  background: #fee2e2;
+  color: #b91c1c;
+}
 .pipeline-connector {
   display: flex;
   align-items: center;

@@ -171,6 +171,31 @@
   border: none !important;
   color: #fb923c !important;
 }
+:root[data-theme='dark'] .target-kind-toggle {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+:root[data-theme='dark'] .target-kind-btn {
+  color: #8e93aa !important;
+}
+:root[data-theme='dark'] .target-kind-btn:hover:not(.is-active) {
+  color: #f1f5f9 !important;
+}
+:root[data-theme='dark'] .target-kind-btn.is-active {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .target-kind-btn.is-active.is-combo {
+  color: #fdba74 !important;
+}
+:root[data-theme='dark'] .nested-combo-chip {
+  background: rgba(168, 85, 247, 0.18) !important;
+  color: #d8b4fe !important;
+}
+:root[data-theme='dark'] .nested-combo-chip.is-missing {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #fca5a5 !important;
+}
 
 
 :root[data-theme='dark'] .api-key-summary,

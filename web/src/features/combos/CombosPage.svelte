@@ -14,6 +14,7 @@
   import type { ComboProviderOption, GatewayCombo } from '../../lib/types';
   import ComboCard from './ComboCard.svelte';
   import ComboEditorDialog from './ComboEditorDialog.svelte';
+  import { flattenedTargetCount } from './references';
 
   export let tr: Translate;
   export let actionRequest: FeatureActionRequest | null = null;
@@ -36,15 +37,21 @@
   let providerOptionsController: AbortController | undefined;
 
   $: providerNames = Object.fromEntries(providers.map((provider) => [provider.id, provider.name]));
+  $: comboNames = Object.fromEntries(combos.map((combo) => [combo.id, combo.name]));
+  // A nested reference matches on the name and id of the combo it names, not
+  // on the empty provider fields the server reports for that row.
+  $: flattenedTargets = Object.fromEntries(combos.map((combo) => [combo.id, flattenedTargetCount(combo, combos)]));
   $: filteredCombos = combos.filter((combo) => {
     const q = query.toLowerCase().trim();
     if (!q) return true;
     if (`${combo.name} ${combo.strategy}`.toLowerCase().includes(q)) return true;
-    return combo.targets.some((t) => (t.model?.toLowerCase().includes(q) || (providerNames[t.provider_id] ?? t.provider_id).toLowerCase().includes(q)));
+    return combo.targets.some((t) => (t.combo_id
+      ? `${comboNames[t.combo_id] ?? ''} ${t.combo_id}`.toLowerCase().includes(q)
+      : t.model?.toLowerCase().includes(q) || (providerNames[t.provider_id] ?? t.provider_id).toLowerCase().includes(q)));
   });
   $: totalCombos = combos.length;
-  $: totalTargets = combos.reduce((sum, c) => sum + c.targets.length, 0);
-  $: fallbackProtectedCombos = combos.filter((c) => c.targets.length >= 2).length;
+  $: totalTargets = combos.reduce((sum, combo) => sum + (flattenedTargets[combo.id] ?? 0), 0);
+  $: fallbackProtectedCombos = combos.filter((combo) => (flattenedTargets[combo.id] ?? 0) >= 2).length;
   $: roundRobinCount = combos.filter((c) => c.strategy === 'round_robin').length;
   $: if (actionRequest?.page === 'combos' && actionRequest.id !== handledActionId) {
     handledActionId = actionRequest.id;
@@ -174,14 +181,14 @@
   {#if errorMessage}<GatewayError message={errorMessage} {tr} onRetry={load} />
   {:else if loading}<InlineLoading label={'Loading {page}…'} {tr} vars={{ page: tr('Combos').toLowerCase() }} />
   {:else if filteredCombos.length}
-    <div class="combo-list">{#each filteredCombos as combo (combo.id)}<ComboCard {combo} {providerNames} {tr} deleting={deletingId === combo.id} onDelete={removeCombo} onEdit={openEdit} />{/each}</div>
+    <div class="combo-list">{#each filteredCombos as combo (combo.id)}<ComboCard {combo} {providerNames} {comboNames} {tr} deleting={deletingId === combo.id} onDelete={removeCombo} onEdit={openEdit} />{/each}</div>
   {:else if combos.length}
     <EmptyState icon="search" title={tr('No matching combos')} description={tr('Try a different search, or clear the filter.')} />
   {:else}
     <EmptyState icon="combos" title={tr('No combos configured')} description={tr('Create a combo to map a model name to one or more provider targets.')} action={tr('Create your first combo')} onclick={openCreate} />
   {/if}
 
-  <ComboEditorDialog open={editorOpen} comboToEdit={editingCombo} {providers} {tr} onClose={() => { editorOpen = false; editingCombo = null; }} onSaved={load} {onNavigate} />
+  <ComboEditorDialog open={editorOpen} comboToEdit={editingCombo} {providers} {combos} {tr} onClose={() => { editorOpen = false; editingCombo = null; }} onSaved={load} {onNavigate} />
 
   <ArkDialog
     open={comboToDelete !== null}

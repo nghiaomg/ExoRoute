@@ -21,6 +21,15 @@ pub(super) async fn validate_saved_combo_models(
         .db
         .read(move |transaction| {
             for target in &targets {
+                // A nested combo reference stores no provider or model of its
+                // own; the reference graph check owns that shape.
+                if target
+                    .combo_id
+                    .as_deref()
+                    .is_some_and(|combo_id| !combo_id.trim().is_empty())
+                {
+                    continue;
+                }
                 let key =
                     crate::infra::db::provider_model_key(&target.provider_id, target.model.trim())?;
                 if transaction
@@ -106,7 +115,7 @@ pub(super) fn validate_combo(
             "combo must have at least one target",
         ));
     }
-    if input.targets.len() > MAX_ROUTE_TARGETS
+    if input.targets.len() > MAX_ROUTE_TARGETS_PAGE
         || max_targets.is_some_and(|maximum| input.targets.len() > maximum)
     {
         return Err(fail(
@@ -120,6 +129,45 @@ pub(super) fn validate_combo(
             .map_err(|e| fail(StatusCode::BAD_REQUEST, e))?;
     }
     for target in &input.targets {
+        // A target is either a provider target or a nested combo reference.
+        let reference = target
+            .combo_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|combo_id| !combo_id.is_empty());
+        let provider_fields =
+            !target.provider_id.trim().is_empty() || !target.model.trim().is_empty();
+        if reference.is_some()
+            && (provider_fields || target.protocol.is_some() || target.weight.is_some())
+        {
+            return Err(fail(
+                StatusCode::BAD_REQUEST,
+                "a target is either a provider target or a nested combo target, not both",
+            ));
+        }
+        if let Some(combo_id) = reference {
+            if combo_id.len() > MAX_ROUTE_ID_BYTES {
+                return Err(fail(
+                    StatusCode::BAD_REQUEST,
+                    "nested combo ID must not exceed 128 bytes",
+                ));
+            }
+            if combo_id.bytes().any(|byte| byte.is_ascii_control()) {
+                return Err(fail(
+                    StatusCode::BAD_REQUEST,
+                    "nested combo ID contains unsupported control characters",
+                ));
+            }
+            // The provider and model checks below do not apply: a nested combo
+            // reference stores neither.
+            continue;
+        }
+        if !provider_fields {
+            return Err(fail(
+                StatusCode::BAD_REQUEST,
+                "each target needs a provider ID and model, or a nested combo ID",
+            ));
+        }
         if target.provider_id.trim().is_empty()
             || target.provider_id.len() > MAX_PROVIDER_ID_BYTES
             || target.model.trim().is_empty()

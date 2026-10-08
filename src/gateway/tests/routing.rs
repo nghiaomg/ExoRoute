@@ -31,11 +31,16 @@ async fn route_and_provider_model_aliases_read_lmdb_indexes() {
     .await
     .expect("seed route");
 
-    let route = request_preparation::load_stored_route(&database.db, "coding")
-        .await
-        .expect("load route")
-        .expect("route exists");
+    let route = request_preparation::load_stored_route(
+        &database.db,
+        "coding",
+        crate::protocol::Protocol::ChatCompletions,
+    )
+    .await
+    .expect("load route")
+    .expect("route exists");
     assert!(route.enabled);
+    assert!(route.flatten_issue.is_none());
     assert_eq!(route.targets.len(), 1);
     assert_eq!(route.targets[0].provider_id, "provider");
     let request_preparation::ProviderModelAliasResolution::Found(target) =

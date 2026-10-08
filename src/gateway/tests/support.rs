@@ -108,6 +108,35 @@ pub(super) async fn rotating_priority_upstream(
         .into_response()
 }
 
+/// Records each requested model and fails the ones whose name contains
+/// "fails". A test can then assert exactly which target was dispatched, in
+/// order, and that a mixed sequence of targets served the request.
+pub(super) async fn recording_failover_upstream(
+    State(calls): State<Arc<Mutex<Vec<String>>>>,
+    Json(body): Json<Value>,
+) -> axum::response::Response {
+    let model = body
+        .get("model")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    calls.lock().await.push(model.clone());
+    if model.contains("fails") {
+        return (
+            StatusCode::BAD_GATEWAY,
+            Json(json!({"error":{"message":"temporary upstream failure"}})),
+        )
+            .into_response();
+    }
+    Json(json!({
+            "id":"nested-combo-success",
+            "model":model,
+            "choices":[{"message":{"role":"assistant","content":"served by a flattened target"},"finish_reason":"stop"}],
+            "usage":{"prompt_tokens":1,"completion_tokens":1}
+        }))
+        .into_response()
+}
+
 pub(super) async fn transient_empty_completion_upstream(
     State(calls): State<Arc<AtomicUsize>>,
     Json(body): Json<Value>,
