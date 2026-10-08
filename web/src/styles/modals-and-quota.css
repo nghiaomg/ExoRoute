@@ -175,11 +175,12 @@
 
 .quota-page-note { margin: 0 0 16px; color: #64748b; font-size: 12px; line-height: 1.5; }
 .quota-provider-list { display: grid; gap: 20px; }
-.quota-provider-section { min-width: 0; padding: 20px; border: none; border-radius: 14px; background: #ffffff; box-shadow: none; }
+/* Soft Neo-Brutalism: 2px ink frame plus a hard offset ink shadow. */
+.quota-provider-section { min-width: 0; padding: 20px; border: 2px solid var(--ink); border-radius: 11px; background: #ffffff; box-shadow: 3px 3px 0 var(--ink); }
 .quota-provider-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 .quota-provider-title-group { display: flex; align-items: center; gap: 8px; }
-.quota-provider-section-heading h2 { margin: 0; overflow-wrap: anywhere; color: #0f172a; font: 700 16px var(--font-heading); }
-.quota-count-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; }
+.quota-provider-section-heading h2 { margin: 0; overflow-wrap: anywhere; color: #33374b; font: 700 16px var(--font-heading); }
+.quota-count-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #f1f2f6; color: #484c60; font-size: 12px; font-weight: 600; }
 .quota-provider-refresh-btn { display: inline-flex; align-items: center; gap: 5px; }
 
 .quota-page-grid { display: grid; grid-template-columns: minmax(290px, .85fr) minmax(0, 1.15fr); align-items: start; gap: 16px; }
@@ -194,8 +195,8 @@
 .quota-target-form .primary-button { justify-self: start; }
 
 .quota-credentials-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-.quota-credentials-heading h2 { margin: 0 0 3px; color: #0f172a; font: 700 13px var(--font-heading); }
-.quota-credentials-heading p { margin: 0; color: #64748b; font-size: 12px; line-height: 1.45; }
+.quota-credentials-heading h2 { margin: 0 0 3px; color: #33374b; font: 700 13px var(--font-heading); }
+.quota-credentials-heading p { margin: 0; color: #85899b; font-size: 12px; line-height: 1.45; }
 .quota-credentials-heading > span { display: flex; align-items: center; gap: 5px; }
-.provider-keys-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 28px 16px; color: #64748b; font-size: 12px; }
+.provider-keys-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 28px 16px; color: #85899b; font-size: 12px; }
 
