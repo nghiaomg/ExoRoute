@@ -65,6 +65,88 @@ pub(crate) fn model_probe_body(model: &str, protocol: Protocol) -> Value {
     }
 }
 
+/// Reads the event stream a forced-streaming probe receives.
+///
+/// A probe only has to establish that the upstream accepted the request: a
+/// refusal — a rejected credential, an unavailable model, a free-tier gate —
+/// arrives as an error frame, and a failing HTTP status is already handled by
+/// the caller. Scanning the bounded response's frames and rejecting every error
+/// frame is therefore enough; this deliberately does not reconstruct a response
+/// the way a gateway aggregation for non-streaming clients would.
+pub(super) fn model_probe_event_stream(body: &[u8]) -> Result<(), String> {
+    let text = std::str::from_utf8(body)
+        .map_err(|_| "Provider returned an invalid event stream".to_owned())?;
+    let mut frames = 0usize;
+    for line in text.lines() {
+        let Some(data) = line.strip_prefix("data:") else {
+            continue;
+        };
+        let data = data.trim();
+        if data.is_empty() || data == "[DONE]" {
+            continue;
+        }
+        let Ok(frame) = serde_json::from_str::<Value>(data) else {
+            continue;
+        };
+        frames += 1;
+        if let Some(message) = provider_event_stream_error(&frame) {
+            return Err(message);
+        }
+    }
+    if frames == 0 {
+        return Err("Provider event stream ended without a response event".to_owned());
+    }
+    Ok(())
+}
+
+/// Extracts the upstream's own refusal from one event frame.
+///
+/// The framings differ per upstream protocol — a top-level `error` object on
+/// Chat Completions and Responses, an `error` event type, and a failing `status`
+/// — so the message is read from whichever shape the frame carries.
+pub(super) fn provider_event_stream_error(frame: &Value) -> Option<String> {
+    let nested = frame
+        .get("error")
+        .or_else(|| {
+            frame
+                .get("response")
+                .and_then(|response| response.get("error"))
+        })
+        .filter(|error| !error.is_null());
+    if let Some(error) = nested {
+        let message = match error {
+            Value::String(message) => Some(message.as_str()),
+            Value::Object(object) => object.get("message").and_then(Value::as_str),
+            _ => None,
+        };
+        return Some(
+            message
+                .map(str::trim)
+                .filter(|message| !message.is_empty())
+                .unwrap_or("Provider event stream reported an error")
+                .to_owned(),
+        );
+    }
+    let failed = matches!(
+        frame.get("type").and_then(Value::as_str),
+        Some("error" | "response.failed")
+    ) || frame.get("status").and_then(Value::as_str) == Some("failed")
+        || frame
+            .get("response")
+            .and_then(|response| response.get("status"))
+            .and_then(Value::as_str)
+            == Some("failed");
+    failed.then(|| {
+        frame
+            .get("message")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|message| !message.is_empty())
+            .unwrap_or("Provider event stream reported a failed response")
+            .to_owned()
+    })
+}
+
 pub(super) async fn test_api_key_credential_impl<A: ProviderAdapter + ?Sized>(
     adapter: &A,
     options: AdapterApiKeyRequest<'_>,
@@ -180,9 +262,15 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
         Err(error) => return failed(None, format!("Provider egress check failed: {error}")),
     };
     let mut last_rejection = None;
+    // An upstream that refuses a non-streaming inference would answer this probe
+    // with its refusal instead of the credential's real verdict.
+    let expects_event_stream = adapter.probe_requires_event_stream();
     for (index, credential) in request.credentials.iter().enumerate() {
         let request_id = uuid::Uuid::new_v4().to_string();
         let mut body = model_probe_body(request.model, request.protocol);
+        if expects_event_stream {
+            body["stream"] = json!(true);
+        }
         adapter.prepare_body(&mut body, &request_id);
         let secret = credential.as_deref();
         if secret.is_none() && request.auth_type != "none" {
@@ -196,7 +284,7 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
                 adapter_base_url_override: None,
                 model: request.model,
                 request_id: &request_id,
-                streaming: false,
+                streaming: expects_event_stream,
                 auth: UpstreamAuthContext {
                     auth_type: request.auth_type,
                     auth_header: request.auth_header,
@@ -248,6 +336,9 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
         };
         if request.protocol == Protocol::Messages {
             provider_request = provider_request.header("anthropic-version", "2023-06-01");
+        }
+        if expects_event_stream {
+            provider_request = provider_request.header(http::header::ACCEPT, "text/event-stream");
         }
         let empty_client_headers = HeaderMap::new();
         provider_request = adapter.apply_client_headers(provider_request, &empty_client_headers);
@@ -306,10 +397,12 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
                     ) =>
             {
                 let status = response.status().as_u16();
-                let outcome = model_probe_response(adapter, response).await;
+                let outcome = model_probe_response(adapter, response, expects_event_stream).await;
                 last_rejection = Some((status, outcome.provider_response_body));
             }
-            Ok(response) => return model_probe_response(adapter, response).await,
+            Ok(response) => {
+                return model_probe_response(adapter, response, expects_event_stream).await;
+            }
             Err(error) => {
                 return failed(
                     None,
@@ -339,6 +432,7 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
 async fn model_probe_response<A: ProviderAdapter + ?Sized>(
     adapter: &A,
     response: reqwest::Response,
+    expects_event_stream: bool,
 ) -> AdapterModelTestOutcome {
     let status = response.status();
     if !status.is_success() {
@@ -368,6 +462,22 @@ async fn model_probe_response<A: ProviderAdapter + ?Sized>(
     let provider_response_body = model_test_provider_response_body(&body);
     let value = match serde_json::from_slice::<Value>(&body) {
         Ok(value) => value,
+        Err(_) if expects_event_stream => {
+            return match model_probe_event_stream(&body) {
+                Ok(()) => AdapterModelTestOutcome {
+                    test_passed: true,
+                    status: Some(status.as_u16()),
+                    message: "Model responded successfully".to_owned(),
+                    provider_response_body: None,
+                },
+                Err(message) => AdapterModelTestOutcome {
+                    test_passed: false,
+                    status: Some(http::StatusCode::BAD_GATEWAY.as_u16()),
+                    message,
+                    provider_response_body,
+                },
+            };
+        }
         Err(_) => {
             return AdapterModelTestOutcome {
                 test_passed: false,
