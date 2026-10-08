@@ -24,26 +24,10 @@
 :root[data-theme='dark'] .output-style-copy small {
   color: #8e93aa !important;
 }
+/* The level control is the shared Ark select; its dark theme lives with the
+   other Ark components. */
 :root[data-theme='dark'] .output-style-level {
   color: #8e93aa !important;
-}
-:root[data-theme='dark'] .output-style-level select {
-  color: #f0f2f8 !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-:root[data-theme='dark'] .output-style-level select:focus {
-  outline-color: rgba(99, 102, 241, 0.4) !important;
-  border-color: #818cf8 !important;
-}
-:root[data-theme='dark'] .output-style-level select:disabled {
-  color: #636779 !important;
-  background: rgba(255, 255, 255, 0.02) !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
-}
-:root[data-theme='dark'] .output-style-level select option {
-  background: #111320 !important;
-  color: #f0f2f8 !important;
 }
 
 :root[data-theme='dark'] .settings-view .database-log-option {
