@@ -318,7 +318,7 @@ fn bootstrap_storage_version(
     txn: &mut heed::RwTxn<'_>,
     tables: &HashMap<Table, RawDatabase>,
 ) -> Result<(), StorageError> {
-    use super::STORAGE_FORMAT_VERSION;
+    use super::{STORAGE_FORMAT_VERSION, WITHDRAWN_STORAGE_FORMAT_VERSIONS};
     let meta = tables
         .get(&Table::Meta)
         .ok_or_else(|| StorageError::Invalid("LMDB metadata store is missing".to_owned()))?;
@@ -343,9 +343,20 @@ fn bootstrap_storage_version(
             // existing provider credentials remain compatible.
             stamp_storage_version(txn, meta)?;
         }
-        Some(3) if STORAGE_FORMAT_VERSION == 4 => {
+        Some(3) if STORAGE_FORMAT_VERSION >= 4 => {
             // v3 has no output-style settings table. The named table
             // is created above and initialized by the domain layer.
+            stamp_storage_version(txn, meta)?;
+        }
+        Some(version) if WITHDRAWN_STORAGE_FORMAT_VERSIONS.contains(&version) => {
+            // A withdrawn revision was stamped only by unreleased builds. It is
+            // additive, so records stay readable and an older build keeps
+            // working instead of being locked out of the user's own data.
+            // Re-stamp so that older build opens the environment again.
+            tracing::warn!(
+                version,
+                "re-stamping a withdrawn LMDB storage format to the released revision"
+            );
             stamp_storage_version(txn, meta)?;
         }
         Some(version) if version < STORAGE_FORMAT_VERSION => {

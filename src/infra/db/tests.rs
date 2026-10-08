@@ -198,13 +198,55 @@ async fn storage_v3_migration_creates_default_output_styles_record() {
             .read(|transaction| { transaction.get::<u32>(Table::Meta, "storage_format_version") })
             .await
             .expect("read migrated storage version"),
-        Some(4)
+        Some(crate::infra::storage::STORAGE_FORMAT_VERSION)
     );
     assert_eq!(
         load_output_styles(&migrated).await.unwrap(),
         OutputStylesSnapshot::default()
     );
     drop(migrated);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
+async fn withdrawn_storage_version_5_is_restamped_instead_of_refused() {
+    let path = temp_db_path();
+    let database = connect_for_test(&path).await.expect("open initial LMDB");
+    database
+        .write(|transaction| transaction.put(Table::Meta, "storage_format_version", &5_u32))
+        .await
+        .expect("prepare version 5 fixture");
+    drop(database);
+
+    // Version 5 existed only in unreleased builds, so an environment carrying
+    // it must keep opening rather than lock the user out of their own data.
+    let reopened = connect_for_test(&path)
+        .await
+        .expect("open an environment stamped by an unreleased build");
+    assert_eq!(
+        reopened
+            .read(|transaction| { transaction.get::<u32>(Table::Meta, "storage_format_version") })
+            .await
+            .expect("read re-stamped storage version"),
+        Some(crate::infra::storage::STORAGE_FORMAT_VERSION)
+    );
+    // The re-stamp rewrites the marker only: an older build still reaches every
+    // table it knows, including the named combo reference index the nested
+    // combo feature added.
+    reopened
+        .write(|transaction| transaction.put(Table::RouteTargetComboIndex, "c/6162/row", &"a"))
+        .await
+        .expect("write to the combo reference index");
+    assert_eq!(
+        reopened
+            .read(|transaction| {
+                transaction.get::<String>(Table::RouteTargetComboIndex, "c/6162/row")
+            })
+            .await
+            .expect("read the combo reference index"),
+        Some("a".to_owned())
+    );
+    drop(reopened);
     let _ = fs::remove_dir_all(&path);
 }
 

@@ -6,13 +6,42 @@
 
   export let combo: GatewayCombo;
   export let providerNames: Record<string, string>;
+  /** Combo id to display name, for the rows that nest another combo. */
+  export let comboNames: Record<string, string> = {};
   export let tr: Translate;
   export let deleting = false;
   export let onDelete: (combo: GatewayCombo) => void;
   export let onEdit: ((combo: GatewayCombo) => void) | undefined = undefined;
 
+  /** One row of the target pipeline, resolved to what the row displays. */
+  interface PipelineRow {
+    isNested: boolean;
+    /** The referenced combo's name, or the target model; the mono chip text. */
+    label: string;
+    /** The provider name for a provider row, its id when the name is unknown. */
+    provider: string;
+    /** A nested row whose combo is not in the loaded list. */
+    missingCombo: boolean;
+  }
+
   let copied = false;
   let copyTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  // Resolved here so the markup never indexes the name maps with a
+  // possibly-absent combo id.
+  $: pipelineRows = combo.targets.map((target): PipelineRow => target.combo_id
+    ? {
+        isNested: true,
+        label: comboNames[target.combo_id] ?? target.combo_id,
+        provider: '',
+        missingCombo: !comboNames[target.combo_id],
+      }
+    : {
+        isNested: false,
+        label: target.model,
+        provider: providerNames[target.provider_id] ?? target.provider_id,
+        missingCombo: false,
+      });
 
   async function copyModelName(event: MouseEvent): Promise<void> {
     event.stopPropagation();
@@ -108,7 +137,7 @@
   </div>
 
   <div class="target-pipeline">
-    {#each combo.targets as target, index}
+    {#each pipelineRows as row, index}
       {#if index > 0}
         <div class="pipeline-connector">
           <span class="connector-line"></span>
@@ -125,15 +154,25 @@
           </span>
         </div>
         <div class="target-details">
-          <div class="target-provider-model">
-            <strong class="target-provider-name">{providerNames[target.provider_id] ?? target.provider_id}</strong>
-            <span class="target-arrow"><ArrowRight size={13} /></span>
-            <code class="target-model-chip">{target.model}</code>
-          </div>
+          {#if row.isNested}
+            <div class="target-provider-model">
+              <span class="nested-combo-chip" class:is-missing={row.missingCombo}>
+                <Layers3 size={11} />
+                <span>{tr(row.missingCombo ? 'Missing combo' : 'Nested combo')}</span>
+              </span>
+              <code class="target-model-chip">{row.label}</code>
+            </div>
+          {:else}
+            <div class="target-provider-model">
+              <strong class="target-provider-name">{row.provider}</strong>
+              <span class="target-arrow"><ArrowRight size={13} /></span>
+              <code class="target-model-chip">{row.label}</code>
+            </div>
+          {/if}
         </div>
       </div>
     {/each}
-    {#if !combo.targets.length}
+    {#if !pipelineRows.length}
       <div class="no-targets">{tr('No targets configured')}</div>
     {/if}
   </div>

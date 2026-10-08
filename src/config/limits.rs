@@ -1,5 +1,18 @@
 use super::*;
 
+/// Targets a combo may declare, and provider targets one gateway request may
+/// expand to once nested combo references are flattened.
+///
+/// One definition for the admin save path, the gateway resolve path, and backup
+/// validation. They previously used separate constants (32 in the combo editor,
+/// 16 in the gateway), so a combo with 17 to 32 targets could be saved and then
+/// always fail at request time.
+pub const MAX_ROUTE_TARGETS: usize = 32;
+
+/// Maximum depth of nested combo references. Deeper graphs are rejected at save
+/// time and at request time.
+pub const MAX_COMBO_NESTING_DEPTH: usize = 8;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GatewayResourceLimits {
     pub gateway_body_limit_bytes: usize,

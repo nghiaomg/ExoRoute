@@ -1,20 +1,31 @@
 use super::*;
+use crate::config::MAX_ROUTE_TARGETS;
 use crate::infra::storage::{Field, Record, StorageError, Table};
 
+mod references;
 mod storage;
 mod validation;
 
+use references::{
+    MAX_DELETE_BLOCKERS_NAMED, PendingCombo, ensure_reference_graph, referencing_combo_names,
+    validate_combo_references,
+};
 #[cfg(test)]
 pub(super) use storage::route_target_key;
 pub(super) use storage::{
-    route_name_index_key, route_target_provider_index_key, route_target_provider_index_prefix,
+    route_name_index_key, route_target_combo_index_key, route_target_provider_index_key,
+    route_target_provider_index_prefix,
 };
+
+pub(crate) use references::{ComboNode, ComboReferences, ComboStore, validate_stored_graph};
 use storage::{route_record, route_target_prefix, route_target_records, save_combo};
 use validation::{apply_path_id_for_update, validate_combo, validate_saved_combo_models};
 
-const MAX_COMBO_TARGETS: usize = 32;
-pub(super) const MAX_ROUTE_TARGETS: usize = 10_000;
-const MAX_ROUTE_ID_BYTES: usize = 128;
+/// Page/scan bound for combo and route-target reads. This is a sanity limit on
+/// how much is read at once, not the number of targets a combo may declare;
+/// that cap is `crate::config::MAX_ROUTE_TARGETS`, shared with the gateway.
+pub(super) const MAX_ROUTE_TARGETS_PAGE: usize = 10_000;
+pub(super) const MAX_ROUTE_ID_BYTES: usize = 128;
 const MAX_PROVIDER_ID_BYTES: usize = 128;
 const MAX_MODEL_BYTES: usize = 256;
 const COMBO_PROVIDER_OPTIONS_PAGE_SIZE: usize = 200;
@@ -27,8 +38,12 @@ fn yes() -> bool {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct ComboTargetInput {
+    #[serde(default)]
     pub provider_id: String,
+    #[serde(default)]
     pub model: String,
+    /// Set for a nested combo target, which stores no provider of its own.
+    pub combo_id: Option<String>,
     pub protocol: Option<String>,
     #[serde(default)]
     pub priority: u32,
@@ -177,13 +192,20 @@ async fn list_items(state: AppState, combos: bool) -> ApiResult {
                 let target_records = transaction.scan_prefix::<Record>(
                     Table::RouteTargets,
                     &route_target_prefix(&id)?,
-                    MAX_ROUTE_TARGETS,
+                    MAX_ROUTE_TARGETS_PAGE,
                 )?;
                 let mut targets = Vec::with_capacity(target_records.len());
                 for (_, target) in target_records {
                     targets.push(ComboTargetInput {
-                        provider_id: target.text("provider_id")?.to_owned(),
-                        model: target.text("model")?.to_owned(),
+                        provider_id: target
+                            .optional_text("provider_id")?
+                            .unwrap_or_default()
+                            .to_owned(),
+                        model: target
+                            .optional_text("model")?
+                            .unwrap_or_default()
+                            .to_owned(),
+                        combo_id: target.optional_text("combo_id")?.map(str::to_owned),
                         protocol: target.optional_text("protocol")?.map(str::to_owned),
                         priority: u32::try_from(target.integer("priority")?).map_err(|_| {
                             StorageError::Invalid("route target priority is invalid".to_owned())
@@ -233,7 +255,7 @@ pub(super) async fn create_combo(
     State(state): State<AppState>,
     Json(input): Json<ComboInput>,
 ) -> ApiResult {
-    create_item(state, input, Some(MAX_COMBO_TARGETS)).await
+    create_item(state, input, Some(MAX_ROUTE_TARGETS)).await
 }
 
 async fn create_item(
@@ -247,6 +269,8 @@ async fn create_item(
         input.id = resource_id(&input.name);
     }
     let id = input.id.clone();
+    let pending = PendingCombo::from_input(&input);
+    validate_combo_references(&state, id.clone(), pending.clone()).await?;
     let route = route_record(&input).map_err(internal)?;
     let name_index = route_name_index_key(&input.name, &id).map_err(internal)?;
     let targets = route_target_records(&input).map_err(internal)?;
@@ -256,6 +280,7 @@ async fn create_item(
             if transaction.get::<Record>(Table::Routes, &id)?.is_some() {
                 return Err(StorageError::Conflict);
             }
+            ensure_reference_graph(&*transaction, &id, &pending)?;
             save_combo(transaction, &id, &route, &name_index, &targets, false)
         })
         .await
@@ -288,7 +313,7 @@ pub(super) async fn update_combo(
     Path(id): Path<String>,
     Json(input): Json<ComboInput>,
 ) -> ApiResult {
-    update_item(state, id, input, Some(MAX_COMBO_TARGETS)).await
+    update_item(state, id, input, Some(MAX_ROUTE_TARGETS)).await
 }
 
 async fn update_item(
@@ -301,6 +326,8 @@ async fn update_item(
         .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
     validate_combo(&input, max_targets)?;
     validate_saved_combo_models(&state, &input).await?;
+    let pending = PendingCombo::from_input(&input);
+    validate_combo_references(&state, id.clone(), pending.clone()).await?;
     let route = route_record(&input).map_err(internal)?;
     let name_index = route_name_index_key(&input.name, &id).map_err(internal)?;
     let targets = route_target_records(&input).map_err(internal)?;
@@ -311,6 +338,7 @@ async fn update_item(
             let Some(old_route) = transaction.get::<Record>(Table::Routes, &id_for_write)? else {
                 return Ok(false);
             };
+            ensure_reference_graph(&*transaction, &id_for_write, &pending)?;
             let old_name_index = route_name_index_key(old_route.text("name")?, &id_for_write)?;
             transaction.delete(Table::RouteNameIndex, &old_name_index)?;
             let mut updated_route = route.clone();
@@ -351,39 +379,90 @@ pub(super) async fn delete_combo(
     delete_item(state, id).await
 }
 
+/// Why a combo deletion did or did not happen. The blocked case carries no data
+/// because the write closure cannot return one; the names are read afterwards.
+enum DeleteOutcome {
+    Deleted,
+    Missing,
+    Referenced,
+}
+
 async fn delete_item(state: AppState, id: String) -> ApiResult {
     let route_id = id.clone();
-    let deleted = state
+    let outcome = state
         .db
         .write(move |transaction| {
             let Some(route) = transaction.get::<Record>(Table::Routes, &id)? else {
-                return Ok(false);
+                return Ok(DeleteOutcome::Missing);
             };
+            // A combo another combo points at cannot be removed: the parent
+            // would keep resolving to a dangling reference. Checked in the same
+            // transaction as the delete so a concurrent save cannot slip past.
+            if !transaction.referencing_routes(&id)?.is_empty() {
+                return Ok(DeleteOutcome::Referenced);
+            }
             let name_index = route_name_index_key(route.text("name")?, &id)?;
             transaction.delete(Table::Routes, &id)?;
             transaction.delete(Table::RouteNameIndex, &name_index)?;
             let targets = transaction.scan_prefix::<Record>(
                 Table::RouteTargets,
                 &route_target_prefix(&id)?,
-                MAX_ROUTE_TARGETS,
+                MAX_ROUTE_TARGETS_PAGE,
             )?;
             for (target_key, target) in targets {
                 transaction.delete(Table::RouteTargets, &target_key)?;
-                let provider_id = target.text("provider_id")?;
-                transaction.delete(
-                    Table::RouteTargetProviderIndex,
-                    &route_target_provider_index_key(provider_id, &target_key)?,
-                )?;
+                if let Some(provider_id) = target.optional_text("provider_id")? {
+                    transaction.delete(
+                        Table::RouteTargetProviderIndex,
+                        &route_target_provider_index_key(provider_id, &target_key)?,
+                    )?;
+                }
+                if let Some(combo_id) = target.optional_text("combo_id")? {
+                    transaction.delete(
+                        Table::RouteTargetComboIndex,
+                        &route_target_combo_index_key(combo_id, &target_key)?,
+                    )?;
+                }
             }
-            Ok(true)
+            Ok(DeleteOutcome::Deleted)
         })
         .await
         .map_err(internal)?;
-    if !deleted {
-        return Err(fail(StatusCode::NOT_FOUND, "combo not found"));
+    match outcome {
+        DeleteOutcome::Missing => Err(fail(StatusCode::NOT_FOUND, "combo not found")),
+        DeleteOutcome::Referenced => Err(delete_blocked_error(&state, &route_id).await),
+        DeleteOutcome::Deleted => {
+            state.clear_route_runtime_state(&route_id).await;
+            Ok(Json(json!({"ok":true})))
+        }
     }
-    state.clear_route_runtime_state(&route_id).await;
-    Ok(Json(json!({"ok":true})))
+}
+
+/// The 409 for deleting a combo that nested combos still point at. Naming the
+/// first few referrers is what makes the block actionable; the read is only for
+/// the message, so a failed lookup falls back to the generic wording.
+async fn delete_blocked_error(state: &AppState, combo_id: &str) -> (StatusCode, Json<Value>) {
+    let combo_id = combo_id.to_owned();
+    let names = state
+        .db
+        .read(move |transaction| referencing_combo_names(transaction, &combo_id))
+        .await
+        .unwrap_or_default();
+    let message = if names.is_empty() {
+        "This combo is referenced by another combo. Remove the nested reference before deleting it."
+            .to_owned()
+    } else if names.len() >= MAX_DELETE_BLOCKERS_NAMED {
+        format!(
+            "This combo is referenced by {} and other combos. Remove the nested references before deleting it.",
+            names.join(", ")
+        )
+    } else {
+        format!(
+            "This combo is referenced by {}. Remove the nested references before deleting it.",
+            names.join(", ")
+        )
+    };
+    fail(StatusCode::CONFLICT, message)
 }
 
 pub(super) async fn list_models(State(state): State<AppState>) -> ApiResult {
@@ -399,7 +478,13 @@ pub(super) async fn list_models(State(state): State<AppState>) -> ApiResult {
             let mut models = Vec::with_capacity(targets.len());
             for (target_key, target) in targets {
                 let route_id = target.text("route_id")?.to_owned();
-                let provider_id = target.text("provider_id")?.to_owned();
+                // A nested combo reference has no provider of its own, and its
+                // targets are listed under the combo it points at, so the model
+                // list stays complete without expanding references here.
+                let Some(provider_id) = target.optional_text("provider_id")? else {
+                    continue;
+                };
+                let provider_id = provider_id.to_owned();
                 if !routes.contains_key(&route_id)
                     && let Some(route) = transaction.get::<Record>(Table::Routes, &route_id)?
                 {
