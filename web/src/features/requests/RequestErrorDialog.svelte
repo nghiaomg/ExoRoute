@@ -88,7 +88,7 @@
           <span class="request-error-box-title">{tr('Error message')}</span>
           <button type="button" class="secondary-button compact copy-error-button" onclick={copyErrorText} title={tr('Copy error')}>
             {#if errorCopied}
-              <Check size={13} color="#16a34a" />
+              <Check size={13} color="#278e6d" />
               <span>{tr('Copied!')}</span>
             {:else}
               <Copy size={13} />
@@ -112,13 +112,14 @@
     flex-direction: column;
     gap: 14px;
   }
+  /* Flat inset grid inside the dialog's own card. */
   .request-error-meta-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 10px;
     padding: 12px;
-    background: #f8f9fc;
-    border: 1px solid #ebedf5;
+    background: #f8f9fd;
+    border: none;
     border-radius: 10px;
   }
   :global(:root[data-theme='dark']) .request-error-meta-grid {
@@ -135,12 +136,12 @@
   .error-meta-label {
     font-size: 10.5px;
     font-weight: 700;
-    color: #8b90a4;
+    color: #85899b;
     letter-spacing: 0.5px;
   }
   .error-meta-val {
     font-size: 12.5px;
-    color: #2d3142;
+    color: #33374b;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -155,10 +156,11 @@
   .request-error-box {
     display: flex;
     flex-direction: column;
-    border: 1px solid #fed7aa;
+    border: 2px solid var(--ink);
     border-radius: 10px;
     overflow: hidden;
     background: #fffaf5;
+    box-shadow: 2px 2px 0 var(--ink);
   }
   :global(:root[data-theme='dark']) .request-error-box {
     border-color: #6c2e17;
@@ -182,14 +184,16 @@
     color: #9a3412;
   }
   :global(:root[data-theme='dark']) .request-error-box-title { color: #fdba74; }
+  /* Inherits `.secondary-button`'s ink frame and radius; only the compact size
+     is local. */
   .copy-error-button {
     display: inline-flex;
     align-items: center;
     gap: 5px;
     height: 28px;
+    min-height: 28px;
     padding: 0 10px;
     font-size: 11.5px;
-    border-radius: 6px;
   }
   .request-error-pre {
     margin: 0;

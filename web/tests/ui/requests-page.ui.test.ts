@@ -3,7 +3,14 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import RequestsPage from '../../src/features/requests/RequestsPage.svelte';
 import { api } from '../../src/lib/api';
 import type { Translate } from '../../src/lib/format';
-import type { RequestLiveEvent, RequestLiveRow, RequestLog, RequestLogPage } from '../../src/lib/types';
+import type {
+  GatewayApiKey,
+  Provider,
+  RequestLiveEvent,
+  RequestLiveRow,
+  RequestLog,
+  RequestLogPage,
+} from '../../src/lib/types';
 
 const tr: Translate = (key, vars) =>
   key.replace(/\{(\w+)\}/g, (_, name: string) => String(vars?.[name] ?? `{${name}}`));
@@ -62,7 +69,26 @@ function mockLiveFeed(rows: RequestLiveRow[] = [live]): (event: RequestLiveEvent
   return (event) => emit?.(event);
 }
 
-function renderPage(): ReturnType<typeof render> {
+type RenderOptions = { providers?: Provider[]; apiKeys?: GatewayApiKey[] };
+
+function provider(id: string, name: string): Provider {
+  return {
+    id,
+    name,
+    adapter_id: 'generic',
+    base_url: 'http://127.0.0.1:9/v1',
+    enabled: true,
+    auth_type: 'none',
+    preferred_protocol: 'chat_completions',
+    supported_protocols: ['chat_completions'],
+  };
+}
+
+function renderPage(options: RenderOptions = {}): ReturnType<typeof render> {
+  // The filter panel loads both id option lists on mount; the tests that never
+  // open those fields still need the calls answered.
+  vi.spyOn(api, 'providers').mockResolvedValue(options.providers ?? []);
+  vi.spyOn(api, 'apiKeys').mockResolvedValue({ api_keys: options.apiKeys ?? [], next_cursor: null });
   return render(RequestsPage, { props: { tr, locale: 'en', onConnectionChange: () => {} } });
 }
 
@@ -173,16 +199,26 @@ describe('requests page', () => {
     expect(container.querySelector('.request-metric.active .request-metric-value')?.textContent?.trim()).toBe('2');
   });
 
-  test('the filter panel applies a draft, shows a chip, and removing the chip clears it', async () => {
+  test('the filter panel searches the id fields, applies a chip, and removing the chip clears it', async () => {
     mockLiveFeed();
     const requests = vi.spyOn(api, 'requests').mockResolvedValue(page(finishedRows));
-    const { container } = renderPage();
+    const { container } = renderPage({
+      apiKeys: [{ id: 'key-42', name: 'Production key', enabled: true, created_at: '2026-10-05T10:00:00.000Z' }],
+      providers: [provider('p-1', 'OpenAI')],
+    });
 
     await screen.findByText('anthropic/claude');
     expect(container.querySelector('.request-filter-chip')).toBeNull();
 
-    const input = (await screen.findByLabelText('API key ID')) as HTMLInputElement;
-    await fireEvent.input(input, { target: { value: 'key-42' } });
+    // The id field is a select: typing searches the server-backed key list.
+    const input = screen.getByPlaceholderText('Search API keys by name or ID');
+    await fireEvent.click(input);
+    await waitFor(() => expect(api.apiKeys).toHaveBeenLastCalledWith({ q: '' }, expect.anything()));
+    await fireEvent.input(input, { target: { value: 'prod' } });
+    await waitFor(() => expect(api.apiKeys).toHaveBeenLastCalledWith({ q: 'prod' }, expect.anything()));
+
+    await fireEvent.keyDown(input, { key: 'ArrowDown' });
+    await fireEvent.keyDown(input, { key: 'Enter' });
     await fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
 
     await waitFor(() => expect(requests).toHaveBeenCalledTimes(2));
@@ -190,7 +226,10 @@ describe('requests page', () => {
       { api_key_id: 'key-42', model: '', provider_id: '', status: '', cursor: null },
       expect.anything(),
     );
-    expect(container.querySelector('.request-filter-chip-value')?.textContent?.trim()).toBe('key-42');
+    // The chip reads by name and keeps the raw id as its tooltip.
+    const chip = container.querySelector('.request-filter-chip-value');
+    expect(chip?.textContent?.trim()).toBe('Production key');
+    expect(chip?.getAttribute('title')).toBe('key-42');
 
     await fireEvent.click(screen.getByRole('button', { name: 'Remove API key ID' }));
 
@@ -200,5 +239,24 @@ describe('requests page', () => {
       expect.anything(),
     );
     await waitFor(() => expect(container.querySelector('.request-filter-chip')).toBeNull());
+  });
+
+  test('the provider id field offers the loaded providers and filters them locally', async () => {
+    mockLiveFeed();
+    vi.spyOn(api, 'requests').mockResolvedValue(page(finishedRows));
+    renderPage({ providers: [provider('p-1', 'OpenAI'), provider('p-2', 'Anthropic')] });
+
+    await screen.findByText('anthropic/claude');
+    // Providers come back whole, so the field never queries per keystroke.
+    await waitFor(() => expect(api.providers).toHaveBeenCalledTimes(1));
+
+    const input = screen.getByPlaceholderText('Search providers by name or ID');
+    await fireEvent.click(input);
+    expect(await screen.findByText('OpenAI')).toBeTruthy();
+
+    await fireEvent.input(input, { target: { value: 'anth' } });
+    await waitFor(() => expect(screen.queryByText('OpenAI')).toBeNull());
+    expect(screen.getByText('Anthropic')).toBeTruthy();
+    expect(api.providers).toHaveBeenCalledTimes(1);
   });
 });

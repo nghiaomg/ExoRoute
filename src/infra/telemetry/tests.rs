@@ -609,3 +609,110 @@ async fn statistics_expiry_subtracts_only_the_expired_bucket() {
     drop(database);
     let _ = fs::remove_dir_all(&path);
 }
+
+/// Enqueues one request worth of telemetry the way the gateway's request path
+/// does: an API key usage event, a statistics event, a request log, and a
+/// provider cost event.
+fn enqueue_request(telemetry: &Telemetry, index: usize) {
+    let api_key_id = if index.is_multiple_of(2) {
+        "key-1"
+    } else {
+        "key-2"
+    };
+    telemetry.record_api_key_request(api_key_id.to_owned());
+    let analytics = telemetry.start_request(api_key_id.to_owned());
+    analytics.set_requested_model(Some("provider/model"));
+    analytics.set_token_usage(Some(10), Some(4));
+    analytics.finish(true);
+    telemetry.enqueue_request_log(RequestLogRecord {
+        id: format!("log-{index}"),
+        request_id: format!("request-{index}"),
+        route_alias: "default".to_owned(),
+        provider_id: Some("provider".to_owned()),
+        provider_credential_id: Some("cred-1".to_owned()),
+        api_key_id: Some(api_key_id.to_owned()),
+        model: "provider/model".to_owned(),
+        client_protocol: "chat_completions".to_owned(),
+        upstream_protocol: Some("chat_completions".to_owned()),
+        status: 200,
+        duration_ms: 12,
+        input_tokens: Some(10),
+        output_tokens: Some(4),
+        cached_tokens: Some(6),
+        cache_input_tokens: Some(10),
+        cost_micro_usd: Some(125_000),
+        error: None,
+    });
+    telemetry.record_provider_usage("cred-1".to_owned(), Some(125_000), Some(10), Some(4));
+}
+
+/// Request rates this harness paces through the telemetry writer.
+///
+/// The 10 ms pacing step caps the delivered rate at roughly 1.2k requests per
+/// second on Windows, so a higher target would only repeat the same load.
+const SWEEP_RATES: [usize; 5] = [125, 250, 500, 1_000, 2_000];
+const SWEEP_SECONDS: usize = 3;
+
+/// Sustained request traffic must reach the writer without the bounded queue
+/// overflowing.
+///
+/// This sweeps the rates a single process is expected to serve and prints what
+/// each one measured. The loss budget stays loose so a slower machine does not
+/// turn a timing measurement into a flake, while still catching the regression
+/// this replaced: when every dropped event woke the writer for a counters
+/// transaction, the same sweep lost 13% of its events at the top rates.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn paced_request_traffic_does_not_overflow_the_telemetry_queue() {
+    let (database, path) = test_db().await;
+    database
+        .write(|transaction| {
+            transaction.put(Table::ApiKeys, "key-1", &api_key_record("Key One"))?;
+            transaction.put(Table::ApiKeys, "key-2", &api_key_record("Key Two"))?;
+            transaction.put(
+                Table::ProviderApiKeys,
+                "cred-1",
+                &Record::new().with("id", Field::Text("cred-1".to_owned())),
+            )
+        })
+        .await
+        .expect("seed records");
+    let telemetry = Telemetry::new(database.clone());
+    let mut index = 0;
+    for rate in SWEEP_RATES {
+        let before = telemetry.drop_counters().total();
+        let requests = rate * SWEEP_SECONDS;
+        let chunk = (rate / 100).max(1);
+        let started = std::time::Instant::now();
+        let mut sent = 0;
+        while sent < requests {
+            let this_chunk = chunk.min(requests - sent);
+            for _ in 0..this_chunk {
+                enqueue_request(&telemetry, index);
+                index += 1;
+            }
+            sent += this_chunk;
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        telemetry.flush().await.expect("flush telemetry");
+        let dropped = telemetry.drop_counters().total() - before;
+        let events = requests * 4;
+        let drop_pct = dropped as f64 * 100.0 / events as f64;
+        println!(
+            "SWEEP rate={rate}/s events={events} dropped={dropped} drop_pct={drop_pct:.2} paced_ms={}",
+            started.elapsed().as_millis(),
+        );
+        if rate <= 500 {
+            assert_eq!(
+                dropped, 0,
+                "request logging at {rate}/s lost {dropped} of {events} events"
+            );
+        }
+        assert!(
+            drop_pct <= 1.0,
+            "request logging at {rate}/s lost {drop_pct:.2}% of its events"
+        );
+    }
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
