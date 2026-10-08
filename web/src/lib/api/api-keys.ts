@@ -8,11 +8,14 @@ import type {
 import { request } from './core';
 
 export const apiKeyApi = {
-  apiKeys: (query: { cursor?: string | null; q?: string } = {}) => {
+  apiKeys: (query: { cursor?: string | null; q?: string } = {}, signal?: AbortSignal) => {
     const params = new URLSearchParams({ limit: '50' });
     if (query.cursor) params.set('cursor', query.cursor);
     if (query.q?.trim()) params.set('q', query.q.trim());
-    return request<GatewayApiKeyPage>(`/api-keys?${params.toString()}`);
+    return request<GatewayApiKeyPage>(
+      `/api-keys?${params.toString()}`,
+      signal ? { signal } : {},
+    );
   },
   apiKeyStatistics: (id: string, range: RequestStatistics['range'], signal?: AbortSignal) =>
     request<GatewayApiKeyStatistics>(
