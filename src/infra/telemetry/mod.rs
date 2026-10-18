@@ -15,6 +15,7 @@ use tokio::sync::{Mutex as AsyncMutex, mpsc, oneshot};
 
 mod aggregate;
 mod analytics;
+mod history;
 mod maintenance;
 mod persistence;
 mod queries;
@@ -113,6 +114,10 @@ struct RequestAnalyticsInner {
     output_tokens: AtomicI64,
     cached_tokens: AtomicI64,
     cache_input_tokens: AtomicI64,
+    /// Milliseconds to the first translated output frame, or `0` while the
+    /// request has produced no output yet. Zero is the "not measured" marker;
+    /// a real measurement is clamped to at least `1`.
+    first_output_ms: AtomicI64,
     finished: AtomicBool,
     deferred: AtomicBool,
 }
@@ -184,6 +189,7 @@ impl Telemetry {
                 output_tokens: AtomicI64::new(0),
                 cached_tokens: AtomicI64::new(0),
                 cache_input_tokens: AtomicI64::new(0),
+                first_output_ms: AtomicI64::new(0),
                 finished: AtomicBool::new(false),
                 deferred: AtomicBool::new(false),
             }),
@@ -316,6 +322,13 @@ pub(super) fn unix_minute() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64 / 60)
+        .unwrap_or(0)
+}
+
+pub(super) fn unix_seconds() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64)
         .unwrap_or(0)
 }
 

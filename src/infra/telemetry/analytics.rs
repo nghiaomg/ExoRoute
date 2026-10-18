@@ -59,6 +59,26 @@ impl super::RequestAnalytics {
         )
     }
 
+    /// Records the time to first output for this request, once.
+    ///
+    /// Called from the streaming translation path on every output text frame,
+    /// so the compare-exchange keeps only the first one. The stored value is
+    /// clamped to at least `1` because `0` means "no output was produced yet".
+    pub fn mark_first_output(&self) {
+        let elapsed = self
+            .inner
+            .started
+            .elapsed()
+            .as_millis()
+            .min(i64::MAX as u128) as i64;
+        let _ = self.inner.first_output_ms.compare_exchange(
+            0,
+            elapsed.max(1),
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        );
+    }
+
     pub fn defer_completion(&self) {
         self.inner.deferred.store(true, Ordering::Release);
     }
@@ -96,6 +116,7 @@ impl super::RequestAnalytics {
             .cache_input_tokens
             .load(Ordering::Relaxed)
             .max(input_tokens);
+        let first_output_ms = self.inner.first_output_ms.load(Ordering::Relaxed);
         let event = super::aggregate::StatisticsEvent {
             api_key_id: self.inner.api_key_id.clone(),
             requested_model,
@@ -115,6 +136,7 @@ impl super::RequestAnalytics {
                 .load(Ordering::Relaxed)
                 .min(cache_input_tokens),
             cache_input_tokens,
+            first_output_ms: (first_output_ms > 0).then_some(first_output_ms),
         };
         self.inner
             .telemetry
