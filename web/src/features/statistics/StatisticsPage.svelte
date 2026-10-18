@@ -1,15 +1,18 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { Activity, Clock3, CircleCheck, CircleX, RefreshCw } from '@lucide/svelte';
+  import { Activity, Clock3, CircleCheck, CircleX, Database, RefreshCw } from '@lucide/svelte';
   import GatewayError from '../../components/GatewayError.svelte';
   import PageHeading from '../../components/PageHeading.svelte';
   import { api } from '../../lib/api';
   import { getIntlLocale, type Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';
-import { localizedError } from '../../lib/errors';
+  import { localizedError } from '../../lib/errors';
   import type { RequestStatistics } from '../../lib/types';
-  import DonutChart from './DonutChart.svelte';
-  import ModelBreakdownTable from './ModelBreakdownTable.svelte';
+  import BreakdownChart from './BreakdownChart.svelte';
+  import CostPanel from './CostPanel.svelte';
+  import LatencyPanel from './LatencyPanel.svelte';
+  import Sparkline from './Sparkline.svelte';
+  import TrafficSeries from './TrafficSeries.svelte';
 
   export let tr: Translate;
   export let locale: Locale;
@@ -28,6 +31,14 @@ import { localizedError } from '../../lib/errors';
   const CACHE_TTL_MS = 60_000;
 
   $: numberFormat = new Intl.NumberFormat(getIntlLocale(locale));
+  $: points = statistics?.series.points ?? [];
+  // Buckets with no request have no rate to average, so they are left out of the
+  // rate and latency trends rather than plotted as a zero.
+  $: servedBuckets = points.filter((point) => point.requests > 0);
+  $: requestTrend = points.map((point) => point.requests);
+  $: failureTrend = points.map((point) => point.failures);
+  $: successRateTrend = servedBuckets.map((point) => (point.successes / point.requests) * 100);
+  $: latencyTrend = servedBuckets.map((point) => point.average_latency_ms);
 
   function formatCount(value: number): string {
     return numberFormat.format(Number.isFinite(value) ? value : 0);
@@ -123,9 +134,10 @@ import { localizedError } from '../../lib/errors';
       <div class="skeleton kpi-skeleton"></div>
       <div class="skeleton kpi-skeleton"></div>
     </div>
-    <div class="statistics-donuts">
-      <div class="skeleton donut-skeleton"></div>
-      <div class="skeleton donut-skeleton"></div>
+    <div class="skeleton chart-skeleton"></div>
+    <div class="chart-row">
+      <div class="skeleton chart-skeleton"></div>
+      <div class="skeleton chart-skeleton"></div>
     </div>
     <div class="skeleton details-skeleton"></div>
   </div>
@@ -148,18 +160,49 @@ import { localizedError } from '../../lib/errors';
       {#if !statistics.aggregation_current}
         <div class="statistics-warning updating" role="status"><Clock3 size={17} /><div><strong>{tr('Rolling totals are catching up')}</strong><span>{tr('The background worker is expiring older minute buckets. Values can temporarily include older traffic.')}</span></div></div>
       {/if}
+      {#if statistics.model_breakdown_incomplete}
+        <div class="statistics-warning coverage" role="status">
+          <Database size={17} />
+          <div>
+            <strong>{tr('Charts cover part of the period')}</strong>
+            <span>{tr('The retained request history holds {covered} of the {total} requests in this period. The traffic, breakdown, spend and latency charts use the requests that are still retained; the totals above come from the aggregate counters.', { covered: formatCount(statistics.logged_requests), total: formatCount(statistics.total_requests) })}</span>
+          </div>
+        </div>
+      {/if}
 
       <section class="statistics-kpis" aria-label={tr('Traffic summary')}>
-        <article class="statistics-kpi"><div><span>{tr('Total requests')}</span><Activity size={17} /></div><strong>{formatCount(statistics.total_requests)}</strong><small>{tr('Across the selected period')}</small></article>
-        <article class="statistics-kpi"><div><span>{tr('Success rate')}</span><CircleCheck size={17} /></div><strong>{statistics.success_rate.toFixed(1)}%</strong><small>{tr('{count} successful', { count: formatCount(statistics.successes) })}</small></article>
-        <article class="statistics-kpi"><div><span>{tr('Failed requests')}</span><CircleX size={17} /></div><strong>{formatCount(statistics.failures)}</strong><small>{tr('Final client request outcome')}</small></article>
-        <article class="statistics-kpi"><div><span>{tr('Average latency')}</span><Clock3 size={17} /></div><strong>{statistics.average_latency_ms.toFixed(1)} <em>ms</em></strong><small>{tr('End-to-end request duration')}</small></article>
+        <article class="statistics-kpi">
+          <div><span>{tr('Total requests')}</span><Activity size={17} /></div>
+          <strong>{formatCount(statistics.total_requests)}</strong>
+          <small>{tr('Across the selected period')}</small>
+          <Sparkline values={requestTrend} label={tr('Requests in each column of the selected period.')} />
+        </article>
+        <article class="statistics-kpi">
+          <div><span>{tr('Success rate')}</span><CircleCheck size={17} /></div>
+          <strong>{statistics.success_rate.toFixed(1)}%</strong>
+          <small>{tr('{count} successful', { count: formatCount(statistics.successes) })}</small>
+          <Sparkline values={successRateTrend} label={tr('Success rate in each column that served a request.')} />
+        </article>
+        <article class="statistics-kpi">
+          <div><span>{tr('Failed requests')}</span><CircleX size={17} /></div>
+          <strong>{formatCount(statistics.failures)}</strong>
+          <small>{tr('Final client request outcome')}</small>
+          <Sparkline values={failureTrend} label={tr('Failed requests in each column of the selected period.')} />
+        </article>
+        <article class="statistics-kpi">
+          <div><span>{tr('Average latency')}</span><Clock3 size={17} /></div>
+          <strong>{statistics.average_latency_ms.toFixed(1)} <em>ms</em></strong>
+          <small>{tr('End-to-end request duration')}</small>
+          <Sparkline values={latencyTrend} label={tr('Average latency in each column that served a request.')} />
+        </article>
       </section>
 
-      <section class="statistics-donuts" aria-label={tr('Traffic breakdown')}>
-        <DonutChart title={tr('Requests by API key')} items={statistics.api_keys.top} others={statistics.api_keys.others} total={statistics.total_requests} {tr} {formatCount} />
-        <DonutChart title={tr('Requests by requested model')} items={statistics.models.top} others={statistics.models.others} total={statistics.total_requests} {tr} {formatCount} />
-      </section>
+      <TrafficSeries {statistics} {locale} {tr} {formatCount} />
+      <BreakdownChart {statistics} {locale} {tr} {formatCount} />
+      <div class="chart-row">
+        <CostPanel {statistics} {locale} {tr} {formatCount} />
+        <LatencyPanel {statistics} {locale} {tr} {formatCount} />
+      </div>
 
       <section class="statistics-details">
         <div><span>{tr('Input tokens')}</span><strong>{formatCount(statistics.input_tokens)}</strong></div>
@@ -169,16 +212,6 @@ import { localizedError } from '../../lib/errors';
         <div><span>{tr('Data collected since')}</span><strong>{formatTimestamp(statistics.collection_started_at)}</strong></div>
         <div><span>{tr('Last aggregate update')}</span><strong>{formatTimestamp(statistics.as_of)}</strong></div>
       </section>
-
-      <ModelBreakdownTable
-        items={statistics.model_breakdown}
-        truncated={statistics.model_breakdown_truncated}
-        incomplete={statistics.model_breakdown_incomplete}
-        coveredRequests={statistics.logged_requests}
-        totalRequests={statistics.total_requests}
-        {tr}
-        {locale}
-      />
     </div>
   </div>
 {/if}
@@ -189,8 +222,8 @@ import { localizedError } from '../../lib/errors';
   .range-switch button { padding: 6px 9px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
   .range-switch button.active { color: #fff; background: var(--violet); }
   .statistics-skeleton { display: grid; gap: 14px; }
-  .kpi-skeleton { height: 106px; border-radius: 13px; }
-  .donut-skeleton { height: 216px; border-radius: 14px; }
+  .kpi-skeleton { height: 132px; border-radius: 13px; }
+  .chart-skeleton { height: 316px; border-radius: 14px; }
   .details-skeleton { height: 78px; border-radius: 13px; }
   .range-progress { height: 3px; width: 100%; margin-bottom: 12px; border-radius: 3px; background: transparent; overflow: hidden; opacity: 0; transition: opacity 0.15s ease; }
   .range-progress.visible { opacity: 1; background: color-mix(in srgb, var(--violet) 15%, transparent); }
@@ -209,7 +242,10 @@ import { localizedError } from '../../lib/errors';
   .statistics-kpi > strong { display: block; margin: 13px 0 3px; overflow: hidden; color: var(--ink); font: 700 25px/1.15 var(--font-mono); text-overflow: ellipsis; white-space: nowrap; }
   .statistics-kpi > strong em { color: var(--muted); font: 500 12px var(--font-sans); }
   .statistics-kpi small { color: var(--muted); font-size: 12px; }
-  .statistics-donuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+  /* The charts are one column wide, so the page reads top to bottom; the two
+     secondary panels share a row because each is short and they are read together. */
+  .chart-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; margin-bottom: 14px; }
+  .statistics-content > :global(.chart-card) { margin-bottom: 14px; }
   .statistics-details { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 2px solid var(--ink); border-radius: 13px; background: var(--line); box-shadow: 3px 3px 0 var(--ink); }
   .statistics-details > div { min-width: 0; display: grid; gap: 8px; padding: 15px 17px; background: var(--paper); }
   .statistics-details span { color: var(--muted); font-size: 12px; }
@@ -220,7 +256,8 @@ import { localizedError } from '../../lib/errors';
   .statistics-warning strong { font-size: 12px; }
   .statistics-warning span { font-size: 12px; line-height: 1.45; }
   .statistics-warning.updating { color: #755621; border-color: #ebd9a9; background: #fffdf5; }
-  @media (max-width: 1000px) { .statistics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .statistics-details { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  @media (max-width: 720px) { .statistics-donuts { grid-template-columns: 1fr; } }
+  .statistics-warning.coverage { color: #37475f; border-color: var(--ink); background: #f4f6fa; }
+  :global(:root[data-theme='dark']) .statistics-warning.coverage { color: #c8d2e4; background: #14171f; }
+  @media (max-width: 1000px) { .statistics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .statistics-details { grid-template-columns: repeat(3, minmax(0, 1fr)); } .chart-row { grid-template-columns: 1fr; } }
   @media (max-width: 620px) { .statistics-actions { align-items: flex-end; flex-direction: column; } .statistics-kpis { gap: 8px; } .statistics-kpi { padding: 13px; } .statistics-kpi > strong { font-size: 20px; } .statistics-details { grid-template-columns: 1fr 1fr; } }
 </style>

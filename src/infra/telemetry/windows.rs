@@ -84,6 +84,8 @@ pub(crate) fn record_counts(record: &Record) -> Result<Counts, StorageError> {
         output_tokens: value("output_tokens_total")?,
         cached_tokens: value("cached_tokens_total")?.min(cache_input_tokens),
         cache_input_tokens,
+        first_output_ms: value("first_output_ms_total")?,
+        first_output_events: value("first_output_events")?,
     })
 }
 
@@ -99,6 +101,11 @@ pub(crate) fn counts_record(counts: Counts) -> Record {
         .with(
             "cache_input_tokens_total",
             Field::I64(counts.cache_input_tokens),
+        )
+        .with("first_output_ms_total", Field::I64(counts.first_output_ms))
+        .with(
+            "first_output_events",
+            Field::I64(counts.first_output_events),
         )
 }
 

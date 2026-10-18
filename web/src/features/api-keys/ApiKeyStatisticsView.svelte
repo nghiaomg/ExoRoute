@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { Activity, CircleCheck, CircleX, Clock3 } from '@lucide/svelte';
-  import DonutChart from '../statistics/DonutChart.svelte';
+  import RankedBars from '../statistics/RankedBars.svelte';
+  import { dimensionBars } from '../statistics/chartTypes';
   import { api } from '../../lib/api';
   import { getIntlLocale, type Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';
@@ -21,6 +22,14 @@
   let activeController: AbortController | null = null;
 
   $: numberFormat = new Intl.NumberFormat(getIntlLocale(locale));
+  $: modelBars = statistics
+    ? dimensionBars(statistics.models.top, statistics.models.others, statistics.total_requests, {
+        tr,
+        formatCount,
+        locale,
+        othersLabel: tr('Others'),
+      })
+    : [];
   $: if (apiKeyId !== loadedKeyId) {
     loadedKeyId = apiKeyId;
     selectedRange = '1d';
@@ -101,8 +110,11 @@
       <div><span>{tr('Data collected since')}</span><strong>{formatTimestamp(statistics.collection_started_at)}</strong></div>
       <div><span>{tr('Last aggregate update')}</span><strong>{formatTimestamp(statistics.as_of)}</strong></div>
     </section>
-    {#if statistics.models.top.length || statistics.models.others > 0}
-      <DonutChart title={tr('Requests by model for this key')} items={statistics.models.top} others={statistics.models.others} total={statistics.total_requests} {tr} {formatCount} />
+    {#if modelBars.length}
+      <section class="api-key-details-models" aria-label={tr('Requests by model for this key')}>
+        <h3>{tr('Requests by model for this key')}</h3>
+        <RankedBars rows={modelBars} maxValue={Math.max(0, ...modelBars.map((bar) => bar.value))} {tr} />
+      </section>
     {:else}
       <p class="api-key-statistics-empty">{tr('No traffic for this API key in the selected period.')}</p>
     {/if}
@@ -135,6 +147,8 @@
   .api-key-details-warning strong { font-size: 12px; }
   .api-key-details-warning span { font-size: 12px; line-height: 1.45; }
   .api-key-details-warning.updating { color: #755621; background: #fffdf5; }
+  .api-key-details-models { display: grid; gap: 12px; padding: 18px 20px; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)); }
+  .api-key-details-models h3 { margin: 0; color: var(--ink); font: 650 15px/1.35 var(--font-sans); }
   .api-key-statistics-empty { margin: 0; color: var(--muted); font-size: 12px; }
   @media (max-width: 900px) { .api-key-details-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .api-key-details-tokens { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 620px) { .api-key-details-kpis { gap: 8px; } .api-key-details-kpi { padding: 13px; } .api-key-details-kpi > strong { font-size: 20px; } .api-key-details-tokens { grid-template-columns: 1fr 1fr; } }
