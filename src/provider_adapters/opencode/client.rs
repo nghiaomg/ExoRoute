@@ -29,7 +29,7 @@ use sha2::{Digest, Sha256};
 /// Identity claimed when the caller does not supply a usable one. The version
 /// must satisfy [`has_minimum_client_version`], which is the gate the upstream
 /// applies.
-pub(super) const CLIENT_USER_AGENT: &str = "opencode/1.18.31";
+pub(super) const CLIENT_USER_AGENT: &str = "opencode/latest/2.0.26/cli";
 
 pub(super) const SESSION_HEADER: &str = "x-opencode-session";
 pub(super) const REQUEST_HEADER: &str = "x-opencode-request";
@@ -50,8 +50,15 @@ pub(super) const FINGERPRINT_TOOLS: [&str; 4] = ["bash", "glob", "grep", "read"]
 const FINGERPRINT_TOOL_DESCRIPTION: &str =
     "This tool is currently unavailable and must not be used.";
 
-const HEX: &[u8; 16] = b"0123456789abcdef";
 const BASE62: &[u8; 62] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+const SESSION_PREFIX_MASK: u64 = (1u64 << 48) - 1;
+const SESSION_TIME_MASK: u64 = (1u64 << 36) - 1;
+
+fn descending_time_hex(time: u64, counter: u64) -> String {
+    let raw = (!(time.wrapping_mul(4096).wrapping_add(counter))) & SESSION_PREFIX_MASK;
+    format!("{raw:012x}")
+}
 
 /// Whether a `User-Agent` already claims an OpenCode build the upstream accepts.
 /// The real CLI's own version is kept when it qualifies, so a genuine client
@@ -61,6 +68,17 @@ pub(super) fn has_minimum_client_version(user_agent: &str) -> bool {
     let Some(version) = lowered.strip_prefix("opencode/") else {
         return false;
     };
+    if version.contains('/') {
+        let parts: Vec<&str> = version.split('/').collect();
+        if parts.len() >= 2
+            && let Some(v_part) = parts.get(1)
+        {
+            let mut v_split = v_part.split('.');
+            if let Some(major) = v_split.next().and_then(|m| m.parse::<u32>().ok()) {
+                return major >= 2;
+            }
+        }
+    }
     // Only the leading `major.minor` is compared; a trailing patch or suffix is
     // accepted and ignored, matching the upstream's own version check.
     let mut parts = version.split(['.', '-', '+', ' ']);
@@ -85,12 +103,43 @@ pub(super) fn is_canonical_session_id(value: &str) -> bool {
 /// the caller-derived session seed keeps retries and later turns on one session
 /// without a process-wide map.
 pub(super) fn canonical_session_id(seed: &str) -> String {
-    canonical_id("ses_", "opencode\u{0}session\u{0}", seed)
+    let mut hasher = Sha256::new();
+    hasher.update(b"opencode\0session\0");
+    hasher.update(seed.as_bytes());
+    let digest = hasher.finalize();
+
+    let mut time_bytes = [0u8; 8];
+    time_bytes[3..8].copy_from_slice(&digest[0..5]);
+    let time = u64::from_be_bytes(time_bytes) & SESSION_TIME_MASK;
+    let time_hex = descending_time_hex(time, 1);
+    let mut id = String::with_capacity(4 + 12 + 14);
+    id.push_str("ses_");
+    id.push_str(&time_hex);
+    for byte in &digest[6..20] {
+        id.push(BASE62[usize::from(*byte % 62)] as char);
+    }
+    id
 }
 
 /// Canonical `msg_<12 hex><14 base62>` request id derived from `seed`.
 pub(super) fn canonical_request_id(seed: &str) -> String {
-    canonical_id("msg_", "opencode\u{0}request\u{0}", seed)
+    let mut hasher = Sha256::new();
+    hasher.update(b"opencode\0request\0");
+    hasher.update(seed.as_bytes());
+    let digest = hasher.finalize();
+
+    let mut time_bytes = [0u8; 8];
+    time_bytes[3..8].copy_from_slice(&digest[0..5]);
+    let time = u64::from_be_bytes(time_bytes) & SESSION_TIME_MASK;
+    let raw = (time.wrapping_mul(4096).wrapping_add(1)) & SESSION_PREFIX_MASK;
+    let time_hex = format!("{raw:012x}");
+    let mut id = String::with_capacity(4 + 12 + 14);
+    id.push_str("msg_");
+    id.push_str(&time_hex);
+    for byte in &digest[6..20] {
+        id.push(BASE62[usize::from(*byte % 62)] as char);
+    }
+    id
 }
 
 fn is_canonical_id(value: &str, prefix: &str) -> bool {
@@ -107,23 +156,6 @@ fn is_canonical_id(value: &str, prefix: &str) -> bool {
         && bytes[12..].iter().all(u8::is_ascii_alphanumeric)
 }
 
-fn canonical_id(prefix: &str, namespace: &str, seed: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(namespace.as_bytes());
-    hasher.update(seed.as_bytes());
-    let digest = hasher.finalize();
-    let mut id = String::with_capacity(prefix.len() + 26);
-    id.push_str(prefix);
-    for byte in &digest[..6] {
-        id.push(HEX[usize::from(byte >> 4)] as char);
-        id.push(HEX[usize::from(byte & 0x0f)] as char);
-    }
-    for byte in &digest[6..20] {
-        id.push(BASE62[usize::from(*byte % 62)] as char);
-    }
-    id
-}
-
 /// Session and request identity for one outbound request. A session the caller
 /// already sends in canonical form is preserved; anything else (a UUID, an
 /// OpenAI-style conversation id, our own request id) is translated so the
@@ -136,6 +168,9 @@ pub(super) fn fingerprint_headers(session_seed: &str, request_seed: &str) -> Hea
     };
     let mut headers = HeaderMap::new();
     insert_header(&mut headers, SESSION_HEADER, &session);
+    insert_header(&mut headers, "x-opencode-session-id", &session);
+    insert_header(&mut headers, "x-session-affinity", &session);
+    insert_header(&mut headers, "x-session-id", &session);
     insert_header(
         &mut headers,
         REQUEST_HEADER,
@@ -220,7 +255,6 @@ pub(super) fn apply_fingerprint_tools(body: &mut Value, protocol: UpstreamProtoc
         return;
     };
     let caller_tools = object.get("tools").and_then(Value::as_array);
-    let caller_declared_tools = caller_tools.is_some_and(|tools| !tools.is_empty());
     let declared = caller_tools
         .map(|tools| {
             tools
@@ -242,16 +276,10 @@ pub(super) fn apply_fingerprint_tools(body: &mut Value, protocol: UpstreamProtoc
         }
     }
     // A caller that chose a tool-choice policy keeps it. Otherwise the Responses
-    // endpoint takes the upstream-observed `auto` default, and Chat Completions
-    // takes `none` when the caller declared no tools — the injected decoys are
-    // then the only declarations, and `none` stops the model from answering with
-    // a call the caller never declared.
-    if object.get("tool_choice").is_none_or(Value::is_null) {
-        if flat {
-            object.insert("tool_choice".to_owned(), json!("auto"));
-        } else if !caller_declared_tools {
-            object.insert("tool_choice".to_owned(), json!("none"));
-        }
+    // endpoint takes the upstream-observed `auto` default. Never default to "none"
+    // on Chat Completions: upstream answers tool_choice "none" with 403 FreeTierError.
+    if object.get("tool_choice").is_none_or(Value::is_null) && flat {
+        object.insert("tool_choice".to_owned(), json!("auto"));
     }
 }
 
@@ -297,6 +325,8 @@ mod tests {
     #[test]
     fn accepts_only_supported_client_versions() {
         for accepted in [
+            "opencode/latest/2.0.26/cli",
+            "opencode/latest/2.0.29/desktop",
             "opencode/1.18.31",
             "opencode/1.17.0",
             "OpenCode/2.0.0",
@@ -322,6 +352,13 @@ mod tests {
         assert_eq!(session.len(), 30);
         assert!(session.starts_with("ses_"));
         assert!(is_canonical_session_id(&session));
+
+        // Check inverted timestamp in the 12-hex prefix
+        let time_hex = &session[4..16];
+        let raw = u64::from_str_radix(time_hex, 16).expect("hex");
+        let inverted = (!raw) & SESSION_PREFIX_MASK;
+        let counter = inverted & 0xfff;
+        assert_eq!(counter, 1);
 
         let request = canonical_request_id("request-a");
         assert_eq!(request.len(), 30);
@@ -401,7 +438,7 @@ mod tests {
             .collect();
         assert_eq!(names, ["bash", "glob", "grep", "read"]);
         assert!(body["tools"][0]["function"]["parameters"]["properties"].is_object());
-        assert_eq!(body["tool_choice"], json!("none"));
+        assert!(body.get("tool_choice").is_none());
     }
 
     #[test]
@@ -469,7 +506,7 @@ mod tests {
 
         let mut explicit = json!({"tools": [], "tool_choice": null});
         apply_fingerprint_tools(&mut explicit, UpstreamProtocol::ChatCompletions);
-        assert_eq!(explicit["tool_choice"], json!("none"));
+        assert!(explicit.get("tool_choice").is_none_or(Value::is_null));
     }
 
     #[test]

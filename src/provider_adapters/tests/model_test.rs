@@ -129,9 +129,13 @@ async fn zen_model_probe_asks_for_a_stream_and_declares_the_client_fingerprint()
     // event stream and must therefore accept one.
     assert_eq!(request.header("accept"), Some("text/event-stream"));
     // Without the official client's identity the same probe answers 403.
-    assert_eq!(request.header("user-agent"), Some("opencode/1.18.31"));
+    assert_eq!(
+        request.header("user-agent"),
+        Some("opencode/latest/2.0.26/cli")
+    );
     assert_eq!(request.header("x-opencode-client"), Some("desktop"));
     assert_eq!(request.header("x-opencode-project"), Some("global"));
+    assert_eq!(request.header("authorization"), Some("Bearer public"));
     let session = request
         .header("x-opencode-session")
         .expect("session header");
