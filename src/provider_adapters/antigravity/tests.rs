@@ -94,6 +94,7 @@ async fn wraps_google_request_with_cloud_code_envelope() {
                     oauth_auth: Some(&auth),
                     session_id: "session-1",
                     protocol: UpstreamProtocol::GoogleGenerateContent,
+                    model: Some("ag/gemini-3.7-flash"),
                 },
             },
             &mut body,
@@ -107,7 +108,11 @@ async fn wraps_google_request_with_cloud_code_envelope() {
     assert_eq!(body["userAgent"], "antigravity");
     assert_eq!(body["requestType"], "agent");
     assert_eq!(body["requestId"], "request-1");
-    assert_eq!(body["request"]["sessionId"], "session-1");
+    assert_eq!(body["requestId"], "request-1");
+    let session = body["request"]["sessionId"]
+        .as_str()
+        .expect("string session");
+    assert!(session.starts_with('-'));
     assert_eq!(
         ANTIGRAVITY_ADAPTER
             .upstream_endpoint(
@@ -124,4 +129,88 @@ async fn wraps_google_request_with_cloud_code_envelope() {
     assert!(ANTIGRAVITY_ADAPTER.is_key_rejection_status(StatusCode::CONFLICT));
     assert!(ANTIGRAVITY_ADAPTER.is_key_rejection_status(StatusCode::TOO_MANY_REQUESTS));
     assert!(!ANTIGRAVITY_ADAPTER.is_key_rejection_status(StatusCode::INTERNAL_SERVER_ERROR));
+}
+
+#[test]
+fn antigravity_ban_detection_distinguishes_real_bans_from_transient_prompts() {
+    use super::is_permanent_antigravity_ban;
+
+    // Operator-actionable verification prompts are NOT bans
+    assert!(!is_permanent_antigravity_ban(
+        "Verify your account to continue"
+    ));
+    assert!(!is_permanent_antigravity_ban(
+        "Antigravity upstream error (403): Verify your account to continue."
+    ));
+
+    // Project enablement / permissions are recoverable project errors, NOT account bans
+    assert!(!is_permanent_antigravity_ban(
+        "Cloud AI Companion API has not been used in project 123456 before or it is disabled."
+    ));
+    assert!(!is_permanent_antigravity_ban(
+        "PERMISSION_DENIED: Cloud AI Companion API is disabled."
+    ));
+    assert!(!is_permanent_antigravity_ban("SERVICE_DISABLED"));
+    assert!(!is_permanent_antigravity_ban("accessNotConfigured"));
+    assert!(!is_permanent_antigravity_ban("forbidden"));
+
+    // Real policy violations / deactivations MUST be detected as permanent bans
+    assert!(is_permanent_antigravity_ban(
+        "This service has been disabled in this account for violation of policy."
+    ));
+    assert!(is_permanent_antigravity_ban("account_deactivated"));
+    assert!(is_permanent_antigravity_ban(
+        "Your account has been suspended"
+    ));
+    assert!(is_permanent_antigravity_ban("Account has been disabled"));
+}
+
+#[test]
+fn strip_enum_descriptions_removes_unsupported_copilot_schema_fields() {
+    let mut tools = json!([
+        {
+            "functionDeclarations": [
+                {
+                    "name": "edit_file",
+                    "parameters": {
+                        "type": "OBJECT",
+                        "enumDescriptions": ["forbidden root level"],
+                        "properties": {
+                            "action": {
+                                "type": "STRING",
+                                "enum": ["create", "update"],
+                                "enumDescriptions": ["Create a file", "Update a file"]
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    ]);
+
+    strip_enum_descriptions(&mut tools);
+    let params = &tools[0]["functionDeclarations"][0]["parameters"];
+    assert!(params.get("enumDescriptions").is_none());
+    assert!(
+        params["properties"]["action"]
+            .get("enumDescriptions")
+            .is_none()
+    );
+    assert_eq!(
+        params["properties"]["action"]["enum"],
+        json!(["create", "update"])
+    );
+}
+
+#[test]
+fn format_antigravity_session_id_preserves_native_and_hashes_arbitrary_ids() {
+    use super::format_antigravity_session_id;
+
+    assert_eq!(
+        format_antigravity_session_id("-8472918471928471"),
+        "-8472918471928471"
+    );
+    let hashed = format_antigravity_session_id("my-client-session-abc");
+    assert!(hashed.starts_with('-'));
+    assert!(hashed[1..].chars().all(|c| c.is_ascii_digit()));
 }

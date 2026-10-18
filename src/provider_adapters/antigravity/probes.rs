@@ -59,6 +59,25 @@ pub(super) fn apply_model_test_thinking_config(request: &mut Value, model: &str)
     set_tiered_thinking_config(request, level);
 }
 
+/// Recursively removes `enumDescriptions` from tool parameter schemas.
+/// Google Cloud Code API rejects any request carrying `enumDescriptions` with HTTP 400.
+pub(super) fn strip_enum_descriptions(value: &mut Value) {
+    match value {
+        Value::Object(map) => {
+            map.remove("enumDescriptions");
+            for v in map.values_mut() {
+                strip_enum_descriptions(v);
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr {
+                strip_enum_descriptions(v);
+            }
+        }
+        _ => {}
+    }
+}
+
 pub(super) async fn test_antigravity_model(
     state: &AppState,
     base_url: &str,
