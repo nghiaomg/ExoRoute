@@ -44,10 +44,28 @@ pub(super) async fn classify_response(
             )
             .await;
             let logged_error = provider_http_error_message(provider_id, status, &provider_error);
-            if (status == StatusCode::UNAUTHORIZED
-                || (attempt.provider.adapter_id == provider_adapters::ANTIGRAVITY_ADAPTER_ID
-                    && status == StatusCode::FORBIDDEN))
+            let is_antigravity_forbidden = attempt.provider.adapter_id
+                == provider_adapters::ANTIGRAVITY_ADAPTER_ID
+                && status == StatusCode::FORBIDDEN;
+            let should_mark_invalid = if is_antigravity_forbidden {
+                provider_adapters::is_permanent_antigravity_ban(&provider_error)
+            } else {
+                status == StatusCode::UNAUTHORIZED
+            };
+            if should_mark_invalid
                 && let Some(key_id) = credential.id.as_deref()
+                // An adapter may be able to replace the rejected secret in
+                // place — Muse mints a fresh inference key from the durable
+                // device token stored beside it — and a repaired credential
+                // must stay in rotation instead of being marked invalid.
+                && !provider_adapters::repair_rejected_credential(
+                    &attempt.provider.adapter_id,
+                    &attempt.scope.state,
+                    provider_id,
+                    key_id,
+                    status,
+                )
+                .await
                 && let Err(storage_error) =
                     mark_provider_key_invalid(&attempt.scope.state, provider_id, key_id).await
             {

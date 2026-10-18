@@ -11,7 +11,7 @@ mod tests;
 
 use probes::{
     apply_tiered_thinking_config, normalize_model_id, parse_antigravity_event_stream,
-    test_antigravity_model,
+    strip_enum_descriptions, test_antigravity_model,
 };
 
 const ANTIGRAVITY_MODEL_TEST_MAX_REQUEST_TIMEOUT: std::time::Duration =
@@ -108,6 +108,16 @@ impl ProviderAdapter for AntigravityAdapter {
             ))
     }
 
+    fn apply_client_headers(
+        &self,
+        request: reqwest::RequestBuilder,
+        _client_headers: &HeaderMap,
+    ) -> reqwest::RequestBuilder {
+        // Prevent forwarding proxy tracing, Chromium/Electron headers (e.g. sec-ch-ua-*),
+        // or SDK headers (e.g. x-stainless-*) to Google Cloud Code API to avoid fingerprint detection.
+        request
+    }
+
     fn wants_event_stream(&self) -> bool {
         true
     }
@@ -158,10 +168,11 @@ impl ProviderAdapter for AntigravityAdapter {
                     "Antigravity Google request is invalid",
                 )
             })?;
-            request_object.insert(
-                "sessionId".to_owned(),
-                Value::String(context.auth.session_id.to_owned()),
-            );
+            let formatted_session = format_antigravity_session_id(context.auth.session_id);
+            request_object.insert("sessionId".to_owned(), Value::String(formatted_session));
+            if let Some(tools) = request_object.get_mut("tools") {
+                strip_enum_descriptions(tools);
+            }
             let model = normalize_model_id(context.model);
             *body = json!({
                 "project": project_id,
@@ -314,4 +325,50 @@ impl AntigravityAdapter {
         url.query_pairs_mut().append_pair("alt", "sse");
         Ok(url)
     }
+}
+
+/// Identifies whether an upstream Google Cloud Code 403 error represents a true
+/// permanent account ban versus a recoverable/operator-actionable condition.
+///
+/// Mirrors OmniRoute/9Router: Google returns 403 for verification prompts and
+/// project misconfigurations which must NOT permanently invalidate the account.
+pub fn is_permanent_antigravity_ban(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    // "verify your account to continue" is an operator prompt, NOT a ban!
+    if lower.contains("verify your account to continue") {
+        return false;
+    }
+    // Recoverable project routing / API enablement errors are not account bans:
+    if lower.contains("has not been used in project")
+        || lower.contains("service_disabled")
+        || lower.contains("accessnotconfigured")
+        || lower.contains("permission_denied")
+        || lower.contains("it is disabled")
+    {
+        return false;
+    }
+    // Real permanent ban signals from Google Cloud Code:
+    lower.contains("this service has been disabled in this account")
+        || lower.contains("account_deactivated")
+        || lower.contains("account has been deactivated")
+        || lower.contains("account has been disabled")
+        || lower.contains("your account has been suspended")
+        || lower.contains("this account is deactivated")
+}
+
+pub(super) fn format_antigravity_session_id(session_id: &str) -> String {
+    let trimmed = session_id.trim();
+    if trimmed.starts_with('-') && trimmed[1..].chars().all(|c| c.is_ascii_digit()) {
+        return trimmed.to_owned();
+    }
+    // Native Antigravity clients use negative 64-bit integers for session IDs.
+    let mut hash: i64 = -3750763034362895579;
+    for byte in trimmed.as_bytes() {
+        hash ^= i64::from(*byte);
+        hash = hash.wrapping_mul(1099511628211);
+    }
+    if hash > 0 {
+        hash = -hash;
+    }
+    hash.to_string()
 }
