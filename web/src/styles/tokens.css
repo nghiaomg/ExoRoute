@@ -17,6 +17,20 @@
   --mint: #36c59b;
   --brand-orange: #f74c00;
 
+  /* Chart tokens. Every data mark uses one hue: rank and length carry the
+     magnitude, so a chart never needs a categorical palette and a series can
+     never be misread by swapping colours when a filter changes the row order.
+     The accent clears the lightness band, the chroma floor and 3:1 contrast
+     against both chart surfaces (#fff light, #0c0e16 dark) under the dataviz
+     palette validator. Status colours are the reserved fixed steps and are
+     only ever used as a redundant dot beside a written label, never as the
+     only thing distinguishing two marks. */
+  --chart-series: #ea580c;
+  --chart-series-soft: #f97316;
+  --chart-good: #0ca30c;
+  --chart-critical: #d03b3b;
+  --chart-grid: #e9eaf0;
+
   /* Typography Environment Tokens */
   --font-sans: "Plus Jakarta Sans", "Plus Jakarta Sans Fallback", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-heading: "Space Grotesk", "Space Grotesk Fallback", "Plus Jakarta Sans", system-ui, sans-serif;
@@ -81,4 +95,5 @@
   --muted: #8e93aa;
   --line: rgba(255, 255, 255, 0.07);
   --paper: rgba(14, 16, 26, 0.72);
+  --chart-grid: rgba(255, 255, 255, 0.09);
 }
