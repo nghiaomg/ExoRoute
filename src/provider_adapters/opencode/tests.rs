@@ -228,6 +228,7 @@ fn auth_header_selection_matches_open_code_contract() {
                 oauth_auth: None,
                 session_id: "ignored",
                 protocol,
+                model: None,
             },
         )
         .expect("upstream auth should be supported")
@@ -313,6 +314,7 @@ fn open_code_go_adds_the_canonical_session_to_upstream_requests() {
                 oauth_auth: None,
                 session_id: "probe-session-01",
                 protocol: UpstreamProtocol::Responses,
+                model: None,
             },
         )
         .expect("OpenCode Go auth should be supported")
@@ -347,6 +349,7 @@ fn open_code_go_rejects_invalid_canonical_sessions() {
             oauth_auth: None,
             session_id: "invalid session",
             protocol: UpstreamProtocol::ChatCompletions,
+            model: None,
         },
     );
 
@@ -474,6 +477,7 @@ async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
                     oauth_auth: None,
                     session_id: seed,
                     protocol: UpstreamProtocol::ChatCompletions,
+                    model: Some("exo-free"),
                 },
             },
             &mut body,
@@ -494,6 +498,10 @@ async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
         .and_then(|value| value.to_str().ok())
         .expect("canonical request header");
     assert!(request_id.starts_with("msg_"), "{request_id}");
+    assert_eq!(
+        preparation.headers.get("authorization").unwrap(),
+        "Bearer public"
+    );
 
     let names: Vec<&str> = body["tools"]
         .as_array()
@@ -502,9 +510,7 @@ async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
         .filter_map(|tool| tool["function"]["name"].as_str())
         .collect();
     assert_eq!(names, ["bash", "glob", "grep", "read"]);
-    // The caller declared no tools, so the injected declarations must not be
-    // selectable.
-    assert_eq!(body["tool_choice"], json!("none"));
+    assert!(body.get("tool_choice").is_none());
     assert!(body["tools"][0]["function"]["parameters"]["properties"].is_object());
 
     // A retry of the same request reuses one upstream session instead of
@@ -526,6 +532,7 @@ async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
                     oauth_auth: None,
                     session_id: seed,
                     protocol: UpstreamProtocol::ChatCompletions,
+                    model: Some("exo-free"),
                 },
             },
             &mut retry_body,
@@ -565,6 +572,7 @@ async fn zen_leaves_a_canonical_client_session_and_its_tools_alone() {
                     oauth_auth: None,
                     session_id: &session,
                     protocol: UpstreamProtocol::ChatCompletions,
+                    model: Some("exo-free"),
                 },
             },
             &mut body,
@@ -590,4 +598,104 @@ async fn zen_leaves_a_canonical_client_session_and_its_tools_alone() {
         .collect();
     assert_eq!(names, ["bash", "glob", "grep", "read"]);
     assert_eq!(body["tool_choice"], json!("required"));
+}
+
+#[test]
+fn test_opencode_free_tier_model_detection() {
+    use super::routing::is_opencode_free_tier_model;
+
+    for model in [
+        "mimo-v2.6-flash-free",
+        "muse-spark-1.3-contributor-free",
+        "big-pickle-free",
+        "deepseek-v4-flash-free",
+        "jev-1.13-free",
+        "mimo-v2.6-flash-free(xhigh)",
+        "ocfree/mimo-v2.6-flash-free",
+    ] {
+        assert!(
+            is_opencode_free_tier_model(model),
+            "expected {model} to be detected as free tier"
+        );
+    }
+
+    for paid in [
+        "big-pickle",
+        "muse-spark-1.3",
+        "gpt-5.5",
+        "claude-opus-5",
+        "kimi-k3",
+        "",
+    ] {
+        assert!(
+            !is_opencode_free_tier_model(paid),
+            "expected {paid} to not be free tier"
+        );
+    }
+
+    // Check model routing
+    assert_eq!(
+        super::routing::model_protocol(OPENCODE_ZEN_ADAPTER_ID, "mimo-v2.6-flash-free"),
+        Some(UpstreamProtocol::ChatCompletions)
+    );
+    assert_eq!(
+        super::routing::model_protocol(OPENCODE_ZEN_ADAPTER_ID, "muse-spark-1.3-contributor-free"),
+        Some(UpstreamProtocol::Responses)
+    );
+}
+
+#[test]
+fn zen_free_tier_auth_switches_to_bearer_public() {
+    let request = reqwest::Client::new().post("https://example.test");
+    let authenticated = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request,
+            UpstreamAuthContext {
+                auth_type: "bearer",
+                auth_header: None,
+                secret: Some("oc_sk_real_user_key"),
+                oauth_auth: None,
+                session_id: "test-session",
+                protocol: UpstreamProtocol::ChatCompletions,
+                model: Some("mimo-v2.6-flash-free"),
+            },
+        )
+        .expect("auth success")
+        .build()
+        .expect("build request");
+
+    assert_eq!(
+        authenticated
+            .headers()
+            .get("authorization")
+            .and_then(|v| v.to_str().ok()),
+        Some("Bearer public")
+    );
+
+    // Paid model keeps real key
+    let request_paid = reqwest::Client::new().post("https://example.test");
+    let authenticated_paid = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request_paid,
+            UpstreamAuthContext {
+                auth_type: "bearer",
+                auth_header: None,
+                secret: Some("oc_sk_real_user_key"),
+                oauth_auth: None,
+                session_id: "test-session",
+                protocol: UpstreamProtocol::ChatCompletions,
+                model: Some("big-pickle"),
+            },
+        )
+        .expect("auth success")
+        .build()
+        .expect("build request");
+
+    assert_eq!(
+        authenticated_paid
+            .headers()
+            .get("authorization")
+            .and_then(|v| v.to_str().ok()),
+        Some("Bearer oc_sk_real_user_key")
+    );
 }
