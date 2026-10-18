@@ -37,7 +37,9 @@ pub(crate) use settings_records::{
 };
 
 pub use admin_auth::{admin_password_change_required, has_admin_auth};
-pub use clock::{utc_timestamp_before, utc_timestamp_now};
+pub use clock::{
+    format_utc_timestamp, parse_utc_timestamp, utc_timestamp_before, utc_timestamp_now,
+};
 pub use gateway_limits::{load_gateway_resource_limits, save_gateway_resource_limits};
 pub use operational_settings::{load_operational_settings, save_operational_settings};
 pub use output_styles_store::{load_output_styles, save_output_styles};
