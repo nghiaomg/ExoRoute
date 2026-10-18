@@ -68,6 +68,13 @@ fn registry_has_unique_ids_and_valid_metadata() {
     assert!(adapter_ids.contains(ANTIGRAVITY_ADAPTER_ID));
     assert!(adapter_ids.contains(CLINE_ADAPTER_ID));
     assert!(adapter_ids.contains(CLINEPASS_ADAPTER_ID));
+    assert!(adapter_ids.contains(MUSE_ADAPTER_ID));
+    assert_eq!(
+        preset_for_adapter(MUSE_ADAPTER_ID)
+            .expect("Muse preset")
+            .default_model_prefix,
+        Some("muse")
+    );
     assert_eq!(
         preset_for_adapter(CLINE_ADAPTER_ID)
             .expect("Cline preset")

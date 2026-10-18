@@ -240,7 +240,7 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
         if let Some(panel) = capabilities.auth_panel.as_deref()
             && !matches!(
                 panel,
-                "openai_codex" | "command_code" | "cline" | "kilocode"
+                "openai_codex" | "command_code" | "cline" | "kilocode" | "muse"
             )
         {
             return Err(format!(

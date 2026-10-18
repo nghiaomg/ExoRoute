@@ -9,7 +9,13 @@ export interface ProviderAuthPanels {
   apiKey: typeof CommandCodeAuthAssistPanel | null;
 }
 
-export const KNOWN_AUTH_PANELS = ['openai_codex', 'command_code', 'cline', 'kilocode'] as const;
+export const KNOWN_AUTH_PANELS = [
+  'openai_codex',
+  'command_code',
+  'cline',
+  'kilocode',
+  'muse',
+] as const;
 export type KnownAuthPanel = (typeof KNOWN_AUTH_PANELS)[number];
 
 export function resolveAuthPanel(panel: string | null | undefined): ProviderAuthPanels | null {
@@ -36,6 +42,11 @@ export const providerAuthPanelRegistry: Record<KnownAuthPanel, ProviderAuthPanel
     apiKey: null,
   },
   kilocode: {
+    oauth: DeviceCodeOAuthPanel,
+    accounts: CodexAccountsPanel,
+    apiKey: null,
+  },
+  muse: {
     oauth: DeviceCodeOAuthPanel,
     accounts: CodexAccountsPanel,
     apiKey: null,
