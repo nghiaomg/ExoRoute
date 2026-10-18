@@ -4,8 +4,6 @@ use super::*;
 pub(super) async fn telemetry_writer(
     db: Database,
     mut receiver: mpsc::Receiver<TelemetryMessage>,
-    mut dropped_receiver: watch::Receiver<u64>,
-    dropped_notify: watch::Sender<u64>,
     counters: Arc<DropCounters>,
     drop_state_lock: Arc<AsyncMutex<()>>,
 ) {
@@ -41,7 +39,6 @@ pub(super) async fn telemetry_writer(
                                 .persisted_provider_usage_this_process
                                 .store(0, Ordering::Relaxed);
                             persisted_local_drops = 0;
-                            dropped_notify.send_replace(0);
                             let _ = reply.send(Ok(deleted));
                         }
                         Err(error) => {
@@ -80,11 +77,6 @@ pub(super) async fn telemetry_writer(
                     batch.clear();
                 }
                 persist_drop_delta(&db, &counters, &drop_state_lock, &mut persisted_local_drops).await;
-            }
-            result = dropped_receiver.changed() => {
-                if result.is_ok() {
-                    persist_drop_delta(&db, &counters, &drop_state_lock, &mut persisted_local_drops).await;
-                }
             }
             _ = maintenance.tick() => {
                 if !batch.is_empty() {

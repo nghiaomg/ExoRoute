@@ -78,6 +78,13 @@ pub(in crate::gateway::streaming) fn text_branch(
     if !text.trim().is_empty() {
         state.saw_output = true;
         state.chat_stream_text_sent = true;
+        // Time to first output is measured here, on the first non-empty text
+        // delta, so it means "time to first visible token" rather than "time
+        // until the upstream happened to report usage". The call is a
+        // lock-free compare-exchange owned by the analytics tracker.
+        if let Some(analytics) = &config.analytics {
+            analytics.mark_first_output();
+        }
     }
     if config.upstream_protocol == UpstreamProtocol::GoogleGenerateContent
         && config.client_protocol == Protocol::Responses

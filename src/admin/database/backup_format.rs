@@ -187,9 +187,7 @@ pub(crate) fn decode_backup(bytes: &[u8]) -> Result<BackupPayload, &'static str>
         .with_limit(MAX_DATABASE_IMPORT_BYTES)
         .deserialize::<BackupPayload>(payload_bytes)
         .map_err(|_| "The database backup payload is invalid or truncated.")?;
-    if payload.storage_format_version == 0
-        || payload.storage_format_version > crate::infra::storage::STORAGE_FORMAT_VERSION
-    {
+    if !crate::infra::storage::is_readable_storage_version(payload.storage_format_version) {
         return Err("This LMDB storage format version is not supported by this ExoRoute build.");
     }
     Ok(payload)
@@ -268,9 +266,7 @@ pub(crate) fn decode_backup_file(path: &Path) -> Result<BackupPayload, &'static 
         .with_limit(MAX_DATABASE_IMPORT_BYTES)
         .deserialize_from(file.take(payload_len))
         .map_err(|_| "The database backup payload is invalid or truncated.")?;
-    if payload.storage_format_version == 0
-        || payload.storage_format_version > crate::infra::storage::STORAGE_FORMAT_VERSION
-    {
+    if !crate::infra::storage::is_readable_storage_version(payload.storage_format_version) {
         return Err("This LMDB storage format version is not supported by this ExoRoute build.");
     }
     Ok(payload)

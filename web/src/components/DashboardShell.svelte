@@ -99,7 +99,7 @@
       <a class="brand" href="/overview" onclick={(event) => navigateFromLink(event, 'overview')} aria-label={tr('ExoRoute overview')}>
         <span class="brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
         <span class="brand-word">exo<span>route</span></span>
-        <span class="brand-version">0.1.1</span>
+        <span class="brand-version">0.1.2</span>
       </a>
       <button
         type="button"

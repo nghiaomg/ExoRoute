@@ -55,59 +55,58 @@
     align-items: center;
     gap: 3px 12px;
     padding: 14px 16px;
-    border: 1px solid #e2e4ed;
-    border-radius: 14px;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
     background: #ffffff;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.02);
+    box-shadow: 3px 3px 0 var(--ink);
     transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
   }
 
   @media (hover: hover) {
     .request-metric:hover {
-      transform: translateY(-2px);
-      border-color: #cbd5e1;
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--ink);
     }
   }
 
+  /* Icon tiles carry the same ink frame and hard offset as `.combo-icon`. */
   .request-metric-icon {
     grid-area: icon;
     display: grid;
     place-items: center;
     width: 34px;
     height: 34px;
-    border-radius: 10px;
-    border: 1px solid transparent;
+    border-radius: 9px;
+    border: 2px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
     transition: transform 0.16s ease;
   }
 
   .request-metric.active .request-metric-icon {
     background: #fff7ed;
     color: #ea580c;
-    border-color: #ffedd5;
   }
 
   .request-metric.total .request-metric-icon {
-    background: #f0f9ff;
-    color: #0284c7;
-    border-color: #e0f2fe;
+    background: #eff6ff;
+    color: #3b82f6;
   }
 
+  /* Project mint (--mint), so the "Successful" tile agrees with the outcome
+     bar segment and the row accent. */
   .request-metric.success .request-metric-icon {
-    background: #ecfdf5;
-    color: #059669;
-    border-color: #d1fae5;
+    background: #eef9f3;
+    color: #36c59b;
   }
 
   .request-metric.duration .request-metric-icon {
-    background: #f8fafc;
-    color: #475569;
-    border-color: #e2e8f0;
+    background: #f8f9fd;
+    color: #626679;
   }
 
   .request-metric-label {
     grid-area: label;
-    color: #64748b;
+    color: #85899b;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -119,7 +118,7 @@
 
   .request-metric-value {
     grid-area: value;
-    color: #0f172a;
+    color: #33374b;
     font-family: var(--font-heading);
     font-size: 22px;
     font-weight: 800;

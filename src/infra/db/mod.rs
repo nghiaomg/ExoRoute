@@ -37,7 +37,9 @@ pub(crate) use settings_records::{
 };
 
 pub use admin_auth::{admin_password_change_required, has_admin_auth};
-pub use clock::{utc_timestamp_before, utc_timestamp_now};
+pub use clock::{
+    format_utc_timestamp, parse_utc_timestamp, utc_timestamp_before, utc_timestamp_now,
+};
 pub use gateway_limits::{load_gateway_resource_limits, save_gateway_resource_limits};
 pub use operational_settings::{load_operational_settings, save_operational_settings};
 pub use output_styles_store::{load_output_styles, save_output_styles};
@@ -50,13 +52,18 @@ const STATISTICS_WINDOWS: [i64; 3] = [24 * 60, 7 * 24 * 60, 30 * 24 * 60];
 
 pub async fn connect(path: &Path) -> Result<Database, StorageError> {
     let database = Database::open(path).await?;
+    // Load the persisted request-log compression dictionary before any step
+    // below touches that table. A request-log frame written with the
+    // dictionary cannot be decoded without it, and a frame that needs it is
+    // rejected as a codec failure rather than silently mis-read, so loading it
+    // second made the startup index repair fail with "Dictionary mismatch" and
+    // abort startup on any environment that had already trained a dictionary.
+    // Test connections skip this to keep the process-global dictionary out of
+    // parallel test runs.
+    crate::infra::storage::load_request_log_dictionary(&database).await;
     bootstrap::initialize_storage(&database).await?;
     request_logs::repair_request_log_indexes(&database).await?;
     bootstrap::recover_abandoned_stream_runs(&database).await?;
-    // Load the persisted request-log compression dictionary so frames match
-    // what this environment has stored; test connections skip this to keep
-    // the process-global dictionary out of parallel test runs.
-    crate::infra::storage::load_request_log_dictionary(&database).await;
     Ok(database)
 }
 

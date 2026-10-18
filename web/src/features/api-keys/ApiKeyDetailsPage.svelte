@@ -152,6 +152,8 @@ import { localizedError } from '../../lib/errors';
   .api-key-hero {
     margin-bottom: 4px;
   }
+  /* Framed mini tile in the theme's orange-tint palette, matching
+     `.combo-icon` / `.provider-avatar`. */
   .api-key-avatar {
     display: flex;
     align-items: center;
@@ -159,9 +161,10 @@ import { localizedError } from '../../lib/errors';
     width: 60px;
     height: 60px;
     border-radius: 14px;
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, rgba(109, 40, 217, 0.22) 100%);
-    color: var(--violet, #7c3aed);
-    border: 1px solid rgba(124, 58, 237, 0.18);
+    background: #fff4e6;
+    color: #ea580c;
+    border: 2px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
   }
   .detail-tags-row :global(svg) {
     color: var(--muted);

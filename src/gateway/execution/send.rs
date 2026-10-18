@@ -62,6 +62,7 @@ pub(super) async fn send_request(
             oauth_auth,
             session_id: &attempt.scope.adapter_session_id,
             protocol: attempt.upstream_protocol,
+            model: Some(attempt.target_model),
         },
     ) {
         Ok(request) => request,
@@ -92,6 +93,7 @@ pub(super) async fn send_request(
             oauth_auth,
             session_id: &attempt.scope.adapter_session_id,
             protocol: attempt.upstream_protocol,
+            model: Some(attempt.target_model),
         },
         response_status,
     )

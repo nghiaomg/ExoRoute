@@ -56,6 +56,10 @@ pub(crate) struct StatisticsEvent {
     pub(crate) output_tokens: i64,
     pub(crate) cached_tokens: i64,
     pub(crate) cache_input_tokens: i64,
+    /// Milliseconds from request start to the first translated output frame.
+    /// `None` when the request produced no streamed output, so the caller only
+    /// averages over requests that actually measured it.
+    pub(crate) first_output_ms: Option<i64>,
 }
 
 #[derive(Default, Clone, Copy)]
@@ -68,6 +72,8 @@ pub(crate) struct Counts {
     pub(crate) output_tokens: i64,
     pub(crate) cached_tokens: i64,
     pub(crate) cache_input_tokens: i64,
+    pub(crate) first_output_ms: i64,
+    pub(crate) first_output_events: i64,
 }
 
 impl Counts {
@@ -85,6 +91,10 @@ impl Counts {
         self.cache_input_tokens = self
             .cache_input_tokens
             .saturating_add(event.cache_input_tokens);
+        if let Some(first_output_ms) = event.first_output_ms.filter(|value| *value >= 0) {
+            self.first_output_ms = self.first_output_ms.saturating_add(first_output_ms);
+            self.first_output_events = self.first_output_events.saturating_add(1);
+        }
     }
 
     pub(crate) fn add(self, other: Self) -> Self {
@@ -99,6 +109,10 @@ impl Counts {
             cache_input_tokens: self
                 .cache_input_tokens
                 .saturating_add(other.cache_input_tokens),
+            first_output_ms: self.first_output_ms.saturating_add(other.first_output_ms),
+            first_output_events: self
+                .first_output_events
+                .saturating_add(other.first_output_events),
         }
     }
 
@@ -120,6 +134,14 @@ impl Counts {
             cache_input_tokens: self
                 .cache_input_tokens
                 .saturating_sub(other.cache_input_tokens)
+                .max(0),
+            first_output_ms: self
+                .first_output_ms
+                .saturating_sub(other.first_output_ms)
+                .max(0),
+            first_output_events: self
+                .first_output_events
+                .saturating_sub(other.first_output_events)
                 .max(0),
         }
     }

@@ -134,6 +134,7 @@ fn test_auth<'a>(secret: &'a str) -> UpstreamAuthContext<'a> {
         oauth_auth: None,
         session_id: "freebuff-test-session",
         protocol: UpstreamProtocol::ChatCompletions,
+        model: None,
     }
 }
 

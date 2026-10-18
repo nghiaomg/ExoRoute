@@ -249,7 +249,7 @@ fn preflight_backup_payload(bytes: &[u8]) -> Result<(), &'static str> {
 
     let mut offset = 0;
     let storage_version = take_u32(bytes, &mut offset)?;
-    if storage_version == 0 || storage_version > crate::infra::storage::STORAGE_FORMAT_VERSION {
+    if !crate::infra::storage::is_readable_storage_version(storage_version) {
         return Err("This LMDB storage format version is not supported by this ExoRoute build.");
     }
     let entry_count = usize::try_from(take_u64(bytes, &mut offset)?)
@@ -311,6 +311,7 @@ fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<
                 | Table::ProviderModelIndex
                 | Table::RouteNameIndex
                 | Table::RouteTargetProviderIndex
+                | Table::RouteTargetComboIndex
         )
     };
     let dictionary = crate::infra::storage::request_log_dictionary_from_entries(entries);
@@ -465,16 +466,34 @@ fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<
                 )?;
             }
             Table::RouteTargets => {
-                let provider_id = record
-                    .text("provider_id")
+                let combo_id = record
+                    .optional_text("combo_id")
                     .map_err(|_| "The backup contains an invalid route target.")?;
-                put_index(
-                    &mut indexes,
-                    Table::RouteTargetProviderIndex,
-                    super::combos::route_target_provider_index_key(provider_id, &entry.key)
-                        .map_err(|_| "The backup contains an invalid route target index.")?,
-                    entry.key.clone(),
-                )?;
+                if let Some(combo_id) = combo_id {
+                    // The combo index answers "which routes reference this
+                    // combo", so it stores the referencing route id.
+                    let route_id = record
+                        .text("route_id")
+                        .map_err(|_| "The backup contains an invalid route target.")?;
+                    put_index(
+                        &mut indexes,
+                        Table::RouteTargetComboIndex,
+                        super::combos::route_target_combo_index_key(combo_id, &entry.key)
+                            .map_err(|_| "The backup contains an invalid route target index.")?,
+                        route_id.to_owned(),
+                    )?;
+                } else {
+                    let provider_id = record
+                        .text("provider_id")
+                        .map_err(|_| "The backup contains an invalid route target.")?;
+                    put_index(
+                        &mut indexes,
+                        Table::RouteTargetProviderIndex,
+                        super::combos::route_target_provider_index_key(provider_id, &entry.key)
+                            .map_err(|_| "The backup contains an invalid route target index.")?,
+                        entry.key.clone(),
+                    )?;
+                }
             }
             Table::ApiKeys => {
                 let id = record
