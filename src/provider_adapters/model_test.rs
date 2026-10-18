@@ -292,6 +292,7 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
                     oauth_auth: None,
                     session_id: &request_id,
                     protocol: request.protocol.into(),
+                    model: Some(request.model),
                 },
             },
             &mut body,
@@ -354,6 +355,7 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
                 oauth_auth: None,
                 session_id: &request_id,
                 protocol: request.protocol.into(),
+                model: Some(request.model),
             },
         ) {
             Ok(request) => request,
@@ -380,6 +382,7 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
                     oauth_auth: None,
                     session_id: &request_id,
                     protocol: request.protocol.into(),
+                    model: Some(request.model),
                 },
                 response_status,
             )
