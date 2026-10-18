@@ -4,8 +4,9 @@ pub const OPENAI_CODEX: &str = "openai_codex";
 pub const COMMAND_CODE: &str = "command_code";
 pub const CLINE: &str = "cline";
 pub const KILOCODE: &str = "kilocode";
+pub const MUSE: &str = "muse";
 
-pub const KNOWN_PANELS: [&str; 4] = [OPENAI_CODEX, COMMAND_CODE, CLINE, KILOCODE];
+pub const KNOWN_PANELS: [&str; 5] = [OPENAI_CODEX, COMMAND_CODE, CLINE, KILOCODE, MUSE];
 
 /// Single capability contract shared by build-time validation in build.rs,
 /// backend capability checks in provider_adapters, and the dashboard
@@ -27,6 +28,7 @@ mod tests {
         }
         assert!(is_known(OPENAI_CODEX));
         assert!(is_known(KILOCODE));
+        assert!(is_known(MUSE));
         assert!(!is_known("unknown_panel"));
         assert!(!is_known("toString"));
     }

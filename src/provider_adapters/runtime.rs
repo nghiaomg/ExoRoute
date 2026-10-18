@@ -403,3 +403,7 @@ pub async fn save_oauth_account(
         .save_oauth_account(state, provider_id, account)
         .await
 }
+
+pub fn is_permanent_antigravity_ban(message: &str) -> bool {
+    super::antigravity::is_permanent_antigravity_ban(message)
+}
