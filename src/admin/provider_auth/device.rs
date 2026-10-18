@@ -1,9 +1,10 @@
 //! Device-authorization provider sign-in.
 //!
-//! Providers such as Kilo Code have no redirect URI: they issue a pending code,
-//! the operator approves it in the provider's own page, and the dashboard polls
-//! until the account is connected. The start handler registers the flow and the
-//! poll handler performs the upstream poll the dashboard requests.
+//! Providers such as Kilo Code and Meta Muse have no redirect URI: they issue a
+//! pending code, the operator approves it in the provider's own page, and the
+//! dashboard polls until the account is connected. The start handler registers
+//! the flow and the poll handler performs the upstream poll the dashboard
+//! requests.
 
 use super::*;
 use std::time::Duration;
@@ -56,22 +57,29 @@ pub(crate) async fn start_provider_device_auth(
     })))
 }
 
-/// The provider row's endpoint, so a device poll reaches the same host the
-/// sign-in started against.
-async fn provider_row_base_url(state: &AppState, provider_id: &str) -> Result<String, String> {
+/// The provider row's endpoint and display name.
+///
+/// The endpoint keeps a device poll on the same host the sign-in started
+/// against, and the name lets failure messages identify the provider the
+/// operator actually selected instead of a hard-coded one.
+async fn provider_row_endpoint(
+    state: &AppState,
+    provider_id: &str,
+) -> Result<(String, String), String> {
     let id = provider_id.to_owned();
     state
         .db
         .read(move |tx| {
-            tx.get::<crate::infra::storage::Record>(crate::infra::storage::Table::Providers, &id)?
-                .ok_or(crate::infra::storage::StorageError::NotFound)?
-                .text("base_url")
-                .map(str::to_owned)
+            let record = tx
+                .get::<crate::infra::storage::Record>(crate::infra::storage::Table::Providers, &id)?
+                .ok_or(crate::infra::storage::StorageError::NotFound)?;
+            Ok((
+                record.text("base_url")?.to_owned(),
+                record.text("name")?.to_owned(),
+            ))
         })
         .await
-        .map_err(|_| {
-            "the Kilo Code provider was removed while signing in; start sign-in again".to_owned()
-        })
+        .map_err(|_| "the provider was removed while signing in; start sign-in again".to_owned())
 }
 
 /// Polls one pending device authorization and reports the flow status.
@@ -134,8 +142,8 @@ pub(crate) async fn provider_auth_poll(
     };
 
     let (adapter_id, flow_provider_id, device_code) = prepared;
-    match provider_row_base_url(&state, &flow_provider_id).await {
-        Ok(base_url) => {
+    match provider_row_endpoint(&state, &flow_provider_id).await {
+        Ok((base_url, provider_name)) => {
             let outcome = provider_adapters::poll_device_authorization(
                 &adapter_id,
                 &state,
@@ -152,7 +160,7 @@ pub(crate) async fn provider_auth_poll(
                     fail_provider_auth_flow(
                         &state,
                         &flow_id,
-                        "The Kilo Code request was denied; start sign-in again",
+                        &format!("The {provider_name} request was denied; start sign-in again"),
                     )
                     .await;
                 }
@@ -160,7 +168,7 @@ pub(crate) async fn provider_auth_poll(
                     fail_provider_auth_flow(
                         &state,
                         &flow_id,
-                        "The Kilo Code device code expired; start sign-in again",
+                        &format!("The {provider_name} device code expired; start sign-in again"),
                     )
                     .await;
                 }
@@ -168,7 +176,9 @@ pub(crate) async fn provider_auth_poll(
                     note_provider_auth_flow(
                         &state,
                         &flow_id,
-                        "Kilo Code is limiting sign-in checks; the next check happens automatically",
+                        &format!(
+                            "{provider_name} is limiting sign-in checks; the next check happens automatically"
+                        ),
                     )
                     .await;
                 }

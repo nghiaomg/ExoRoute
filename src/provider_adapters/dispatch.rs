@@ -64,6 +64,25 @@ pub fn retry_upstream_response_as_key_rejection(adapter_id: &str) -> bool {
         .unwrap_or(true)
 }
 
+/// Asks the adapter to repair a credential the upstream just rejected. `false`
+/// means the caller keeps the standard invalidation behavior.
+pub async fn repair_rejected_credential(
+    adapter_id: &str,
+    state: &AppState,
+    provider_id: &str,
+    credential_id: &str,
+    status: StatusCode,
+) -> bool {
+    match adapter(adapter_id) {
+        Some(adapter) => {
+            adapter
+                .repair_rejected_credential(state, provider_id, credential_id, status)
+                .await
+        }
+        None => false,
+    }
+}
+
 pub async fn finish_upstream_request<'a>(
     adapter_id: &str,
     state: &'a AppState,

@@ -1,6 +1,6 @@
 use super::{
     CLINE_ADAPTER_ID, CLINEPASS_ADAPTER_ID, ProviderAdapter, antigravity, command_code, freebuff,
-    generic, kilo, kilocode, nvidia_nim, opencode, openrouter,
+    generic, kilo, kilocode, muse, nvidia_nim, opencode, openrouter,
 };
 
 pub(crate) struct ClineAdapter {
@@ -15,7 +15,7 @@ static CLINEPASS_ADAPTER: ClineAdapter = ClineAdapter {
     adapter_id: CLINEPASS_ADAPTER_ID,
 };
 
-static ADAPTERS: [&'static dyn ProviderAdapter; 13] = [
+static ADAPTERS: [&'static dyn ProviderAdapter; 14] = [
     &generic::GENERIC_ADAPTER,
     &kilo::KILO_GATEWAY_ADAPTER,
     &kilocode::KILOCODE_ADAPTER,
@@ -23,6 +23,7 @@ static ADAPTERS: [&'static dyn ProviderAdapter; 13] = [
     &CLINE_ADAPTER,
     &CLINEPASS_ADAPTER,
     &command_code::COMMAND_CODE_ADAPTER,
+    &muse::MUSE_ADAPTER,
     &opencode::OPENCODE_GO_ADAPTER,
     &opencode::OPENCODE_ZEN_ADAPTER,
     &openrouter::OPENROUTER_ADAPTER,
