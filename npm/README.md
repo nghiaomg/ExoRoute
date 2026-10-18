@@ -84,7 +84,7 @@ usually points at the network or the platform check rather than at the gateway. 
 the installer reports what it installed:
 
 ```
-Installed ExoRoute v0.1.1 for win32/x64.
+Installed ExoRoute v0.1.2 for win32/x64.
 ```
 
 `npx exoroute` also works for a one-off run, but the binary is still fetched and cached per
@@ -133,7 +133,7 @@ The launcher downloads the release tag matching its own package version
 (`v<package version>`), so the npm version you install decides which binary you get:
 
 ```sh
-npm install -g exoroute@0.1.1   # the v0.1.1 launcher and the v0.1.1 binary
+npm install -g exoroute@0.1.2   # the v0.1.2 launcher and the v0.1.2 binary
 npm install -g exoroute@latest  # the newest published npm version
 ```
 
@@ -142,11 +142,11 @@ newest release independently of the launcher version:
 
 ```sh
 EXOROUTE_VERSION=latest npm install -g exoroute
-EXOROUTE_VERSION=v0.1.1 npm install -g exoroute
+EXOROUTE_VERSION=v0.1.2 npm install -g exoroute
 ```
 
-Accepted values are `latest` or a release tag, with the leading `v` optional (`0.1.1` and
-`v0.1.1` are the same tag). Anything else fails with
+Accepted values are `latest` or a release tag, with the leading `v` optional (`0.1.2` and
+`v0.1.2` are the same tag). Anything else fails with
 `EXOROUTE_VERSION must be latest or a valid release tag.` The variable is read at install
 time only; it does not change how a running gateway behaves.
 
@@ -188,14 +188,14 @@ against it:
 # 1. Verify the checksum manifest's Sigstore signature and the workflow identity.
 cosign verify-blob SHA256SUMS \
   --bundle SHA256SUMS.sigstore.json \
-  --certificate-identity "https://github.com/nghiaomg/ExoRoute/.github/workflows/release.yml@refs/tags/v0.1.1" \
+  --certificate-identity "https://github.com/nghiaomg/ExoRoute/.github/workflows/release.yml@refs/tags/v0.1.2" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 
 # 2. Verify the archive you downloaded.
 sha256sum --check --ignore-missing SHA256SUMS
 ```
 
-Replace `v0.1.1` in the certificate identity with the tag you installed — the signature is
+Replace `v0.1.2` in the certificate identity with the tag you installed — the signature is
 issued for the exact tag ref, so a mismatch means the manifest is from another release. On
 Windows, use `Get-FileHash -Algorithm SHA256 <file>` or `certutil -hashfile <file> SHA256`
 instead of `sha256sum`.
