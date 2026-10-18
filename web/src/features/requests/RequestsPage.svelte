@@ -306,6 +306,7 @@
     gap: 10px;
   }
 
+  /* Ink-framed notice, matching the theme's other framed inline feedback. */
   .request-live-feedback {
     display: flex;
     align-items: center;
@@ -313,12 +314,12 @@
     margin: 0 0 16px;
     padding: 10px 14px;
     color: #c2410c;
-    border: 1px solid #fed7aa;
+    border: 2px solid var(--ink);
     border-radius: 12px;
     background: #fffaf5;
     font-size: 12.5px;
     font-weight: 500;
-    box-shadow: 0 1px 3px rgba(249, 115, 22, 0.05);
+    box-shadow: 2px 2px 0 var(--ink);
   }
 
   :global(:root[data-theme='dark']) .request-live-feedback {
@@ -332,7 +333,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 4px;
-    color: #64748b;
+    color: #85899b;
     font-size: 12.5px;
     font-weight: 600;
   }

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const webRoot = fileURLToPath(new URL('.', import.meta.url));
 const providerAssetsRoot = resolve(webRoot, '../assets/providers');
+const modelAssetsRoot = resolve(webRoot, '../assets/models');
 
 export default defineConfig({
   plugins: [svelte()],
@@ -14,7 +15,7 @@ export default defineConfig({
   },
   server: {
     fs: {
-      allow: [webRoot, providerAssetsRoot],
+      allow: [webRoot, providerAssetsRoot, modelAssetsRoot],
     },
     proxy: {
       '/api': {

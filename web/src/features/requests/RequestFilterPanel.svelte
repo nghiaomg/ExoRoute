@@ -1,10 +1,18 @@
 <script lang="ts">
+  import { onDestroy, onMount } from 'svelte';
   import { Search, SlidersHorizontal, X } from '@lucide/svelte';
+  import ArkCombobox from '../../components/ArkCombobox.svelte';
   import ArkField from '../../components/ArkField.svelte';
   import ArkSelect from '../../components/ArkSelect.svelte';
   import type { Translate } from '../../lib/format';
   import type { RequestLogFilters } from '../../lib/types';
   import { appliedRequestFilters, sameRequestFilters, type RequestFilterKey } from './request.metrics';
+  import {
+    createRequestFilterOptions,
+    withPinnedOption,
+    type RequestFilterOption,
+    type RequestFilterOptions,
+  } from './request.filters';
 
   export let tr: Translate;
   export let activeFilters: RequestLogFilters;
@@ -12,6 +20,10 @@
   export let onApply: (filters: RequestLogFilters) => void;
   export let onClearFilters: () => void;
   export let onRemoveFilter: (key: RequestFilterKey) => void;
+
+  // The gateway's marker for a request that carried no key. The id field is a
+  // select now, so this filter value needs its own entry to stay reachable.
+  const UNKNOWN_KEY_FILTER = 'unknown';
 
   // The draft lives here so typing never queries; it re-syncs whenever the
   // applied filters change (apply, clear, or a removed chip).
@@ -21,6 +33,32 @@
   let status = activeFilters.status ?? '';
   let syncedFrom: RequestLogFilters | null = null;
 
+  const EMPTY_OPTIONS: RequestFilterOptions = {
+    apiKeyOptions: [],
+    providerOptions: [],
+    apiKeysLoading: false,
+    apiKeysError: '',
+    providersError: '',
+    apiKeyLabel: (value) => value,
+    providerLabel: (value) => value,
+  };
+  let filterOptions = EMPTY_OPTIONS;
+  // The query the API-key option list currently answers, so the "no key
+  // recorded" entry can stand aside while the user is searching.
+  let apiKeyQuery = '';
+
+  // The panel owns the option lists: they describe this form's two id fields and
+  // nothing else on the page reads them.
+  const optionSource = createRequestFilterOptions({
+    tr,
+    onChange: (next) => {
+      filterOptions = next;
+    },
+  });
+
+  onMount(() => optionSource.loadProviders());
+  onDestroy(() => optionSource.destroy());
+
   $: if (activeFilters !== syncedFrom) {
     syncedFrom = activeFilters;
     apiKey = activeFilters.api_key_id ?? '';
@@ -29,12 +67,57 @@
     status = activeFilters.status ?? '';
   }
 
+  // The "no key recorded" entry and a pinned selection can repeat an id.
+  function dedupeOptions(options: RequestFilterOption[]): RequestFilterOption[] {
+    const seen = new Set<string>();
+    const unique: RequestFilterOption[] = [];
+    for (const option of options) {
+      if (seen.has(option.value)) continue;
+      seen.add(option.value);
+      unique.push(option);
+    }
+    return unique;
+  }
+
+  function apiKeyLabelFor(value: string): string {
+    if (value === UNKNOWN_KEY_FILTER) return tr('Unknown key');
+    return filterOptions.apiKeyLabel(value);
+  }
+
+  function searchApiKeys(query: string): void {
+    apiKeyQuery = query;
+    optionSource.searchApiKeys(query);
+  }
+
   $: draft = { api_key_id: apiKey, model, provider_id: providerId, status } as RequestLogFilters;
   $: dirty = !sameRequestFilters(draft, activeFilters);
-  $: applied = appliedRequestFilters(activeFilters, tr);
+  $: applied = appliedRequestFilters(activeFilters, tr, {
+    api_key_id: apiKeyLabelFor(activeFilters.api_key_id ?? ''),
+    provider_id: filterOptions.providerLabel(activeFilters.provider_id ?? ''),
+  });
   // Apply only earns screen space when the draft changed; Clear stays reachable
   // whenever something is applied.
   $: showActions = dirty || applied.length > 0;
+
+  // The "no key recorded" entry keeps that filter reachable now the field is a
+  // select. It stands aside while the key list is searching, failed, or being
+  // searched, so the field's empty slot can report what is happening instead of
+  // showing this one option and hiding it.
+  $: showUnknownKeyOption =
+    !apiKeyQuery.trim() && !filterOptions.apiKeysLoading && !filterOptions.apiKeysError;
+  $: apiKeyItems = dedupeOptions([
+    ...(showUnknownKeyOption ? [{ label: tr('Unknown key'), value: UNKNOWN_KEY_FILTER }] : []),
+    ...withPinnedOption(filterOptions.apiKeyOptions, apiKey, apiKeyLabelFor(apiKey)),
+  ]);
+  $: providerItems = withPinnedOption(
+    filterOptions.providerOptions,
+    providerId,
+    filterOptions.providerLabel(providerId),
+  );
+  $: apiKeyEmptyText = filterOptions.apiKeysLoading
+    ? tr('Searching API keys…')
+    : filterOptions.apiKeysError || tr('No matching API keys');
+  $: providerEmptyText = filterOptions.providersError || tr('No matching providers');
 
   function submit(event: SubmitEvent): void {
     event.preventDefault();
@@ -45,25 +128,30 @@
 
 <form class="request-filter-panel" onsubmit={submit}>
   <div class="request-filter-grid">
-    <ArkField
+    <ArkCombobox
       label={tr('API key ID')}
-      bind:value={apiKey}
-      maxlength={256}
-      placeholder={tr('Filter by API key ID')}
+      items={apiKeyItems}
+      value={apiKey}
+      placeholder={tr('Search API keys by name or ID')}
+      noOptionsText={apiKeyEmptyText}
       disabled={loading}
+      onSearch={searchApiKeys}
+      onValueChange={(next) => (apiKey = next)}
+    />
+    <ArkCombobox
+      label={tr('Provider ID')}
+      items={providerItems}
+      value={providerId}
+      placeholder={tr('Search providers by name or ID')}
+      noOptionsText={providerEmptyText}
+      disabled={loading}
+      onValueChange={(next) => (providerId = next)}
     />
     <ArkField
       label={tr('Requested model')}
       bind:value={model}
       maxlength={256}
       placeholder={tr('Exact model name')}
-      disabled={loading}
-    />
-    <ArkField
-      label={tr('Provider ID')}
-      bind:value={providerId}
-      maxlength={256}
-      placeholder={tr('Exact provider ID')}
       disabled={loading}
     />
     <ArkSelect
@@ -94,7 +182,7 @@
       {#each applied as filter (filter.key)}
         <span class="request-filter-chip">
           <span class="request-filter-chip-label">{filter.label}</span>
-          <span class="request-filter-chip-value" title={filter.value}>{filter.value}</span>
+          <span class="request-filter-chip-value" title={filter.title ?? filter.value}>{filter.value}</span>
           <button
             type="button"
             class="request-filter-chip-remove"
@@ -112,18 +200,19 @@
 </form>
 
 <style>
+  /* Soft Neo-Brutalism frame, like every other card in the light theme. */
   .request-filter-panel {
     position: sticky;
     top: 0;
     z-index: 6;
     margin: 0 0 18px;
     padding: 14px 16px;
-    border: 1px solid #e2e4ed;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.96);
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+    box-shadow: 3px 3px 0 var(--ink);
     transition: box-shadow 0.16s ease, border-color 0.16s ease;
   }
 
@@ -150,15 +239,17 @@
     gap: 8px;
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid #e9eaf0;
   }
 
   .request-filter-chips-icon {
     display: grid;
     place-items: center;
-    color: #64748b;
+    color: #85899b;
   }
 
+  /* Chips sit inside the framed panel, so they stay flat and keep the light
+     orange-tint stroke the theme uses for small badges. */
   .request-filter-chip {
     display: inline-flex;
     align-items: center;
@@ -167,8 +258,8 @@
     padding: 3px 6px 3px 10px;
     border: 1px solid #fed7aa;
     border-radius: 999px;
-    background: #fffaf5;
-    box-shadow: 0 1px 2px rgba(249, 115, 22, 0.05);
+    background: #fff7ed;
+    box-shadow: none;
     font-size: 11px;
   }
 
@@ -181,7 +272,7 @@
   .request-filter-chip-value {
     max-width: 160px;
     overflow: hidden;
-    color: #0f172a;
+    color: #33374b;
     font-family: var(--font-mono);
     font-weight: 600;
     text-overflow: ellipsis;

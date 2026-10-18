@@ -14,13 +14,46 @@ pub(super) fn route_record(input: &ComboInput) -> Result<Record, StorageError> {
         .with("updated_at", Field::Text(now)))
 }
 
+/// One target row plus the derived index entry it maintains.
+///
+/// A provider target indexes by provider; a nested combo reference indexes by
+/// the combo it points at. Exactly one of the two is set, and that is also how
+/// the two kinds are told apart when a stored row is read back.
+pub(super) struct TargetRecordWrite {
+    pub(super) target_key: String,
+    pub(super) provider_index: Option<String>,
+    pub(super) combo_index: Option<String>,
+    pub(super) record: Record,
+}
+
 pub(super) fn route_target_records(
     input: &ComboInput,
-) -> Result<Vec<(String, String, Record)>, StorageError> {
+) -> Result<Vec<TargetRecordWrite>, StorageError> {
     let mut records = Vec::with_capacity(input.targets.len());
     for (ordinal, target) in input.targets.iter().enumerate() {
-        let key = route_target_key(&input.id, target.priority, ordinal)?;
-        let provider_index = route_target_provider_index_key(&target.provider_id, &key)?;
+        let target_key = route_target_key(&input.id, target.priority, ordinal)?;
+        if let Some(combo_id) = target.combo_id.as_deref() {
+            // A reference target stores no provider. The provider and model
+            // fields are written as explicit nulls rather than omitted so a
+            // reader that only looks for `provider_id` cannot mistake the row
+            // for a provider target with an empty id.
+            let record = Record::new()
+                .with("route_id", Field::Text(input.id.clone()))
+                .with("combo_id", Field::Text(combo_id.to_owned()))
+                .with("provider_id", Field::Null)
+                .with("model", Field::Null)
+                .with("protocol", Field::Null)
+                .with("priority", Field::I64(i64::from(target.priority)))
+                .with("weight", Field::Null)
+                .with("enabled", Field::Bool(target.enabled));
+            records.push(TargetRecordWrite {
+                combo_index: Some(route_target_combo_index_key(combo_id, &target_key)?),
+                provider_index: None,
+                target_key,
+                record,
+            });
+            continue;
+        }
         let record = Record::new()
             .with("route_id", Field::Text(input.id.clone()))
             .with("provider_id", Field::Text(target.provider_id.clone()))
@@ -42,7 +75,15 @@ pub(super) fn route_target_records(
                     .unwrap_or(Field::Null),
             )
             .with("enabled", Field::Bool(target.enabled));
-        records.push((key, provider_index, record));
+        records.push(TargetRecordWrite {
+            provider_index: Some(route_target_provider_index_key(
+                &target.provider_id,
+                &target_key,
+            )?),
+            combo_index: None,
+            target_key,
+            record,
+        });
     }
     Ok(records)
 }
@@ -88,6 +129,21 @@ pub(crate) fn route_target_provider_index_key(
     Ok(key)
 }
 
+pub(crate) fn route_target_combo_index_prefix(combo_id: &str) -> Result<String, StorageError> {
+    let key = format!("c/{}/", hex_component(combo_id));
+    crate::infra::storage::validate_key(&key)?;
+    Ok(key)
+}
+
+pub(crate) fn route_target_combo_index_key(
+    combo_id: &str,
+    target_key: &str,
+) -> Result<String, StorageError> {
+    let key = format!("c/{}/{target_key}", hex_component(combo_id));
+    crate::infra::storage::validate_key(&key)?;
+    Ok(key)
+}
+
 fn hex_component(value: &str) -> String {
     let mut encoded = String::with_capacity(value.len().saturating_mul(2));
     for byte in value.bytes() {
@@ -102,14 +158,18 @@ pub(super) fn save_combo(
     id: &str,
     route: &Record,
     name_index: &str,
-    targets: &[(String, String, Record)],
+    targets: &[TargetRecordWrite],
     update: bool,
 ) -> Result<(), StorageError> {
-    // Check targets in the same write transaction that stores the route. A
-    // provider deletion can begin after the async model validation read, so
-    // this is the authoritative race barrier.
-    for (_, _, target) in targets {
-        let provider_id = target.text("provider_id")?;
+    // Check provider targets in the same write transaction that stores the
+    // route. A provider deletion can begin after the async model validation
+    // read, so this is the authoritative race barrier. Nested combo
+    // references carry no provider; the caller validates those against the
+    // reference graph in this same transaction.
+    for target in targets {
+        let Some(provider_id) = target.record.optional_text("provider_id")? else {
+            continue;
+        };
         let provider = transaction
             .get::<Record>(Table::Providers, provider_id)?
             .ok_or(StorageError::NotFound)?;
@@ -119,22 +179,39 @@ pub(super) fn save_combo(
         let old_targets = transaction.scan_prefix::<Record>(
             Table::RouteTargets,
             &route_target_prefix(id)?,
-            MAX_ROUTE_TARGETS,
+            MAX_ROUTE_TARGETS_PAGE,
         )?;
         for (old_key, old_target) in old_targets {
             transaction.delete(Table::RouteTargets, &old_key)?;
-            let provider_id = old_target.text("provider_id")?;
-            transaction.delete(
-                Table::RouteTargetProviderIndex,
-                &route_target_provider_index_key(provider_id, &old_key)?,
-            )?;
+            if let Some(provider_id) = old_target.optional_text("provider_id")? {
+                transaction.delete(
+                    Table::RouteTargetProviderIndex,
+                    &route_target_provider_index_key(provider_id, &old_key)?,
+                )?;
+            }
+            if let Some(combo_id) = old_target.optional_text("combo_id")? {
+                transaction.delete(
+                    Table::RouteTargetComboIndex,
+                    &route_target_combo_index_key(combo_id, &old_key)?,
+                )?;
+            }
         }
     }
     transaction.put(Table::Routes, id, route)?;
-    transaction.put(Table::RouteNameIndex, name_index, &id.to_owned())?;
-    for (target_key, provider_index, target) in targets {
-        transaction.put_if_absent(Table::RouteTargets, target_key, target)?;
-        transaction.put(Table::RouteTargetProviderIndex, provider_index, target_key)?;
+    let route_id = id.to_owned();
+    transaction.put(Table::RouteNameIndex, name_index, &route_id)?;
+    for target in targets {
+        transaction.put_if_absent(Table::RouteTargets, &target.target_key, &target.record)?;
+        if let Some(provider_index) = target.provider_index.as_deref() {
+            transaction.put(
+                Table::RouteTargetProviderIndex,
+                provider_index,
+                &target.target_key,
+            )?;
+        }
+        if let Some(combo_index) = target.combo_index.as_deref() {
+            transaction.put(Table::RouteTargetComboIndex, combo_index, &route_id)?;
+        }
     }
     Ok(())
 }

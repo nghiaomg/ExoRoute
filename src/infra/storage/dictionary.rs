@@ -65,6 +65,10 @@ fn clear_request_log_dictionary() {
 /// runtime copy when the database genuinely has none. Called at startup and
 /// after a backup import, so compression always matches the database contents.
 ///
+/// Must run before the first read of `Table::RequestLogs` in the process: a
+/// frame written with the dictionary cannot be decoded without it, so any scan
+/// that happens first fails as a codec error instead of returning rows.
+///
 /// A read failure or an oversized stored value keeps the currently loaded
 /// dictionary instead of clearing it: dropping the dictionary would make every
 /// frame already written with it undecodable, which is far worse than

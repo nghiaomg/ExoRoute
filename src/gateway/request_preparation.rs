@@ -1,6 +1,6 @@
 use crate::{
-    config::GatewayResourceLimits,
-    infra::storage::{Record, StorageError, Table},
+    config::{GatewayResourceLimits, MAX_COMBO_NESTING_DEPTH, MAX_ROUTE_TARGETS},
+    infra::storage::{ReadTxn, Record, StorageError, Table},
     infra::telemetry::RequestAnalytics,
     protocol::{self, Protocol, UpstreamProtocol},
     security::api_key_scope::ApiKeyScope,
@@ -14,15 +14,17 @@ use axum::{
 use serde_json::Value;
 use std::sync::Arc;
 
-const MAX_ROUTE_TARGETS: usize = 16;
-
+/// One dispatch target.
+///
+/// Target priority is not carried here: it only orders the list, and the stored
+/// key order already does that once the route is flattened, so the order of the
+/// list is the priority.
 #[derive(Clone)]
 pub(super) struct Target {
     pub(super) provider_id: String,
     pub(super) model: String,
     pub(super) protocol: Option<UpstreamProtocol>,
     pub(super) model_protocol: Option<UpstreamProtocol>,
-    pub(super) priority: i64,
     pub(super) enabled: bool,
 }
 
@@ -31,7 +33,36 @@ pub(super) struct StoredRoute {
     pub(super) strategy: String,
     pub(super) accepted_protocols: Vec<String>,
     pub(super) targets: Vec<Target>,
-    pub(super) exceeds_target_limit: bool,
+    /// Set when the stored target list cannot be routed as written. The save
+    /// path rejects every case, so this is the safety net for data that did not
+    /// come through it: an imported backup, a hand-edited database, or a graph
+    /// that changed after it was checked.
+    pub(super) flatten_issue: Option<FlattenIssue>,
+}
+
+/// Why a stored route's nested combo references could not be flattened.
+#[derive(Clone, Debug)]
+pub(super) enum FlattenIssue {
+    /// The flattened list would hold more targets than a request may use.
+    TooManyTargets { expanded: usize },
+    /// A nested reference points at a combo that is not stored.
+    Missing { combo_id: String },
+    /// Nested references form a loop.
+    Cycle { combo_id: String },
+    /// Nested references go deeper than the supported nesting.
+    Depth { combo_id: String },
+}
+
+impl FlattenIssue {
+    /// The combo the issue is about, when it is about one combo.
+    fn combo_id(&self) -> Option<&str> {
+        match self {
+            Self::TooManyTargets { .. } => None,
+            Self::Missing { combo_id } | Self::Cycle { combo_id } | Self::Depth { combo_id } => {
+                Some(combo_id)
+            }
+        }
+    }
 }
 
 pub(super) struct PreparedGatewayRequest {
@@ -211,7 +242,7 @@ async fn resolve_gateway_targets(
     client_protocol: Protocol,
     target_rotation_offset: usize,
 ) -> Result<Vec<Target>, GatewayRequestPreparationError> {
-    let route = load_stored_route(&state.db, route_alias)
+    let route = load_stored_route(&state.db, route_alias, client_protocol)
         .await
         .map_err(GatewayRequestPreparationError::Database)?;
     let (strategy, mut targets) = if let Some(route) = route {
@@ -234,10 +265,26 @@ async fn resolve_gateway_targets(
                 ),
             });
         }
-        if route.exceeds_target_limit {
+        if let Some(issue) = &route.flatten_issue {
+            tracing::warn!(
+                route = %route_alias,
+                combo = ?issue.combo_id(),
+                issue = ?issue,
+                "stored route cannot be routed"
+            );
+            let message = match issue {
+                FlattenIssue::TooManyTargets { expanded } => format!(
+                    "route expands to {expanded} targets; the maximum is {MAX_ROUTE_TARGETS}"
+                ),
+                FlattenIssue::Missing { .. }
+                | FlattenIssue::Cycle { .. }
+                | FlattenIssue::Depth { .. } => {
+                    "route has invalid nested combo references".to_owned()
+                }
+            };
             return Err(GatewayRequestPreparationError::Client {
                 status: StatusCode::SERVICE_UNAVAILABLE,
-                message: "route exceeds the maximum of 16 configured targets".to_owned(),
+                message,
             });
         }
         (route.strategy, route.targets)
@@ -276,17 +323,33 @@ async fn resolve_gateway_targets(
     Ok(targets)
 }
 
+/// Rotates the target list for a retry.
+///
+/// The order is whatever `load_stored_route` produced, and it is already the
+/// failover order: stored keys sort by `(priority, ordinal)` and a nested combo
+/// is expanded in place at the row that referenced it. Sorting here would move
+/// a nested group's leaves by their own priorities and break that order, so
+/// only the rotation is applied.
 fn order_priority_targets(targets: &mut [Target], target_rotation_offset: usize) {
-    targets.sort_by_key(|target| target.priority);
     let Some(target_count) = (!targets.is_empty()).then_some(targets.len()) else {
         return;
     };
     targets.rotate_left(target_rotation_offset % target_count);
 }
 
+/// Loads a stored route and flattens its nested combo references into one
+/// target list, in the order the operator configured.
+///
+/// A target that references another combo is replaced by that combo's own
+/// targets, in place, recursively. A nested combo is skipped, with a log line,
+/// when it is disabled or does not accept the client protocol — a routing
+/// decision the operator can see and change, not a silent drop. Any structural
+/// problem (missing combo, loop, too deep, too many expanded targets) sets
+/// `flatten_issue`, which the caller turns into a 503.
 pub(super) async fn load_stored_route(
     db: &crate::infra::storage::Database,
     route_id: &str,
+    client_protocol: Protocol,
 ) -> Result<Option<StoredRoute>, StorageError> {
     let route_id = route_id.to_owned();
     db.read(move |transaction| {
@@ -297,60 +360,165 @@ pub(super) async fn load_stored_route(
             serde_json::from_str(route.text("accepted_protocols")?).map_err(|error| {
                 StorageError::Codec(format!("route protocol list is invalid: {error}"))
             })?;
-        let target_prefix = route_target_prefix(&route_id)?;
-        let target_records = transaction.scan_prefix::<Record>(
-            Table::RouteTargets,
-            &target_prefix,
-            MAX_ROUTE_TARGETS + 1,
+        let mut flattened = FlattenedTargets::default();
+        let mut path = vec![route_id.clone()];
+        flatten_route_targets(
+            transaction,
+            &route_id,
+            client_protocol,
+            &mut path,
+            &mut flattened,
         )?;
-        let exceeds_target_limit = target_records.len() > MAX_ROUTE_TARGETS;
-        let mut targets = Vec::with_capacity(target_records.len().min(MAX_ROUTE_TARGETS));
-        for (_, target) in target_records.into_iter().take(MAX_ROUTE_TARGETS) {
-            let protocol = target
-                .optional_text("protocol")?
-                .map(|value| {
-                    value.parse::<UpstreamProtocol>().map_err(|error| {
-                        StorageError::Invalid(format!("route target protocol is invalid: {error}"))
-                    })
-                })
-                .transpose()?;
-            let provider_id = target.text("provider_id")?.to_owned();
-            let model = target.text("model")?.to_owned();
-            let model_key = crate::infra::db::provider_model_key(&provider_id, &model)?;
-            let model_protocol = if let Some(model_record) =
-                transaction.get::<Record>(Table::ProviderModels, &model_key)?
-            {
-                model_record
-                    .optional_text("upstream_protocol")?
-                    .map(|value| {
-                        value.parse::<UpstreamProtocol>().map_err(|error| {
-                            StorageError::Invalid(format!(
-                                "saved provider model protocol is invalid: {error}"
-                            ))
-                        })
-                    })
-                    .transpose()?
-            } else {
-                None
-            };
-            targets.push(Target {
-                provider_id,
-                model,
-                protocol,
-                model_protocol,
-                priority: target.integer("priority")?,
-                enabled: target.boolean("enabled")?,
-            });
-        }
         Ok(Some(StoredRoute {
             enabled: route.boolean("enabled")?,
             strategy: route.text("strategy")?.to_owned(),
             accepted_protocols,
-            targets,
-            exceeds_target_limit,
+            targets: flattened.targets,
+            flatten_issue: flattened.issue,
         }))
     })
     .await
+}
+
+/// The target list accumulated while flattening, plus the first structural
+/// problem found. Flattening stops at the first problem: the route is unroutable
+/// either way and the partial list is never dispatched.
+#[derive(Default)]
+struct FlattenedTargets {
+    targets: Vec<Target>,
+    issue: Option<FlattenIssue>,
+}
+
+/// Appends the enabled provider targets of `route_id`, in stored order,
+/// replacing each nested combo reference with that combo's targets.
+///
+/// `path` holds the combo ids currently being expanded, innermost last, which is
+/// what detects a loop. Each combo in the path is entered once, so the recursion
+/// depth is bounded by `MAX_COMBO_NESTING_DEPTH` and every scan is bounded by
+/// `MAX_ROUTE_TARGETS`; a cycle therefore cannot recurse without end, and a
+/// self-referencing combo is reported as a cycle.
+fn flatten_route_targets(
+    transaction: &ReadTxn<'_, '_>,
+    route_id: &str,
+    client_protocol: Protocol,
+    path: &mut Vec<String>,
+    out: &mut FlattenedTargets,
+) -> Result<(), StorageError> {
+    let records = transaction.scan_prefix::<Record>(
+        Table::RouteTargets,
+        &route_target_prefix(route_id)?,
+        MAX_ROUTE_TARGETS + 1,
+    )?;
+    if records.len() > MAX_ROUTE_TARGETS {
+        // More stored rows than any combo may declare, including disabled ones.
+        // Fail closed rather than routing a silently truncated list.
+        out.issue = Some(FlattenIssue::TooManyTargets {
+            expanded: records.len(),
+        });
+        return Ok(());
+    }
+    for (_, record) in records {
+        if out.issue.is_some() {
+            return Ok(());
+        }
+        if !record.boolean("enabled")? {
+            continue;
+        }
+        let Some(combo_id) = record.optional_text("combo_id")? else {
+            out.targets.push(build_target(transaction, &record)?);
+            out.check_expanded();
+            continue;
+        };
+        let combo_id = combo_id.to_owned();
+        if path.iter().any(|id| id == &combo_id) {
+            out.issue = Some(FlattenIssue::Cycle { combo_id });
+            return Ok(());
+        }
+        if path.len() > MAX_COMBO_NESTING_DEPTH {
+            out.issue = Some(FlattenIssue::Depth { combo_id });
+            return Ok(());
+        }
+        let Some(nested) = transaction.get::<Record>(Table::Routes, &combo_id)? else {
+            out.issue = Some(FlattenIssue::Missing { combo_id });
+            return Ok(());
+        };
+        if !nested.boolean("enabled")? {
+            tracing::warn!(
+                combo = %combo_id,
+                referenced_by = %route_id,
+                "nested combo is disabled; skipping its targets"
+            );
+            continue;
+        }
+        let accepted: Vec<String> = serde_json::from_str(nested.text("accepted_protocols")?)
+            .map_err(|error| {
+                StorageError::Codec(format!("nested combo protocol list is invalid: {error}"))
+            })?;
+        if !accepted
+            .iter()
+            .any(|protocol| protocol == client_protocol.as_str())
+        {
+            tracing::warn!(
+                combo = %combo_id,
+                referenced_by = %route_id,
+                protocol = client_protocol.as_str(),
+                "nested combo does not accept this protocol; skipping its targets"
+            );
+            continue;
+        }
+        path.push(combo_id.clone());
+        flatten_route_targets(transaction, &combo_id, client_protocol, path, out)?;
+        path.pop();
+    }
+    Ok(())
+}
+
+impl FlattenedTargets {
+    /// Records the first expansion that exceeds the request target cap.
+    fn check_expanded(&mut self) {
+        if self.targets.len() > MAX_ROUTE_TARGETS {
+            self.issue = Some(FlattenIssue::TooManyTargets {
+                expanded: self.targets.len(),
+            });
+        }
+    }
+}
+
+/// Builds one provider target from its stored row.
+fn build_target(transaction: &ReadTxn<'_, '_>, target: &Record) -> Result<Target, StorageError> {
+    let protocol = target
+        .optional_text("protocol")?
+        .map(|value| {
+            value.parse::<UpstreamProtocol>().map_err(|error| {
+                StorageError::Invalid(format!("route target protocol is invalid: {error}"))
+            })
+        })
+        .transpose()?;
+    let provider_id = target.text("provider_id")?.to_owned();
+    let model = target.text("model")?.to_owned();
+    let model_key = crate::infra::db::provider_model_key(&provider_id, &model)?;
+    let model_protocol =
+        if let Some(model_record) = transaction.get::<Record>(Table::ProviderModels, &model_key)? {
+            model_record
+                .optional_text("upstream_protocol")?
+                .map(|value| {
+                    value.parse::<UpstreamProtocol>().map_err(|error| {
+                        StorageError::Invalid(format!(
+                            "saved provider model protocol is invalid: {error}"
+                        ))
+                    })
+                })
+                .transpose()?
+        } else {
+            None
+        };
+    Ok(Target {
+        provider_id,
+        model,
+        protocol,
+        model_protocol,
+        enabled: target.boolean("enabled")?,
+    })
 }
 
 fn route_target_prefix(route_id: &str) -> Result<String, StorageError> {
@@ -426,7 +594,6 @@ pub(super) async fn resolve_provider_model_alias(
             model: saved_model,
             protocol: None,
             model_protocol,
-            priority: 0,
             enabled: true,
         }))
     })
@@ -437,51 +604,57 @@ pub(super) async fn resolve_provider_model_alias(
 mod tests {
     use super::*;
 
-    fn target(model: &str, priority: i64) -> Target {
+    fn target(model: &str) -> Target {
         Target {
             provider_id: "provider".to_owned(),
             model: model.to_owned(),
             protocol: None,
             model_protocol: None,
-            priority,
             enabled: true,
         }
     }
 
+    fn models(targets: &[Target]) -> Vec<&str> {
+        targets.iter().map(|target| target.model.as_str()).collect()
+    }
+
     #[test]
-    fn priority_targets_rotate_from_the_next_model_on_each_retry() {
+    fn retries_rotate_the_next_model_to_the_front() {
+        let mut targets = vec![target("model-a"), target("model-b"), target("model-c")];
+
+        order_priority_targets(&mut targets, 0);
+        assert_eq!(models(&targets), ["model-a", "model-b", "model-c"]);
+
+        order_priority_targets(&mut targets, 1);
+        assert_eq!(models(&targets), ["model-b", "model-c", "model-a"]);
+
+        // The offset wraps, and it rotates the list as it stands: no re-sort.
+        order_priority_targets(&mut targets, 3);
+        assert_eq!(models(&targets), ["model-b", "model-c", "model-a"]);
+    }
+
+    #[test]
+    fn rotation_preserves_the_configured_row_order() {
+        // Target rows are stored in `(priority, ordinal)` key order and a nested
+        // combo expands in place, so the list arrives in failover order and must
+        // not be re-sorted by the leaf priorities.
         let mut targets = vec![
-            target("model-c", 3),
-            target("model-a", 1),
-            target("model-b", 2),
+            target("model-late"),
+            target("model-early"),
+            target("model-mid"),
         ];
 
         order_priority_targets(&mut targets, 0);
         assert_eq!(
-            targets
-                .iter()
-                .map(|target| target.model.as_str())
-                .collect::<Vec<_>>(),
-            ["model-a", "model-b", "model-c"]
+            models(&targets),
+            ["model-late", "model-early", "model-mid"],
+            "the helper must not re-sort by priority"
         );
 
-        order_priority_targets(&mut targets, 1);
-        assert_eq!(
-            targets
-                .iter()
-                .map(|target| target.model.as_str())
-                .collect::<Vec<_>>(),
-            ["model-b", "model-c", "model-a"]
-        );
+        order_priority_targets(&mut targets, 2);
+        assert_eq!(models(&targets), ["model-mid", "model-late", "model-early"]);
 
-        order_priority_targets(&mut targets, 3);
-        assert_eq!(
-            targets
-                .iter()
-                .map(|target| target.model.as_str())
-                .collect::<Vec<_>>(),
-            ["model-a", "model-b", "model-c"]
-        );
+        order_priority_targets(&mut [], 3);
     }
 
     fn provider_target(provider_id: &str, model: &str) -> Target {
@@ -490,7 +663,6 @@ mod tests {
             model: model.to_owned(),
             protocol: None,
             model_protocol: None,
-            priority: 0,
             enabled: true,
         }
     }

@@ -3,6 +3,13 @@ import type { Protocol, UpstreamProtocol } from './protocols';
 export interface ComboTarget {
   provider_id: string;
   model: string;
+  /**
+   * Set when this target nests another combo instead of naming a provider. The
+   * server reports an empty `provider_id`/`model` for such a target and expands
+   * the referenced combo in place when a request is routed, so `provider_id`
+   * and `model` are meaningless whenever this is set.
+   */
+  combo_id?: string | null;
   protocol?: UpstreamProtocol | null;
   priority: number;
   enabled: boolean;

@@ -386,6 +386,52 @@ providers:
       event_stream_response: false
       auth_panel: cline
 
+  - id: muse
+    adapter_id: muse
+    name: Meta Muse Code
+    description: Sign in to Meta Muse with a device code, or paste a Muse API key. Muse Spark requests are routed through Meta's OpenAI-compatible Responses endpoint, which is where their reasoning round-trips.
+    category: oauth
+    labels: []
+    default_base_url: https://api.meta.ai/v1
+    default_logo_url: null
+    default_model_prefix: muse
+    default_models:
+      - muse-spark-1.3
+      - muse-spark-1.3-contributor
+      - muse-spark-1.2
+      - muse-spark-1.2-contributor
+      - muse-spark-1.1
+      - llama-4-maverick
+      - llama-4-scout
+      - llama-3.3-70b
+      - llama-3.1-405b
+      - llama-3.1-70b
+      - llama-3.1-8b
+      - llama-3.2-90b-vision
+      - llama-3.2-11b-vision
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: responses
+    default_supported_protocols:
+      - responses
+      - chat_completions
+    protocol_selectable: true
+    capabilities:
+      api_keys: true
+      oauth_accounts: true
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [responses, chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: muse
+
   - id: nvidia_nim
     adapter_id: nvidia_nim
     name: NVIDIA NIM

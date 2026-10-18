@@ -152,13 +152,36 @@ test('applied filters describe only the filters that are set, in form order', ()
   );
   assert.deepEqual(applied, [
     { key: 'api_key_id', label: 'API key ID', value: 'Unknown key' },
-    { key: 'model', label: 'Requested model', value: 'minimax' },
     { key: 'provider_id', label: 'Provider ID', value: 'p1' },
+    { key: 'model', label: 'Requested model', value: 'minimax' },
     { key: 'status', label: 'Outcome', value: 'Failed' },
   ]);
 
   assert.deepEqual(appliedRequestFilters({ status: 'success' }, tr), [
     { key: 'status', label: 'Outcome', value: 'Successful' },
+  ]);
+});
+
+test('the id chips read by name and keep the id as their tooltip', () => {
+  const applied = appliedRequestFilters(
+    { api_key_id: 'key-1', provider_id: 'p1' },
+    tr,
+    { api_key_id: 'Production key', provider_id: 'OpenAI' },
+  );
+  assert.deepEqual(applied, [
+    { key: 'api_key_id', label: 'API key ID', value: 'Production key', title: 'key-1' },
+    { key: 'provider_id', label: 'Provider ID', value: 'OpenAI', title: 'p1' },
+  ]);
+
+  // Without a loaded name the chip falls back to the id, with nothing to reveal.
+  assert.deepEqual(appliedRequestFilters({ api_key_id: 'key-2', provider_id: 'p2' }, tr), [
+    { key: 'api_key_id', label: 'API key ID', value: 'key-2' },
+    { key: 'provider_id', label: 'Provider ID', value: 'p2' },
+  ]);
+
+  // `unknown` is the gateway's no-key marker, not a key that could be named.
+  assert.deepEqual(appliedRequestFilters({ api_key_id: 'unknown' }, tr, { api_key_id: 'Ignored' }), [
+    { key: 'api_key_id', label: 'API key ID', value: 'Unknown key' },
   ]);
 });
 

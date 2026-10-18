@@ -21,6 +21,9 @@ pub(crate) fn validate_backup_payload(
     let mut model_prefixes = HashSet::<String>::new();
     let mut deleting_providers = HashSet::<String>::new();
     let mut route_target_ordinals = HashMap::<String, HashSet<u32>>::new();
+    // The combo reference graph of the backup, validated after the per-entry
+    // passes below.
+    let mut combo_nodes = HashMap::<String, super::combos::ComboNode>::new();
     let mut admin_auth_seen = false;
     let mut output_styles: Option<OutputStylesSnapshot> = None;
     for entry in &payload.entries {
@@ -131,6 +134,10 @@ pub(crate) fn validate_backup_payload(
                 if id != entry.key || id.is_empty() || !routes.insert(id.to_owned()) {
                     return Err("The backup contains an invalid or duplicate route ID.");
                 }
+                combo_nodes.entry(id.to_owned()).or_default().enabled =
+                    record
+                        .boolean("enabled")
+                        .map_err(|_| "A route record in the backup is invalid.")?;
             }
             Table::ApiKeys => {
                 let record: Record = bincode::deserialize(&entry.value)
@@ -247,24 +254,44 @@ pub(crate) fn validate_backup_payload(
                 let route_id = record
                     .text("route_id")
                     .map_err(|_| "A route target record in the backup is invalid.")?;
-                let _ = record
-                    .text("provider_id")
+                // A target is either a provider target or a nested combo
+                // reference, and the two are told apart by whether `combo_id` is
+                // present. A row carrying both shapes would be ambiguous, so it
+                // is rejected instead of being read one way on restore.
+                let nested_combo = record
+                    .optional_text("combo_id")
                     .map_err(|_| "A route target record in the backup is invalid.")?;
-                let model = record
-                    .text("model")
-                    .map_err(|_| "A route target record in the backup is invalid.")?;
-                if model.trim().is_empty() || model.len() > 256 || model != model.trim() {
-                    return Err("The backup contains a route target with an invalid model.");
-                }
-                if let Some(protocol) = record
-                    .optional_text("protocol")
-                    .map_err(|_| "A route target record in the backup is invalid.")?
-                {
-                    protocol
-                        .parse::<crate::protocol::UpstreamProtocol>()
-                        .map_err(
-                            |_| "The backup contains a route target with an invalid protocol.",
-                        )?;
+                if let Some(combo_id) = nested_combo {
+                    if combo_id.trim().is_empty()
+                        || combo_id.len() > super::combos::MAX_ROUTE_ID_BYTES
+                        || combo_id.bytes().any(|byte| byte.is_ascii_control())
+                        || !null_text_field(&record, "provider_id")?
+                        || !null_text_field(&record, "model")?
+                        || !null_text_field(&record, "protocol")?
+                        || !null_integer_field(&record, "weight")?
+                    {
+                        return Err("The backup contains an invalid nested combo target.");
+                    }
+                } else {
+                    let _ = record
+                        .text("provider_id")
+                        .map_err(|_| "A route target record in the backup is invalid.")?;
+                    let model = record
+                        .text("model")
+                        .map_err(|_| "A route target record in the backup is invalid.")?;
+                    if model.trim().is_empty() || model.len() > 256 || model != model.trim() {
+                        return Err("The backup contains a route target with an invalid model.");
+                    }
+                    if let Some(protocol) = record
+                        .optional_text("protocol")
+                        .map_err(|_| "A route target record in the backup is invalid.")?
+                    {
+                        protocol
+                            .parse::<crate::protocol::UpstreamProtocol>()
+                            .map_err(
+                                |_| "The backup contains a route target with an invalid protocol.",
+                            )?;
+                    }
                 }
                 let priority = record
                     .integer("priority")
@@ -277,7 +304,7 @@ pub(crate) fn validate_backup_payload(
                 if weight.is_some_and(|value| u32::try_from(value).is_err()) {
                     return Err("The backup contains a route target with an invalid weight.");
                 }
-                let _ = record
+                let enabled = record
                     .boolean("enabled")
                     .map_err(|_| "A route target record in the backup is invalid.")?;
                 let (key_priority, ordinal) = route_target_key_components(&entry.key, route_id)?;
@@ -290,6 +317,13 @@ pub(crate) fn validate_backup_payload(
                     .insert(ordinal)
                 {
                     return Err("The backup contains duplicate route target ordinals.");
+                }
+                if enabled {
+                    let node = combo_nodes.entry(route_id.to_owned()).or_default();
+                    match nested_combo {
+                        Some(combo_id) => node.references.push(combo_id.to_owned()),
+                        None => node.provider_targets += 1,
+                    }
                 }
             }
             Table::RequestLogs => {
@@ -446,13 +480,29 @@ pub(crate) fn validate_backup_payload(
                 let route_id = record
                     .text("route_id")
                     .map_err(|_| "A route target record in the backup is invalid.")?;
+                if !routes.contains(route_id) {
+                    return Err(
+                        "A route target refers to a provider or route that is missing from the backup.",
+                    );
+                }
+                if let Some(combo_id) = record
+                    .optional_text("combo_id")
+                    .map_err(|_| "A route target record in the backup is invalid.")?
+                {
+                    if !routes.contains(combo_id) {
+                        return Err(
+                            "A route target refers to a combo that is missing from the backup.",
+                        );
+                    }
+                    continue;
+                }
                 let provider_id = record
                     .text("provider_id")
                     .map_err(|_| "A route target record in the backup is invalid.")?;
                 let model = record
                     .text("model")
                     .map_err(|_| "A route target record in the backup is invalid.")?;
-                if !routes.contains(route_id) || !providers.contains_key(provider_id) {
+                if !providers.contains_key(provider_id) {
                     return Err(
                         "A route target refers to a provider or route that is missing from the backup.",
                     );
@@ -498,6 +548,14 @@ pub(crate) fn validate_backup_payload(
             _ => {}
         }
     }
+    // Restoring a cyclic or too deeply nested reference graph would make every
+    // request of the affected combos fail with no way to repair it from the
+    // dashboard, so the same walk the save path uses validates the whole graph
+    // before the backup replaces live data.
+    super::combos::validate_stored_graph(&BackupComboGraph { nodes: combo_nodes }, &routes)
+        .map_err(|_| {
+            "The backup contains a circular, too deeply nested, or oversized combo reference graph."
+        })?;
     for (provider_id, provider) in &providers {
         let adapter_id = provider
             .text("adapter_id")
@@ -598,6 +656,39 @@ pub(crate) fn validate_backup_payload(
     })
 }
 
+/// The combo reference graph of a backup, as read by the shared reference walk.
+struct BackupComboGraph {
+    nodes: HashMap<String, super::combos::ComboNode>,
+}
+
+impl super::combos::ComboStore for BackupComboGraph {
+    fn combo_node(
+        &self,
+        combo_id: &str,
+    ) -> Result<Option<super::combos::ComboNode>, crate::infra::storage::StorageError> {
+        Ok(self.nodes.get(combo_id).cloned())
+    }
+}
+
+/// Whether a text field of a nested combo target is absent or stored as null.
+/// A reference target carries no provider data, and a value there would be
+/// dropped by the writers that read the row as a reference.
+fn null_text_field(record: &Record, name: &str) -> Result<bool, &'static str> {
+    Ok(record
+        .optional_text(name)
+        .map_err(|_| "A route target record in the backup is invalid.")?
+        .is_none())
+}
+
+/// Whether an integer field of a nested combo target is absent or stored as
+/// null.
+fn null_integer_field(record: &Record, name: &str) -> Result<bool, &'static str> {
+    Ok(record
+        .optional_integer(name)
+        .map_err(|_| "A route target record in the backup is invalid.")?
+        .is_none())
+}
+
 pub(crate) fn route_target_key_components(
     key: &str,
     route_id: &str,
@@ -634,8 +725,9 @@ pub(crate) fn route_target_key_components(
         .map_err(|_| "The backup contains an invalid route target key.")?;
     if priority != format!("{priority_value:010}")
         || ordinal != format!("{ordinal_value:010}")
-        || usize::try_from(ordinal_value)
-            .map_or(true, |ordinal| ordinal >= super::combos::MAX_ROUTE_TARGETS)
+        || usize::try_from(ordinal_value).map_or(true, |ordinal| {
+            ordinal >= super::combos::MAX_ROUTE_TARGETS_PAGE
+        })
     {
         return Err("The backup contains a non-canonical route target key.");
     }

@@ -28,6 +28,11 @@
   border-radius: 8px;
   font-size: 13px;
 }
+/* The concurrency select is the shared Ark control, so it needs the width cap
+   the number fields get from `.resource-limit-input`. */
+.settings-view .resource-limit-select .ark-select-control {
+  width: min(100%, 220px);
+}
 .settings-view .resource-limit-input input:focus,
 .settings-view .resource-limit-input select:focus {
   background: #ffffff;
@@ -105,23 +110,10 @@
   text-transform: uppercase;
   letter-spacing: .04em;
 }
-.output-style-level select {
+/* The level control is the shared Ark select, which brings its own frame; the
+   row only constrains how wide it may grow. */
+.output-style-level .ark-select-root {
   width: 100%;
-  min-height: 34px;
-  padding: 6px 9px;
-  border: 1px solid #dfe1ea;
-  border-radius: 8px;
-  color: #2b2e40;
-  background: #fff;
-  font-size: 13px;
-}
-.output-style-level select:disabled {
-  color: #9a9eae;
-  background: #eef0f5;
-}
-.output-style-level select:focus {
-  outline: 2px solid rgba(234, 88, 12, .22);
-  outline-offset: 1px;
 }
 .output-styles-form .resource-limits-actions {
   margin-top: 0;
@@ -137,7 +129,7 @@
     align-items: center;
     justify-content: space-between;
   }
-  .output-style-level select {
+  .output-style-level .ark-select-root {
     max-width: 160px;
   }
 }

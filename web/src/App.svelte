@@ -134,12 +134,34 @@
     return page !== 'login' && !isDocsPage(page);
   }
 
+  /**
+   * Where an authenticated visitor belongs when they reach the login route.
+   * Null when no session is active, or when the session must change its
+   * password first — the login route is the right screen for both.
+   */
+  function signedInDestination(): DashboardPage | null {
+    return getAdminAccessToken() && !mustChangePassword ? pageAfterLogin(window.location.search) : null;
+  }
+
   function redirectToLogin(returnTo: DashboardPage): void {
     currentPage = 'login';
     actionRequest = null;
     connectionState = 'idle';
     const target = `${pagePaths.login}?next=${encodeURIComponent(pagePaths[returnTo])}`;
     if (`${window.location.pathname}${window.location.search}` !== target) window.history.replaceState(null, '', target);
+  }
+
+  // The docs shell is public, so its entry links point at the login route. A
+  // reader who already holds a session goes to the dashboard instead: the login
+  // route redirects there anyway, and skipping the form avoids a dead end.
+  function leaveDocs(): void {
+    const destination = signedInDestination();
+    if (destination) {
+      navigateTo(destination);
+      return;
+    }
+    currentPage = 'login';
+    window.history.pushState(null, '', pagePaths.login);
   }
 
   function navigateToDocs(page: DocsPage): void {
@@ -252,8 +274,8 @@
         return;
       }
       if (page === 'login') {
-        if (getAdminAccessToken() && !mustChangePassword) {
-          const destination = pageAfterLogin(window.location.search);
+        const destination = signedInDestination();
+        if (destination) {
           if (window.location.pathname !== pagePaths[destination]) window.history.replaceState(null, '', pagePaths[destination]);
           navigateTo(destination, false);
           return;
@@ -358,7 +380,7 @@
 {#if authBootstrap === 'checking'}
   <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Checking admin session…')}</p></section></main>
 {:else if isDocsPage(currentPage)}
-  <DocsShell page={currentPage} {locale} {preferences} onNavigate={navigateToDocs} onBackToLogin={() => { currentPage = 'login'; window.history.pushState(null, '', pagePaths.login); }}>
+  <DocsShell page={currentPage} {locale} {preferences} onNavigate={navigateToDocs} onExitDocs={leaveDocs}>
     {#if currentPage === 'docs'}
       <DocsHomePage {locale} onNavigate={navigateToDocs} />
     {:else if currentPage === 'docs-quickstart'}

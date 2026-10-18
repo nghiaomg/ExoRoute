@@ -20,6 +20,7 @@ mod combo_fallback;
 mod fallback_chat;
 mod fallback_messages;
 mod key_rotation;
+mod nested_combo;
 mod protocol_selection;
 mod provider_decode;
 mod request_logging;

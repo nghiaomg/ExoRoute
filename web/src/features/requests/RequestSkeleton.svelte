@@ -29,10 +29,10 @@
     flex-direction: column;
     gap: 1px;
     padding: 8px 0;
-    border: 1px solid #e2e4ed;
-    border-radius: 14px;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
     background: #ffffff;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    box-shadow: 3px 3px 0 var(--ink);
   }
 
   .request-skeleton-row {
@@ -44,13 +44,13 @@
     gap: 12px;
     height: 50px;
     padding: 0 14px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f2f6;
   }
 
   .request-skeleton-block {
     height: 10px;
     border-radius: 999px;
-    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+    background: linear-gradient(90deg, #f1f2f6 25%, #e4e5ee 37%, #f1f2f6 63%);
     background-size: 400% 100%;
     animation: request-skeleton-shimmer 1.4s ease infinite;
   }
@@ -105,10 +105,10 @@
     .request-skeleton-row {
       height: auto;
       padding: 14px;
-      border: 1px solid #e2e4ed;
+      border: 2px solid var(--ink);
       border-radius: 14px;
       background: #ffffff;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      box-shadow: 3px 3px 0 var(--ink);
       grid-template-columns: 1fr auto;
       grid-template-areas:
         'model status'

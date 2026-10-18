@@ -51,6 +51,8 @@
 </div>
 
 <style>
+  /* Soft Neo-Brutalism frame, like every other card in the light theme:
+     2px ink border + a hard offset ink shadow instead of a soft drop shadow. */
   .request-table-card {
     position: relative;
     max-height: calc(100dvh - 275px);
@@ -58,10 +60,10 @@
     overflow-x: auto;
     overflow-y: auto;
     overscroll-behavior: contain;
-    border: 1px solid #e2e4ed;
-    border-radius: 14px;
+    border: var(--nb-border, 2px solid var(--ink));
+    border-radius: 12px;
     background: #ffffff;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.02);
+    box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink));
   }
 
   :global(:root[data-theme='dark']) .request-table-card {
@@ -84,15 +86,15 @@
     z-index: 10;
     height: 42px;
     padding: 0 14px;
-    color: #475569;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
+    color: #626679;
+    background: #f8f9fd;
+    border-bottom: 1px solid #e9eaf0;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.6px;
     text-transform: uppercase;
     white-space: nowrap;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    box-shadow: none;
   }
 
   :global(:root[data-theme='dark']) .request-table-card thead th {

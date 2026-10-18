@@ -8,4 +8,5 @@ pub(crate) mod antigravity;
 pub(crate) mod cline;
 pub(crate) mod codex;
 pub(crate) mod kilocode;
+pub(crate) mod muse;
 pub(crate) mod panels;

@@ -14,6 +14,8 @@
     value?: string;
     placeholder?: string;
     label?: string;
+    /** Names the trigger when a caption outside this component already labels it. */
+    ariaLabel?: string;
     groupLabel?: string;
     disabled?: boolean;
     clearable?: boolean;
@@ -27,6 +29,7 @@
     value = $bindable(''),
     placeholder = 'Select…',
     label = '',
+    ariaLabel = '',
     groupLabel = '',
     disabled = false,
     clearable = false,
@@ -79,7 +82,7 @@
     <Select.Label class="ark-select-label">{label}</Select.Label>
   {/if}
   <Select.Control class="ark-select-control">
-    <Select.Trigger class="ark-select-trigger">
+    <Select.Trigger class="ark-select-trigger" aria-label={ariaLabel || undefined}>
       <Select.ValueText class="ark-select-value-text" {placeholder}>
         {#snippet children()}
           {items.find((item) => item.value === value)?.label || placeholder}

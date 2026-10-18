@@ -11,10 +11,11 @@ use std::{
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tokio::sync::{Mutex as AsyncMutex, mpsc, oneshot, watch};
+use tokio::sync::{Mutex as AsyncMutex, mpsc, oneshot};
 
 mod aggregate;
 mod analytics;
+mod history;
 mod maintenance;
 mod persistence;
 mod queries;
@@ -62,7 +63,6 @@ const SHUTDOWN_FLUSH_HEADROOM: Duration = Duration::from_millis(500);
 pub struct Telemetry {
     sender: mpsc::Sender<TelemetryMessage>,
     counters: Arc<DropCounters>,
-    dropped_notify: watch::Sender<u64>,
     drop_state_lock: Arc<AsyncMutex<()>>,
 }
 
@@ -114,6 +114,10 @@ struct RequestAnalyticsInner {
     output_tokens: AtomicI64,
     cached_tokens: AtomicI64,
     cache_input_tokens: AtomicI64,
+    /// Milliseconds to the first translated output frame, or `0` while the
+    /// request has produced no output yet. Zero is the "not measured" marker;
+    /// a real measurement is clamped to at least `1`.
+    first_output_ms: AtomicI64,
     finished: AtomicBool,
     deferred: AtomicBool,
 }
@@ -151,21 +155,17 @@ struct ProviderUsageEvent {
 impl Telemetry {
     pub fn new(db: Database) -> Self {
         let (sender, receiver) = mpsc::channel(TELEMETRY_QUEUE_CAPACITY);
-        let (dropped_notify, dropped_receiver) = watch::channel(0_u64);
         let counters = Arc::new(DropCounters::default());
         let drop_state_lock = Arc::new(AsyncMutex::new(()));
         tokio::spawn(telemetry_writer(
             db,
             receiver,
-            dropped_receiver,
-            dropped_notify.clone(),
             counters.clone(),
             drop_state_lock.clone(),
         ));
         Self {
             sender,
             counters,
-            dropped_notify,
             drop_state_lock,
         }
     }
@@ -189,6 +189,7 @@ impl Telemetry {
                 output_tokens: AtomicI64::new(0),
                 cached_tokens: AtomicI64::new(0),
                 cache_input_tokens: AtomicI64::new(0),
+                first_output_ms: AtomicI64::new(0),
                 finished: AtomicBool::new(false),
                 deferred: AtomicBool::new(false),
             }),
@@ -288,6 +289,14 @@ impl Telemetry {
         }
     }
 
+    /// Counts one event the bounded queue could not accept.
+    ///
+    /// The writer is deliberately not woken here. Waking it per drop made every
+    /// dropped event cost the writer a counter transaction, so the writer spent
+    /// its time recording losses instead of draining the queue and the loss rate
+    /// fed itself. The counters are published by the writer's 100 ms flush tick
+    /// and 5 s maintenance tick, and readers add the in-memory delta that has not
+    /// been written yet, so the reported total stays exact without the wakeup.
     fn note_drop(&self, kind: DropKind) {
         let counter = match kind {
             DropKind::RequestLog => &self.counters.request_logs,
@@ -296,8 +305,7 @@ impl Telemetry {
             DropKind::Statistics => &self.counters.statistics,
         };
         increment_saturating(counter);
-        let total = increment_saturating(&self.counters.total);
-        self.dropped_notify.send_replace(total);
+        increment_saturating(&self.counters.total);
     }
 }
 
@@ -314,6 +322,13 @@ pub(super) fn unix_minute() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64 / 60)
+        .unwrap_or(0)
+}
+
+pub(super) fn unix_seconds() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64)
         .unwrap_or(0)
 }
 

@@ -30,6 +30,7 @@ pub(crate) mod keys;
 mod kilo;
 mod kilocode;
 mod model_test;
+mod muse;
 mod nvidia_nim;
 mod opencode;
 mod openrouter;
@@ -55,6 +56,10 @@ use model_test::{
     MAX_MODEL_TEST_RESPONSE_BYTES, model_test_non_sse_response, model_test_provider_response_body,
     test_api_key_credential_impl, test_api_key_model_impl,
 };
+// The event-stream reader is only exercised from this module's tests; production
+// code calls it from inside `model_test` itself.
+#[cfg(test)]
+use model_test::{model_probe_event_stream, provider_event_stream_error};
 pub use usage::{
     ProviderUsageCreditBalance, ProviderUsageQuota, ProviderUsageResetPeriod, ProviderUsageSnapshot,
 };
@@ -78,6 +83,7 @@ pub const CLINEPASS_ADAPTER_ID: &str = "clinepass";
 pub const NVIDIA_NIM_ADAPTER_ID: &str = "nvidia_nim";
 pub const ANTIGRAVITY_ADAPTER_ID: &str = "antigravity";
 pub const FREEBUFF_ADAPTER_ID: &str = "freebuff";
+pub const MUSE_ADAPTER_ID: &str = "muse";
 pub(super) const MAX_API_MODEL_PAGE_BYTES: usize = 4 * 1024 * 1024;
 pub(super) const MAX_API_MODELS: usize = 10_000;
 
@@ -243,6 +249,7 @@ pub struct UpstreamAuthContext<'a> {
     pub oauth_auth: Option<&'a OAuthRequestAuth>,
     pub session_id: &'a str,
     pub protocol: UpstreamProtocol,
+    pub model: Option<&'a str>,
 }
 
 /// Adapter-specific work that must happen after request conversion but before
@@ -427,6 +434,22 @@ pub trait ProviderAdapter: Sync {
         false
     }
 
+    /// Whether the model probe must ask this upstream for an event stream.
+    ///
+    /// The probe answers "are these credentials and this model usable here", so
+    /// it sends the smallest request the upstream accepts. Some free tiers
+    /// refuse a non-streaming inference outright, which would report a healthy
+    /// credential as failing, so those adapters opt in and the probe validates
+    /// the first event stream instead of a JSON body.
+    ///
+    /// This is deliberately separate from [`Self::wants_event_stream`], which
+    /// states that the adapter's gateway responses are always an event stream
+    /// the gateway must aggregate for non-streaming clients. An adapter can
+    /// require a streaming probe without (yet) owning that aggregation.
+    fn probe_requires_event_stream(&self) -> bool {
+        false
+    }
+
     /// Some OAuth providers return a self-contained callback payload without
     /// echoing the generated OAuth state. Adapters must validate the payload
     /// before opting into the narrowly-scoped loopback fallback.
@@ -459,6 +482,23 @@ pub trait ProviderAdapter: Sync {
             status,
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN | StatusCode::TOO_MANY_REQUESTS
         )
+    }
+
+    /// Gives the adapter a chance to repair a credential the upstream rejected
+    /// instead of letting the gateway mark it invalid and drop it from rotation.
+    ///
+    /// Return `true` only when the credential was repaired in place and must
+    /// stay usable; `false` keeps the standard invalidation and failover
+    /// behavior, so an adapter that cannot repair a credential does not change
+    /// how a rejection is handled.
+    fn repair_rejected_credential<'a>(
+        &'a self,
+        _state: &'a AppState,
+        _provider_id: &'a str,
+        _credential_id: &'a str,
+        _status: StatusCode,
+    ) -> AdapterFuture<'a, bool> {
+        Box::pin(async { false })
     }
 
     fn finish_upstream_request<'a>(
@@ -651,7 +691,7 @@ pub trait ProviderAdapter: Sync {
 
 pub use dispatch::{
     apply_custom_headers, finish_upstream_request, prepare_provider_images, prepare_request_body,
-    prepare_upstream_request, retry_upstream_response_as_key_rejection,
+    prepare_upstream_request, repair_rejected_credential, retry_upstream_response_as_key_rejection,
 };
 pub use workspace_relay::{AdapterWorkspaceChatOutcome, AdapterWorkspaceChatRequest};
 use workspace_relay::{relay_workspace_inference_impl, relay_workspace_inference_stream_impl};

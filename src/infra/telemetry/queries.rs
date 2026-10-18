@@ -1,20 +1,12 @@
-use super::aggregate::ProviderUsageBucketCounts;
+use super::aggregate::{Counts, ProviderUsageBucketCounts};
+use super::history::{HistoryScan, SeriesSpec, history_cutoff, scan_history, series_spec};
 use super::{
     MAX_PROVIDER_METER_READ_ROWS, PROVIDER_METER_RETENTION_MINUTES, STATISTICS_TOP_PREFIX,
     Telemetry, cache_ratio_percent, provider_usage_counts, record_counts, unix_minute,
     valid_provider_credential_id, window_key,
 };
-use crate::infra::{
-    db,
-    storage::{Database, Record, StorageError, Table, validate_key},
-};
-use std::{
-    collections::BTreeMap,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
-
-const MAX_MODEL_BREAKDOWN_SCAN_ROWS: usize = 100_000;
-const MAX_MODEL_BREAKDOWN_ROWS: usize = 256;
+use crate::infra::storage::{Database, Record, StorageError, Table, validate_key};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Reads bounded rolling aggregates for one provider credential. This is
 /// intentionally independent from request-history tables so the dashboard
@@ -109,145 +101,72 @@ pub(crate) async fn provider_usage_meter_snapshot(
     }))
 }
 
-#[derive(Default)]
-struct ModelBreakdownCounts {
-    requests: i64,
-    successes: i64,
-    input_tokens: i64,
-    output_tokens: i64,
-    cached_tokens: i64,
-    cache_input_tokens: i64,
-}
-
-fn model_breakdown_cutoff(window_minutes: i64) -> Result<String, StorageError> {
-    let minutes = u64::try_from(window_minutes)
-        .map_err(|_| StorageError::Invalid("statistics window is invalid".to_owned()))?;
-    db::utc_timestamp_before(Duration::from_secs(minutes.saturating_mul(60)))
-}
-
-fn non_negative_log_value(record: &Record, name: &str) -> Result<i64, StorageError> {
-    match record.optional_integer(name)? {
-        Some(value) if value >= 0 => Ok(value),
-        Some(_) => Err(StorageError::Invalid(format!(
-            "request log field '{name}' is negative"
-        ))),
-        None => Ok(0),
-    }
-}
-
-fn request_log_created_at(index_key: &str) -> Result<&str, StorageError> {
-    index_key
-        .strip_prefix(db::REQUEST_LOG_INDEX_PREFIX)
-        .and_then(|suffix| suffix.split_once('/'))
-        .map(|(created_at, _)| created_at)
-        .ok_or_else(|| StorageError::Invalid("request log time index is malformed".to_owned()))
-}
-
-/// Groups the request-log rows inside the range by model and combo.
+/// Builds the history-derived part of a statistics payload.
 ///
-/// Returns the grouped rows, whether the scan or the output was truncated, and
-/// how many retained log rows this view covers. The covered count lets the
-/// caller compare the log-derived rows with the rollup totals: request history
-/// is bounded (retention days, retained rows, and the scan limit) while the
-/// rolling totals are not, so the two can legitimately describe different
-/// amounts of traffic. A client request can produce several attempt logs, so
-/// the covered count is normally not smaller than the request count; a smaller
-/// value means requests are missing from the history.
-fn model_breakdown(
-    transaction: &crate::infra::storage::ReadTxn<'_, '_>,
-    cutoff: &str,
-    api_key_id: Option<&str>,
-) -> Result<(Vec<serde_json::Value>, bool, i64), StorageError> {
-    let mut groups = BTreeMap::<(String, Option<String>), ModelBreakdownCounts>::new();
-    let mut after = None::<String>;
-    let mut scanned = 0usize;
-    let mut reached_cutoff = false;
-    let mut logged_requests = 0_i64;
-
-    while scanned < MAX_MODEL_BREAKDOWN_SCAN_ROWS && !reached_cutoff {
-        let batch_limit = (MAX_MODEL_BREAKDOWN_SCAN_ROWS - scanned).min(256);
-        let page = transaction.scan_prefix_reverse_after::<String>(
-            Table::RequestLogIndex,
-            db::REQUEST_LOG_INDEX_PREFIX,
-            after.as_deref(),
-            batch_limit,
-        )?;
-        if page.is_empty() {
-            break;
-        }
-        for (index_key, id) in page {
-            scanned = scanned.saturating_add(1);
-            after = Some(index_key.clone());
-            if request_log_created_at(&index_key)? < cutoff {
-                reached_cutoff = true;
-                break;
-            }
-            let record = transaction
-                .get::<Record>(Table::RequestLogs, &id)?
-                .ok_or_else(|| {
-                    StorageError::Invalid("request log index points to a missing record".to_owned())
-                })?;
-            if let Some(expected) = api_key_id
-                && record.optional_text("api_key_id")? != Some(expected)
-            {
-                continue;
-            }
-            logged_requests = logged_requests.saturating_add(1);
-            let model = record.text("model")?.to_owned();
-            if model.is_empty() {
-                continue;
-            }
-            let route_alias = record.text("route_alias")?;
-            let combo = (route_alias != model).then(|| route_alias.to_owned());
-            let input_tokens = non_negative_log_value(&record, "input_tokens")?;
-            let output_tokens = non_negative_log_value(&record, "output_tokens")?;
-            let cache_input_tokens =
-                non_negative_log_value(&record, "cache_input_tokens")?.max(input_tokens);
-            let cached_tokens =
-                non_negative_log_value(&record, "cached_tokens")?.min(cache_input_tokens);
-            let counts = groups.entry((model, combo)).or_default();
-            counts.requests = counts.requests.saturating_add(1);
-            if (200..300).contains(&record.integer("status")?) {
-                counts.successes = counts.successes.saturating_add(1);
-            }
-            counts.input_tokens = counts.input_tokens.saturating_add(input_tokens);
-            counts.output_tokens = counts.output_tokens.saturating_add(output_tokens);
-            counts.cached_tokens = counts.cached_tokens.saturating_add(cached_tokens);
-            counts.cache_input_tokens =
-                counts.cache_input_tokens.saturating_add(cache_input_tokens);
-        }
-    }
-
-    let scan_truncated = !reached_cutoff && scanned >= MAX_MODEL_BREAKDOWN_SCAN_ROWS;
-    let mut rows = groups
-        .into_iter()
-        .map(|((model, combo), counts)| {
-            let success_rate = if counts.requests > 0 {
-                counts.successes as f64 / counts.requests as f64 * 100.0
-            } else {
-                0.0
-            };
-            serde_json::json!({
-                "model": model,
-                "combo": combo,
-                "input_tokens": counts.input_tokens,
-                "output_tokens": counts.output_tokens,
-                "cache_hit_rate": cache_ratio_percent(counts.cached_tokens, counts.cache_input_tokens),
-                "requests": counts.requests,
-                "successes": counts.successes,
-                "success_rate": success_rate,
-            })
-        })
-        .collect::<Vec<_>>();
-    rows.sort_by(|left, right| {
-        right["requests"]
-            .as_i64()
-            .cmp(&left["requests"].as_i64())
-            .then_with(|| left["model"].as_str().cmp(&right["model"].as_str()))
-    });
-    let output_truncated = rows.len() > MAX_MODEL_BREAKDOWN_ROWS;
-    rows.truncate(MAX_MODEL_BREAKDOWN_ROWS);
-    Ok((rows, scan_truncated || output_truncated, logged_requests))
+/// The grouping is by the provider that actually served a request, not by the
+/// combo/route alias the client called: the same model routed through the same
+/// alias still has to be attributable to one upstream, and a request that failed
+/// before a provider was selected is grouped on its own.
+///
+/// `logged_requests` lets the caller compare these rows with the rollup totals.
+/// Request history is bounded (retention days, retained rows, and the scan
+/// limit) while the rolling totals are not, so the two can legitimately describe
+/// different amounts of traffic. One client request can produce several attempt
+/// logs, so the covered count is normally not smaller than the request count; a
+/// smaller value means requests are missing from the history.
+fn history_fields(
+    scan: HistoryScan,
+    series: SeriesSpec,
+    summary: &Counts,
+) -> serde_json::Map<String, serde_json::Value> {
+    let ttft_samples = summary.first_output_events.max(0);
+    let mut fields = serde_json::Map::new();
+    fields.insert("model_breakdown".to_owned(), serde_json::json!(scan.models));
+    fields.insert(
+        "model_breakdown_truncated".to_owned(),
+        serde_json::json!(scan.models_truncated),
+    );
+    fields.insert(
+        "logged_requests".to_owned(),
+        serde_json::json!(scan.logged_requests),
+    );
+    fields.insert(
+        "model_breakdown_incomplete".to_owned(),
+        serde_json::json!(scan.logged_requests < summary.requests),
+    );
+    fields.insert(
+        "providers".to_owned(),
+        serde_json::json!({ "rows": scan.providers, "truncated": scan.providers_truncated }),
+    );
+    fields.insert(
+        "statuses".to_owned(),
+        serde_json::json!({ "rows": scan.statuses, "truncated": scan.statuses_truncated }),
+    );
+    fields.insert(
+        "series".to_owned(),
+        serde_json::json!({
+            "points": scan.series,
+            "bucket_seconds": series.bucket_seconds,
+            "truncated": scan.scan_truncated,
+        }),
+    );
+    fields.insert("latency".to_owned(), scan.latency);
+    fields.insert("cost".to_owned(), scan.cost);
+    fields.insert(
+        "history_truncated".to_owned(),
+        serde_json::json!(scan.scan_truncated),
+    );
+    fields.insert(
+        "average_time_to_first_token_ms".to_owned(),
+        serde_json::json!(
+            (ttft_samples > 0).then(|| summary.first_output_ms as f64 / ttft_samples as f64)
+        ),
+    );
+    fields.insert(
+        "time_to_first_token_samples".to_owned(),
+        serde_json::json!(ttft_samples),
+    );
+    fields
 }
 
 pub(crate) fn validate_prefix_for_meter(prefix: &str) -> Result<(), StorageError> {
@@ -288,7 +207,15 @@ pub(crate) async fn statistics_snapshot(
     window_minutes: i64,
     telemetry: &Telemetry,
 ) -> Result<serde_json::Value, StorageError> {
-    let cutoff = model_breakdown_cutoff(window_minutes)?;
+    let cutoff = history_cutoff(window_minutes);
+    let series = series_spec(window_minutes);
+    // Held deliberately across the database read below. The persistence path
+    // (`persist_drop_delta`) and the history clear take this same lock, so a
+    // report can never pair a pending in-memory drop delta with persisted totals
+    // that already include it. Drop counts are therefore consistent rather than
+    // approximately consistent; the cost is that statistics requests serialize
+    // against each other and against the rollup writer, bounded by one scan and
+    // one write because both run on the blocking pool.
     let _drop_state_guard = telemetry.drop_state_lock.lock().await;
     let unpersisted_drops = telemetry.drop_counters().unpersisted_total();
     db.read(move |transaction| {
@@ -300,8 +227,7 @@ pub(crate) async fn statistics_snapshot(
             .unwrap_or_default();
         let (api_keys, api_key_sum) = top_dimensions(transaction, window_minutes, 1, summary.requests)?;
         let (models, model_sum) = top_dimensions(transaction, window_minutes, 2, summary.requests)?;
-        let (model_breakdown, model_breakdown_truncated, logged_requests) =
-            model_breakdown(transaction, &cutoff, None)?;
+        let scan = scan_history(transaction, cutoff, None, series)?;
         let state = transaction.get::<Record>(Table::StatisticsState, "singleton")?;
         let (collection_started_at, persisted_drops, updated_at) = match state {
             Some(record) => (
@@ -327,7 +253,7 @@ pub(crate) async fn statistics_snapshot(
         let dropped_events = u64::try_from(persisted_drops)
             .unwrap_or(u64::MAX)
             .saturating_add(unpersisted_drops);
-        Ok(serde_json::json!({
+        let mut payload = serde_json::json!({
             "range": range,
             "total_requests": summary.requests,
             "successes": summary.succeeded,
@@ -345,11 +271,11 @@ pub(crate) async fn statistics_snapshot(
             "aggregation_current": aggregation_current,
             "api_keys": { "top": api_keys, "others": summary.requests.saturating_sub(api_key_sum) },
             "models": { "top": models, "others": summary.requests.saturating_sub(model_sum) },
-            "model_breakdown": model_breakdown,
-            "model_breakdown_truncated": model_breakdown_truncated,
-            "logged_requests": logged_requests,
-            "model_breakdown_incomplete": logged_requests < summary.requests
-        }))
+        });
+        if let Some(fields) = payload.as_object_mut() {
+            fields.extend(history_fields(scan, series, &summary));
+        }
+        Ok(payload)
     }).await
 }
 
@@ -362,7 +288,15 @@ pub(crate) async fn api_key_statistics_snapshot(
 ) -> Result<serde_json::Value, StorageError> {
     validate_api_key_dimension_id(api_key_id)?;
     let dimension_id = api_key_id.to_owned();
-    let cutoff = model_breakdown_cutoff(window_minutes)?;
+    let cutoff = history_cutoff(window_minutes);
+    let series = series_spec(window_minutes);
+    // Held deliberately across the database read below. The persistence path
+    // (`persist_drop_delta`) and the history clear take this same lock, so a
+    // report can never pair a pending in-memory drop delta with persisted totals
+    // that already include it. Drop counts are therefore consistent rather than
+    // approximately consistent; the cost is that statistics requests serialize
+    // against each other and against the rollup writer, bounded by one scan and
+    // one write because both run on the blocking pool.
     let _drop_state_guard = telemetry.drop_state_lock.lock().await;
     let unpersisted_drops = telemetry.drop_counters().unpersisted_total();
     db.read(move |transaction| {
@@ -376,8 +310,7 @@ pub(crate) async fn api_key_statistics_snapshot(
             .unwrap_or_default();
         let (models, model_sum) =
             top_api_key_models(transaction, window_minutes, &dimension_id, summary.requests)?;
-        let (model_breakdown, model_breakdown_truncated, logged_requests) =
-            model_breakdown(transaction, &cutoff, Some(&dimension_id))?;
+        let scan = scan_history(transaction, cutoff, Some(&dimension_id), series)?;
         let api_key_name = transaction
             .get::<Record>(Table::ApiKeys, &dimension_id)?
             .map(|record| record.text("name").map(str::to_owned))
@@ -411,7 +344,7 @@ pub(crate) async fn api_key_statistics_snapshot(
         let dropped_events = u64::try_from(persisted_drops)
             .unwrap_or(u64::MAX)
             .saturating_add(unpersisted_drops);
-        Ok(serde_json::json!({
+        let mut payload = serde_json::json!({
             "api_key_id": dimension_id,
             "api_key_name": api_key_name,
             "range": range,
@@ -430,11 +363,11 @@ pub(crate) async fn api_key_statistics_snapshot(
             "dropped_events": dropped_events,
             "aggregation_current": aggregation_current,
             "models": { "top": models, "others": summary.requests.saturating_sub(model_sum) },
-            "model_breakdown": model_breakdown,
-            "model_breakdown_truncated": model_breakdown_truncated,
-            "logged_requests": logged_requests,
-            "model_breakdown_incomplete": logged_requests < summary.requests
-        }))
+        });
+        if let Some(fields) = payload.as_object_mut() {
+            fields.extend(history_fields(scan, series, &summary));
+        }
+        Ok(payload)
     })
     .await
 }

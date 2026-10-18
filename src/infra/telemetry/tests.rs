@@ -169,7 +169,7 @@ async fn telemetry_persists_log_usage_and_statistics_in_one_backend() {
     assert_eq!(snapshot["cache_ratio"], 60.0);
     assert_eq!(snapshot["api_keys"]["top"][0]["label"], "Key One");
     assert_eq!(snapshot["model_breakdown"][0]["model"], "provider/model");
-    assert_eq!(snapshot["model_breakdown"][0]["combo"], "default");
+    assert_eq!(snapshot["model_breakdown"][0]["provider"], "provider");
     assert_eq!(snapshot["model_breakdown"][0]["input_tokens"], 10);
     assert_eq!(snapshot["model_breakdown"][0]["output_tokens"], 4);
     assert_eq!(snapshot["model_breakdown"][0]["cache_hit_rate"], 60.0);
@@ -187,7 +187,7 @@ async fn telemetry_persists_log_usage_and_statistics_in_one_backend() {
     assert_eq!(key_snapshot["successes"], 1);
     assert_eq!(key_snapshot["success_rate"], 100.0);
     assert_eq!(key_snapshot["output_tokens"], 4);
-    assert_eq!(key_snapshot["model_breakdown"][0]["combo"], "default");
+    assert_eq!(key_snapshot["model_breakdown"][0]["provider"], "provider");
     assert_eq!(key_snapshot["model_breakdown"][0]["requests"], 1);
     database
         .write(|transaction| transaction.put(Table::ApiKeys, "key-2", &api_key_record("Key Two")))
@@ -203,6 +203,77 @@ async fn telemetry_persists_log_usage_and_statistics_in_one_backend() {
             .is_some_and(Vec::is_empty)
     );
     assert_eq!(empty_snapshot["models"]["others"], 0);
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
+async fn model_breakdown_splits_one_model_by_serving_provider() {
+    let (database, path) = test_db().await;
+    let telemetry = Telemetry::new(database.clone());
+    // Every row calls the same model through the same route alias; only the
+    // provider that actually served the request differs. The breakdown has to
+    // attribute the usage to that provider instead of collapsing the rows under
+    // the alias.
+    for (id, provider_id, status, input_tokens) in [
+        ("log-provider-a", Some("provider-a"), 200, 10),
+        ("log-provider-b", Some("provider-b"), 500, 4),
+        ("log-without-provider", None, 500, 2),
+    ] {
+        telemetry.enqueue_request_log(RequestLogRecord {
+            id: id.to_owned(),
+            request_id: format!("request-{id}"),
+            route_alias: "shared-combo".to_owned(),
+            provider_id: provider_id.map(str::to_owned),
+            provider_credential_id: None,
+            api_key_id: None,
+            model: "shared/model".to_owned(),
+            client_protocol: "chat_completions".to_owned(),
+            upstream_protocol: Some("chat_completions".to_owned()),
+            status,
+            duration_ms: 12,
+            input_tokens: Some(input_tokens),
+            output_tokens: Some(1),
+            cached_tokens: None,
+            cache_input_tokens: None,
+            cost_micro_usd: None,
+            error: None,
+        });
+    }
+    telemetry.flush().await.expect("flush telemetry");
+
+    let snapshot = statistics_snapshot(&database, "1d", 1440, &telemetry)
+        .await
+        .expect("statistics snapshot");
+    let rows = snapshot["model_breakdown"]
+        .as_array()
+        .expect("model breakdown rows");
+    assert_eq!(rows.len(), 3, "each serving provider keeps its own row");
+    assert!(
+        rows.iter().all(|row| row["model"] == "shared/model"),
+        "the rows stay grouped by model"
+    );
+    let provider_a = rows
+        .iter()
+        .find(|row| row["provider"] == "provider-a")
+        .expect("row for provider A");
+    assert_eq!(provider_a["requests"], 1);
+    assert_eq!(provider_a["input_tokens"], 10);
+    assert_eq!(provider_a["success_rate"], 100.0);
+    let provider_b = rows
+        .iter()
+        .find(|row| row["provider"] == "provider-b")
+        .expect("row for provider B");
+    assert_eq!(provider_b["requests"], 1);
+    assert_eq!(provider_b["input_tokens"], 4);
+    assert_eq!(provider_b["success_rate"], 0.0);
+    let unknown = rows
+        .iter()
+        .find(|row| row["provider"].is_null())
+        .expect("row for a request that never reached a provider");
+    assert_eq!(unknown["requests"], 1);
+    assert_eq!(unknown["input_tokens"], 2);
     drop(telemetry);
     drop(database);
     let _ = fs::remove_dir_all(&path);
@@ -255,6 +326,278 @@ async fn statistics_flag_history_that_covers_fewer_requests_than_the_totals() {
         snapshot["model_breakdown"][0]["requests"], 1,
         "the retained history is reported as-is"
     );
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+/// Builds a retained request-log row from the fields the history views read, so
+/// each test only spells out the values it asserts on.
+fn history_row(
+    id: &str,
+    provider_id: Option<&str>,
+    api_key_id: Option<&str>,
+    status: i64,
+    duration_ms: i64,
+    cost_micro_usd: Option<i64>,
+) -> RequestLogRecord {
+    RequestLogRecord {
+        id: id.to_owned(),
+        request_id: format!("request-{id}"),
+        route_alias: "shared-combo".to_owned(),
+        provider_id: provider_id.map(str::to_owned),
+        provider_credential_id: None,
+        api_key_id: api_key_id.map(str::to_owned),
+        model: "shared/model".to_owned(),
+        client_protocol: "chat_completions".to_owned(),
+        upstream_protocol: Some("chat_completions".to_owned()),
+        status,
+        duration_ms,
+        input_tokens: Some(10),
+        output_tokens: Some(4),
+        cached_tokens: None,
+        cache_input_tokens: None,
+        cost_micro_usd,
+        error: None,
+    }
+}
+
+#[tokio::test]
+async fn history_views_group_retained_rows_by_provider_status_cost_and_latency() {
+    let (database, path) = test_db().await;
+    let telemetry = Telemetry::new(database.clone());
+    // Three retained rows: two served by provider-a (one fast, one mid), and one
+    // that failed at provider-b after a slow response and reported no cost.
+    for (id, provider, key, status, duration_ms, cost) in [
+        (
+            "log-a-fast",
+            Some("provider-a"),
+            Some("key-1"),
+            200,
+            80,
+            Some(1_000),
+        ),
+        (
+            "log-a-slow",
+            Some("provider-a"),
+            Some("key-1"),
+            200,
+            300,
+            Some(2_000),
+        ),
+        (
+            "log-b-failed",
+            Some("provider-b"),
+            Some("key-2"),
+            502,
+            20_000,
+            None,
+        ),
+    ] {
+        telemetry.enqueue_request_log(history_row(id, provider, key, status, duration_ms, cost));
+    }
+    telemetry.flush().await.expect("flush telemetry");
+
+    let snapshot = statistics_snapshot(&database, "1d", 1440, &telemetry)
+        .await
+        .expect("statistics snapshot");
+    assert_eq!(snapshot["logged_requests"], 3);
+    assert_eq!(snapshot["history_truncated"], false);
+    assert_eq!(
+        snapshot["model_breakdown_incomplete"], false,
+        "the flag only fires when history covers fewer rows than the totals; here no rollup \
+         aggregate was seeded, so it is the totals that cover less"
+    );
+
+    // Providers are ranked by request count; a lower-ranked provider keeps its
+    // own row instead of being merged into the leader.
+    assert_eq!(snapshot["providers"]["truncated"], false);
+    let providers = snapshot["providers"]["rows"]
+        .as_array()
+        .expect("provider rows");
+    assert_eq!(providers.len(), 2);
+    let provider_a = &providers[0];
+    assert_eq!(provider_a["provider"], "provider-a");
+    assert_eq!(provider_a["requests"], 2);
+    assert_eq!(provider_a["successes"], 2);
+    assert_eq!(provider_a["success_rate"], 100.0);
+    assert_eq!(provider_a["average_latency_ms"], 190.0);
+    assert_eq!(provider_a["input_tokens"], 20);
+    assert_eq!(provider_a["cost_micro_usd"], 3_000);
+    assert_eq!(provider_a["cost_reported_micro_usd"], 3_000);
+    assert_eq!(provider_a["cost_events"], 2);
+    assert_eq!(provider_a["missing_cost_events"], 0);
+    let provider_b = &providers[1];
+    assert_eq!(provider_b["provider"], "provider-b");
+    assert_eq!(provider_b["requests"], 1);
+    assert_eq!(provider_b["successes"], 0);
+    assert_eq!(provider_b["success_rate"], 0.0);
+    assert_eq!(provider_b["average_latency_ms"], 20_000.0);
+    // A provider whose requests never reported a cost has no total to show: the
+    // exact total stays null while the reported sum records what is known.
+    assert!(
+        provider_b["cost_micro_usd"].is_null(),
+        "a partial spend total must not read as a complete one"
+    );
+    assert_eq!(provider_b["cost_reported_micro_usd"], 0);
+    assert_eq!(provider_b["cost_events"], 0);
+    assert_eq!(provider_b["missing_cost_events"], 1);
+
+    assert_eq!(snapshot["statuses"]["truncated"], false);
+    let statuses = snapshot["statuses"]["rows"]
+        .as_array()
+        .expect("status rows");
+    assert_eq!(statuses.len(), 2);
+    assert_eq!(statuses[0]["status"], 200);
+    assert_eq!(statuses[0]["requests"], 2);
+    assert_eq!(statuses[0]["successes"], 2);
+    assert_eq!(statuses[1]["status"], 502);
+    assert_eq!(statuses[1]["requests"], 1);
+    assert_eq!(statuses[1]["successes"], 0);
+
+    // The 1d range is one bucket per hour, and rows written by this test land in
+    // the newest one.
+    assert_eq!(snapshot["series"]["truncated"], false);
+    assert_eq!(snapshot["series"]["bucket_seconds"], 3_600);
+    let points = snapshot["series"]["points"]
+        .as_array()
+        .expect("series points");
+    assert_eq!(points.len(), 24);
+    let bucketed = points
+        .iter()
+        .map(|point| point["requests"].as_i64().unwrap_or_default())
+        .sum::<i64>();
+    assert_eq!(
+        bucketed, 3,
+        "every retained row lands in exactly one bucket"
+    );
+    let newest = &points[23];
+    assert_eq!(newest["requests"], 3);
+    assert_eq!(newest["successes"], 2);
+    assert_eq!(newest["failures"], 1);
+    assert_eq!(newest["input_tokens"], 30);
+    assert_eq!(newest["output_tokens"], 12);
+    assert!(newest["cost_micro_usd"].is_null());
+    assert_eq!(newest["cost_reported_micro_usd"], 3_000);
+    assert_eq!(newest["missing_cost_events"], 1);
+
+    // Latency is estimated from a fixed histogram, so the reported percentiles
+    // are bucket tops and the slowest bucket makes them a floor.
+    let latency = &snapshot["latency"];
+    assert_eq!(latency["samples"], 3);
+    assert_eq!(latency["open_ended"], true);
+    let average = latency["average_ms"].as_f64().expect("average latency");
+    assert!(
+        (average - 6_793.333).abs() < 0.01,
+        "average latency was {average}"
+    );
+    let buckets = latency["buckets"]
+        .as_array()
+        .expect("latency buckets")
+        .iter()
+        .map(|bucket| bucket.as_i64().expect("bucket count"))
+        .collect::<Vec<_>>();
+    assert_eq!(buckets, vec![1, 0, 1, 0, 0, 0, 0, 1]);
+    assert_eq!(latency["p50_ms"], 500.0);
+    // One slow request exists, but it decides only the percentiles whose own
+    // sample lands in the open bucket, not the median.
+    assert_eq!(latency["p50_is_floor"], false);
+    assert_eq!(latency["p95_ms"], 15_000.0);
+    assert_eq!(latency["p95_is_floor"], true);
+    assert_eq!(latency["p99_ms"], 15_000.0);
+    assert_eq!(latency["p99_is_floor"], true);
+
+    let cost = &snapshot["cost"];
+    assert_eq!(cost["requests"], 3);
+    assert!(cost["cost_micro_usd"].is_null());
+    assert_eq!(cost["cost_reported_micro_usd"], 3_000);
+    assert_eq!(cost["cost_events"], 2);
+    assert_eq!(cost["missing_cost_events"], 1);
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
+async fn time_to_first_token_average_covers_only_streamed_requests() {
+    let (database, path) = test_db().await;
+    let current = unix_minute();
+    let recent = current.saturating_sub(5);
+    let base = StatisticsEvent {
+        api_key_id: "key".to_owned(),
+        requested_model: "model".to_owned(),
+        minute: recent,
+        succeeded: true,
+        duration_ms: 8,
+        input_tokens: 3,
+        output_tokens: 2,
+        cached_tokens: 0,
+        cache_input_tokens: 3,
+        first_output_ms: Some(120),
+    };
+    let events = [
+        StatisticsEvent {
+            first_output_ms: Some(120),
+            ..base.clone()
+        },
+        StatisticsEvent {
+            first_output_ms: Some(180),
+            ..base.clone()
+        },
+        // A request that never produced output contributes no sample, or the
+        // average would describe every request instead of the streamed ones.
+        StatisticsEvent {
+            first_output_ms: None,
+            ..base.clone()
+        },
+    ];
+    let mut aggregates = HashMap::new();
+    for event in &events {
+        add_aggregate(&mut aggregates, event.minute, 0, "", event);
+    }
+    database
+        .write(move |transaction| {
+            for (key, counts) in &aggregates {
+                let minute = minute_key(key.minute, key.dimension_kind, &key.dimension_id)?;
+                transaction.put(Table::UsageMinutes, &minute, &counts_record(*counts))?;
+                for (window, _) in STATISTICS_RANGES {
+                    let aggregate = window_key(window, key.dimension_kind, &key.dimension_id)?;
+                    update_window_counts(
+                        transaction,
+                        &aggregate,
+                        window,
+                        key.dimension_kind,
+                        &key.dimension_id,
+                        *counts,
+                    )?;
+                }
+            }
+            Ok(())
+        })
+        .await
+        .expect("seed statistic buckets");
+
+    let telemetry = Telemetry::new(database.clone());
+    let snapshot = statistics_snapshot(&database, "1d", 1440, &telemetry)
+        .await
+        .expect("statistics snapshot");
+    assert_eq!(snapshot["total_requests"], 3);
+    assert_eq!(snapshot["time_to_first_token_samples"], 2);
+    assert_eq!(snapshot["average_time_to_first_token_ms"], 150.0);
+
+    // Dropping the counters behind the average clears both the value and its
+    // sample count, so a period without streamed responses reports no estimate
+    // instead of a stale one.
+    telemetry
+        .clear_request_history()
+        .await
+        .expect("clear request history");
+    let cleared = statistics_snapshot(&database, "1d", 1440, &telemetry)
+        .await
+        .expect("cleared statistics snapshot");
+    assert_eq!(cleared["total_requests"], 0);
+    assert_eq!(cleared["time_to_first_token_samples"], 0);
+    assert!(cleared["average_time_to_first_token_ms"].is_null());
     drop(telemetry);
     drop(database);
     let _ = fs::remove_dir_all(&path);
@@ -528,6 +871,7 @@ async fn statistics_expiry_subtracts_only_the_expired_bucket() {
         output_tokens: 2,
         cached_tokens: 0,
         cache_input_tokens: 3,
+        first_output_ms: Some(40),
     };
     let recent_event = StatisticsEvent {
         minute: recent,
@@ -593,6 +937,11 @@ async fn statistics_expiry_subtracts_only_the_expired_bucket() {
         .expect("summary exists")
         .expect("valid counts");
     assert_eq!(counts.requests, 1);
+    // Expiring the old bucket has to remove its time-to-first-output sample
+    // too, or the rolling average would keep weighing a request that is no
+    // longer in the window.
+    assert_eq!(counts.first_output_ms, 40);
+    assert_eq!(counts.first_output_events, 1);
     let month_key_model =
         window_key(30 * 24 * 60, 3, "key/model").expect("month API key model key");
     let model_counts = database
@@ -606,6 +955,113 @@ async fn statistics_expiry_subtracts_only_the_expired_bucket() {
         .expect("API key model exists")
         .expect("valid API key model counts");
     assert_eq!(model_counts.requests, 1);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+/// Enqueues one request worth of telemetry the way the gateway's request path
+/// does: an API key usage event, a statistics event, a request log, and a
+/// provider cost event.
+fn enqueue_request(telemetry: &Telemetry, index: usize) {
+    let api_key_id = if index.is_multiple_of(2) {
+        "key-1"
+    } else {
+        "key-2"
+    };
+    telemetry.record_api_key_request(api_key_id.to_owned());
+    let analytics = telemetry.start_request(api_key_id.to_owned());
+    analytics.set_requested_model(Some("provider/model"));
+    analytics.set_token_usage(Some(10), Some(4));
+    analytics.finish(true);
+    telemetry.enqueue_request_log(RequestLogRecord {
+        id: format!("log-{index}"),
+        request_id: format!("request-{index}"),
+        route_alias: "default".to_owned(),
+        provider_id: Some("provider".to_owned()),
+        provider_credential_id: Some("cred-1".to_owned()),
+        api_key_id: Some(api_key_id.to_owned()),
+        model: "provider/model".to_owned(),
+        client_protocol: "chat_completions".to_owned(),
+        upstream_protocol: Some("chat_completions".to_owned()),
+        status: 200,
+        duration_ms: 12,
+        input_tokens: Some(10),
+        output_tokens: Some(4),
+        cached_tokens: Some(6),
+        cache_input_tokens: Some(10),
+        cost_micro_usd: Some(125_000),
+        error: None,
+    });
+    telemetry.record_provider_usage("cred-1".to_owned(), Some(125_000), Some(10), Some(4));
+}
+
+/// Request rates this harness paces through the telemetry writer.
+///
+/// The 10 ms pacing step caps the delivered rate at roughly 1.2k requests per
+/// second on Windows, so a higher target would only repeat the same load.
+const SWEEP_RATES: [usize; 5] = [125, 250, 500, 1_000, 2_000];
+const SWEEP_SECONDS: usize = 3;
+
+/// Sustained request traffic must reach the writer without the bounded queue
+/// overflowing.
+///
+/// This sweeps the rates a single process is expected to serve and prints what
+/// each one measured. The loss budget stays loose so a slower machine does not
+/// turn a timing measurement into a flake, while still catching the regression
+/// this replaced: when every dropped event woke the writer for a counters
+/// transaction, the same sweep lost 13% of its events at the top rates.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn paced_request_traffic_does_not_overflow_the_telemetry_queue() {
+    let (database, path) = test_db().await;
+    database
+        .write(|transaction| {
+            transaction.put(Table::ApiKeys, "key-1", &api_key_record("Key One"))?;
+            transaction.put(Table::ApiKeys, "key-2", &api_key_record("Key Two"))?;
+            transaction.put(
+                Table::ProviderApiKeys,
+                "cred-1",
+                &Record::new().with("id", Field::Text("cred-1".to_owned())),
+            )
+        })
+        .await
+        .expect("seed records");
+    let telemetry = Telemetry::new(database.clone());
+    let mut index = 0;
+    for rate in SWEEP_RATES {
+        let before = telemetry.drop_counters().total();
+        let requests = rate * SWEEP_SECONDS;
+        let chunk = (rate / 100).max(1);
+        let started = std::time::Instant::now();
+        let mut sent = 0;
+        while sent < requests {
+            let this_chunk = chunk.min(requests - sent);
+            for _ in 0..this_chunk {
+                enqueue_request(&telemetry, index);
+                index += 1;
+            }
+            sent += this_chunk;
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        telemetry.flush().await.expect("flush telemetry");
+        let dropped = telemetry.drop_counters().total() - before;
+        let events = requests * 4;
+        let drop_pct = dropped as f64 * 100.0 / events as f64;
+        println!(
+            "SWEEP rate={rate}/s events={events} dropped={dropped} drop_pct={drop_pct:.2} paced_ms={}",
+            started.elapsed().as_millis(),
+        );
+        if rate <= 500 {
+            assert_eq!(
+                dropped, 0,
+                "request logging at {rate}/s lost {dropped} of {events} events"
+            );
+        }
+        assert!(
+            drop_pct <= 1.0,
+            "request logging at {rate}/s lost {drop_pct:.2}% of its events"
+        );
+    }
+    drop(telemetry);
     drop(database);
     let _ = fs::remove_dir_all(&path);
 }

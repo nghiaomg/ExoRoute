@@ -10,6 +10,7 @@
   } from '../../lib/format';
   import type { Locale } from '../../lib/i18n';
   import { isLiveRequest, type RequestLiveRow, type RequestLog } from '../../lib/types';
+  import { modelLogoSrc } from './model-logo';
   import {
     durationBarPercent,
     durationTone,
@@ -49,6 +50,7 @@
   $: durationTitle = tone === 'verySlow' ? tr('Very slow') : tone === 'slow' ? tr('Slow') : tr('Duration');
   $: accent = accents[modelAccent(request.provider_id ?? request.model)] ?? accents[0];
   $: monogram = modelMonogram(request.model);
+  $: modelLogo = modelLogoSrc(request.model);
   $: ratio = tokenRatio(request.input_tokens, request.output_tokens);
   $: cachedTokens = request.cached_tokens ?? 0;
   $: tokenUsageLabel = `${tr('Input tokens')}: ${formatTokenCount(request.input_tokens, locale)} / ${tr('Output tokens')}: ${formatTokenCount(request.output_tokens, locale)}`;
@@ -75,13 +77,19 @@
   onkeydown={handleKeydown}
 >
   <td class="req-time muted-cell">{formatDate(requestCreatedAt(request), locale)}</td>
-  <td class="req-key" title={request.api_key_id ?? tr('Unknown key')}>
+  <td class="req-key" title={request.api_key_name ?? request.api_key_id ?? tr('Unknown key')}>
     <span class="strong-cell">
-      {request.api_key_name ?? (request.api_key_id ? request.api_key_id.slice(0, 12) : tr('Unknown key'))}
+      {request.api_key_name ?? tr('Unknown key')}
     </span>
   </td>
   <td class="req-model" title={request.model}>
-    <span class="req-model-monogram" style="--request-accent: {accent}" aria-hidden="true">{monogram}</span>
+    {#if modelLogo}
+      <span class="req-model-logo" aria-hidden="true">
+        <img src={modelLogo} alt="" loading="lazy" referrerpolicy="no-referrer" />
+      </span>
+    {:else}
+      <span class="req-model-monogram" style="--request-accent: {accent}" aria-hidden="true">{monogram}</span>
+    {/if}
     <span class="req-model-name strong-cell">{request.model}</span>
   </td>
   <td class="req-alias" title={request.route_alias ?? ''}>
@@ -168,10 +176,10 @@
     position: relative;
     height: 50px;
     padding: 0 14px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f2f6;
     font-size: var(--text-xs);
     vertical-align: middle;
-    color: #334155;
+    color: #484c60;
   }
 
   .request-row td:first-child::before {
@@ -186,7 +194,7 @@
 
   @media (hover: hover) {
     .request-row:hover td {
-      background: #f8fafc;
+      background: #f8f9fd;
     }
     .request-row:hover td:first-child::before {
       width: 5px;
@@ -210,18 +218,20 @@
     background: #3b82f6;
   }
 
+  /* An in-flight row uses the same orange as the table shell's live row and as
+     the `active` outcome accent, so the two never disagree. */
   .request-row.live-request td {
-    background: #f0fdf4;
+    background: #fffaf2;
   }
 
   .request-row.live-request td:first-child::before {
-    background: #22c55e;
+    background: #f97316;
   }
 
   .request-row td.req-time {
     white-space: nowrap;
     font-size: 11.5px;
-    color: #64748b;
+    color: #85899b;
     font-variant-numeric: tabular-nums;
   }
 
@@ -230,7 +240,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #475569;
+    color: #626679;
     font-weight: 600;
   }
 
@@ -242,27 +252,52 @@
     overflow: hidden;
   }
 
+  /* Both tiles take the same ink frame as `.provider-avatar` so the row's
+     identity mark reads as part of the light theme's Neo-Brutalism, not as a
+     soft banner-tile from another design system. */
   .req-model-monogram {
     display: grid;
     place-items: center;
     flex: 0 0 auto;
     width: 24px;
     height: 24px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 2px solid var(--ink);
     border-radius: 7px;
     background: var(--request-accent);
     color: #ffffff;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.3px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  /* Brand marks are drawn in the vendor's own colours, so they sit on a light
+     tile of the monogram's size instead of on the accent colour. */
+  .req-model-logo {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--ink);
+    border-radius: 7px;
+    background: #ffffff;
+    box-shadow: 2px 2px 0 var(--ink);
+    overflow: hidden;
+  }
+
+  .req-model-logo img {
+    display: block;
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
   }
 
   .req-model-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #0f172a;
+    color: #33374b;
     font-weight: 600;
     font-size: 13px;
   }
@@ -294,19 +329,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #475569;
+    color: #626679;
     font-weight: 500;
   }
 
+  /* Same badge language as `.protocol-pill`: ink stroke on an orange tint. */
   .req-alias-pill {
     display: inline-block;
     max-width: 100%;
     overflow: hidden;
     padding: 2px 8px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    background: #f1f5f9;
-    color: #475569;
+    border: 2px solid var(--ink);
+    border-radius: 7px;
+    background: #fff7ed;
+    color: #92600f;
     font-size: 11px;
     font-weight: 600;
     text-overflow: ellipsis;
@@ -323,7 +359,7 @@
 
   .req-duration-value {
     font-variant-numeric: tabular-nums;
-    color: #334155;
+    color: #484c60;
   }
 
   .req-duration-value.slow {
@@ -344,22 +380,24 @@
     margin-top: 4px;
     overflow: hidden;
     border-radius: 999px;
-    background: #e2e8f0;
+    background: #eceef4;
   }
 
+  /* The fill's healthy colour is the row's own success accent, so the bar and
+     the outcome stripe always agree. */
   .req-duration-fill {
     display: block;
     height: 100%;
     border-radius: 999px;
-    background: #10b981;
+    background: #36c59b;
   }
 
   .req-duration-fill.slow {
-    background: #f59e0b;
+    background: #d97706;
   }
 
   .req-duration-fill.verySlow {
-    background: #ef4444;
+    background: #dc2626;
   }
 
   .request-row td.req-tokens {
@@ -375,7 +413,7 @@
   }
 
   .req-token-value {
-    color: #334155;
+    color: #484c60;
     font-family: var(--font-mono);
     font-size: 11.5px;
     font-variant-numeric: tabular-nums;
@@ -383,7 +421,7 @@
   }
 
   .req-token-separator {
-    color: #94a3b8;
+    color: #a7a9b6;
     font-size: 11px;
   }
 
@@ -395,12 +433,14 @@
     color: #7c3aed;
   }
 
+  /* Flat chip, like the other in-row status chips; the ink frame is reserved
+     for the row's own card surface. */
   .req-token-cached {
     padding: 1px 6px;
-    border: 1px solid #a7f3d0;
-    border-radius: 4px;
-    background: #ecfdf5;
-    color: #047857;
+    border: none;
+    border-radius: 5px;
+    background: #eff9f4;
+    color: #32876d;
     font-size: 10px;
     font-weight: 600;
   }
@@ -413,7 +453,7 @@
     margin-top: 5px;
     overflow: hidden;
     border-radius: 999px;
-    background: #e2e8f0;
+    background: #eceef4;
   }
 
   .req-token-ratio-input {
@@ -460,21 +500,22 @@
     align-items: center;
     gap: 6px;
     padding: 3px 8px;
-    border: 1px solid #fecaca;
-    border-radius: 6px;
+    border: 2px solid var(--ink);
+    border-radius: 7px;
     background: #fef2f2;
-    color: #dc2626;
+    color: #b91c1c;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(220, 38, 38, 0.05);
-    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    box-shadow: 2px 2px 0 var(--ink);
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
 
   .req-error-trigger-btn:hover {
-    border-color: #f87171;
     background: #fee2e2;
     color: #b91c1c;
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--ink);
   }
 
   :global(:root[data-theme='dark']) .request-row td {
@@ -500,6 +541,7 @@
   }
 
   :global(:root[data-theme='dark']) .req-model-monogram,
+  :global(:root[data-theme='dark']) .req-model-logo,
   :global(:root[data-theme='dark']) .req-provider-dot {
     border-color: #f0f2f8;
   }
@@ -571,12 +613,12 @@
       gap: 6px 10px;
       width: 100%;
       padding: 14px;
-      border: 1px solid #e2e4ed;
+      border: 2px solid var(--ink);
       border-radius: 14px;
       background: #ffffff;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      box-shadow: 3px 3px 0 var(--ink);
       box-sizing: border-box;
-      transition: transform 0.1s ease, background 0.12s ease;
+      transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.1s ease;
     }
 
     .request-row.selected {
@@ -584,12 +626,14 @@
     }
 
     .request-row.live-request {
-      background: #f0fdf4;
+      background: #fffaf2;
     }
 
+    /* The pressed card sinks into its own shadow, like every other NB surface. */
     .request-row:active {
-      transform: scale(0.99);
-      background: #f8fafc;
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0 var(--ink);
+      background: #f8f9fd;
     }
 
     .request-row td {
@@ -612,11 +656,12 @@
       grid-area: model;
       font-size: 14px;
       font-weight: 700;
-      color: #0f172a;
+      color: #33374b;
       word-break: break-all;
     }
 
-    .req-model-monogram {
+    .req-model-monogram,
+    .req-model-logo {
       width: 26px;
       height: 26px;
     }
@@ -641,7 +686,7 @@
 
     .request-row td.req-provider {
       grid-area: provider;
-      color: #63677d;
+      color: #626679;
       font-size: 12px;
     }
 
@@ -664,14 +709,14 @@
     .request-row td.req-key {
       grid-area: key;
       max-width: none;
-      color: #8e92a4;
+      color: #85899b;
       font-size: 12px;
     }
 
     .request-row td.req-time {
       grid-area: time;
       justify-self: end;
-      color: #9fa3b5;
+      color: #a7a9b6;
       font-size: 12px;
     }
 

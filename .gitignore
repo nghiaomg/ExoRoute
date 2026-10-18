@@ -69,6 +69,15 @@ credentials/
 __pycache__/
 *.py[cod]
 
-docs/
+# Vendored reference projects (hundreds of megabytes of other projects' source)
+# are local only. This is `docs/*` rather than `docs/` on purpose: git cannot
+# re-include a path whose parent directory is itself excluded, and a bare
+# `docs/` excludes the directory rather than its entries.
+docs/*
 !web/src/features/docs/
 !web/src/features/docs/**
+
+# Design records are tracked so the reasoning behind an integration survives a
+# fresh clone, a new contributor, and the next investigation.
+!docs/design/
+!docs/design/**

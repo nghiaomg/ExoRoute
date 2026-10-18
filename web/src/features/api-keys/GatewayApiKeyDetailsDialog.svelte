@@ -7,8 +7,8 @@
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
   import type { GatewayApiKey, GatewayApiKeyStatistics } from '../../lib/types';
-  import DonutChart from '../statistics/DonutChart.svelte';
-
+  import RankedBars from '../statistics/RankedBars.svelte';
+  import { dimensionBars } from '../statistics/chartTypes';
   export let apiKey: GatewayApiKey | null = null;
   export let tr: Translate;
   export let locale: Locale;
@@ -23,6 +23,14 @@ import { localizedError } from '../../lib/errors';
   let activeController: AbortController | null = null;
 
   $: numberFormat = new Intl.NumberFormat(getIntlLocale(locale));
+  $: modelBars = statistics
+    ? dimensionBars(statistics.models.top, statistics.models.others, statistics.total_requests, {
+        tr,
+        formatCount,
+        locale,
+        othersLabel: tr('Others'),
+      })
+    : [];
   $: if (apiKey && apiKey.id !== loadedKeyId) {
     loadedKeyId = apiKey.id;
     selectedRange = '1d';
@@ -120,10 +128,13 @@ import { localizedError } from '../../lib/errors';
           <div><span>{tr('Data collected since')}</span><strong>{formatTimestamp(statistics.collection_started_at)}</strong></div>
           <div><span>{tr('Last aggregate update')}</span><strong>{formatTimestamp(statistics.as_of)}</strong></div>
         </section>
-        {#if statistics.models.top.length || statistics.models.others > 0}
-          <DonutChart title={tr('Requests by model for this key')} items={statistics.models.top} others={statistics.models.others} total={statistics.total_requests} {tr} {formatCount} />
+        {#if modelBars.length}
+          <section class="api-key-details-models" aria-label={tr('Requests by model for this key')}>
+            <h3>{tr('Requests by model for this key')}</h3>
+            <RankedBars rows={modelBars} maxValue={Math.max(0, ...modelBars.map((bar) => bar.value))} {tr} />
+          </section>
         {:else}
-          <p class="donut-empty">{tr('No traffic for this API key in the selected period.')}</p>
+          <p class="api-key-statistics-empty">{tr('No traffic for this API key in the selected period.')}</p>
         {/if}
         {#if errorMessage}
           <div class="form-error" role="alert">{errorMessage}</div>
@@ -155,6 +166,9 @@ import { localizedError } from '../../lib/errors';
   .api-key-details-tokens > div { min-width: 0; display: grid; gap: 8px; padding: 15px 17px; background: var(--paper); }
   .api-key-details-tokens span { color: var(--muted); font-size: 12px; }
   .api-key-details-tokens strong { overflow: hidden; color: var(--ink); font: 600 12px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
+  .api-key-details-models { display: grid; gap: 12px; padding: 18px 20px; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)); }
+  .api-key-details-models h3 { margin: 0; color: var(--ink); font: 650 15px/1.35 var(--font-sans); }
+  .api-key-statistics-empty { margin: 0; color: var(--muted); font-size: 12px; }
   .api-key-details-warning { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 12px 14px; color: #9d4827; border: 1px solid #f3d1bf; border-radius: 10px; background: #fff8f4; }
   .api-key-details-warning :global(svg) { flex: 0 0 auto; margin-top: 1px; }
   .api-key-details-warning > div { display: grid; gap: 3px; }

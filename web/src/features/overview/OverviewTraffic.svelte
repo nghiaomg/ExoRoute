@@ -106,8 +106,8 @@
                     {/if}
                   </div>
                 </td>
-                <td class="req-key" title={request.api_key_id ?? tr('Unknown key')}>
-                  <span class="strong-cell">{request.api_key_name ?? (request.api_key_id ? request.api_key_id.slice(0, 10) : tr('Unknown key'))}</span>
+                <td class="req-key" title={request.api_key_name ?? request.api_key_id ?? tr('Unknown key')}>
+                  <span class="strong-cell">{request.api_key_name ?? tr('Unknown key')}</span>
                 </td>
                 <td class="req-duration">{requestDuration(request, liveClockMs)}</td>
                 <td class="req-status">

@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { ArrowDown, ArrowUp, ShieldCheck, Trash2, Zap } from '@lucide/svelte';
+  import { ArrowDown, ArrowUp, Layers3, Server, ShieldCheck, Trash2, Zap } from '@lucide/svelte';
   import type { Translate } from '../../lib/format';
 
   import type { ComboTargetActions, ComboTargetView } from './combo.types';
   import ComboModelPicker from './ComboModelPicker.svelte';
   import ComboProviderPicker from './ComboProviderPicker.svelte';
+  import ComboReferencePicker from './ComboReferencePicker.svelte';
 
   export let view: ComboTargetView;
   export let actions: ComboTargetActions;
@@ -65,27 +66,65 @@
   </div>
 
   <div class="target-card-body">
-    <div class="target-card-grid">
+    <div class="target-kind-toggle" role="group" aria-label={tr('Target type')}>
+      <button
+        type="button"
+        class="target-kind-btn"
+        class:is-active={view.target.kind === 'provider'}
+        aria-pressed={view.target.kind === 'provider'}
+        onclick={() => actions.onKindChange(view.target.key, 'provider')}
+      >
+        <Server size={12} />
+        <span>{tr('Provider target')}</span>
+      </button>
+      <button
+        type="button"
+        class="target-kind-btn is-combo"
+        class:is-active={view.target.kind === 'combo'}
+        aria-pressed={view.target.kind === 'combo'}
+        onclick={() => actions.onKindChange(view.target.key, 'combo')}
+      >
+        <Layers3 size={12} />
+        <span>{tr('Combo target')}</span>
+      </button>
+    </div>
+
+    {#if view.target.kind === 'combo'}
       <div class="target-field-col">
-        <ComboProviderPicker
-          providers={view.providers}
-          selectedProviderId={view.target.providerId}
+        <ComboReferencePicker
+          combos={view.combos}
+          selectedComboId={view.target.comboId}
           targetKey={view.target.key}
           {tr}
-          onProviderChange={actions.onProviderChange}
+          onComboChange={actions.onComboChange}
         />
       </div>
-      <div class="target-field-col">
-        <ComboModelPicker
-          target={view.target}
-          {active}
-          {tr}
-          onModelChange={actions.onModelChange}
-          onActivate={actions.onActivateModelPicker}
-          onDeactivate={actions.onDeactivateModelPicker}
-          onOpenProviders={actions.onOpenProviders}
-        />
+      {#if !view.target.comboId}
+        <p class="form-help">{tr('Choose a combo to nest as this target.')}</p>
+      {/if}
+    {:else}
+      <div class="target-card-grid">
+        <div class="target-field-col">
+          <ComboProviderPicker
+            providers={view.providers}
+            selectedProviderId={view.target.providerId}
+            targetKey={view.target.key}
+            {tr}
+            onProviderChange={actions.onProviderChange}
+          />
+        </div>
+        <div class="target-field-col">
+          <ComboModelPicker
+            target={view.target}
+            {active}
+            {tr}
+            onModelChange={actions.onModelChange}
+            onActivate={actions.onActivateModelPicker}
+            onDeactivate={actions.onDeactivateModelPicker}
+            onOpenProviders={actions.onOpenProviders}
+          />
+        </div>
       </div>
-    </div>
+    {/if}
   </div>
 </div>

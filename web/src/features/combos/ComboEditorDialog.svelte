@@ -4,11 +4,12 @@
   import ArkField from '../../components/ArkField.svelte';
   import ArkSelect from '../../components/ArkSelect.svelte';
   import ComboTargetEditor from './ComboTargetEditor.svelte';
-  import { MAX_COMBO_TARGETS, type ComboTargetActions, type ComboTargetDraft, type ComboTargetView } from './combo.types';
+  import { cyclingComboIds } from './references';
+  import { MAX_COMBO_TARGETS, type ComboTargetActions, type ComboTargetDraft, type ComboTargetKind, type ComboTargetView } from './combo.types';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
-  import type { ComboProviderOption, GatewayCombo } from '../../lib/types';
+  import type { ComboProviderOption, ComboTarget, GatewayCombo } from '../../lib/types';
 
   export let open = false;
   export let comboToEdit: GatewayCombo | null = null;
@@ -17,6 +18,7 @@ import { localizedError } from '../../lib/errors';
   export let onSaved: () => void;
   export let onNavigate: (page: 'providers') => void;
   export let providers: ComboProviderOption[];
+  export let combos: GatewayCombo[] = [];
 
   let comboName = '';
   let strategy = 'priority';
@@ -29,20 +31,26 @@ import { localizedError } from '../../lib/errors';
 
   $: enabledProviderIds = new Set(providers.filter((provider) => provider.enabled).map((provider) => provider.id));
   $: hasEnabledProviders = enabledProviderIds.size > 0;
-  $: validTargets = comboTargets.length > 0 && comboTargets.length <= MAX_COMBO_TARGETS && comboTargets.every((target) =>
-    enabledProviderIds.has(target.providerId) && Boolean(target.model));
+  $: needsProviderTarget = comboTargets.some((target) => target.kind === 'provider');
+  $: nestedTargets = comboTargets.some((target) => target.kind === 'combo');
+  $: unavailableComboIds = cyclingComboIds(combos, comboToEdit?.id);
+  $: availableCombos = combos.filter((combo) => !unavailableComboIds.has(combo.id));
+  $: validTargets = comboTargets.length > 0 && comboTargets.length <= MAX_COMBO_TARGETS
+    && comboTargets.every(isValidTarget);
   $: if (open && pendingInitialProviderSelection) {
     const firstProviderId = providers.find((provider) => provider.enabled)?.id;
     if (firstProviderId) {
-      comboTargets = comboTargets.map((target) => target.key === 1 && !target.providerId
+      comboTargets = comboTargets.map((target) => target.key === 1 && target.kind === 'provider' && !target.providerId
         ? { ...target, providerId: firstProviderId }
         : target);
       pendingInitialProviderSelection = false;
     }
   }
   $: targetActions = ({
+    onKindChange: selectKind,
     onProviderChange: selectProvider,
     onModelChange: selectModel,
+    onComboChange: selectCombo,
     onActivateModelPicker: activateModelPicker,
     onDeactivateModelPicker: deactivateModelPicker,
     onMove: moveTarget,
@@ -68,8 +76,10 @@ import { localizedError } from '../../lib/errors';
       nextTargetKey = comboToEdit.targets.length + 1;
       comboTargets = comboToEdit.targets.map((t, idx) => ({
         key: idx + 1,
-        providerId: t.provider_id,
-        model: t.model,
+        kind: t.combo_id ? 'combo' : 'provider',
+        providerId: t.provider_id ?? '',
+        model: t.model ?? '',
+        comboId: t.combo_id ?? '',
       }));
       pendingInitialProviderSelection = false;
     } else {
@@ -78,8 +88,31 @@ import { localizedError } from '../../lib/errors';
       nextTargetKey = 2;
       const firstProviderId = providers.find((provider) => provider.enabled)?.id ?? '';
       pendingInitialProviderSelection = !firstProviderId;
-      comboTargets = [{ key: 1, providerId: firstProviderId, model: '' }];
+      comboTargets = [{ key: 1, ...emptyTarget(), kind: defaultKind(), providerId: firstProviderId }];
     }
+  }
+
+  /** A new row starts as a provider target when one can be selected at all. */
+  function defaultKind(): ComboTargetKind {
+    return hasEnabledProviders ? 'provider' : 'combo';
+  }
+
+  function emptyTarget(): Pick<ComboTargetDraft, 'providerId' | 'model' | 'comboId'> {
+    return { providerId: '', model: '', comboId: '' };
+  }
+
+  /**
+   * Assigns the row's target kind. The other kind's selection is dropped: a row
+   * holds one target, and the server rejects a body that carries both forms.
+   */
+  function selectKind(targetKey: number, kind: ComboTargetKind): void {
+    const existing = comboTargets.find((target) => target.key === targetKey);
+    if (!existing || existing.kind === kind) return;
+    if (targetKey === 1) pendingInitialProviderSelection = false;
+    if (activeModelTargetKey === targetKey) activeModelTargetKey = null;
+    comboTargets = comboTargets.map((target) => target.key === targetKey
+      ? { ...target, kind, ...emptyTarget() }
+      : target);
   }
 
   function selectProvider(targetKey: number, providerId: string): void {
@@ -95,9 +128,13 @@ import { localizedError } from '../../lib/errors';
     comboTargets = comboTargets.map((target) => target.key === targetKey ? { ...target, model } : target);
   }
 
+  function selectCombo(targetKey: number, comboId: string): void {
+    comboTargets = comboTargets.map((target) => target.key === targetKey ? { ...target, comboId } : target);
+  }
+
   function addTarget(): void {
     if (comboTargets.length >= MAX_COMBO_TARGETS) return;
-    comboTargets = [...comboTargets, { key: nextTargetKey++, providerId: '', model: '' }];
+    comboTargets = [...comboTargets, { key: nextTargetKey++, kind: defaultKind(), ...emptyTarget() }];
   }
 
   function removeTarget(targetKey: number): void {
@@ -122,12 +159,18 @@ import { localizedError } from '../../lib/errors';
     comboTargets = ordered;
   }
 
+  function isValidTarget(target: ComboTargetDraft): boolean {
+    if (target.kind === 'combo') return Boolean(target.comboId);
+    return enabledProviderIds.has(target.providerId) && Boolean(target.model);
+  }
+
   function targetView(target: ComboTargetDraft, index: number): ComboTargetView {
     return {
       target,
       index,
       count: comboTargets.length,
       providers,
+      combos: availableCombos,
     };
   }
 
@@ -141,12 +184,11 @@ import { localizedError } from '../../lib/errors';
     formError = '';
     saving = true;
     try {
-      const targets = comboTargets.map((target, index) => ({
-        provider_id: target.providerId,
-        model: target.model,
-        priority: index + 1,
-        enabled: true,
-      }));
+      // A nested target carries only its reference: the server reports empty
+      // provider fields for such a target and rejects a row that has both forms.
+      const targets: ComboTarget[] = comboTargets.map((target, index) => target.kind === 'combo'
+        ? { provider_id: '', model: '', combo_id: target.comboId, priority: index + 1, enabled: true }
+        : { provider_id: target.providerId, model: target.model, priority: index + 1, enabled: true });
       if (comboToEdit) {
         await api.updateCombo(comboToEdit.id, {
           name: comboName.trim(),
@@ -276,13 +318,17 @@ import { localizedError } from '../../lib/errors';
       <p class="form-help text-center">{tr('Maximum {count} targets reached.', { count: MAX_COMBO_TARGETS })}</p>
     {/if}
 
+    {#if nestedTargets}
+      <p class="form-help text-center">{tr('Nested combo targets expand in place when the request is routed.')}</p>
+    {/if}
+
     {#if formError}
       <div class="form-error" role="alert">{formError}</div>
     {/if}
 
     <div class="modal-actions">
       <button type="button" class="secondary-button" onclick={close}>{tr('Cancel')}</button>
-      <button class="primary-button" disabled={saving || !hasEnabledProviders || !validTargets}>
+      <button type="submit" class="primary-button" disabled={saving || !validTargets}>
         {#if saving}
           <LoaderCircle size={15} class="spin" />
         {:else if comboToEdit}
@@ -294,7 +340,7 @@ import { localizedError } from '../../lib/errors';
       </button>
     </div>
 
-    {#if !hasEnabledProviders}
+    {#if needsProviderTarget && !hasEnabledProviders}
       <p class="form-help text-center">{tr('Add and enable a provider before creating a combo.')}</p>
     {/if}
   </form>

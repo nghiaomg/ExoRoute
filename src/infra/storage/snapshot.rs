@@ -96,7 +96,8 @@ fn validate_snapshot_value(
         | Table::ProviderApiKeyCreatedIndex
         | Table::ProviderModelIndex
         | Table::RouteNameIndex
-        | Table::RouteTargetProviderIndex => {
+        | Table::RouteTargetProviderIndex
+        | Table::RouteTargetComboIndex => {
             let decoded: String = codec::decode_record(value)?;
             if decoded.len() > MAX_KEY_BYTES {
                 return Err(StorageError::Invalid(

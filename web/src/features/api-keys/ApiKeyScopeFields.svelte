@@ -189,18 +189,19 @@
     padding: 0;
     list-style: none;
   }
+  /* Ink-framed chip, matching `.strategy-badge` / `.protocol-pill`. Dark mode
+     flattens the frame globally (styles/dark-mode.css). */
   .scope-chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     max-width: 100%;
     padding: 4px 5px 4px 9px;
-    border: 1px solid var(--line);
+    border: 2px solid var(--ink);
     border-radius: 999px;
     background: var(--paper);
   }
   .scope-chip.missing {
-    border-color: rgba(180, 83, 9, 0.35);
     background: rgba(249, 115, 22, 0.08);
   }
   .scope-chip-name {

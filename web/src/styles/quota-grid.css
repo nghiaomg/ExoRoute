@@ -4,43 +4,48 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
+/* Soft Neo-Brutalism, like every other card in the light theme: 2px ink frame
+   plus a hard offset ink shadow; hover lifts away from the shadow, active
+   presses back into it (see `.combo-card`). */
 .quota-credential-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
   padding: 13px 13px 11px;
-  border-radius: 12px;
-  background: #f1f3f9;
+  border-radius: 11px;
+  background: #ffffff;
   cursor: pointer;
-  border: none;
-  box-shadow: none;
-  transition: background-color 0.15s ease, opacity 0.2s ease;
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.15s ease, opacity 0.2s ease;
 }
 .quota-credential-card:hover {
-  background: #e2e6f0;
-  border: none;
-  box-shadow: none;
-  transform: none;
+  background: #ffffff;
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  transform: translate(-1px, -1px);
 }
 .quota-credential-card:active {
-  background: #dbe0eb;
-  transform: scale(0.988);
+  background: #f8f9fd;
+  box-shadow: 1px 1px 0 var(--ink);
+  transform: translate(1px, 1px);
   transition-duration: 0.08s;
 }
 .quota-credential-card.disabled {
   opacity: 0.6;
-  background: #f8fafc;
+  background: #f8f9fd;
 }
 .quota-credential-card.disabled:hover {
   opacity: 0.85;
-  background: #f1f3f9;
+  background: #f8f9fd;
+  box-shadow: 3px 3px 0 var(--ink);
   transform: none;
 }
 .quota-credential-card.limit-reached {
-  background: #fbeeed;
+  background: #fef2f2;
 }
 .quota-credential-card.limit-reached:hover {
-  background: #f7e2e1;
+  background: #fee2e2;
 }
 
 .quota-card-header {
@@ -57,13 +62,16 @@
   min-width: 0;
   flex: 1 1 auto;
 }
+/* Framed mini tile, matching `.combo-icon` / `.provider-avatar`. */
 .quota-card-avatar {
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
-  border-radius: 7px;
-  background: #eef2ff;
-  color: #4f46e5;
+  border-radius: 8px;
+  background: #fff4e6;
+  color: #ea580c;
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
   display: grid;
   place-items: center;
 }
@@ -83,7 +91,7 @@
   margin: 0;
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: #33374b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -94,20 +102,21 @@
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  color: #64748b;
+  color: #85899b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Orange-tint badges, matching `.strategy-badge` / `.protocol-pill`. */
 .quota-plan-badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: #fef3c7;
-  color: #92400e;
-  border: none;
+  padding: 2px 6px;
+  border-radius: 7px;
+  background: #fff7ed;
+  color: #b45309;
+  border: 2px solid var(--ink);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -115,7 +124,7 @@
   line-height: 1.2;
 }
 .quota-key-ref {
-  color: #475569;
+  color: #484c60;
   font-weight: 500;
   max-width: 90px;
   overflow: hidden;
@@ -123,10 +132,10 @@
   white-space: nowrap;
 }
 .quota-dot-sep {
-  color: #cbd5e1;
+  color: #c7c9d1;
 }
 .quota-type-tag {
-  color: #94a3b8;
+  color: #a0a3b1;
   font-size: 10px;
 }
 
@@ -146,20 +155,20 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: #a0a3b1;
   display: inline-block;
 }
 .quota-status-dot.fresh {
-  background: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  background: #36c59b;
+  box-shadow: 0 0 0 2px rgba(54, 197, 155, 0.2);
 }
 .quota-status-dot.stale {
-  background: #f59e0b;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  background: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
 }
 .quota-status-dot.invalid {
-  background: #ef4444;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  background: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
 }
 
 .quota-compact-toggle-btn {
@@ -169,42 +178,43 @@
   width: 24px;
   height: 24px;
   padding: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   border: none;
-  background: #e5e8f0;
-  color: #64748b;
+  background: #f1f2f6;
+  color: #626679;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .quota-compact-toggle-btn:hover:not(:disabled) {
-  background: #d8dce8;
-  color: #0f172a;
+  background: #e9eaf0;
+  color: #33374b;
 }
 .quota-compact-toggle-btn.enabled {
-  background: #d1fae5;
-  color: #059669;
+  background: #eff9f4;
+  color: #278e6d;
 }
 .quota-compact-toggle-btn.enabled:hover:not(:disabled) {
-  background: #fee2e2;
+  background: #fef2f2;
   color: #dc2626;
 }
 
+/* Flat danger inset inside the framed card, like `.form-error`. */
 .quota-compact-alert {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 5px 8px;
   margin-bottom: 8px;
-  border-radius: 6px;
-  background: #fff1f2;
+  border-radius: 7px;
+  background: #fef2f2;
   border: none;
-  color: #be123c;
+  color: #b91c1c;
   font-size: 11px;
   font-weight: 600;
 }
 .quota-alert-icon {
   flex: 0 0 auto;
-  color: #e11d48;
+  color: #dc2626;
 }
 
 .quota-card-body {
@@ -219,20 +229,22 @@
   gap: 5px;
   padding: 2px 7px;
   border-radius: 5px;
-  background: #e8ebf4;
-  color: #475569;
+  background: #f1f2f6;
+  color: #484c60;
   font-size: 11px;
   font-weight: 500;
   width: fit-content;
 }
 
+/* Flat insets inside the framed card: `#f8f9fd`, the theme's wash for nested
+   boxes (see `.request-drawer-fields > div`). */
 .quota-compact-balance {
   display: flex;
   flex-direction: column;
   gap: 3px;
   padding: 7px 9px;
   border-radius: 8px;
-  background: #ffffff;
+  background: #f8f9fd;
   border: none;
   box-shadow: none;
 }
@@ -245,7 +257,7 @@
 .quota-balance-label {
   font-size: 10px;
   font-weight: 600;
-  color: #64748b;
+  color: #85899b;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -254,7 +266,7 @@
   align-items: center;
   gap: 3px;
   font-size: 10px;
-  color: #94a3b8;
+  color: #a0a3b1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -268,17 +280,17 @@
 .quota-balance-main {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: #33374b;
   font-family: var(--font-mono, monospace);
 }
 .quota-balance-unit {
   font-size: 11px;
-  color: #64748b;
+  color: #85899b;
   font-weight: 500;
 }
 .quota-balance-used {
   font-size: 10px;
-  color: #94a3b8;
+  color: #a0a3b1;
   font-family: var(--font-mono, monospace);
 }
 .quota-balance-extra {
@@ -293,8 +305,8 @@
   align-items: center;
   padding: 1px 5px;
   border-radius: 4px;
-  background: #e2e8f0;
-  color: #475569;
+  background: #eceef4;
+  color: #484c60;
   font-size: 10px;
   font-weight: 500;
   font-family: var(--font-mono, monospace);
@@ -311,7 +323,7 @@
   gap: 3px;
   padding: 6px 8px;
   border-radius: 6px;
-  background: #ffffff;
+  background: #f8f9fd;
   border: none;
 }
 .quota-window-header {
@@ -323,7 +335,7 @@
 .quota-window-title {
   font-size: 11px;
   font-weight: 600;
-  color: #334155;
+  color: #484c60;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -337,15 +349,15 @@
   flex: 0 0 auto;
 }
 .quota-window-counts {
-  color: #475569;
+  color: #484c60;
 }
 .quota-window-counts strong {
-  color: #0f172a;
+  color: #33374b;
   font-weight: 700;
 }
 .quota-window-percent {
   font-weight: 600;
-  color: #10b981;
+  color: #278e6d;
 }
 .quota-window-percent.warning {
   color: #d97706;
@@ -356,15 +368,15 @@
 .quota-uncapped-badge {
   font-size: 10px;
   font-weight: 600;
-  color: #0284c7;
-  background: #e0f2fe;
+  color: #3b82f6;
+  background: #eff6ff;
   padding: 1px 5px;
   border-radius: 4px;
 }
 .quota-progress-track {
   height: 5px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: #eceef4;
   overflow: hidden;
   position: relative;
   margin: 1px 0;
@@ -372,21 +384,21 @@
 .quota-progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #10b981, #059669);
+  background: linear-gradient(90deg, #36c59b, #278e6d);
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .quota-progress-fill.warning {
   background: linear-gradient(90deg, #f59e0b, #d97706);
 }
 .quota-progress-fill.danger {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
+  background: linear-gradient(90deg, #dc2626, #b91c1c);
 }
 .quota-window-reset {
   display: flex;
   align-items: center;
   gap: 3px;
   font-size: 10px;
-  color: #94a3b8;
+  color: #a0a3b1;
 }
 
 .quota-empty-note {
@@ -397,14 +409,14 @@
   padding: 14px 10px;
   border: none;
   border-radius: 8px;
-  background: #ffffff;
-  color: #64748b;
+  background: #f8f9fd;
+  color: #85899b;
   font-size: 11px;
   text-align: center;
 }
 .quota-empty-note.error {
   border: none;
-  background: #fff5f5;
+  background: #fef2f2;
   color: #b91c1c;
 }
 
@@ -414,10 +426,10 @@
   justify-content: space-between;
   gap: 6px;
   margin-top: 8px;
-  padding-top: 4px;
-  border-top: none;
+  padding-top: 6px;
+  border-top: 1px solid #e9eaf0;
   font-size: 10px;
-  color: #94a3b8;
+  color: #a0a3b1;
 }
 .quota-footer-updated {
   display: flex;
@@ -430,8 +442,8 @@
 .quota-footer-disabled-tag {
   display: inline-block;
   padding: 1px 5px;
-  border-radius: 3px;
-  background: #fee2e2;
+  border-radius: 4px;
+  background: #fef2f2;
   color: #b91c1c;
   font-size: 9px;
   font-weight: 700;
@@ -444,29 +456,29 @@
   line-height: 1.45;
 }
 .quota-skeleton-list { display: grid; gap: 20px; }
-.quota-skeleton-section { min-width: 0; padding: 20px; border-radius: 14px; background: #ffffff; display: grid; gap: 16px; }
+.quota-skeleton-section { min-width: 0; padding: 20px; border-radius: 11px; background: #ffffff; border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); display: grid; gap: 16px; }
 .quota-skeleton-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .quota-skeleton-title { width: 140px; height: 20px; border-radius: 6px; }
 .quota-skeleton-badge { width: 84px; height: 22px; border-radius: 999px; }
-.quota-skeleton-card { display: flex; flex-direction: column; min-width: 0; gap: 10px; padding: 13px; border-radius: 12px; background: #f1f3f9; }
+.quota-skeleton-card { display: flex; flex-direction: column; min-width: 0; gap: 10px; padding: 13px; border-radius: 11px; background: #ffffff; border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); }
 .quota-skeleton-card-header { display: flex; align-items: center; gap: 8px; }
 .quota-skeleton-avatar { width: 28px; height: 28px; flex: 0 0 28px; border-radius: 7px; }
 .quota-skeleton-lines { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-width: 0; }
 .quota-skeleton-line-title { width: 65%; height: 13px; border-radius: 4px; }
 .quota-skeleton-line-sub { width: 45%; height: 10px; border-radius: 4px; }
-.quota-skeleton-meter { display: flex; flex-direction: column; gap: 8px; padding: 8px 9px; border-radius: 8px; background: #ffffff; }
+.quota-skeleton-meter { display: flex; flex-direction: column; gap: 8px; padding: 8px 9px; border-radius: 8px; background: #f8f9fd; }
 .quota-skeleton-meter-val { width: 50%; height: 14px; border-radius: 4px; }
 .quota-skeleton-meter-track { width: 100%; height: 6px; border-radius: 999px; }
 .quota-skeleton-footer { width: 40%; height: 10px; border-radius: 4px; margin-top: 4px; }
 
-.quota-empty-state { display: flex; align-items: center; gap: 14px; padding: 24px; border: 1px dashed #cbd5e1; border-radius: 12px; background: #ffffff; }
-.quota-empty-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; color: #ea580c; background: #ffedd5; }
-.quota-empty-state h2 { margin: 0 0 4px; color: #0f172a; font: 700 14px var(--font-heading); }
-.quota-empty-state p { margin: 0; color: #64748b; font-size: 12px; line-height: 1.5; }
+.quota-empty-state { display: flex; align-items: center; gap: 14px; padding: 24px; border: 2px solid var(--ink); border-radius: 11px; background: #ffffff; box-shadow: 3px 3px 0 var(--ink); }
+.quota-empty-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; color: #ea580c; background: #ffedd5; border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+.quota-empty-state h2 { margin: 0 0 4px; color: #33374b; font: 700 14px var(--font-heading); }
+.quota-empty-state p { margin: 0; color: #85899b; font-size: 12px; line-height: 1.5; }
 .quota-empty-state .primary-button { margin-left: auto; flex: 0 0 auto; }
-.quota-empty-credentials { padding: 20px; border: 1px dashed #cbd5e1; border-radius: 10px; color: #64748b; font-size: 12px; text-align: center; }
+.quota-empty-credentials { padding: 20px; border: 2px dashed #d9dae3; border-radius: 10px; background: #f8f9fd; color: #85899b; font-size: 12px; text-align: center; }
 .quota-pagination { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
-.quota-pagination > span { color: #64748b; font-size: 12px; text-align: center; }
+.quota-pagination > span { color: #85899b; font-size: 12px; text-align: center; }
 
 @media (max-width: 1400px) {
   .quota-credential-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
