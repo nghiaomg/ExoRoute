@@ -184,7 +184,15 @@ fn zen_model_protocol(model: &str) -> Option<UpstreamProtocol> {
         | "ling-3.0-flash-fin-free"
         | "nemotron-3-ultra-free"
         | "nemotron-3.5-lightning-free" => ChatCompletions,
+        _ if model.starts_with("muse-spark") => Responses,
+        _ if is_opencode_free_tier_model(model) => ChatCompletions,
         _ => return None,
     };
     Some(protocol)
+}
+
+pub(crate) fn is_opencode_free_tier_model(model: &str) -> bool {
+    let clean = model.split('(').next().unwrap_or(model).trim();
+    let base = clean.split('/').next_back().unwrap_or(clean);
+    base.ends_with("-free")
 }

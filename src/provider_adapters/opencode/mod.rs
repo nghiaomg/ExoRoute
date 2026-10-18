@@ -175,7 +175,12 @@ impl ProviderAdapter for OpenCodeZenAdapter {
             // seed, so a retry or a later turn of one conversation reuses the
             // same upstream session. These headers are applied after the caller
             // headers, which is what makes the session canonical.
-            let headers = fingerprint_headers(context.auth.session_id, context.request_id);
+            let mut headers = fingerprint_headers(context.auth.session_id, context.request_id);
+            if routing::is_opencode_free_tier_model(context.model)
+                && let Ok(value) = http::HeaderValue::from_str("Bearer public")
+            {
+                headers.insert(http::header::AUTHORIZATION, value);
+            }
             apply_fingerprint_tools(body, context.auth.protocol);
             Ok(AdapterRequestPreparation::new(headers, None, None))
         })

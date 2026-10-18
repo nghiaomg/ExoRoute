@@ -249,6 +249,7 @@ pub struct UpstreamAuthContext<'a> {
     pub oauth_auth: Option<&'a OAuthRequestAuth>,
     pub session_id: &'a str,
     pub protocol: UpstreamProtocol,
+    pub model: Option<&'a str>,
 }
 
 /// Adapter-specific work that must happen after request conversion but before

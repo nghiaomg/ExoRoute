@@ -148,28 +148,44 @@ pub(super) fn apply_opencode_auth(
             "OpenCode providers use API keys and do not support OAuth credentials".to_owned(),
         );
     }
-    let Some(secret) = auth.secret else {
-        return Err("OpenCode provider API key is missing".to_owned());
+    let is_free_model = zen
+        && auth
+            .model
+            .is_some_and(super::routing::is_opencode_free_tier_model);
+    let secret = if is_free_model {
+        "public"
+    } else {
+        let Some(secret) = auth.secret else {
+            return Err("OpenCode provider API key is missing".to_owned());
+        };
+        if auth.auth_type != "bearer" {
+            return Err("OpenCode provider requires Bearer API-key authentication".to_owned());
+        }
+        secret
     };
-    if auth.auth_type != "bearer" {
-        return Err("OpenCode provider requires Bearer API-key authentication".to_owned());
-    }
     if !zen {
         let session = valid_opencode_session_value(auth.session_id)
             .ok_or("OpenCode Go provider session ID is invalid")?;
         request = request.header("x-opencode-session", session);
     }
-    match auth.protocol {
-        UpstreamProtocol::Messages => {
-            request = request.header("x-api-key", secret);
-        }
-        UpstreamProtocol::Responses if zen => {
-            request = request.header("x-api-key", secret);
-        }
-        UpstreamProtocol::ChatCompletions
-        | UpstreamProtocol::Responses
-        | UpstreamProtocol::GoogleGenerateContent => {
-            request = request.bearer_auth(secret);
+    if is_free_model {
+        // Free-tier models are gated behind the attested free-tier identity even
+        // on the keyed lane: a real oc_sk_* key answers 403 / 500, while Bearer public
+        // + session/request ids succeed. Paid models keep the connection key untouched.
+        request = request.bearer_auth(secret);
+    } else {
+        match auth.protocol {
+            UpstreamProtocol::Messages => {
+                request = request.header("x-api-key", secret);
+            }
+            UpstreamProtocol::Responses if zen => {
+                request = request.header("x-api-key", secret);
+            }
+            UpstreamProtocol::ChatCompletions
+            | UpstreamProtocol::Responses
+            | UpstreamProtocol::GoogleGenerateContent => {
+                request = request.bearer_auth(secret);
+            }
         }
     }
     Ok(request)

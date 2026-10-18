@@ -92,6 +92,7 @@ async fn prepare_workspace_request<A: ProviderAdapter + ?Sized>(
                 oauth_auth: request.oauth_auth,
                 session_id: "workspace-chat",
                 protocol: request.protocol.into(),
+                model: None,
             },
         )
         .map_err(|message| AdapterRequestError::new(None, None, message))?;

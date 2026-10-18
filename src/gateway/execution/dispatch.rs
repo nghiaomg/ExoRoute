@@ -69,6 +69,7 @@ pub(super) async fn dispatch_target(
                     oauth_auth: oauth_auth.as_ref(),
                     session_id: &attempt.scope.adapter_session_id,
                     protocol: attempt.upstream_protocol,
+                    model: Some(attempt.target_model),
                 },
             },
             &mut attempt.upstream_body,
