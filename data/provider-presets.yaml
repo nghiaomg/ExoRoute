@@ -81,6 +81,102 @@ providers:
       event_stream_response: false
       auth_panel: kilocode
 
+  - id: qoder
+    adapter_id: qoder
+    name: Qoder
+    description: Sign in with a Qoder account using device authorization flow.
+    category: oauth
+    labels: []
+    default_base_url: https://api3.qoder.sh
+    default_logo_url: null
+    default_model_prefix: qd
+    default_models:
+      - ultimate
+      - auto
+      - performance
+      - efficient
+      - lite
+      - qmodel_38max
+      - qmodel_latest
+      - qmodel
+      - qfmodel
+      - kmodel_latest
+      - kmodel
+      - gmodel
+      - gfmodel
+      - dmodel
+      - dfmodel
+      - mmodel
+    default_auth_type: qoder_oauth
+    supported_auth_types:
+      - qoder_oauth
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: false
+      oauth_accounts: true
+      local_usage_meter: false
+      model_discovery: false
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: true
+      event_stream_response: false
+      auth_panel: qoder
+
+  - id: qoder_cn
+    adapter_id: qoder-cn
+    name: Qoder CN
+    description: Sign in with a Qoder China account using device authorization flow.
+    category: oauth
+    labels: []
+    default_base_url: https://gateway.qoder.com.cn
+    default_logo_url: null
+    default_model_prefix: qdcn
+    default_models:
+      - ultimate
+      - auto
+      - performance
+      - efficient
+      - lite
+      - qmodel_38max
+      - qmodel_latest
+      - qmodel
+      - qfmodel
+      - kmodel_latest
+      - kmodel
+      - gmodel
+      - gfmodel
+      - dmodel
+      - dfmodel
+      - mmodel
+    default_auth_type: qoder_oauth
+    supported_auth_types:
+      - qoder_oauth
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: false
+      oauth_accounts: true
+      local_usage_meter: false
+      model_discovery: false
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: true
+      event_stream_response: false
+      auth_panel: qoder
+
   - id: openai_codex
     adapter_id: openai_codex
     name: OpenAI Codex
