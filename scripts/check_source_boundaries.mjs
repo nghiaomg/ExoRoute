@@ -70,6 +70,7 @@ const providerModules = [
   'nvidia_nim',
   'opencode',
   'openrouter',
+  'qoder',
 ];
 
 for (const provider of providerModules) {

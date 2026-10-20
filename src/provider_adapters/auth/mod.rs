@@ -10,3 +10,4 @@ pub(crate) mod codex;
 pub(crate) mod kilocode;
 pub(crate) mod muse;
 pub(crate) mod panels;
+pub(crate) mod qoder;
