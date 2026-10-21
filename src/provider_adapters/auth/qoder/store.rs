@@ -198,9 +198,7 @@ pub(crate) async fn account_for_use(
         })
         .await
         .map_err(|_| "could not load the Qoder account".to_owned())?
-        .ok_or_else(|| {
-            "Qoder account was removed, disabled, or needs reconnecting".to_owned()
-        })?;
+        .ok_or_else(|| "Qoder account was removed, disabled, or needs reconnecting".to_owned())?;
     if stored.len() > MAX_ACCOUNT_BYTES {
         return Err("stored Qoder account data exceeded its size limit".to_owned());
     }
@@ -212,6 +210,5 @@ pub(crate) async fn account_for_use(
     }
     let value: Value = serde_json::from_str(&serialized)
         .map_err(|_| "stored Qoder account data is invalid".to_owned())?;
-    QoderAccount::decode(&value)
-        .map_err(|_| "stored Qoder account data is invalid".to_owned())
+    QoderAccount::decode(&value).map_err(|_| "stored Qoder account data is invalid".to_owned())
 }

@@ -1,7 +1,9 @@
 use super::*;
 use crate::{
     infra::storage::{StorageError, Table},
-    provider_adapters::{AdapterOAuthAccount, QODER_ADAPTER_ID, QODER_CN_ADAPTER_ID, save_oauth_account},
+    provider_adapters::{
+        AdapterOAuthAccount, QODER_ADAPTER_ID, QODER_CN_ADAPTER_ID, save_oauth_account,
+    },
     state::AppState,
     support::test_support::{ProviderSeed, TestDatabase, seed_provider},
 };
@@ -146,7 +148,9 @@ async fn saving_an_account_stores_and_encrypts_credential() {
         .expect("db read")
         .expect("key id");
 
-    let loaded = account_for_use(&state, &key_id).await.expect("account for use");
+    let loaded = account_for_use(&state, &key_id)
+        .await
+        .expect("account for use");
     assert_eq!(loaded.access_token, "dt-valid-token-1");
     assert_eq!(loaded.email.as_deref(), Some("user@example.com"));
 
@@ -160,7 +164,9 @@ async fn saving_an_account_stores_and_encrypts_credential() {
     .await
     .expect("save account reconnect");
 
-    let updated = account_for_use(&state, &key_id).await.expect("account for use updated");
+    let updated = account_for_use(&state, &key_id)
+        .await
+        .expect("account for use updated");
     assert_eq!(updated.access_token, "dt-valid-token-2");
 }
 
@@ -194,6 +200,8 @@ async fn saving_account_works_for_qoder_cn_adapter() {
         .expect("db read")
         .expect("key id");
 
-    let loaded = account_for_use(&state, &key_id).await.expect("account for use");
+    let loaded = account_for_use(&state, &key_id)
+        .await
+        .expect("account for use");
     assert_eq!(loaded.access_token, "dt-valid-cn-token");
 }

@@ -1,4 +1,6 @@
-use super::device::{decode_device_code, encode_device_code, start_authorization, QoderDeviceContext};
+use super::device::{
+    QoderDeviceContext, decode_device_code, encode_device_code, start_authorization,
+};
 use super::*;
 
 #[test]
@@ -137,19 +139,31 @@ fn client_headers_and_auth_are_applied_correctly() {
         .expect("apply request auth");
     let built = request.build().expect("build request");
     assert_eq!(
-        built.headers().get("authorization").and_then(|h| h.to_str().ok()),
+        built
+            .headers()
+            .get("authorization")
+            .and_then(|h| h.to_str().ok()),
         Some("Bearer dt-test-access-token")
     );
     assert_eq!(
-        built.headers().get(QODER_IDE_VERSION_HEADER).and_then(|h| h.to_str().ok()),
+        built
+            .headers()
+            .get(QODER_IDE_VERSION_HEADER)
+            .and_then(|h| h.to_str().ok()),
         Some(QODER_IDE_VERSION)
     );
     assert_eq!(
-        built.headers().get(QODER_CLIENT_TYPE_HEADER).and_then(|h| h.to_str().ok()),
+        built
+            .headers()
+            .get(QODER_CLIENT_TYPE_HEADER)
+            .and_then(|h| h.to_str().ok()),
         Some(QODER_CLIENT_TYPE)
     );
     assert_eq!(
-        built.headers().get(QODER_LOGIN_VERSION_HEADER).and_then(|h| h.to_str().ok()),
+        built
+            .headers()
+            .get(QODER_LOGIN_VERSION_HEADER)
+            .and_then(|h| h.to_str().ok()),
         Some(QODER_LOGIN_VERSION)
     );
 }
@@ -218,7 +232,11 @@ async fn discover_oauth_models_falls_back_to_preset_models_when_upstream_unsuppo
                 "email:test@qoder.com",
             )?;
             let item = tx
-                .scan_prefix::<String>(crate::infra::storage::Table::ProviderApiKeyIndex, &prefix, 1)?
+                .scan_prefix::<String>(
+                    crate::infra::storage::Table::ProviderApiKeyIndex,
+                    &prefix,
+                    1,
+                )?
                 .into_iter()
                 .map(|(_, id)| id)
                 .next();
@@ -291,7 +309,11 @@ async fn discover_oauth_models_parses_live_models_from_upstream() {
                 "email:live@qoder.com",
             )?;
             let item = tx
-                .scan_prefix::<String>(crate::infra::storage::Table::ProviderApiKeyIndex, &prefix, 1)?
+                .scan_prefix::<String>(
+                    crate::infra::storage::Table::ProviderApiKeyIndex,
+                    &prefix,
+                    1,
+                )?
                 .into_iter()
                 .map(|(_, id)| id)
                 .next();
@@ -306,5 +328,167 @@ async fn discover_oauth_models_parses_live_models_from_upstream() {
         .await
         .expect("discover models");
 
-    assert_eq!(models, vec!["qmodel-live-1".to_owned(), "qmodel-live-2".to_owned()]);
+    assert_eq!(
+        models,
+        vec!["qmodel-live-1".to_owned(), "qmodel-live-2".to_owned()]
+    );
+}
+
+#[tokio::test]
+async fn test_qoder_oauth_model_passes_for_supported_model_with_userinfo() {
+    let (address, _server) = crate::support::mock_upstream::spawn_mock_http_server(vec![
+        crate::support::mock_upstream::MockResponse::json(
+            200,
+            br#"{"id":"user-1","name":"Qoder Tester","email":"tester@qoder.com"}"#.to_vec(),
+        ),
+    ])
+    .await;
+
+    let database = crate::support::test_support::TestDatabase::open().await;
+    let mut config = database.config();
+    config.master_key = Some([48_u8; 32]);
+    config.allow_private_provider_urls = true;
+    let state = AppState::new(config, database.db.clone());
+    crate::support::test_support::seed_provider(
+        &database.db,
+        crate::support::test_support::ProviderSeed {
+            id: "qoder-p3",
+            name: "Qoder",
+            base_url: &format!("http://{address}"),
+            adapter_id: QODER_ADAPTER_ID,
+            auth_type: "qoder_oauth",
+            model_prefix: "qd",
+            preferred_protocol: "chat_completions",
+            supported_protocols: &["chat_completions"],
+        },
+    )
+    .await
+    .expect("seed provider");
+
+    qoder_oauth::save_qoder_account(
+        &state,
+        "qoder-p3",
+        AdapterOAuthAccount {
+            payload: serde_json::json!({
+                "token": "dt-test-token-789",
+                "email": "tester@qoder.com",
+            }),
+            display_name: "tester@qoder.com".to_owned(),
+        },
+    )
+    .await
+    .expect("save account");
+
+    let key_id = state
+        .db
+        .read(|tx| {
+            let prefix = crate::infra::db::provider_api_key_identity_index_prefix(
+                "qoder-p3",
+                "email:tester@qoder.com",
+            )?;
+            let item = tx
+                .scan_prefix::<String>(
+                    crate::infra::storage::Table::ProviderApiKeyIndex,
+                    &prefix,
+                    1,
+                )?
+                .into_iter()
+                .map(|(_, id)| id)
+                .next();
+            Ok::<_, crate::infra::storage::StorageError>(item)
+        })
+        .await
+        .expect("read key")
+        .expect("key id");
+
+    let outcome = test_qoder_oauth_model(
+        &QODER_ADAPTER,
+        &state,
+        &format!("http://{address}"),
+        "gmodel",
+        &key_id,
+    )
+    .await;
+
+    assert!(
+        outcome.test_passed,
+        "probe should pass for supported gmodel"
+    );
+    assert_eq!(outcome.status, Some(200));
+}
+
+#[tokio::test]
+async fn test_qoder_oauth_model_fails_for_unsupported_model() {
+    let database = crate::support::test_support::TestDatabase::open().await;
+    let mut config = database.config();
+    config.master_key = Some([49_u8; 32]);
+    config.allow_private_provider_urls = true;
+    let state = AppState::new(config, database.db.clone());
+    crate::support::test_support::seed_provider(
+        &database.db,
+        crate::support::test_support::ProviderSeed {
+            id: "qoder-p4",
+            name: "Qoder",
+            base_url: "https://api3.qoder.sh",
+            adapter_id: QODER_ADAPTER_ID,
+            auth_type: "qoder_oauth",
+            model_prefix: "qd",
+            preferred_protocol: "chat_completions",
+            supported_protocols: &["chat_completions"],
+        },
+    )
+    .await
+    .expect("seed provider");
+
+    qoder_oauth::save_qoder_account(
+        &state,
+        "qoder-p4",
+        AdapterOAuthAccount {
+            payload: serde_json::json!({
+                "token": "dt-test-token-000",
+                "email": "unsupported@qoder.com",
+            }),
+            display_name: "unsupported@qoder.com".to_owned(),
+        },
+    )
+    .await
+    .expect("save account");
+
+    let key_id = state
+        .db
+        .read(|tx| {
+            let prefix = crate::infra::db::provider_api_key_identity_index_prefix(
+                "qoder-p4",
+                "email:unsupported@qoder.com",
+            )?;
+            let item = tx
+                .scan_prefix::<String>(
+                    crate::infra::storage::Table::ProviderApiKeyIndex,
+                    &prefix,
+                    1,
+                )?
+                .into_iter()
+                .map(|(_, id)| id)
+                .next();
+            Ok::<_, crate::infra::storage::StorageError>(item)
+        })
+        .await
+        .expect("read key")
+        .expect("key id");
+
+    let outcome = test_qoder_oauth_model(
+        &QODER_ADAPTER,
+        &state,
+        "https://api3.qoder.sh",
+        "totally-unsupported-model-xyz",
+        &key_id,
+    )
+    .await;
+
+    assert!(
+        !outcome.test_passed,
+        "probe must fail for unsupported model"
+    );
+    assert_eq!(outcome.status, Some(404));
+    assert!(outcome.message.contains("not supported by Qoder"));
 }

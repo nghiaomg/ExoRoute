@@ -139,7 +139,7 @@ pub(super) async fn poll_authorization(
         allow_local,
         connect_timeout,
         request_timeout,
-        upstream.clone(),
+        upstream,
     )
     .await?;
 

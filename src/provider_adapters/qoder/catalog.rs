@@ -60,6 +60,49 @@ pub(super) async fn discover_models(
     Err("Qoder returned no supported models".to_owned())
 }
 
+pub(super) fn is_supported_qoder_model(adapter_id: &str, model: &str) -> bool {
+    let key = model
+        .strip_prefix("qoder/")
+        .or_else(|| model.strip_prefix("qd/"))
+        .or_else(|| model.strip_prefix("qdcn/"))
+        .unwrap_or(model);
+
+    if presets::default_models(adapter_id).contains(&key) {
+        return true;
+    }
+
+    matches!(
+        key,
+        "ultimate"
+            | "auto"
+            | "performance"
+            | "efficient"
+            | "lite"
+            | "qmodel_38max"
+            | "qmodel_latest"
+            | "qmodel"
+            | "qfmodel"
+            | "kmodel_latest"
+            | "kmodel"
+            | "gmodel"
+            | "gfmodel"
+            | "dmodel"
+            | "dfmodel"
+            | "mmodel"
+            | "qwen3.8-max"
+            | "qwen3.7-max"
+            | "qwen3.7-plus"
+            | "qwen3.8-flash"
+            | "kimi-k3"
+            | "kimi-k2.7-code"
+            | "glm-5.3"
+            | "glm-5.3-flash"
+            | "deepseek-v4-pro"
+            | "deepseek-v4-flash"
+            | "minimax-m3"
+    )
+}
+
 async fn fetch_upstream_models(
     state: &AppState,
     base_url: &str,
