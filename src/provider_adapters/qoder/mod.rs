@@ -7,6 +7,7 @@
 use super::auth::qoder as qoder_oauth;
 use super::*;
 
+mod catalog;
 mod device;
 mod probe;
 #[cfg(test)]
@@ -109,6 +110,18 @@ impl ProviderAdapter for QoderAdapter {
             base_url,
             model,
             credential_id,
+        ))
+    }
+
+    fn discover_oauth_models<'a>(
+        &'a self,
+        state: &'a AppState,
+        credential_id: &'a str,
+    ) -> AdapterFuture<'a, Result<Vec<String>, String>> {
+        Box::pin(catalog::discover_models(
+            state,
+            credential_id,
+            QODER_ADAPTER_ID,
         ))
     }
 
@@ -255,6 +268,18 @@ impl ProviderAdapter for QoderCnAdapter {
             base_url,
             model,
             credential_id,
+        ))
+    }
+
+    fn discover_oauth_models<'a>(
+        &'a self,
+        state: &'a AppState,
+        credential_id: &'a str,
+    ) -> AdapterFuture<'a, Result<Vec<String>, String>> {
+        Box::pin(catalog::discover_models(
+            state,
+            credential_id,
+            QODER_CN_ADAPTER_ID,
         ))
     }
 
