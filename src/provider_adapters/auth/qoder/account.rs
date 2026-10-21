@@ -38,18 +38,15 @@ impl QoderAccount {
             .ok_or_else(|| "Qoder did not return an access token".to_owned())?;
         validate_token(token)?;
 
-        let expires_at = value
-            .get("expires_at")
-            .and_then(Value::as_u64)
-            .or_else(|| {
-                value.get("expires_in").and_then(Value::as_u64).map(|secs| {
-                    let now_ms = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64;
-                    now_ms.saturating_add(secs.saturating_mul(1000))
-                })
-            });
+        let expires_at = value.get("expires_at").and_then(Value::as_u64).or_else(|| {
+            value.get("expires_in").and_then(Value::as_u64).map(|secs| {
+                let now_ms = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64;
+                now_ms.saturating_add(secs.saturating_mul(1000))
+            })
+        });
 
         let display_name = bounded(
             value
@@ -91,7 +88,11 @@ impl QoderAccount {
     }
 
     pub(crate) fn display_name(&self) -> String {
-        if let Some(name) = self.display_name.as_deref().filter(|s| !s.trim().is_empty()) {
+        if let Some(name) = self
+            .display_name
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+        {
             return name.chars().take(256).collect();
         }
         if let Some(email) = self.email.as_deref().filter(|s| !s.trim().is_empty()) {

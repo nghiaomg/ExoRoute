@@ -92,8 +92,8 @@ impl ProviderAdapter for QoderAdapter {
         oauth_auth: Option<&OAuthRequestAuth>,
         _session_id: &str,
     ) -> Result<reqwest::RequestBuilder, String> {
-        let account = oauth_auth
-            .ok_or_else(|| "Qoder requires a connected Qoder account".to_owned())?;
+        let account =
+            oauth_auth.ok_or_else(|| "Qoder requires a connected Qoder account".to_owned())?;
         Ok(request.bearer_auth(&account.access_token))
     }
 
@@ -178,11 +178,7 @@ impl ProviderAdapter for QoderAdapter {
         provider_id: &'a str,
         account: AdapterOAuthAccount,
     ) -> AdapterFuture<'a, Result<(), String>> {
-        Box::pin(qoder_oauth::save_qoder_account(
-            state,
-            provider_id,
-            account,
-        ))
+        Box::pin(qoder_oauth::save_qoder_account(state, provider_id, account))
     }
 }
 
@@ -250,8 +246,8 @@ impl ProviderAdapter for QoderCnAdapter {
         oauth_auth: Option<&OAuthRequestAuth>,
         _session_id: &str,
     ) -> Result<reqwest::RequestBuilder, String> {
-        let account = oauth_auth
-            .ok_or_else(|| "Qoder CN requires a connected Qoder account".to_owned())?;
+        let account =
+            oauth_auth.ok_or_else(|| "Qoder CN requires a connected Qoder account".to_owned())?;
         Ok(request.bearer_auth(&account.access_token))
     }
 
@@ -336,17 +332,13 @@ impl ProviderAdapter for QoderCnAdapter {
         provider_id: &'a str,
         account: AdapterOAuthAccount,
     ) -> AdapterFuture<'a, Result<(), String>> {
-        Box::pin(qoder_oauth::save_qoder_account(
-            state,
-            provider_id,
-            account,
-        ))
+        Box::pin(qoder_oauth::save_qoder_account(state, provider_id, account))
     }
 }
 
 pub(super) fn qoder_url(base_url: &str, endpoint: &str) -> Result<reqwest::Url, String> {
-    let mut url = reqwest::Url::parse(base_url)
-        .map_err(|_| "Qoder provider URL is invalid".to_owned())?;
+    let mut url =
+        reqwest::Url::parse(base_url).map_err(|_| "Qoder provider URL is invalid".to_owned())?;
     let mut path = url.path().trim_end_matches('/').to_owned();
     for suffix in ["/chat/completions", "/models"] {
         if let Some(root) = path.strip_suffix(suffix) {
