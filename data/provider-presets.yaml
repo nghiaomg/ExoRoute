@@ -118,7 +118,7 @@ providers:
       api_keys: false
       oauth_accounts: true
       local_usage_meter: false
-      model_discovery: false
+      model_discovery: true
       usage_limits: false
       api_key_usage: false
       api_key_usage_status: unsupported
@@ -166,7 +166,7 @@ providers:
       api_keys: false
       oauth_accounts: true
       local_usage_meter: false
-      model_discovery: false
+      model_discovery: true
       usage_limits: false
       api_key_usage: false
       api_key_usage_status: unsupported
