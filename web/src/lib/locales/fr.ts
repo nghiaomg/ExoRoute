@@ -1709,4 +1709,9 @@ export const fr: Catalog = {
   "Success rate in each column that served a request.": "Taux de réussite dans chaque colonne ayant servi des requêtes.",
   "Failed requests in each column of the selected period.": "Requêtes en échec dans chaque colonne de la période sélectionnée.",
   "Average latency in each column that served a request.": "Latence moyenne dans chaque colonne ayant servi des requêtes.",
+  'Mask columns': 'Masquer les colonnes',
+  'Mask column values': 'Masquer les valeurs de colonne',
+  'Hide sensitive names with asterisks (max 3 *)': 'Masquer les noms sensibles par des astérisques (max 3 *)',
+  'Mask all': 'Tout masquer',
+  'Masked': 'Masqué',
 };
