@@ -2,7 +2,9 @@
   import type { Translate } from '../../lib/format';
   import type { Locale } from '../../lib/i18n';
   import type { RequestLiveRow, RequestLog } from '../../lib/types';
+  import { EyeOff } from '@lucide/svelte';
   import RequestTableRow from './RequestTableRow.svelte';
+  import { DEFAULT_MASKED_COLUMNS, type MaskedColumnsState } from './request.mask';
   import { requestRowKey } from './request.metrics';
 
   // The table owns the sticky header, the scroll shell, and the row list. The
@@ -14,6 +16,7 @@
   export let liveClockMs: number = Date.now();
   export let slowestDurationMs: number | null = null;
   export let selectedKey: string | null = null;
+  export let maskedColumns: MaskedColumnsState = DEFAULT_MASKED_COLUMNS;
   export let onSelect: (request: RequestLog | RequestLiveRow) => void = () => {};
   export let onViewError: (request: RequestLog | RequestLiveRow) => void = () => {};
 </script>
@@ -23,10 +26,10 @@
     <thead>
       <tr>
         <th>{tr('TIME')}</th>
-        <th>{tr('API KEY')}</th>
-        <th>{tr('MODEL')}</th>
-        <th>{tr('ALIAS / COMBO')}</th>
-        <th>{tr('PROVIDER')}</th>
+        <th><span class="req-th-label">{tr('API KEY')}{#if maskedColumns.key}<EyeOff size={11} class="req-th-masked" />{/if}</span></th>
+        <th><span class="req-th-label">{tr('MODEL')}{#if maskedColumns.model}<EyeOff size={11} class="req-th-masked" />{/if}</span></th>
+        <th><span class="req-th-label">{tr('ALIAS / COMBO')}{#if maskedColumns.alias}<EyeOff size={11} class="req-th-masked" />{/if}</span></th>
+        <th><span class="req-th-label">{tr('PROVIDER')}{#if maskedColumns.provider}<EyeOff size={11} class="req-th-masked" />{/if}</span></th>
         <th>{tr('DURATION')}</th>
         <th>{tr('TOKENS')}</th>
         <th>{tr('STATUS')}</th>
@@ -42,6 +45,7 @@
           {liveClockMs}
           {slowestDurationMs}
           selected={selectedKey === requestRowKey(request)}
+          {maskedColumns}
           {onSelect}
           {onViewError}
         />
@@ -80,6 +84,17 @@
     text-align: left;
   }
 
+  .req-th-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  :global(.req-th-masked) {
+    color: #2563eb;
+  }
+  :global(:root[data-theme='dark']) :global(.req-th-masked) {
+    color: #93c5fd;
+  }
   .request-table-card thead th {
     position: sticky;
     top: 0;

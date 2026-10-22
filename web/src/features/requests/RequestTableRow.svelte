@@ -19,6 +19,7 @@
     requestOutcome,
     tokenRatio,
   } from './request.metrics';
+  import { DEFAULT_MASKED_COLUMNS, maskTextValue, type MaskedColumnsState } from './request.mask';
 
   export let tr: Translate;
   export let locale: Locale;
@@ -26,6 +27,7 @@
   export let liveClockMs: number;
   export let slowestDurationMs: number | null = null;
   export let selected = false;
+  export let maskedColumns: MaskedColumnsState = DEFAULT_MASKED_COLUMNS;
   export let onSelect: (request: RequestLog | RequestLiveRow) => void = () => {};
   export let onViewError: (request: RequestLog | RequestLiveRow) => void = () => {};
 
@@ -54,6 +56,18 @@
   $: ratio = tokenRatio(request.input_tokens, request.output_tokens);
   $: cachedTokens = request.cached_tokens ?? 0;
   $: tokenUsageLabel = `${tr('Input tokens')}: ${formatTokenCount(request.input_tokens, locale)} / ${tr('Output tokens')}: ${formatTokenCount(request.output_tokens, locale)}`;
+  $: isModelMasked = maskedColumns.model;
+  $: isProviderMasked = maskedColumns.provider;
+  $: isAliasMasked = maskedColumns.alias;
+  $: isKeyMasked = maskedColumns.key;
+  $: displayKeyName = isKeyMasked ? maskTextValue(request.api_key_name ?? request.api_key_id) : (request.api_key_name ?? tr('Unknown key'));
+  $: titleKeyName = isKeyMasked ? '***' : (request.api_key_name ?? request.api_key_id ?? tr('Unknown key'));
+  $: displayModel = isModelMasked ? maskTextValue(request.model) : request.model;
+  $: titleModel = isModelMasked ? '***' : request.model;
+  $: displayAlias = isAliasMasked ? maskTextValue(request.route_alias) : request.route_alias;
+  $: titleAlias = isAliasMasked ? (request.route_alias ? '***' : '') : (request.route_alias ?? '');
+  $: displayProvider = isProviderMasked ? maskTextValue(request.provider_id) : request.provider_id;
+  $: titleProvider = isProviderMasked ? (request.provider_id ? '***' : '') : (request.provider_id ?? '');
 
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -77,32 +91,32 @@
   onkeydown={handleKeydown}
 >
   <td class="req-time muted-cell">{formatDate(requestCreatedAt(request), locale)}</td>
-  <td class="req-key" title={request.api_key_name ?? request.api_key_id ?? tr('Unknown key')}>
+  <td class="req-key" title={titleKeyName}>
     <span class="strong-cell">
-      {request.api_key_name ?? tr('Unknown key')}
+      {displayKeyName}
     </span>
   </td>
-  <td class="req-model" title={request.model}>
-    {#if modelLogo}
+  <td class="req-model" title={titleModel}>
+    {#if !isModelMasked && modelLogo}
       <span class="req-model-logo" aria-hidden="true">
         <img src={modelLogo} alt="" loading="lazy" referrerpolicy="no-referrer" />
       </span>
     {:else}
-      <span class="req-model-monogram" style="--request-accent: {accent}" aria-hidden="true">{monogram}</span>
+      <span class="req-model-monogram" style="--request-accent: {isModelMasked ? '#8e93aa' : accent}" aria-hidden="true">{isModelMasked ? '***' : monogram}</span>
     {/if}
-    <span class="req-model-name strong-cell">{request.model}</span>
+    <span class="req-model-name strong-cell">{displayModel}</span>
   </td>
-  <td class="req-alias" title={request.route_alias ?? ''}>
+  <td class="req-alias" title={titleAlias}>
     {#if request.route_alias}
-      <span class="req-alias-pill">{request.route_alias}</span>
+      <span class="req-alias-pill">{displayAlias}</span>
     {:else}
       <span class="muted-cell">—</span>
     {/if}
   </td>
-  <td class="req-provider" title={request.provider_id ?? ''}>
+  <td class="req-provider" title={titleProvider}>
     {#if request.provider_id}
-      <span class="req-provider-dot" style="--request-accent: {accent}" aria-hidden="true"></span>
-      <span class="req-provider-name">{request.provider_id}</span>
+      <span class="req-provider-dot" style="--request-accent: {isProviderMasked ? '#8e93aa' : accent}" aria-hidden="true"></span>
+      <span class="req-provider-name">{displayProvider}</span>
     {:else}
       <span class="muted-cell">{live ? tr('Routing…') : '—'}</span>
     {/if}
