@@ -98,6 +98,7 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
         "codex_oauth",
         "antigravity_oauth",
         "kilocode_oauth",
+        "qoder_oauth",
     ];
     const PROTOCOLS: &[&str] = &[
         "chat_completions",
@@ -240,7 +241,7 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
         if let Some(panel) = capabilities.auth_panel.as_deref()
             && !matches!(
                 panel,
-                "openai_codex" | "command_code" | "cline" | "kilocode" | "muse"
+                "openai_codex" | "command_code" | "cline" | "kilocode" | "muse" | "qoder"
             )
         {
             return Err(format!(
