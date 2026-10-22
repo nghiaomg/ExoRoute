@@ -1707,4 +1707,9 @@ export const vi: Record<TranslationKey, string> = {
   'Success rate in each column that served a request.': 'Tỷ lệ thành công trong mỗi cột có phục vụ yêu cầu.',
   'Failed requests in each column of the selected period.': 'Số yêu cầu lỗi trong mỗi cột của giai đoạn đã chọn.',
   'Average latency in each column that served a request.': 'Độ trễ trung bình trong mỗi cột có phục vụ yêu cầu.',
+  'Mask columns': 'Ẩn cột',
+  'Mask column values': 'Ẩn giá trị các cột',
+  'Hide sensitive names with asterisks (max 3 *)': 'Ẩn tên nhạy cảm bằng dấu hoa thị (tối đa 3 *)',
+  'Mask all': 'Ẩn tất cả',
+  'Masked': 'Đã ẩn',
 };

@@ -1709,4 +1709,9 @@ export const ko: Catalog = {
   "Success rate in each column that served a request.": "요청을 처리한 각 열의 성공률입니다.",
   "Failed requests in each column of the selected period.": "선택한 기간의 각 열에 있는 실패 요청 수입니다.",
   "Average latency in each column that served a request.": "요청을 처리한 각 열의 평균 지연 시간입니다.",
+  'Mask columns': '열 마스킹',
+  'Mask column values': '열 값 마스킹',
+  'Hide sensitive names with asterisks (max 3 *)': '민감한 이름을 별표로 숨기기 (최대 3개 *)',
+  'Mask all': '모두 마스킹',
+  'Masked': '마스킹됨',
 };

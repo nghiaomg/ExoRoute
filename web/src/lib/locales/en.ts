@@ -1705,4 +1705,9 @@ export const en = {
   'Success rate in each column that served a request.': 'Success rate in each column that served a request.',
   'Failed requests in each column of the selected period.': 'Failed requests in each column of the selected period.',
   'Average latency in each column that served a request.': 'Average latency in each column that served a request.',
+  'Mask columns': 'Mask columns',
+  'Mask column values': 'Mask column values',
+  'Hide sensitive names with asterisks (max 3 *)': 'Hide sensitive names with asterisks (max 3 *)',
+  'Mask all': 'Mask all',
+  'Masked': 'Masked',
 } as const;

@@ -1709,4 +1709,9 @@ export const hi: Catalog = {
   "Success rate in each column that served a request.": "अनुरोध पूरा करने वाले हर स्तंभ की सफलता दर।",
   "Failed requests in each column of the selected period.": "चुनी गई अवधि के हर स्तंभ में विफल अनुरोध।",
   "Average latency in each column that served a request.": "अनुरोध पूरा करने वाले हर स्तंभ की औसत विलंबता।",
+  'Mask columns': 'कॉलम छिपाएं',
+  'Mask column values': 'कॉलम मान छिपाएं',
+  'Hide sensitive names with asterisks (max 3 *)': 'संवेदनशील नामों को तारांकन से छिपाएं (अधिकतम 3 *)',
+  'Mask all': 'सभी छिपाएं',
+  'Masked': 'छिपा हुआ',
 };
