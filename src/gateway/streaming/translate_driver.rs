@@ -73,7 +73,7 @@ pub(in crate::gateway::streaming) fn translation_stream(
                 drop(frame_permit);
                 continue 'read_stream;
             }
-            let Ok(value) = serde_json::from_str::<Value>(&data) else {
+            let Ok(mut value) = serde_json::from_str::<Value>(&data) else {
                 drop(data);
                 drop(frame_permit);
                 let error = "upstream sent malformed SSE JSON".to_owned();
@@ -81,6 +81,42 @@ pub(in crate::gateway::streaming) fn translation_stream(
                 terminal = StreamTerminal::Error(error);
                 break 'read_stream;
             };
+
+            // Unwrap upstream SSE envelope (e.g. Qoder: {"statusCodeValue": 200, "body": "..."})
+            if let Some(status_val) = value.get("statusCodeValue").and_then(Value::as_i64) {
+                if status_val != 200 {
+                    drop(data);
+                    drop(frame_permit);
+                    let msg = value
+                        .get("body")
+                        .and_then(Value::as_str)
+                        .unwrap_or("upstream error");
+                    let error = format!("upstream status {status_val}: {msg}");
+                    yield Ok(Bytes::from(encode_stream_error(config.client_protocol, &error)));
+                    terminal = StreamTerminal::Error(error);
+                    break 'read_stream;
+                }
+                if let Some(body) = value.get("body") {
+                    if let Some(body_str) = body.as_str() {
+                        let trimmed = body_str.trim();
+                        if trimmed == "[DONE]" {
+                            drop(frame_permit);
+                            if config.upstream_protocol == UpstreamProtocol::ChatCompletions {
+                                state.completed = true;
+                                terminal = StreamTerminal::Completed;
+                                break 'read_stream;
+                            }
+                            continue 'read_stream;
+                        }
+                        if let Ok(inner) = serde_json::from_str::<Value>(trimmed) {
+                            value = inner;
+                        }
+                    } else if body.is_object() {
+                        value = body.clone();
+                    }
+                }
+            }
+
             let frame = StreamFrame { event_name, value };
             let mut frame_output = Vec::<Bytes>::with_capacity(3);
             let result = match config.upstream_protocol {
