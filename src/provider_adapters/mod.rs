@@ -35,6 +35,7 @@ mod nvidia_nim;
 mod opencode;
 mod openrouter;
 mod presets;
+mod qoder;
 mod registry;
 mod usage;
 mod workspace_relay;
@@ -84,6 +85,8 @@ pub const NVIDIA_NIM_ADAPTER_ID: &str = "nvidia_nim";
 pub const ANTIGRAVITY_ADAPTER_ID: &str = "antigravity";
 pub const FREEBUFF_ADAPTER_ID: &str = "freebuff";
 pub const MUSE_ADAPTER_ID: &str = "muse";
+pub const QODER_ADAPTER_ID: &str = "qoder";
+pub const QODER_CN_ADAPTER_ID: &str = "qoder-cn";
 pub(super) const MAX_API_MODEL_PAGE_BYTES: usize = 4 * 1024 * 1024;
 pub(super) const MAX_API_MODELS: usize = 10_000;
 
