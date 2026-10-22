@@ -11,25 +11,20 @@ fn endpoint_construction_resolves_chat_and_models_urls() {
             .endpoint("https://api3.qoder.sh", Protocol::ChatCompletions, None)
             .expect("chat endpoint")
             .as_str(),
-        "https://api3.qoder.sh/v1/chat/completions"
+        "https://api3.qoder.sh/algo/api/v2/service/pro/sse/agent_chat_generation?FetchKeys=llm_model_result&AgentId=agent_common"
     );
     assert_eq!(
         adapter
-            .endpoint("https://api3.qoder.sh/v1", Protocol::ChatCompletions, None)
-            .expect("chat endpoint")
-            .as_str(),
-        "https://api3.qoder.sh/v1/chat/completions"
-    );
-    assert_eq!(
-        adapter
-            .endpoint(
-                "https://api3.qoder.sh/v1/chat/completions",
-                Protocol::ChatCompletions,
+            .upstream_endpoint(
+                "https://api3.qoder.sh",
+                UpstreamProtocol::ChatCompletions,
+                "dmodel",
+                true,
                 None
             )
-            .expect("chat endpoint")
+            .expect("upstream endpoint")
             .as_str(),
-        "https://api3.qoder.sh/v1/chat/completions"
+        "https://api3.qoder.sh/algo/api/v2/service/pro/sse/agent_chat_generation?FetchKeys=llm_model_result&AgentId=agent_common"
     );
     assert!(
         adapter
@@ -491,4 +486,82 @@ async fn test_qoder_oauth_model_fails_for_unsupported_model() {
     );
     assert_eq!(outcome.status, Some(404));
     assert!(outcome.message.contains("not supported by Qoder"));
+}
+
+#[test]
+fn cosy_header_construction_produces_valid_headers() {
+    let creds = cosy::QoderCosyCredentials {
+        user_id: "user-12345".to_owned(),
+        auth_token: "dt-token-abcde".to_owned(),
+        machine_id: "machine-uuid-1".to_owned(),
+        name: Some("Test User".to_owned()),
+        email: Some("test@example.com".to_owned()),
+    };
+    let body = b"{\"prompt\":\"hello\"}";
+    let url = "https://api3.qoder.sh/algo/api/v2/service/pro/sse/agent_chat_generation?FetchKeys=llm_model_result&AgentId=agent_common";
+    let headers =
+        cosy::build_cosy_headers(body, url, &creds, "dmodel").expect("build cosy headers");
+
+    let auth = headers
+        .get("authorization")
+        .expect("auth header")
+        .to_str()
+        .unwrap();
+    assert!(auth.starts_with("Bearer COSY."));
+    assert_eq!(headers.get("cosy-user").unwrap(), "user-12345");
+    assert_eq!(headers.get("cosy-version").unwrap(), "1.0.0");
+    assert_eq!(
+        headers.get("cosy-sigpath").unwrap(),
+        "/api/v2/service/pro/sse/agent_chat_generation"
+    );
+    assert_eq!(headers.get("x-model-key").unwrap(), "dmodel");
+    assert!(!headers.get("cosy-key").unwrap().is_empty());
+}
+
+#[test]
+fn qoder_payload_transformation_formats_messages_and_system() {
+    let body = serde_json::json!({
+        "messages": [
+            { "role": "system", "content": "You are a helpful assistant." },
+            { "role": "user", "content": "What is 2+2?" }
+        ],
+        "max_tokens": 1024
+    });
+
+    let transformed = transform::transform_to_qoder_payload(&body, "qd/dmodel", "user-123")
+        .expect("transform payload");
+
+    assert_eq!(transformed["system"], "You are a helpful assistant.");
+    let msgs = transformed["messages"].as_array().expect("messages array");
+    assert_eq!(msgs.len(), 1);
+    assert_eq!(msgs[0]["role"], "user");
+    assert_eq!(msgs[0]["content"], "What is 2+2?");
+    assert_eq!(transformed["model_config"]["key"], "dmodel");
+    assert_eq!(transformed["parameters"]["max_tokens"], 1024);
+}
+
+#[test]
+fn unwrap_qoder_envelope_extracts_inner_body_and_errors() {
+    let success_envelope = serde_json::json!({
+        "statusCodeValue": 200,
+        "body": "{\"choices\":[{\"delta\":{\"content\":\"Hello!\"}}]}"
+    });
+    let unwrapped = stream::unwrap_qoder_envelope(&success_envelope)
+        .expect("unwrap success")
+        .expect("some value");
+    assert_eq!(unwrapped["choices"][0]["delta"]["content"], "Hello!");
+
+    let done_envelope = serde_json::json!({
+        "statusCodeValue": 200,
+        "body": "[DONE]"
+    });
+    let unwrapped_done = stream::unwrap_qoder_envelope(&done_envelope).expect("unwrap done");
+    assert!(unwrapped_done.is_none());
+
+    let error_envelope = serde_json::json!({
+        "statusCodeValue": 403,
+        "body": "Daily limit exceeded"
+    });
+    let err = stream::unwrap_qoder_envelope(&error_envelope);
+    assert!(err.is_err());
 }
