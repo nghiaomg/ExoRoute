@@ -13,11 +13,13 @@
   import type { Locale } from '../../lib/i18n';
   import { isLiveRequest, type RequestLiveRow, type RequestLog } from '../../lib/types';
   import { requestOutcome } from './request.metrics';
+  import { DEFAULT_MASKED_COLUMNS, maskTextValue, type MaskedColumnsState } from './request.mask';
 
   export let tr: Translate;
   export let locale: Locale;
   export let request: RequestLog | RequestLiveRow | null = null;
   export let liveClockMs: number = Date.now();
+  export let maskedColumns: MaskedColumnsState = DEFAULT_MASKED_COLUMNS;
   export let onClose: () => void;
 
   $: live = request != null && isLiveRequest(request);
@@ -47,9 +49,9 @@
     <div class="request-drawer-body">
       <header class="request-drawer-summary">
         <div class="request-drawer-summary-main">
-          <span class="request-drawer-model" title={request.model}>{request.model}</span>
+          <span class="request-drawer-model" title={maskedColumns.model ? '***' : request.model}>{maskedColumns.model ? maskTextValue(request.model) : request.model}</span>
           <span class="request-drawer-subtitle">
-            {request.route_alias ? request.route_alias : tr('No alias')}
+            {maskedColumns.alias ? (request.route_alias ? maskTextValue(request.route_alias) : tr('No alias')) : (request.route_alias ? request.route_alias : tr('No alias'))}
           </span>
         </div>
         <span class="status-badge {statusClass}">
@@ -72,19 +74,19 @@
         </div>
         <div>
           <dt>{tr('Model')}</dt>
-          <dd title={request.model}>{request.model}</dd>
+          <dd title={maskedColumns.model ? '***' : request.model}>{maskedColumns.model ? maskTextValue(request.model) : request.model}</dd>
         </div>
         <div>
           <dt>{tr('Provider')}</dt>
-          <dd title={request.provider_id ?? ''}>{request.provider_id ?? '—'}</dd>
+          <dd title={maskedColumns.provider ? '***' : (request.provider_id ?? '')}>{maskedColumns.provider ? maskTextValue(request.provider_id) : (request.provider_id ?? '—')}</dd>
         </div>
         <div>
           <dt>{tr('Provider credential')}</dt>
-          <dd title={request.provider_credential_id ?? ''}>{request.provider_credential_id ?? '—'}</dd>
+          <dd title={maskedColumns.provider ? '***' : (request.provider_credential_id ?? '')}>{maskedColumns.provider ? maskTextValue(request.provider_credential_id) : (request.provider_credential_id ?? '—')}</dd>
         </div>
         <div>
           <dt>{tr('API key')}</dt>
-          <dd title={request.api_key_id ?? ''}>{request.api_key_name ?? request.api_key_id ?? tr('Unknown key')}</dd>
+          <dd title={maskedColumns.key ? '***' : (request.api_key_id ?? '')}>{maskedColumns.key ? maskTextValue(request.api_key_name ?? request.api_key_id) : (request.api_key_name ?? request.api_key_id ?? tr('Unknown key'))}</dd>
         </div>
         <div>
           <dt>{tr('Client protocol')}</dt>

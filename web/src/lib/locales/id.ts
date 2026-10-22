@@ -1709,4 +1709,9 @@ export const id: Catalog = {
   "Success rate in each column that served a request.": "Tingkat keberhasilan pada setiap kolom yang melayani permintaan.",
   "Failed requests in each column of the selected period.": "Permintaan gagal pada setiap kolom periode terpilih.",
   "Average latency in each column that served a request.": "Latensi rata-rata pada setiap kolom yang melayani permintaan.",
+  'Mask columns': 'Samarkan kolom',
+  'Mask column values': 'Samarkan nilai kolom',
+  'Hide sensitive names with asterisks (max 3 *)': 'Sembunyikan nama sensitif với tanda bintang (maks. 3 *)',
+  'Mask all': 'Samarkan semua',
+  'Masked': 'Disamarkan',
 };

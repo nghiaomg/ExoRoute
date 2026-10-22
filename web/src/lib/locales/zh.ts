@@ -1709,4 +1709,9 @@ export const zh: Catalog = {
   "Success rate in each column that served a request.": "有请求的每列的成功率。",
   "Failed requests in each column of the selected period.": "所选时段每列的失败请求数。",
   "Average latency in each column that served a request.": "有请求的每列的平均延迟。",
+  'Mask columns': '遮蔽列',
+  'Mask column values': '遮蔽列的值',
+  'Hide sensitive names with asterisks (max 3 *)': '用星号隐藏敏感名称（最多 3 个 *）',
+  'Mask all': '遮蔽全部',
+  'Masked': '已遮蔽',
 };

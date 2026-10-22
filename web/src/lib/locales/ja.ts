@@ -1709,4 +1709,9 @@ export const ja: Catalog = {
   "Success rate in each column that served a request.": "リクエストを処理した各列の成功率です。",
   "Failed requests in each column of the selected period.": "選択した期間の各列の失敗リクエスト数です。",
   "Average latency in each column that served a request.": "リクエストを処理した各列の平均レイテンシです。",
+  'Mask columns': '列をマスク',
+  'Mask column values': '列の値をマスク',
+  'Hide sensitive names with asterisks (max 3 *)': '機密名をアスタリスクで非表示（最大 3 つの *）',
+  'Mask all': 'すべてマスク',
+  'Masked': 'マスク済み',
 };
