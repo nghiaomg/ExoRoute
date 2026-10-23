@@ -244,7 +244,7 @@ fn rejects_unrepresentable_metadata_media_and_tool_results() {
     )]);
     with_metadata
         .metadata
-        .insert("response_format".to_owned(), json!({"type":"json_object"}));
+        .insert("unknown_unsupported_field".to_owned(), json!("value"));
     assert!(encode_request(&with_metadata, "m").is_err());
 
     let bad_pdf = request(vec![message(
@@ -293,4 +293,76 @@ fn rejects_unsupported_response_parts_and_multiple_candidates() {
 
     let malformed_call = json!({"candidates":[{"content":{"parts":[{"functionCall":{"name":"lookup","args":[]}}]},"finishReason":"STOP"}]});
     assert!(decode_response(&malformed_call, "m").is_err());
+}
+
+#[test]
+fn translates_supported_google_metadata() {
+    let mut req = request(vec![message(
+        Role::User,
+        vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+    )]);
+    req.metadata
+        .insert("stream_options".to_owned(), json!({"include_usage": true}));
+    req.metadata.insert("user".to_owned(), json!("test-user"));
+    req.metadata.insert("seed".to_owned(), json!(12345));
+    req.metadata
+        .insert("response_format".to_owned(), json!({"type": "json_object"}));
+    req.metadata
+        .insert("frequency_penalty".to_owned(), json!(0.5));
+    req.metadata
+        .insert("presence_penalty".to_owned(), json!(-0.5));
+    req.metadata
+        .insert("reasoning_effort".to_owned(), json!("high"));
+
+    let encoded = encode_request(&req, "gemini-2.5-flash").expect("should encode");
+    let gen_config = encoded
+        .get("generationConfig")
+        .expect("generationConfig should be present");
+    assert_eq!(
+        gen_config.get("responseMimeType"),
+        Some(&json!("application/json"))
+    );
+    assert_eq!(gen_config.get("frequencyPenalty"), Some(&json!(0.5)));
+    assert_eq!(gen_config.get("presencePenalty"), Some(&json!(-0.5)));
+    assert_eq!(
+        gen_config
+            .get("thinkingConfig")
+            .and_then(|tc| tc.get("thinkingLevel")),
+        Some(&json!("high"))
+    );
+}
+
+#[test]
+fn translates_json_schema_response_format() {
+    let mut req = request(vec![message(
+        Role::User,
+        vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+    )]);
+    req.metadata.insert(
+        "response_format".to_owned(),
+        json!({
+            "type": "json_schema",
+            "json_schema": {
+                "name": "result",
+                "schema": {
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"]
+                }
+            }
+        }),
+    );
+    let encoded = encode_request(&req, "gemini-2.5-flash").expect("should encode");
+    let gen_config = encoded
+        .get("generationConfig")
+        .expect("generationConfig should be present");
+    assert_eq!(
+        gen_config.get("responseMimeType"),
+        Some(&json!("application/json"))
+    );
+    assert!(gen_config.get("responseSchema").is_some());
 }

@@ -8,7 +8,14 @@ pub(crate) fn encode_openai_family_request(
 ) -> Result<Value, String> {
     if protocol != request.source_protocol
         && protocol != Protocol::Responses
-        && !request.metadata.is_empty()
+        && request.metadata.keys().any(|key| {
+            !super::request_metadata::CHAT_ONLY_DROPPED_OPTIONS
+                .iter()
+                .any(|name| key.eq_ignore_ascii_case(name))
+                && !super::request_metadata::SAFE_PASSTHROUGH_OPTIONS
+                    .iter()
+                    .any(|name| key.eq_ignore_ascii_case(name))
+        })
     {
         return Err(
             "request contains protocol-specific options that cannot be translated".to_owned(),
