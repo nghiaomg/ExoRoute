@@ -12,11 +12,6 @@ pub(in crate::protocol) fn encode_request(
     request: &CanonicalRequest,
     model: &str,
 ) -> Result<Value, String> {
-    if !request.metadata.is_empty() {
-        return Err(
-            "Google Generate Content cannot preserve protocol-specific request metadata".to_owned(),
-        );
-    }
     if model.trim().is_empty() {
         return Err("Google model is required".to_owned());
     }
@@ -238,9 +233,195 @@ pub(in crate::protocol) fn encode_request(
     if !request.stop.is_empty() {
         generation_config.insert("stopSequences".to_owned(), json!(request.stop));
     }
+    apply_google_metadata(&request.metadata, &mut generation_config)?;
     if !generation_config.is_empty() {
         body["generationConfig"] = Value::Object(generation_config);
     }
 
     Ok(body)
+}
+
+fn apply_google_metadata(
+    metadata: &BTreeMap<String, Value>,
+    generation_config: &mut serde_json::Map<String, Value>,
+) -> Result<(), String> {
+    if metadata.is_empty() {
+        return Ok(());
+    }
+
+    let mut unsupported = Vec::new();
+    for (key, value) in metadata {
+        let lower = key.to_ascii_lowercase();
+        match lower.as_str() {
+            // Chat-only and client-level options that have no Google Generate Content equivalent
+            // or are handled out-of-band (e.g. streaming usage).
+            "n"
+            | "seed"
+            | "user"
+            | "metadata"
+            | "logprobs"
+            | "top_logprobs"
+            | "logit_bias"
+            | "safety_identifier"
+            | "stream_options"
+            | "parallel_tool_calls"
+            | "store"
+            | "service_tier"
+            | "prompt_cache_key"
+            | "prompt_cache_keys"
+            | "echo"
+            | "verbosity" => {
+                // Safely dropped
+            }
+
+            "frequency_penalty" | "frequencypenalty" => {
+                if let Some(num) = value.as_f64() {
+                    let num = num as f32;
+                    if !num.is_finite() || !(-2.0..=2.0).contains(&num) {
+                        return Err("frequency_penalty must be between -2 and 2".to_owned());
+                    }
+                    generation_config.insert("frequencyPenalty".to_owned(), json!(num));
+                } else if !value.is_null() {
+                    return Err("frequency_penalty must be a number".to_owned());
+                }
+            }
+
+            "presence_penalty" | "presencepenalty" => {
+                if let Some(num) = value.as_f64() {
+                    let num = num as f32;
+                    if !num.is_finite() || !(-2.0..=2.0).contains(&num) {
+                        return Err("presence_penalty must be between -2 and 2".to_owned());
+                    }
+                    generation_config.insert("presencePenalty".to_owned(), json!(num));
+                } else if !value.is_null() {
+                    return Err("presence_penalty must be a number".to_owned());
+                }
+            }
+
+            "top_k" | "topk" => {
+                if let Some(k) = value.as_u64()
+                    && k > 0
+                {
+                    generation_config.insert("topK".to_owned(), json!(k));
+                }
+            }
+
+            "response_format" | "responseformat" => {
+                if let Some(text) = value.as_str() {
+                    let text = text.trim().to_ascii_lowercase();
+                    match text.as_str() {
+                        "text" => {}
+                        "json" | "json_object" => {
+                            generation_config
+                                .insert("responseMimeType".to_owned(), json!("application/json"));
+                        }
+                        other => {
+                            return Err(format!(
+                                "unsupported response_format type for Google: {other}"
+                            ));
+                        }
+                    }
+                } else if let Some(obj) = value.as_object() {
+                    let format_type = obj
+                        .get("type")
+                        .and_then(Value::as_str)
+                        .unwrap_or("text")
+                        .trim()
+                        .to_ascii_lowercase();
+                    match format_type.as_str() {
+                        "text" => {}
+                        "json_object" => {
+                            generation_config
+                                .insert("responseMimeType".to_owned(), json!("application/json"));
+                        }
+                        "json_schema" => {
+                            generation_config
+                                .insert("responseMimeType".to_owned(), json!("application/json"));
+                            if let Some(schema) =
+                                obj.get("json_schema").and_then(|js| js.get("schema"))
+                            {
+                                generation_config
+                                    .insert("responseSchema".to_owned(), schema.clone());
+                            }
+                        }
+                        other => {
+                            return Err(format!(
+                                "unsupported response_format type for Google: {other}"
+                            ));
+                        }
+                    }
+                } else if !value.is_null() {
+                    return Err(
+                        "request option 'response_format' must be an object or string".to_owned(),
+                    );
+                }
+            }
+
+            "reasoning_effort" | "reasoningeffort" | "effort" => {
+                if let Some(effort) = value.as_str() {
+                    let effort = effort.trim().to_ascii_lowercase();
+                    match effort.as_str() {
+                        "none" => {
+                            generation_config
+                                .insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
+                        }
+                        "low" | "medium" | "high" => {
+                            let thinking_config = generation_config
+                                .entry("thinkingConfig".to_owned())
+                                .or_insert_with(|| json!({}));
+                            if let Some(tc) = thinking_config.as_object_mut() {
+                                tc.insert("thinkingLevel".to_owned(), json!(effort));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            "enable_thinking" | "enablethinking" => {
+                if let Some(enabled) = value.as_bool()
+                    && !enabled
+                {
+                    generation_config
+                        .insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
+                }
+            }
+
+            "thinking" => {
+                if let Some(obj) = value.as_object() {
+                    if let Some(budget) = obj
+                        .get("budget_tokens")
+                        .or_else(|| obj.get("budget"))
+                        .and_then(Value::as_u64)
+                    {
+                        generation_config.insert(
+                            "thinkingConfig".to_owned(),
+                            json!({"thinkingBudget": budget}),
+                        );
+                    } else if obj.get("type").and_then(Value::as_str) == Some("disabled") {
+                        generation_config
+                            .insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
+                    }
+                } else if let Some(enabled) = value.as_bool()
+                    && !enabled
+                {
+                    generation_config
+                        .insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
+                }
+            }
+
+            _ => {
+                unsupported.push(key.as_str());
+            }
+        }
+    }
+
+    if !unsupported.is_empty() {
+        return Err(format!(
+            "Google Generate Content cannot preserve protocol-specific request metadata: {}",
+            unsupported.join(", ")
+        ));
+    }
+
+    Ok(())
 }
