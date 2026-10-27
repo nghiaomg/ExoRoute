@@ -121,10 +121,10 @@ pub(crate) fn scan_usage_minutes_series(
             if kind == dimension_kind && id == dimension_id {
                 let counts = record_counts(&record)?;
                 let seconds = minute.saturating_mul(60);
-                if let Some(index) = super::history::series_index(seconds, series) {
-                    if let Some(bucket) = buckets.get_mut(index) {
-                        *bucket = bucket.add(counts);
-                    }
+                if let Some(index) = super::history::series_index(seconds, series)
+                    && let Some(bucket) = buckets.get_mut(index)
+                {
+                    *bucket = bucket.add(counts);
                 }
             }
         }
