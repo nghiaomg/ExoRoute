@@ -39,9 +39,9 @@ const LATENCY_BUCKET_BOUNDS_MS: [i64; 7] = [100, 250, 500, 1_000, 2_000, 5_000, 
 /// stored row and the query cannot push a row out of the series.
 #[derive(Clone, Copy)]
 pub(crate) struct SeriesSpec {
-    end_seconds: i64,
+    pub(crate) end_seconds: i64,
     pub(crate) bucket_seconds: i64,
-    bucket_count: usize,
+    pub(crate) bucket_count: usize,
 }
 
 /// Oldest second the range covers. Compared against the seconds parsed from a
@@ -279,27 +279,64 @@ pub(crate) fn scan_history(
             "average_latency_ms": c.average_latency_ms(),
         })
     });
-    let series_rows = buckets
-        .iter()
-        .enumerate()
-        .map(|(index, counts)| {
+    let (dimension_kind, dimension_id) = match api_key_id {
+        Some(id) => (1, id),
+        None => (0, ""),
+    };
+    let usage_buckets = super::windows::scan_usage_minutes_series(
+        transaction,
+        dimension_kind,
+        dimension_id,
+        series,
+    )?;
+    let series_rows = (0..series.bucket_count)
+        .map(|index| {
             let offset = series
                 .bucket_seconds
                 .saturating_mul((series.bucket_count - index) as i64);
             let start = series.end_seconds.saturating_sub(offset).max(0);
-            let mut value = serde_json::json!({
+            let usage = usage_buckets.get(index).copied().unwrap_or_default();
+            let scan = buckets.get(index).copied().unwrap_or_default();
+
+            let (requests, successes, failures, input_tokens, output_tokens, average_latency_ms) =
+                if usage.requests >= scan.requests && usage.requests > 0 {
+                    let avg_latency = usage.duration_ms as f64 / usage.requests as f64;
+                    (
+                        usage.requests,
+                        usage.succeeded,
+                        usage.failed,
+                        usage.input_tokens,
+                        usage.output_tokens,
+                        avg_latency,
+                    )
+                } else {
+                    (
+                        scan.requests,
+                        scan.successes,
+                        scan.requests.saturating_sub(scan.successes),
+                        scan.input_tokens,
+                        scan.output_tokens,
+                        scan.average_latency_ms(),
+                    )
+                };
+
+            let missing_cost_events = requests.saturating_sub(scan.cost_events);
+            let complete_cost =
+                (requests > 0 && scan.cost_events == requests).then_some(scan.cost_micro_usd);
+
+            serde_json::json!({
                 "start": db::format_utc_timestamp(start as u64),
-                "requests": counts.requests,
-                "successes": counts.successes,
-                "failures": counts.requests.saturating_sub(counts.successes),
-                "input_tokens": counts.input_tokens,
-                "output_tokens": counts.output_tokens,
-                "average_latency_ms": counts.average_latency_ms(),
-            });
-            for (name, field) in counts.cost_fields() {
-                value[name] = field;
-            }
-            value
+                "requests": requests,
+                "successes": successes,
+                "failures": failures,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "average_latency_ms": average_latency_ms,
+                "cost_micro_usd": complete_cost,
+                "cost_reported_micro_usd": scan.cost_micro_usd,
+                "cost_events": scan.cost_events,
+                "missing_cost_events": missing_cost_events,
+            })
         })
         .collect::<Vec<_>>();
 
@@ -464,7 +501,7 @@ fn request_log_created_at(index_key: &str) -> Result<i64, StorageError> {
 }
 
 /// Bucket index for one timestamp, or `None` when it falls before the series.
-fn series_index(seconds: i64, spec: SeriesSpec) -> Option<usize> {
+pub(crate) fn series_index(seconds: i64, spec: SeriesSpec) -> Option<usize> {
     if spec.bucket_count == 0 || spec.bucket_seconds <= 0 {
         return None;
     }

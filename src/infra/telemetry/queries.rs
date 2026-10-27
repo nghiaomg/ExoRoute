@@ -180,26 +180,7 @@ pub(crate) fn unix_time_millis() -> i64 {
         .unwrap_or(0)
 }
 
-pub(crate) fn parse_minute_key(key: &str) -> Result<(i64, i64, String), StorageError> {
-    let mut parts = key.splitn(3, '/');
-    let minute = parts
-        .next()
-        .and_then(|value| value.parse::<i64>().ok())
-        .ok_or_else(|| StorageError::Invalid("statistics minute key is malformed".to_owned()))?;
-    let kind = parts
-        .next()
-        .and_then(|value| value.parse::<i64>().ok())
-        .ok_or_else(|| StorageError::Invalid("statistics dimension key is malformed".to_owned()))?;
-    let id = parts
-        .next()
-        .ok_or_else(|| StorageError::Invalid("statistics dimension id is missing".to_owned()))?;
-    if minute < 0 || !(0..=3).contains(&kind) {
-        return Err(StorageError::Invalid(
-            "statistics minute key is outside its valid range".to_owned(),
-        ));
-    }
-    Ok((minute, kind, id.to_owned()))
-}
+pub(crate) use super::windows::parse_minute_key;
 
 pub(crate) async fn statistics_snapshot(
     db: &Database,
