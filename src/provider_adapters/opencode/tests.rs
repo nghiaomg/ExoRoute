@@ -452,6 +452,37 @@ fn zen_keeps_a_usable_caller_agent_and_client_name() {
     );
 }
 
+#[test]
+fn opencode_go_applies_client_identity_headers() {
+    let client_headers = HeaderMap::new();
+    let request = OPENCODE_GO_ADAPTER
+        .apply_client_headers(
+            reqwest::Client::new().post("https://example.test"),
+            &client_headers,
+        )
+        .build()
+        .expect("build OpenCode Go identity request");
+    let headers = request.headers();
+    assert_eq!(
+        headers
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok()),
+        Some(client::CLIENT_USER_AGENT)
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-client")
+            .and_then(|value| value.to_str().ok()),
+        Some("desktop")
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-project")
+            .and_then(|value| value.to_str().ok()),
+        Some("global")
+    );
+}
+
 #[tokio::test]
 async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
     let database = crate::support::test_support::TestDatabase::open().await;
