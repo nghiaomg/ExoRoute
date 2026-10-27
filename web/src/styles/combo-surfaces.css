@@ -245,6 +245,14 @@
   border: none;
   box-shadow: none;
 }
+.pipeline-target-item.is-disabled {
+  opacity: 0.55;
+  background: #f1f3f7;
+}
+.pipeline-target-item.is-disabled .target-model-chip {
+  text-decoration: line-through;
+  opacity: 0.8;
+}
 .target-step-indicator {
   flex-shrink: 0;
 }
@@ -265,6 +273,15 @@
 .step-tag.fallback {
   background: #eef0f5;
   color: #64748b;
+}
+.step-tag.disabled {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.meta-disabled-count {
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 600;
 }
 .target-details {
   display: flex;
