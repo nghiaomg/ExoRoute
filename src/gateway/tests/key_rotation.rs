@@ -281,3 +281,315 @@ async fn round_robin_providers_keep_the_configured_secret_fallback() {
     assert_eq!(gateway_completion(&state).await, StatusCode::OK);
     assert_eq!(credentials.lock().await.clone(), ["Bearer legacy-secret"]);
 }
+
+#[tokio::test]
+async fn cooled_down_invalid_key_is_probed_and_recovered_on_success() {
+    let auth_calls = Arc::new(AtomicUsize::new(0));
+    let address = spawn_upstream(
+        Router::new()
+            .route(
+                "/v1/chat/completions",
+                post(|State(calls): State<Arc<AtomicUsize>>| async move {
+                    calls.fetch_add(1, Ordering::Relaxed);
+                    (
+                        StatusCode::OK,
+                        Json(json!({
+                            "id": "upstream-id",
+                            "model": "mock-model",
+                            "choices": [{"message": {"role": "assistant", "content": "recovered successfully"}, "finish_reason": "stop"}],
+                            "usage": {"prompt_tokens": 2, "completion_tokens": 3}
+                        })),
+                    )
+                }),
+            )
+            .with_state(auth_calls.clone()),
+    )
+    .await;
+
+    let database = TestDatabase::open().await;
+    let mut config = database.config();
+    config.master_key = Some([53_u8; 32]);
+    config.allow_private_provider_urls = true;
+    let state = AppState::new(config, database.db.clone());
+    crate::support::test_support::seed_provider(
+        &database.db,
+        crate::support::test_support::ProviderSeed {
+            id: "provider",
+            name: "Mock provider",
+            base_url: &format!("http://{address}/v1"),
+            adapter_id: "generic",
+            auth_type: "bearer",
+            model_prefix: "mock",
+            preferred_protocol: "chat_completions",
+            supported_protocols: &["chat_completions"],
+        },
+    )
+    .await
+    .expect("seed provider");
+    crate::support::test_support::seed_provider_key(
+        &database.db,
+        "provider",
+        "01-recovering",
+        b"recovering-key",
+        false,
+    )
+    .await
+    .expect("seed key");
+    crate::support::test_support::seed_route(
+        &database.db,
+        "coding",
+        "Coding",
+        &["chat_completions"],
+        &[("provider", "mock-model", "chat_completions", 0)],
+    )
+    .await
+    .expect("seed route");
+
+    let past_timestamp =
+        crate::infra::db::utc_timestamp_before(Duration::from_secs(40)).expect("past timestamp");
+    let available_index =
+        crate::infra::db::provider_api_key_index_key("provider", "01-recovering", true)
+            .expect("available index");
+    let available_index_for_write = available_index.clone();
+    let past_timestamp_for_write = past_timestamp.clone();
+    database
+        .db
+        .write(move |transaction| {
+            let mut key = transaction
+                .get::<Record>(Table::ProviderApiKeys, "01-recovering")?
+                .expect("key exists");
+            key.insert("invalid", Field::Bool(true));
+            key.insert(
+                "invalidated_at",
+                Field::Text(past_timestamp_for_write.clone()),
+            );
+            key.insert("last_error", Field::Text("past 401 error".to_owned()));
+            transaction.delete(
+                Table::ProviderApiKeyAvailabilityIndex,
+                &available_index_for_write,
+            )?;
+            let mut provider = transaction
+                .get::<Record>(Table::Providers, "provider")?
+                .expect("provider exists");
+            provider.insert("invalid_api_key_count", Field::I64(1));
+            transaction.put(Table::Providers, "provider", &provider)?;
+            transaction.put(Table::ProviderApiKeys, "01-recovering", &key)
+        })
+        .await
+        .expect("mark invalid");
+
+    let response = handle_request_inner_with_adapter_base_url_override(
+        state.clone(),
+        HeaderMap::new(),
+        json!({"model":"coding","messages":[{"role":"user","content":"hello"}]}),
+        Protocol::ChatCompletions,
+        None,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(auth_calls.load(Ordering::Relaxed), 1);
+
+    let (key_record, provider_record) = database
+        .db
+        .read(|transaction| {
+            Ok((
+                transaction
+                    .get::<Record>(Table::ProviderApiKeys, "01-recovering")?
+                    .expect("key exists"),
+                transaction
+                    .get::<Record>(Table::Providers, "provider")?
+                    .expect("provider exists"),
+            ))
+        })
+        .await
+        .expect("read records");
+    assert!(!key_record.boolean("invalid").expect("invalid flag"));
+    assert_eq!(
+        provider_record
+            .integer("invalid_api_key_count")
+            .expect("invalid count"),
+        0
+    );
+
+    let available = database
+        .db
+        .read(move |transaction| {
+            transaction.get::<String>(Table::ProviderApiKeyAvailabilityIndex, &available_index)
+        })
+        .await
+        .expect("read availability");
+    assert!(available.is_some());
+}
+
+#[tokio::test]
+async fn opencode_go_retries_on_temporary_auth_rejection_and_succeeds() {
+    let auth_calls = Arc::new(AtomicUsize::new(0));
+    let address = spawn_upstream(
+        Router::new()
+            .route(
+                "/zen/go/v1/chat/completions",
+                post(|State(calls): State<Arc<AtomicUsize>>, headers: HeaderMap| async move {
+                    let attempt_num = calls.fetch_add(1, Ordering::Relaxed);
+                    assert_eq!(
+                        headers.get("x-opencode-client").and_then(|v| v.to_str().ok()),
+                        Some("desktop")
+                    );
+                    if attempt_num == 0 {
+                        (
+                            StatusCode::UNAUTHORIZED,
+                            Json(json!({"error": {"message": "session expired"}})),
+                        )
+                            .into_response()
+                    } else {
+                        Json(json!({
+                            "id": "opencode-id",
+                            "model": "deepseek-v4.1-flash",
+                            "choices": [{"message": {"role": "assistant", "content": "opencode retry success"}, "finish_reason": "stop"}],
+                            "usage": {"prompt_tokens": 2, "completion_tokens": 3}
+                        }))
+                        .into_response()
+                    }
+                }),
+            )
+            .with_state(auth_calls.clone()),
+    )
+    .await;
+
+    let database = TestDatabase::open().await;
+    let mut config = database.config();
+    config.master_key = Some([53_u8; 32]);
+    config.allow_private_provider_urls = true;
+    let state = AppState::new(config, database.db.clone());
+    crate::support::test_support::seed_provider(
+        &database.db,
+        crate::support::test_support::ProviderSeed {
+            id: "opencode-go",
+            name: "OpenCode Go Provider",
+            base_url: &format!("http://{address}/zen/go/v1"),
+            adapter_id: "opencode_go",
+            auth_type: "bearer",
+            model_prefix: "deepseek",
+            preferred_protocol: "chat_completions",
+            supported_protocols: &["chat_completions"],
+        },
+    )
+    .await
+    .expect("seed opencode provider");
+    crate::support::test_support::seed_provider_key(
+        &database.db,
+        "opencode-go",
+        "01-key",
+        b"oc_sk_test",
+        false,
+    )
+    .await
+    .expect("seed opencode key");
+    crate::support::test_support::seed_route(
+        &database.db,
+        "coding",
+        "Coding",
+        &["chat_completions"],
+        &[("opencode-go", "deepseek-v4.1-flash", "chat_completions", 0)],
+    )
+    .await
+    .expect("seed route");
+
+    let response = handle_request_inner_with_adapter_base_url_override(
+        state.clone(),
+        HeaderMap::new(),
+        json!({"model":"coding","messages":[{"role":"user","content":"hello"}]}),
+        Protocol::ChatCompletions,
+        None,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(auth_calls.load(Ordering::Relaxed), 2);
+
+    let key = database
+        .db
+        .read(|transaction| {
+            transaction
+                .get::<Record>(Table::ProviderApiKeys, "01-key")
+                .map(|r| r.expect("key exists"))
+        })
+        .await
+        .expect("read key");
+    assert!(!key.boolean("invalid").expect("invalid flag"));
+}
+
+#[tokio::test]
+async fn admin_re_enabling_invalid_key_clears_invalid_state() {
+    let database = TestDatabase::open().await;
+    let mut config = database.config();
+    config.master_key = Some([53_u8; 32]);
+    let state = AppState::new(config, database.db.clone());
+    crate::support::test_support::seed_provider(
+        &database.db,
+        crate::support::test_support::ProviderSeed {
+            id: "provider-manual",
+            name: "Mock provider",
+            base_url: "https://example.test/v1",
+            adapter_id: "generic",
+            auth_type: "bearer",
+            model_prefix: "mock",
+            preferred_protocol: "chat_completions",
+            supported_protocols: &["chat_completions"],
+        },
+    )
+    .await
+    .expect("seed provider");
+    crate::support::test_support::seed_provider_key(
+        &database.db,
+        "provider-manual",
+        "01-manual",
+        b"manual-key",
+        false,
+    )
+    .await
+    .expect("seed key");
+
+    database
+        .db
+        .write(|transaction| {
+            let mut key = transaction
+                .get::<Record>(Table::ProviderApiKeys, "01-manual")?
+                .expect("key exists");
+            key.insert("invalid", Field::Bool(true));
+            let mut provider = transaction
+                .get::<Record>(Table::Providers, "provider-manual")?
+                .expect("provider exists");
+            provider.insert("invalid_api_key_count", Field::I64(1));
+            transaction.put(Table::Providers, "provider-manual", &provider)?;
+            transaction.put(Table::ProviderApiKeys, "01-manual", &key)
+        })
+        .await
+        .expect("mark invalid");
+
+    let _ = crate::admin::providers::update_provider_key(
+        axum::extract::State(state),
+        axum::extract::Path(("provider-manual".to_owned(), "01-manual".to_owned())),
+        axum::extract::Json(crate::admin::providers::keys::ProviderKeyUpdateInput {
+            name: None,
+            enabled: Some(true),
+        }),
+    )
+    .await
+    .expect("update key");
+
+    let (key, provider) = database
+        .db
+        .read(|transaction| {
+            Ok((
+                transaction
+                    .get::<Record>(Table::ProviderApiKeys, "01-manual")?
+                    .expect("key exists"),
+                transaction
+                    .get::<Record>(Table::Providers, "provider-manual")?
+                    .expect("provider exists"),
+            ))
+        })
+        .await
+        .expect("read records");
+    assert!(!key.boolean("invalid").expect("invalid flag"));
+    assert_eq!(provider.integer("invalid_api_key_count").expect("count"), 0);
+}
