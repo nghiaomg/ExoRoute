@@ -324,3 +324,100 @@ async fn gateway_routes_thirty_two_configured_targets() {
     assert_eq!(observed.len(), crate::config::MAX_ROUTE_TARGETS);
     assert_eq!(observed.last().map(String::as_str), Some("model-last-ok"));
 }
+
+#[tokio::test]
+async fn disabled_intermediate_provider_target_is_skipped_on_failover() {
+    let (base_url, calls) = recording_upstream().await;
+    let (database, state) = chat_state_with_provider(&base_url).await;
+
+    // Combo pipeline: A (fails) -> B (disabled) -> C (ok)
+    // If A fails, B must be bypassed and execution goes straight to C.
+    seed_route_with_targets(
+        &database.db,
+        "pipeline",
+        "Pipeline",
+        &["chat_completions"],
+        true,
+        &[
+            RouteTargetSeed::Provider {
+                provider_id: "provider",
+                model: "model-a-fails",
+                protocol: "chat_completions",
+            },
+            RouteTargetSeed::DisabledProvider {
+                provider_id: "provider",
+                model: "model-b-should-be-skipped",
+                protocol: "chat_completions",
+            },
+            RouteTargetSeed::Provider {
+                provider_id: "provider",
+                model: "model-c-ok",
+                protocol: "chat_completions",
+            },
+        ],
+    )
+    .await
+    .expect("seed pipeline combo");
+
+    let response = send_chat(state, "pipeline").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let observed = calls.lock().await.clone();
+    assert_eq!(
+        observed,
+        ["model-a-fails", "model-c-ok"],
+        "disabled target B must be skipped and execution must jump from A directly to C"
+    );
+}
+
+#[tokio::test]
+async fn disabled_intermediate_nested_combo_target_is_skipped_on_failover() {
+    let (base_url, calls) = recording_upstream().await;
+    let (database, state) = chat_state_with_provider(&base_url).await;
+
+    // Nested child combo B
+    seed_route_with_targets(
+        &database.db,
+        "child-b",
+        "Child B",
+        &["chat_completions"],
+        true,
+        &provider_targets(&["model-b-nested".to_owned()]),
+    )
+    .await
+    .expect("seed child combo");
+
+    // Parent combo: A (fails) -> Combo B (disabled target) -> C (ok)
+    seed_route_with_targets(
+        &database.db,
+        "parent",
+        "Parent",
+        &["chat_completions"],
+        true,
+        &[
+            RouteTargetSeed::Provider {
+                provider_id: "provider",
+                model: "model-a-fails",
+                protocol: "chat_completions",
+            },
+            RouteTargetSeed::DisabledCombo {
+                combo_id: "child-b",
+            },
+            RouteTargetSeed::Provider {
+                provider_id: "provider",
+                model: "model-c-ok",
+                protocol: "chat_completions",
+            },
+        ],
+    )
+    .await
+    .expect("seed parent combo");
+
+    let response = send_chat(state, "parent").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let observed = calls.lock().await.clone();
+    assert_eq!(
+        observed,
+        ["model-a-fails", "model-c-ok"],
+        "disabled nested combo target B must be skipped and execution must jump from A directly to C"
+    );
+}
