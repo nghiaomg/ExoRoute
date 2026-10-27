@@ -63,6 +63,17 @@
   background: rgba(255, 255, 255, 0.06) !important;
   color: #94a3b8 !important;
 }
+:root[data-theme='dark'] .step-tag.disabled {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #fca5a5 !important;
+}
+:root[data-theme='dark'] .pipeline-target-item.is-disabled {
+  opacity: 0.45 !important;
+  background: rgba(255, 255, 255, 0.01) !important;
+}
+:root[data-theme='dark'] .meta-disabled-count {
+  color: #f87171 !important;
+}
 :root[data-theme='dark'] .target-provider-name {
   color: #f0f2f8 !important;
 }
@@ -160,6 +171,32 @@
   background: rgba(239, 68, 68, 0.18) !important;
   color: #f87171 !important;
   border: none !important;
+}
+:root[data-theme='dark'] .combo-target-card.is-disabled {
+  opacity: 0.55 !important;
+  background: rgba(255, 255, 255, 0.015) !important;
+}
+:root[data-theme='dark'] .target-role-badge.is-disabled {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #fca5a5 !important;
+}
+:root[data-theme='dark'] .target-icon-btn.is-toggle {
+  color: #4ade80 !important;
+}
+:root[data-theme='dark'] .target-icon-btn.is-toggle:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #86efac !important;
+}
+:root[data-theme='dark'] .target-icon-btn.is-toggle.is-off {
+  color: #f87171 !important;
+  background: rgba(239, 68, 68, 0.18) !important;
+}
+:root[data-theme='dark'] .target-icon-btn.is-toggle.is-off:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.28) !important;
+  color: #fca5a5 !important;
+}
+:root[data-theme='dark'] .form-error-text {
+  color: #f87171 !important;
 }
 :root[data-theme='dark'] .add-target-dashed-btn {
   background: rgba(255, 255, 255, 0.02) !important;
