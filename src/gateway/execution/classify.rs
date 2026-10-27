@@ -47,10 +47,12 @@ pub(super) async fn classify_response(
             let is_antigravity_forbidden = attempt.provider.adapter_id
                 == provider_adapters::ANTIGRAVITY_ADAPTER_ID
                 && status == StatusCode::FORBIDDEN;
+            let is_auth_rejection =
+                status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN;
             let should_mark_invalid = if is_antigravity_forbidden {
                 provider_adapters::is_permanent_antigravity_ban(&provider_error)
             } else {
-                status == StatusCode::UNAUTHORIZED
+                is_auth_rejection
             };
             if should_mark_invalid
                 && let Some(key_id) = credential.id.as_deref()
@@ -67,7 +69,7 @@ pub(super) async fn classify_response(
                 )
                 .await
                 && let Err(storage_error) =
-                    mark_provider_key_invalid(&attempt.scope.state, provider_id, key_id).await
+                    mark_provider_key_invalid(&attempt.scope.state, provider_id, key_id, Some(status)).await
             {
                 tracing::error!(
                     %storage_error,

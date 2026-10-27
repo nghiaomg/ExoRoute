@@ -112,13 +112,20 @@ pub(super) async fn record_credential_rejection(
     let is_antigravity_forbidden = attempt.provider.adapter_id
         == provider_adapters::ANTIGRAVITY_ADAPTER_ID
         && status == StatusCode::FORBIDDEN;
+    let is_auth_rejection = status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN;
     let should_mark_invalid = if is_antigravity_forbidden {
         provider_adapters::is_permanent_antigravity_ban(&error.message)
     } else {
-        status == StatusCode::UNAUTHORIZED
+        is_auth_rejection
     };
     if should_mark_invalid && let Some(key_id) = credential.id.as_deref() {
-        mark_provider_key_invalid(&attempt.scope.state, &attempt.provider.id, key_id).await?;
+        mark_provider_key_invalid(
+            &attempt.scope.state,
+            &attempt.provider.id,
+            key_id,
+            Some(status),
+        )
+        .await?;
     }
     log_request(
         &attempt.scope.state,
