@@ -604,6 +604,111 @@ async fn time_to_first_token_average_covers_only_streamed_requests() {
 }
 
 #[tokio::test]
+async fn traffic_time_series_reflects_usage_minutes_when_request_logs_are_pruned() {
+    let (database, path) = test_db().await;
+    let telemetry = Telemetry::new(database.clone());
+    let current_minute = unix_minute();
+
+    let base = Counts {
+        requests: 5,
+        succeeded: 4,
+        failed: 1,
+        duration_ms: 1_000,
+        input_tokens: 50_000,
+        output_tokens: 2_500,
+        cached_tokens: 10_000,
+        cache_input_tokens: 50_000,
+        first_output_ms: 0,
+        first_output_events: 0,
+    };
+    let minutes_and_counts = [
+        (current_minute, base),
+        (current_minute - 120, base),
+        (current_minute - 300, base),
+    ];
+
+    database
+        .write(move |transaction| {
+            for (minute, counts) in minutes_and_counts {
+                let key = minute_key(minute, 0, "")?;
+                transaction.put(Table::UsageMinutes, &key, &counts_record(counts))?;
+                for (window, _) in STATISTICS_RANGES {
+                    let aggregate_key = window_key(window, 0, "")?;
+                    update_window_counts(transaction, &aggregate_key, window, 0, "", counts)?;
+                }
+            }
+            Ok(())
+        })
+        .await
+        .expect("seed usage minutes");
+
+    telemetry.enqueue_request_log(RequestLogRecord {
+        id: "log-only-one".to_owned(),
+        request_id: "request-only-one".to_owned(),
+        route_alias: "default".to_owned(),
+        provider_id: Some("provider".to_owned()),
+        provider_credential_id: None,
+        api_key_id: None,
+        model: "provider/model".to_owned(),
+        client_protocol: "chat_completions".to_owned(),
+        upstream_protocol: Some("chat_completions".to_owned()),
+        status: 200,
+        duration_ms: 200,
+        input_tokens: Some(10_000),
+        output_tokens: Some(500),
+        cached_tokens: None,
+        cache_input_tokens: None,
+        cost_micro_usd: None,
+        error: None,
+    });
+    telemetry.flush().await.expect("flush telemetry");
+
+    let snapshot = statistics_snapshot(&database, "1d", 1440, &telemetry)
+        .await
+        .expect("statistics snapshot");
+
+    assert_eq!(snapshot["total_requests"], 15);
+    assert_eq!(snapshot["input_tokens"], 150_000);
+    assert_eq!(snapshot["output_tokens"], 7_500);
+    assert_eq!(snapshot["logged_requests"], 1);
+
+    let points = snapshot["series"]["points"]
+        .as_array()
+        .expect("series points");
+    assert_eq!(points.len(), 24);
+
+    let total_series_requests: i64 = points
+        .iter()
+        .map(|p| p["requests"].as_i64().unwrap_or(0))
+        .sum();
+    let total_series_input_tokens: i64 = points
+        .iter()
+        .map(|p| p["input_tokens"].as_i64().unwrap_or(0))
+        .sum();
+    let total_series_output_tokens: i64 = points
+        .iter()
+        .map(|p| p["output_tokens"].as_i64().unwrap_or(0))
+        .sum();
+
+    assert_eq!(
+        total_series_requests, 15,
+        "all requests across all hours are represented in series"
+    );
+    assert_eq!(
+        total_series_input_tokens, 150_000,
+        "all input tokens are represented in series"
+    );
+    assert_eq!(
+        total_series_output_tokens, 7_500,
+        "all output tokens are represented in series"
+    );
+
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
 async fn request_logs_survive_telemetry_and_database_restart() {
     let (database, path) = test_db().await;
     let telemetry = Telemetry::new(database.clone());
