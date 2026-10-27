@@ -50,6 +50,88 @@ pub(crate) fn minute_key(
     Ok(key)
 }
 
+pub(crate) fn parse_minute_key(key: &str) -> Result<(i64, i64, String), StorageError> {
+    let mut parts = key.splitn(3, '/');
+    let minute = parts
+        .next()
+        .and_then(|value| value.parse::<i64>().ok())
+        .ok_or_else(|| StorageError::Invalid("statistics minute key is malformed".to_owned()))?;
+    let kind = parts
+        .next()
+        .and_then(|value| value.parse::<i64>().ok())
+        .ok_or_else(|| StorageError::Invalid("statistics dimension key is malformed".to_owned()))?;
+    let id = parts
+        .next()
+        .ok_or_else(|| StorageError::Invalid("statistics dimension id is missing".to_owned()))?;
+    if minute < 0 || !(0..=3).contains(&kind) {
+        return Err(StorageError::Invalid(
+            "statistics minute key is outside its valid range".to_owned(),
+        ));
+    }
+    Ok((minute, kind, id.to_owned()))
+}
+
+/// Scans rolling minute counts from `Table::UsageMinutes` for one dimension across the series window.
+/// This provides exact, unpruned traffic time-series data matching the rolling aggregates.
+pub(crate) fn scan_usage_minutes_series(
+    transaction: &crate::infra::storage::ReadTxn<'_, '_>,
+    dimension_kind: i64,
+    dimension_id: &str,
+    series: super::history::SeriesSpec,
+) -> Result<Vec<Counts>, StorageError> {
+    let mut buckets = vec![Counts::default(); series.bucket_count];
+    if series.bucket_count == 0 || series.bucket_seconds <= 0 {
+        return Ok(buckets);
+    }
+    let total_span_seconds = series
+        .bucket_seconds
+        .saturating_mul(series.bucket_count as i64);
+    let cutoff_seconds = series.end_seconds.saturating_sub(total_span_seconds).max(0);
+    let cutoff_minute = cutoff_seconds / 60;
+    let current_minute = series.end_seconds / 60;
+    let mut after = if cutoff_minute > 0 {
+        Some(minute_key(cutoff_minute - 1, 0, "")?)
+    } else {
+        None
+    };
+    let mut scanned = 0usize;
+    const MAX_USAGE_SCAN_ROWS: usize = 100_000;
+
+    while scanned < MAX_USAGE_SCAN_ROWS {
+        let batch_limit = (MAX_USAGE_SCAN_ROWS - scanned).min(1_024);
+        let page = transaction.scan_prefix_after::<Record>(
+            Table::UsageMinutes,
+            "",
+            after.as_deref(),
+            batch_limit,
+        )?;
+        if page.is_empty() {
+            break;
+        }
+        for (key, record) in page {
+            scanned = scanned.saturating_add(1);
+            let (minute, kind, id) = parse_minute_key(&key)?;
+            if minute > current_minute {
+                return Ok(buckets);
+            }
+            after = Some(key);
+            if minute < cutoff_minute {
+                continue;
+            }
+            if kind == dimension_kind && id == dimension_id {
+                let counts = record_counts(&record)?;
+                let seconds = minute.saturating_mul(60);
+                if let Some(index) = super::history::series_index(seconds, series) {
+                    if let Some(bucket) = buckets.get_mut(index) {
+                        *bucket = bucket.add(counts);
+                    }
+                }
+            }
+        }
+    }
+    Ok(buckets)
+}
+
 pub(crate) fn window_key(
     window_minutes: i64,
     dimension_kind: i64,
