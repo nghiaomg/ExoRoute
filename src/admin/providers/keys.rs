@@ -500,9 +500,9 @@ pub(crate) async fn delete_provider_key(
 #[serde(deny_unknown_fields)]
 pub(crate) struct ProviderKeyUpdateInput {
     #[serde(default)]
-    pub(super) name: Option<String>,
+    pub(crate) name: Option<String>,
     #[serde(default)]
-    pub(super) enabled: Option<bool>,
+    pub(crate) enabled: Option<bool>,
 }
 
 pub(crate) async fn update_provider_key(
@@ -549,12 +549,24 @@ pub(crate) async fn update_provider_key(
                 .get::<Record>(Table::Providers, &provider_id)?
                 .ok_or(StorageError::NotFound)?;
             ensure_provider_not_deleting(&provider)?;
+            let mut provider = provider;
             let was_available = record.boolean("enabled")? && !record.boolean("invalid")?;
             if let Some(name) = name.as_deref() {
                 record.insert("name", Field::Text(name.to_owned()));
             }
             if let Some(enabled) = enabled {
                 record.insert("enabled", Field::Bool(enabled));
+                if enabled && record.boolean("invalid").unwrap_or(false) {
+                    record.insert("invalid", Field::Bool(false));
+                    record.insert("invalidated_at", Field::Null);
+                    record.insert("last_error", Field::Null);
+                    let invalid_count = provider
+                        .integer("invalid_api_key_count")?
+                        .saturating_sub(1)
+                        .max(0);
+                    provider.insert("invalid_api_key_count", Field::I64(invalid_count));
+                    transaction.put(Table::Providers, &provider_id, &provider)?;
+                }
             }
             let is_available = record.boolean("enabled")? && !record.boolean("invalid")?;
             transaction.put(Table::ProviderApiKeys, &record_id, &record)?;
