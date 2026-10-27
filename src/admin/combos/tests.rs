@@ -723,3 +723,82 @@ fn an_oversized_reference_graph_fails_closed() {
         Err(ComboReferenceIssue::GraphTooLarge)
     );
 }
+
+#[tokio::test]
+async fn combo_creation_and_update_preserves_disabled_target_state() {
+    let database = crate::support::test_support::TestDatabase::open().await;
+    crate::support::test_support::seed_provider(
+        &database.db,
+        crate::support::test_support::ProviderSeed {
+            id: "provider",
+            name: "Test provider",
+            base_url: "https://api.example.com",
+            adapter_id: "generic",
+            auth_type: "bearer",
+            model_prefix: "provider",
+            preferred_protocol: "chat_completions",
+            supported_protocols: &["chat_completions"],
+        },
+    )
+    .await
+    .unwrap();
+    crate::support::test_support::seed_provider_model(&database.db, "provider", "model-a")
+        .await
+        .unwrap();
+    crate::support::test_support::seed_provider_model(&database.db, "provider", "model-b")
+        .await
+        .unwrap();
+    let state = AppState::new(database.config(), database.db.clone());
+
+    let input = ComboInput {
+        id: "test-pipeline".to_owned(),
+        name: "Test Pipeline".to_owned(),
+        strategy: "priority".to_owned(),
+        accepted_protocols: vec!["chat_completions".to_owned()],
+        enabled: true,
+        targets: vec![
+            ComboTargetInput {
+                provider_id: "provider".to_owned(),
+                model: "model-a".to_owned(),
+                combo_id: None,
+                protocol: None,
+                priority: 1,
+                enabled: true,
+                weight: None,
+            },
+            ComboTargetInput {
+                provider_id: "provider".to_owned(),
+                model: "model-b".to_owned(),
+                combo_id: None,
+                protocol: None,
+                priority: 2,
+                enabled: false,
+                weight: None,
+            },
+        ],
+    };
+
+    let _ = super::create_combo(
+        axum::extract::State(state.clone()),
+        axum::extract::Json(input),
+    )
+    .await
+    .expect("create combo succeeds");
+
+    let list_response = super::list_combos(axum::extract::State(state.clone()))
+        .await
+        .expect("list combos succeeds");
+    let json_bytes = axum::body::to_bytes(list_response.into_response().into_body(), 1024 * 64)
+        .await
+        .unwrap();
+    let value: Value = serde_json::from_slice(&json_bytes).unwrap();
+    let combos = value["combos"].as_array().expect("combos array");
+    let found = combos
+        .iter()
+        .find(|c| c["id"] == "test-pipeline")
+        .expect("found combo");
+    let targets = found["targets"].as_array().expect("targets array");
+    assert_eq!(targets.len(), 2);
+    assert_eq!(targets[0]["enabled"], true);
+    assert_eq!(targets[1]["enabled"], false);
+}
