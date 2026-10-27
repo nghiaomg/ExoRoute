@@ -204,8 +204,12 @@ pub async fn models(State(state): State<AppState>, request: Request<Body>) -> Re
                     }
                     let mut allowed = std::collections::HashSet::new();
                     for (_, target) in targets {
-                        let provider_id = target.text("provider_id")?;
-                        if scope.allows_provider(provider_id) {
+                        if !target.boolean("enabled")? {
+                            continue;
+                        }
+                        if let Some(provider_id) = target.optional_text("provider_id")?
+                            && scope.allows_provider(provider_id)
+                        {
                             allowed.insert(target.text("route_id")?.to_owned());
                         }
                     }
