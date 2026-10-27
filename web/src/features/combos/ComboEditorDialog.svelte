@@ -35,8 +35,9 @@ import { localizedError } from '../../lib/errors';
   $: nestedTargets = comboTargets.some((target) => target.kind === 'combo');
   $: unavailableComboIds = cyclingComboIds(combos, comboToEdit?.id);
   $: availableCombos = combos.filter((combo) => !unavailableComboIds.has(combo.id));
+  $: hasEnabledTarget = comboTargets.some((target) => target.enabled);
   $: validTargets = comboTargets.length > 0 && comboTargets.length <= MAX_COMBO_TARGETS
-    && comboTargets.every(isValidTarget);
+    && comboTargets.every(isValidTarget) && hasEnabledTarget;
   $: if (open && pendingInitialProviderSelection) {
     const firstProviderId = providers.find((provider) => provider.enabled)?.id;
     if (firstProviderId) {
@@ -51,6 +52,7 @@ import { localizedError } from '../../lib/errors';
     onProviderChange: selectProvider,
     onModelChange: selectModel,
     onComboChange: selectCombo,
+    onToggleEnabled: toggleEnabled,
     onActivateModelPicker: activateModelPicker,
     onDeactivateModelPicker: deactivateModelPicker,
     onMove: moveTarget,
@@ -80,6 +82,7 @@ import { localizedError } from '../../lib/errors';
         providerId: t.provider_id ?? '',
         model: t.model ?? '',
         comboId: t.combo_id ?? '',
+        enabled: t.enabled ?? true,
       }));
       pendingInitialProviderSelection = false;
     } else {
@@ -88,7 +91,7 @@ import { localizedError } from '../../lib/errors';
       nextTargetKey = 2;
       const firstProviderId = providers.find((provider) => provider.enabled)?.id ?? '';
       pendingInitialProviderSelection = !firstProviderId;
-      comboTargets = [{ key: 1, ...emptyTarget(), kind: defaultKind(), providerId: firstProviderId }];
+      comboTargets = [{ key: 1, ...emptyTarget(), kind: defaultKind(), providerId: firstProviderId, enabled: true }];
     }
   }
 
@@ -97,8 +100,14 @@ import { localizedError } from '../../lib/errors';
     return hasEnabledProviders ? 'provider' : 'combo';
   }
 
-  function emptyTarget(): Pick<ComboTargetDraft, 'providerId' | 'model' | 'comboId'> {
-    return { providerId: '', model: '', comboId: '' };
+  function emptyTarget(): Pick<ComboTargetDraft, 'providerId' | 'model' | 'comboId' | 'enabled'> {
+    return { providerId: '', model: '', comboId: '', enabled: true };
+  }
+
+  function toggleEnabled(targetKey: number): void {
+    comboTargets = comboTargets.map((target) => target.key === targetKey
+      ? { ...target, enabled: !target.enabled }
+      : target);
   }
 
   /**
@@ -187,8 +196,8 @@ import { localizedError } from '../../lib/errors';
       // A nested target carries only its reference: the server reports empty
       // provider fields for such a target and rejects a row that has both forms.
       const targets: ComboTarget[] = comboTargets.map((target, index) => target.kind === 'combo'
-        ? { provider_id: '', model: '', combo_id: target.comboId, priority: index + 1, enabled: true }
-        : { provider_id: target.providerId, model: target.model, priority: index + 1, enabled: true });
+        ? { provider_id: '', model: '', combo_id: target.comboId, priority: index + 1, enabled: target.enabled }
+        : { provider_id: target.providerId, model: target.model, priority: index + 1, enabled: target.enabled });
       if (comboToEdit) {
         await api.updateCombo(comboToEdit.id, {
           name: comboName.trim(),
@@ -324,6 +333,10 @@ import { localizedError } from '../../lib/errors';
 
     {#if formError}
       <div class="form-error" role="alert">{formError}</div>
+    {/if}
+
+    {#if comboTargets.length > 0 && !hasEnabledTarget}
+      <p class="form-help text-center text-danger">{tr('At least one target must be enabled.')}</p>
     {/if}
 
     <div class="modal-actions">

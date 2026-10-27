@@ -22,6 +22,8 @@
     provider: string;
     /** A nested row whose combo is not in the loaded list. */
     missingCombo: boolean;
+    /** Whether this target node is enabled in the pipeline. */
+    enabled: boolean;
   }
 
   let copied = false;
@@ -35,12 +37,14 @@
         label: comboNames[target.combo_id] ?? target.combo_id,
         provider: '',
         missingCombo: !comboNames[target.combo_id],
+        enabled: target.enabled !== false,
       }
     : {
         isNested: false,
         label: target.model,
         provider: providerNames[target.provider_id] ?? target.provider_id,
         missingCombo: false,
+        enabled: target.enabled !== false,
       });
 
   async function copyModelName(event: MouseEvent): Promise<void> {
@@ -129,6 +133,11 @@
       {:else}
         <strong>1 {tr('Primary')}</strong> + {combo.targets.length - 1} {tr('Fallback {index}', { index: '' }).replace('{index}', '').trim()}
       {/if}
+      {#if combo.targets.some((t) => t.enabled === false)}
+        <span class="meta-disabled-count">
+          ({combo.targets.filter((t) => t.enabled === false).length} {tr('disabled')})
+        </span>
+      {/if}
     </span>
     <span class="meta-protocols">
       <Radio size={13} />
@@ -147,11 +156,17 @@
           </span>
         </div>
       {/if}
-      <div class="pipeline-target-item" class:is-primary={index === 0}>
+      <div class="pipeline-target-item" class:is-primary={index === 0} class:is-disabled={!row.enabled}>
         <div class="target-step-indicator">
-          <span class="step-tag" class:primary={index === 0} class:fallback={index > 0}>
-            {index === 0 ? tr('Primary') : tr('Fallback {index}', { index })}
-          </span>
+          {#if !row.enabled}
+            <span class="step-tag disabled">
+              {tr('Disabled')}
+            </span>
+          {:else}
+            <span class="step-tag" class:primary={index === 0} class:fallback={index > 0}>
+              {index === 0 ? tr('Primary') : tr('Fallback {index}', { index })}
+            </span>
+          {/if}
         </div>
         <div class="target-details">
           {#if row.isNested}
