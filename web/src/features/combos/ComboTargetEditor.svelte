@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowDown, ArrowUp, Layers3, Server, ShieldCheck, Trash2, Zap } from '@lucide/svelte';
+  import { ArrowDown, ArrowUp, Layers3, Power, PowerOff, Server, ShieldCheck, Trash2, Zap } from '@lucide/svelte';
   import type { Translate } from '../../lib/format';
 
   import type { ComboTargetActions, ComboTargetView } from './combo.types';
@@ -13,11 +13,16 @@
   export let tr: Translate;
 </script>
 
-<div class="combo-target-card" class:is-primary={view.index === 0}>
+<div class="combo-target-card" class:is-primary={view.index === 0} class:is-disabled={!view.target.enabled}>
   <div class="target-card-header">
     <div class="target-card-meta">
       <span class="target-card-index">{String(view.index + 1).padStart(2, '0')}</span>
-      {#if view.index === 0}
+      {#if !view.target.enabled}
+        <span class="target-role-badge is-disabled">
+          <PowerOff size={12} />
+          <span>{tr('Disabled')}</span>
+        </span>
+      {:else if view.index === 0}
         <span class="target-role-badge is-primary">
           <Zap size={12} />
           <span>{tr('Primary target')}</span>
@@ -31,6 +36,20 @@
     </div>
 
     <div class="target-card-actions">
+      <button
+        type="button"
+        class="target-icon-btn is-toggle"
+        class:is-off={!view.target.enabled}
+        aria-label={tr(view.target.enabled ? 'Disable target {index}' : 'Enable target {index}', { index: view.index + 1 })}
+        title={tr(view.target.enabled ? 'Disable target' : 'Enable target')}
+        onclick={() => actions.onToggleEnabled(view.target.key)}
+      >
+        {#if view.target.enabled}
+          <Power size={13} />
+        {:else}
+          <PowerOff size={13} />
+        {/if}
+      </button>
       <button
         type="button"
         class="target-icon-btn"
