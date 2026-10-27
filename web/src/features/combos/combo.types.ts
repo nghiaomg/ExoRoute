@@ -12,6 +12,7 @@ export interface ComboTargetDraft {
   providerId: string;
   model: string;
   comboId: string;
+  enabled: boolean;
 }
 
 export interface ComboTargetView {
@@ -28,6 +29,7 @@ export interface ComboTargetActions {
   onProviderChange: (targetKey: number, providerId: string) => void;
   onModelChange: (targetKey: number, model: string) => void;
   onComboChange: (targetKey: number, comboId: string) => void;
+  onToggleEnabled: (targetKey: number) => void;
   onActivateModelPicker: (targetKey: number) => void;
   onDeactivateModelPicker: (targetKey: number) => void;
   onMove: (index: number, direction: -1 | 1) => void;
