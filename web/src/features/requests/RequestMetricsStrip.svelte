@@ -83,8 +83,8 @@
   }
 
   .request-metric.active .request-metric-icon {
-    background: #fff7ed;
-    color: #ea580c;
+    background: color-mix(in srgb, var(--accent) 7%, #fff);
+    color: var(--accent-strong);
   }
 
   .request-metric.total .request-metric-icon {
@@ -142,9 +142,9 @@
   }
 
   :global(:root[data-theme='dark']) .request-metric.active .request-metric-icon {
-    background: rgba(249, 115, 22, 0.16);
-    color: #fdba74;
-    border-color: rgba(249, 115, 22, 0.28);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent) 28%, transparent);
   }
 
   :global(:root[data-theme='dark']) .request-metric.total .request-metric-icon {

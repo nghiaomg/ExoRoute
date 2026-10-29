@@ -654,7 +654,7 @@
     flex: 0 0 auto;
     padding: 8px 10px;
     border-bottom: 2px solid var(--ink);
-    background: #fff7ed;
+    background: color-mix(in srgb, var(--accent) 7%, #fff);
   }
 
   .chat-topbar-trailing {
@@ -709,9 +709,9 @@
     gap: 8px;
     padding: 6px 16px;
     border-bottom: 2px dashed var(--ink);
-    background: #fff7ed;
+    background: color-mix(in srgb, var(--accent) 7%, #fff);
     font-size: 11px;
-    color: #b45309;
+    color: var(--accent-strong);
     font-weight: var(--font-semibold);
   }
 
@@ -759,10 +759,10 @@
     margin-right: auto;
   }
 
-  :global(:root[data-theme='dark']) .chat-workspace { background: rgba(14, 16, 26, 0.72); }
-  :global(:root[data-theme='dark']) .chat-topbar { background: rgba(249, 115, 22, 0.08); }
+  :global(:root[data-theme='dark']) .chat-workspace { background: color-mix(in srgb, var(--surface-glass-base) 72%, transparent); }
+  :global(:root[data-theme='dark']) .chat-topbar { background: color-mix(in srgb, var(--accent) 8%, transparent); }
   :global(:root[data-theme='dark']) .chat-icon-action { background: rgba(255, 255, 255, 0.04); }
-  :global(:root[data-theme='dark']) .chat-editing-bar { background: rgba(249, 115, 22, 0.1); }
+  :global(:root[data-theme='dark']) .chat-editing-bar { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
   /* Print: only the conversation, sized to the paper. */
   @media print {

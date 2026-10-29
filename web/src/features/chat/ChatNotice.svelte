@@ -47,8 +47,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    border: 2px solid #b45309;
-    box-shadow: 3px 3px 0 #b45309;
+    border: 2px solid var(--accent-strong);
+    box-shadow: 3px 3px 0 var(--accent-strong);
     background: #fffbeb;
     color: #92400e;
     font-weight: var(--font-semibold);

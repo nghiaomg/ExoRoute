@@ -29,8 +29,8 @@
   color: #059669;
 }
 .summary-metric-card .metric-icon.orange {
-  background: #fff7ed;
-  color: #ea580c;
+  background: color-mix(in srgb, var(--accent) 7%, #fff);
+  color: var(--accent-strong);
 }
 .summary-metric-card .metric-icon.blue {
   background: #eff6ff;
@@ -98,8 +98,8 @@
   color: #059669;
 }
 .summary-metric-card .metric-icon.orange {
-  background: #fff7ed;
-  color: #ea580c;
+  background: color-mix(in srgb, var(--accent) 7%, #fff);
+  color: var(--accent-strong);
 }
 .summary-metric-card .metric-icon.blue {
   background: #eff6ff;
@@ -146,7 +146,7 @@
   box-shadow: none !important;
 }
 .combos-view .combo-card:focus-visible {
-  outline: 2px solid #ea580c;
+  outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
 }
 .combo-name-row {
@@ -167,8 +167,8 @@
   transition: all .12s ease;
 }
 .combo-copy-btn:hover {
-  color: #ea580c;
-  background: #fff7ed;
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 7%, #fff);
 }
 .combo-copy-btn .copied-check {
   color: #16a34a;
@@ -218,7 +218,7 @@
   gap: 5px;
 }
 .meta-target-count strong {
-  color: #ea580c;
+  color: var(--accent-strong);
   font-weight: 700;
 }
 
@@ -267,8 +267,8 @@
   border-radius: 4px;
 }
 .step-tag.primary {
-  background: #ffedd5;
-  color: #c2410c;
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  color: var(--accent-deep);
 }
 .step-tag.fallback {
   background: #eef0f5;
@@ -393,7 +393,7 @@
   box-shadow: none;
 }
 .combos-view .empty-illustration {
-  background: #fff7ed;
+  background: color-mix(in srgb, var(--accent) 7%, #fff);
   border-radius: 16px;
   border: none;
   box-shadow: none;
@@ -481,7 +481,7 @@
 }
 .settings-nav-tab.active,
 .settings-nav-tab[data-selected] {
-  background: #ea580c;
+  background: var(--accent-strong);
   color: #ffffff;
 }
 
@@ -615,8 +615,8 @@
   flex-shrink: 0;
 }
 .settings-view .panel-icon.violet-panel {
-  color: #f97316;
-  background: #fff4e6;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
 }
 .settings-view .panel-icon.amber {
   color: #d97706;
@@ -646,8 +646,8 @@
   font-size: 12px;
 }
 .settings-badge-code {
-  color: #ea580c;
-  background: #ffedd5;
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
   padding: 4px 10px;
   border-radius: 7px;
   font-family: var(--font-mono);
@@ -718,8 +718,8 @@
   background: currentColor;
 }
 .config-tile-code {
-  color: #ea580c;
-  background: #ffedd5;
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
   padding: 3px 8px;
   border-radius: 6px;
   font-family: var(--font-mono);
@@ -735,12 +735,12 @@
   padding: 14px 18px;
   border-radius: 12px;
   color: #7c5a32;
-  background: #fff7ed;
+  background: color-mix(in srgb, var(--accent) 7%, #fff);
   font-size: 12px;
   line-height: 1.5;
 }
 .settings-view .settings-note svg {
-  color: #f97316;
+  color: var(--accent);
   flex-shrink: 0;
   margin-top: 1px;
 }

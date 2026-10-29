@@ -39,13 +39,13 @@
   outline: none;
 }
 .settings-view .resource-continuity-control strong {
-  color: #ea580c;
+  color: var(--accent-strong);
 }
 
 /* Output styles panel */
 .settings-view .output-styles-panel .panel-icon {
-  color: #ea580c;
-  background: #ffedd5;
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
 }
 .settings-view .output-styles-content {
   display: flex;
@@ -82,8 +82,8 @@
   border: 1.5px solid #cbceda !important;
 }
 .output-style-row .ark-checkbox-root[data-state="checked"] .ark-checkbox-control {
-  background: #f97316 !important;
-  border-color: #f97316 !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
 }
 .output-style-copy {
   display: flex;
@@ -158,8 +158,8 @@
   background: #e2e4f0;
 }
 .settings-view .database-file-label.has-file {
-  background: #ffedd5;
-  color: #ea580c;
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  color: var(--accent-strong);
 }
 
 /* ─── Operational Config Guidance & Diagnostics Modal ─── */
@@ -189,8 +189,8 @@
 }
 
 .config-help-trigger:hover {
-  background: rgba(249, 115, 22, 0.12);
-  color: #ea580c;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-strong);
 }
 
 .config-help-modal {

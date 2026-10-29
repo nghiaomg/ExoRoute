@@ -1,7 +1,7 @@
 :root {
   font-family: "Plus Jakarta Sans", "Plus Jakarta Sans Fallback", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #222538;
-  background: #f6f7fb;
+  background: var(--canvas);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -12,10 +12,22 @@
   --muted: #83879a;
   --line: #e9eaf0;
   --paper: #fff;
-  --violet: #f97316;
-  --violet-dark: #ea580c;
+
+  /* Accent palette tokens. Every theme recolors the dashboard by overriding
+     these (plus the surface tokens in the dark block below); semantic status
+     colors such as --chart-good and --chart-critical stay fixed. */
+  --accent: #f97316;
+  --accent-strong: #ea580c;
+  --accent-deep: #c2410c;
+  --accent-soft: #fdba74;
+  --accent-glow: #fb923c;
+  --info: #6366f1;
+  --info-soft: #a5b4fc;
+  --canvas: #f6f7fb;
+  --violet: var(--accent);
+  --violet-dark: var(--accent-strong);
   --mint: #36c59b;
-  --brand-orange: #f74c00;
+  --brand-orange: var(--accent);
 
   /* Chart tokens. Every data mark uses one hue: rank and length carry the
      magnitude, so a chart never needs a categorical palette and a series can
@@ -25,8 +37,8 @@
      palette validator. Status colours are the reserved fixed steps and are
      only ever used as a redundant dot beside a written label, never as the
      only thing distinguishing two marks. */
-  --chart-series: #ea580c;
-  --chart-series-soft: #f97316;
+  --chart-series: var(--accent-strong);
+  --chart-series-soft: var(--accent);
   --chart-good: #0ca30c;
   --chart-critical: #d03b3b;
   --chart-grid: #e9eaf0;
@@ -89,11 +101,17 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  color: #f0f2f8;
-  background: #08090d;
+  color: var(--ink);
+  background: var(--canvas);
   --ink: #f0f2f8;
   --muted: #8e93aa;
+  --text-dim: #9aa0b6;
   --line: rgba(255, 255, 255, 0.07);
-  --paper: rgba(14, 16, 26, 0.72);
+  --canvas: #07080c;
+  --surface: #111320;
+  --surface-raised: #1e2030;
+  --surface-sunken: #0f111a;
+  --surface-glass-base: #0e101a;
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
   --chart-grid: rgba(255, 255, 255, 0.09);
 }

@@ -281,8 +281,8 @@
   }
 
   .chat-composer:focus-within {
-    border-color: #f97316;
-    box-shadow: 4px 4px 0 #f97316;
+    border-color: var(--accent);
+    box-shadow: 4px 4px 0 var(--accent);
   }
 
   .chat-message-input {
@@ -335,7 +335,7 @@
     padding: 4px 8px;
     border: 2px solid var(--ink);
     border-radius: var(--radius-full);
-    background: #fff7ed;
+    background: color-mix(in srgb, var(--accent) 7%, #fff);
     font-weight: var(--font-semibold);
   }
 
@@ -415,7 +415,7 @@
   }
 
   .chat-tool-button.active {
-    background: #ffedd5;
+    background: color-mix(in srgb, var(--accent) 14%, #fff);
   }
 
   .chat-tool-button:active:not(:disabled) {
@@ -438,7 +438,7 @@
     padding: 0;
     border: 2px solid var(--ink);
     border-radius: 10px;
-    background: #f97316;
+    background: var(--accent);
     box-shadow: 2px 2px 0 var(--ink);
     color: #fff;
     cursor: pointer;
@@ -501,9 +501,9 @@
 
   :global(:root[data-theme='dark']) .chat-composer-settings { background: rgba(255, 255, 255, 0.03); }
   :global(:root[data-theme='dark']) .chat-tool-button { background: rgba(255, 255, 255, 0.04); }
-  :global(:root[data-theme='dark']) .chat-tool-button.active { background: rgba(249, 115, 22, 0.16); }
+  :global(:root[data-theme='dark']) .chat-tool-button.active { background: color-mix(in srgb, var(--accent) 16%, transparent); }
   :global(:root[data-theme='dark']) .chat-send-button:disabled { background: rgba(255, 255, 255, 0.06); }
   :global(:root[data-theme='dark']) .chat-stop-button { background: rgba(248, 113, 113, 0.16); color: #fecaca; }
-  :global(:root[data-theme='dark']) .chat-attachment-list li { background: rgba(249, 115, 22, 0.1); }
+  :global(:root[data-theme='dark']) .chat-attachment-list li { background: color-mix(in srgb, var(--accent) 10%, transparent); }
   :global(:root[data-theme='dark']) .chat-attachment-error { color: #fecaca; }
 </style>

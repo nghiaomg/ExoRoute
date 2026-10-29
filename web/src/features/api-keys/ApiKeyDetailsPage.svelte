@@ -161,8 +161,8 @@ import { localizedError } from '../../lib/errors';
     width: 60px;
     height: 60px;
     border-radius: 14px;
-    background: #fff4e6;
-    color: #ea580c;
+    background: color-mix(in srgb, var(--accent) 10%, #fff);
+    color: var(--accent-strong);
     border: 2px solid var(--ink);
     box-shadow: 3px 3px 0 var(--ink);
   }
