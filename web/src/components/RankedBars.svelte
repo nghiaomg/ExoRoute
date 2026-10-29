@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Translate } from '../../lib/format';
+  import type { Translate } from '../lib/format';
   import type { BarRow } from './chartTypes';
 
   /**

@@ -4,8 +4,8 @@
   import type { ProviderBreakdown, RequestStatistics } from '../../lib/types';
   import ChartFrame from './ChartFrame.svelte';
   import ChartTableView from './ChartTableView.svelte';
-  import RankedBars from './RankedBars.svelte';
-  import type { BarRow } from './chartTypes';
+  import RankedBars from '../../components/RankedBars.svelte';
+  import type { BarRow } from '../../components/chartTypes';
 
   /**
    * Spend for the period: one headline total and the same total split by the
