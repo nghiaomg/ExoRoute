@@ -16,7 +16,7 @@
   import { isDocsPage, pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type DocsPage, type FeatureActionRequest, type Page } from './lib/navigation';
   import type { Translate } from './lib/format';
   import { getStoredSidebarCollapsed, saveSidebarCollapsed } from './lib/sidebar';
-  import { applyTheme, getStoredTheme, type Theme } from './lib/theme';
+  import { applyTheme, getStoredTheme, themeScheme, type ThemeId } from './lib/theme';
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
 
   function handleConnectionChange(state: ConnectionState): void {
@@ -45,7 +45,7 @@
   };
 
   let locale: Locale = 'en';
-  let theme: Theme = typeof window !== 'undefined' ? getStoredTheme() : 'light';
+  let theme: ThemeId = typeof window !== 'undefined' ? getStoredTheme() : 'light';
   let sidebarCollapsed = typeof window !== 'undefined' ? getStoredSidebarCollapsed() : false;
   let tr: Translate;
   let currentPage: Page = 'login';
@@ -72,7 +72,7 @@
   let providerOAuthNoticeTone: 'info' | 'success' | 'error' = 'info';
 
   $: tr = (key, vars) => t(locale, key, vars);
-  $: preferences = { locale, theme, setLocale: changeLocale, toggleTheme };
+  $: preferences = { locale, theme, scheme: themeScheme(theme), setLocale: changeLocale, toggleTheme, setTheme: changeTheme };
   $: gateway = { state: connectionState, address: gatewayAddress };
   $: pageTitle = tr(mustChangePassword && currentPage === 'login' ? 'Set a new admin password' : pageTitles[currentPage]);
   $: if (authBootstrap !== 'checking' && dashboardPage(currentPage) && (activeFeaturePage !== currentPage || activeFeatureRefreshKey !== refreshKey)) {
@@ -104,8 +104,15 @@
   }
 
   function toggleTheme(): void {
-    theme = theme === 'light' ? 'dark' : 'light';
+    // The quick toggle flips the scheme of the classic themes; palette
+    // themes are chosen from Settings → Appearance.
+    theme = themeScheme(theme) === 'light' ? 'dark' : 'light';
     applyTheme(theme);
+  }
+
+  function changeTheme(next: ThemeId): void {
+    theme = next;
+    applyTheme(next);
   }
 
   function toggleSidebar(): void {
@@ -417,7 +424,7 @@
         {:else if currentPage === 'api-keys'}
           <svelte:component this={activeFeature} {tr} {locale} {actionRequest} onConnectionChange={handleConnectionChange} />
         {:else if currentPage === 'settings'}
-          <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
+          <svelte:component this={activeFeature} {tr} {locale} {theme} onThemeChange={changeTheme} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
         {:else if currentPage === 'chat'}
           <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {/if}
