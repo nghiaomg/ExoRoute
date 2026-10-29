@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { Activity, CircleHelp, Cpu, Database, ExternalLink, KeyRound, Radio, RefreshCw, Server, ShieldCheck, SlidersHorizontal, Sparkles } from '@lucide/svelte';
+  import { Activity, CircleHelp, Cpu, Database, ExternalLink, KeyRound, Palette, Radio, RefreshCw, Server, ShieldCheck, SlidersHorizontal, Sparkles } from '@lucide/svelte';
   import { Tabs } from '@ark-ui/svelte/tabs';
   import GatewayError from '../../components/GatewayError.svelte';
   import InlineLoading from '../../components/InlineLoading.svelte';
@@ -12,7 +12,9 @@
   import { formatUptime, type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
   import type { Overview, PublicSettings, UpdateCheckResult } from '../../lib/types';
+  import type { ThemeId } from '../../lib/theme';
   import AdminPasswordChangeDialog from './AdminPasswordChangeDialog.svelte';
+  import AppearancePanel from './AppearancePanel.svelte';
   import DatabaseBackupPanel from './DatabaseBackupPanel.svelte';
   import GatewayResourceLimitsPanel from './GatewayResourceLimitsPanel.svelte';
   import OperationalSettingsPanel from './OperationalSettingsPanel.svelte';
@@ -21,12 +23,14 @@ import { localizedError } from '../../lib/errors';
 
   export let tr: Translate;
   export let locale: Locale;
+  export let theme: ThemeId = 'light';
+  export let onThemeChange: (id: ThemeId) => void = () => {};
   export let onNavigate: (page: DashboardPage) => void;
   export let onConnectionChange: (state: 'idle' | 'loading' | 'loaded' | 'error') => void;
   export let onAuthenticationReset: () => void;
   export let onGatewayAddressChange: (host: unknown, port: unknown) => void;
 
-  type SettingsTab = 'server' | 'operational' | 'output-styles' | 'resources' | 'backup';
+  type SettingsTab = 'server' | 'appearance' | 'operational' | 'output-styles' | 'resources' | 'backup';
   let activeTab: SettingsTab = 'server';
 
   let settings: PublicSettings = {};
@@ -96,7 +100,7 @@ import { localizedError } from '../../lib/errors';
   onMount(() => {
     try {
       const hash = window.location.hash.replace('#', '');
-      if (hash === 'server' || hash === 'operational' || hash === 'output-styles' || hash === 'resources' || hash === 'backup') {
+      if (hash === 'server' || hash === 'appearance' || hash === 'operational' || hash === 'output-styles' || hash === 'resources' || hash === 'backup') {
         activeTab = hash;
       }
     } catch {
@@ -131,6 +135,13 @@ import { localizedError } from '../../lib/errors';
         >
           <Server size={15} />
           <span>{tr('Server & Security')}</span>
+        </Tabs.Trigger>
+        <Tabs.Trigger
+          class="settings-nav-tab {activeTab === 'appearance' ? 'active' : ''}"
+          value="appearance"
+        >
+          <Palette size={15} />
+          <span>{tr('Appearance')}</span>
         </Tabs.Trigger>
         <Tabs.Trigger
           class="settings-nav-tab {activeTab === 'operational' ? 'active' : ''}"
@@ -377,6 +388,11 @@ import { localizedError } from '../../lib/errors';
         <CircleHelp size={16} />
         <span>{tr('The admin password is stored as a salted hash in the database and included in database backups.')}</span>
       </div>
+      </Tabs.Content>
+
+      <!-- Appearance -->
+      <Tabs.Content class="settings-tab-pane {activeTab === 'appearance' ? 'active' : ''}" value="appearance">
+        <AppearancePanel {tr} {theme} onThemeChange={onThemeChange} />
       </Tabs.Content>
 
       <!-- Tab 2: Operational Settings -->

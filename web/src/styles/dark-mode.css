@@ -6,8 +6,9 @@
  * per-surface dark palette (surface backgrounds) for separation.
  *
  * Two ordering guarantees keep these rules winning the cascade:
- * 1. main.ts imports this file after styles.css and theme.css, so it is
- *    injected last in both the dev server and the production bundle.
+ * 1. main.ts imports this file after styles.css and theme.css; only the
+ *    palette token blocks in palettes.css come after it, and they only
+ *    recolor tokens instead of declaring borders or shadows.
  * 2. The `[data-theme='dark']` attribute is repeated eight times purely to
  *    raise specificity above the !important dark rules in theme-*.css
  *    (the heaviest of which reach (0,4,0)); repeating a matching attribute
@@ -29,6 +30,6 @@
 }
 
 :root[data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'][data-theme='dark'] *:focus-visible {
-  outline: 2px solid #fb923c !important;
+  outline: 2px solid var(--accent-glow) !important;
   outline-offset: 2px !important;
 }

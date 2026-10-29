@@ -5,11 +5,12 @@
   import { t, type Locale } from '../../lib/i18n';
   import type { DocsPage } from '../../lib/navigation';
   import { docsCopy } from './docsCopy';
+  import type { ThemeId, ThemeScheme } from '../../lib/theme';
 
-  type Theme = 'light' | 'dark';
   interface Preferences {
     locale: Locale;
-    theme: Theme;
+    theme: ThemeId;
+    scheme: ThemeScheme;
     setLocale: (locale: Locale) => void;
     toggleTheme: () => void;
   }
@@ -76,8 +77,8 @@
       <span class="docs-local-badge"><span class="docs-status-dot"></span>{copy.shell.localFirst}</span>
       <div class="preference-controls" aria-label="Language and appearance">
         <LanguageSelect locale={preferences.locale} tr={(key) => t(locale, key)} onLocaleChange={preferences.setLocale} />
-        <button class="preference-button theme-button" aria-label={preferences.theme === 'light' ? copy.shell.themeDark : copy.shell.themeLight} title={preferences.theme === 'light' ? copy.shell.themeDark : copy.shell.themeLight} aria-pressed={preferences.theme === 'dark'} onclick={preferences.toggleTheme}>
-          {#if preferences.theme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}
+        <button class="preference-button theme-button" aria-label={preferences.scheme === 'light' ? copy.shell.themeDark : copy.shell.themeLight} title={preferences.scheme === 'light' ? copy.shell.themeDark : copy.shell.themeLight} aria-pressed={preferences.scheme === 'dark'} onclick={preferences.toggleTheme}>
+          {#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}
         </button>
       </div>
       <a class="docs-sign-in" href="/login" onclick={exitDocs}>{copy.shell.signIn}<ChevronRight size={15} /></a>

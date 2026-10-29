@@ -8,11 +8,13 @@
   import { type Translate } from '../lib/format';
 import { localizedError } from '../lib/errors';
   import type { Locale } from '../lib/i18n';
+  import type { ThemeId, ThemeScheme } from '../lib/theme';
   import { docsCopy } from '../features/docs/docsCopy';
 
   interface Preferences {
     locale: Locale;
-    theme: 'light' | 'dark';
+    theme: ThemeId;
+    scheme: ThemeScheme;
     setLocale: (locale: Locale) => void;
     toggleTheme: () => void;
   }
@@ -59,7 +61,7 @@ import { localizedError } from '../lib/errors';
       </a>
       <div class="preference-controls" aria-label={tr('Language and appearance')}>
         <LanguageSelect locale={preferences.locale} {tr} onLocaleChange={preferences.setLocale} />
-        <button class="preference-button theme-button" aria-label={tr(preferences.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.theme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.theme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</button>
+        <button class="preference-button theme-button" aria-label={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.scheme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</button>
       </div>
     </div>
 

@@ -6,11 +6,20 @@
     <meta name="theme-color" content="#f6f7fb" />
     <script>
       try {
-        const savedTheme = localStorage.getItem('exoroute.theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const darkMode = savedTheme === 'dark' || (!savedTheme && prefersDark);
-        if (darkMode) document.documentElement.classList.add('theme-dark');
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', darkMode ? '#11121b' : '#f6f7fb');
+        // Resolves the stored theme id to its base scheme before any CSS
+        // loads so switching palettes cannot flash the classic light theme.
+        // lib/theme.ts owns the canonical id list; keep both in sync.
+        const themeIds = ['light', 'dark', 'tokyo-night', 'catppuccin', 'linear', 'cyber-neon', 'minimal-light'];
+        const darkIds = new Set(['dark', 'tokyo-night', 'catppuccin', 'linear', 'cyber-neon']);
+        const saved = localStorage.getItem('exoroute.theme');
+        const id = themeIds.includes(saved) ? saved
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const scheme = darkIds.has(id) ? 'dark' : 'light';
+        const root = document.documentElement;
+        root.dataset.theme = scheme;
+        root.dataset.palette = id;
+        root.style.colorScheme = scheme;
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', scheme === 'dark' ? '#11121b' : '#f6f7fb');
         const savedLocale = localStorage.getItem('exoroute.locale');
         if (savedLocale) {
           document.documentElement.lang = savedLocale;
