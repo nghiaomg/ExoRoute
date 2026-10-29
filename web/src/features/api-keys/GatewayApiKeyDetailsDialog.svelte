@@ -7,8 +7,8 @@
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
   import type { GatewayApiKey, GatewayApiKeyStatistics } from '../../lib/types';
-  import RankedBars from '../statistics/RankedBars.svelte';
-  import { dimensionBars } from '../statistics/chartTypes';
+  import RankedBars from '../../components/RankedBars.svelte';
+  import { dimensionBars } from '../../components/chartTypes';
   export let apiKey: GatewayApiKey | null = null;
   export let tr: Translate;
   export let locale: Locale;

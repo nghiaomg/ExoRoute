@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ChartColumn } from './chartTypes';
+  import type { ChartColumn } from '../../components/chartTypes';
 
   /**
    * The table twin every chart on this page renders behind its toggle. It knows

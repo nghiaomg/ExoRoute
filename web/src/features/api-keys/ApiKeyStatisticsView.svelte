@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { Activity, CircleCheck, CircleX, Clock3 } from '@lucide/svelte';
-  import RankedBars from '../statistics/RankedBars.svelte';
-  import { dimensionBars } from '../statistics/chartTypes';
+  import RankedBars from '../../components/RankedBars.svelte';
+  import { dimensionBars } from '../../components/chartTypes';
   import { api } from '../../lib/api';
   import { getIntlLocale, type Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';

@@ -4,8 +4,8 @@
   import type { RequestStatistics } from '../../lib/types';
   import ChartFrame from './ChartFrame.svelte';
   import ChartTableView from './ChartTableView.svelte';
-  import RankedBars from './RankedBars.svelte';
-  import type { BarRow } from './chartTypes';
+  import RankedBars from '../../components/RankedBars.svelte';
+  import type { BarRow } from '../../components/chartTypes';
 
   /**
    * How long requests took, where the time went before the first token, and how

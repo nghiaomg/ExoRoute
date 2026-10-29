@@ -34,7 +34,6 @@
     combos: 'Combos',
     quota: 'Quota',
     requests: 'Requests',
-    statistics: 'Statistics',
     'api-keys': 'Gateway API keys',
     settings: 'Settings',
     chat: 'Chat',
@@ -418,8 +417,6 @@
         {:else if currentPage === 'quota'}
           <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
         {:else if currentPage === 'requests'}
-          <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
-        {:else if currentPage === 'statistics'}
           <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {:else if currentPage === 'api-keys'}
           <svelte:component this={activeFeature} {tr} {locale} {actionRequest} onConnectionChange={handleConnectionChange} />

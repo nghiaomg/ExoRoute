@@ -13,12 +13,14 @@
   import RequestMetricsStrip from './RequestMetricsStrip.svelte';
   import RequestOutcomeBar from './RequestOutcomeBar.svelte';
   import RequestSkeleton from './RequestSkeleton.svelte';
+  import RequestStatisticsDetails from './RequestStatisticsDetails.svelte';
+  import RequestStatisticsSummary from './RequestStatisticsSummary.svelte';
   import RequestsTable from './RequestsTable.svelte';
   import { api } from '../../lib/api';
   import type { Locale } from '../../lib/i18n';
   import { localizedError } from '../../lib/errors';
   import { type Translate } from '../../lib/format';
-  import type { RequestLiveConnectionState, RequestLiveRow, RequestLog, RequestLogFilters } from '../../lib/types';
+  import type { RequestLiveConnectionState, RequestLiveRow, RequestLog, RequestLogFilters, RequestStatistics } from '../../lib/types';
   import {
     clearedRequestFilter,
     requestPageMetrics,
@@ -73,6 +75,21 @@
   let lastUpdatedMs = 0;
   let nowMs = Date.now();
   let ticker: number | null = null;
+
+  // Aggregate traffic summary (formerly the Statistics page). The request log
+  // and the aggregates fail independently: a broken statistics call must not
+  // blank the live table, so every statistics field is prefixed and the
+  // summary component renders its own retry state.
+  let selectedStatisticsRange: RequestStatistics['range'] = '1d';
+  let statistics: RequestStatistics | null = null;
+  let statisticsInitialLoading = true;
+  let statisticsFetching = false;
+  let statisticsErrorMessage = '';
+  let statisticsInlineError = '';
+  let statisticsGeneration = 0;
+  let statisticsController: AbortController | null = null;
+  const statisticsCache: Partial<Record<RequestStatistics['range'], { data: RequestStatistics; timestamp: number }>> = {};
+  const STATISTICS_CACHE_TTL_MS = 60_000;
 
   $: liveRequests = requestLiveState.requests;
   $: liveTruncated = requestLiveState.truncated;
@@ -218,14 +235,62 @@
     onConnectionChange: (state) => { liveConnection = state; },
   });
 
+  async function loadStatistics(range: RequestStatistics['range'] = selectedStatisticsRange, forceRefresh = false): Promise<void> {
+    selectedStatisticsRange = range;
+    statisticsInlineError = '';
+
+    const cached = statisticsCache[range];
+    const isStale = !cached || (Date.now() - cached.timestamp > STATISTICS_CACHE_TTL_MS);
+
+    if (cached && !forceRefresh) {
+      statistics = cached.data;
+      statisticsInitialLoading = false;
+      if (!isStale) return;
+    }
+
+    const requestGeneration = ++statisticsGeneration;
+    statisticsController?.abort();
+    const controller = new AbortController();
+    statisticsController = controller;
+
+    if (!statistics) {
+      statisticsInitialLoading = true;
+    }
+    statisticsFetching = true;
+    statisticsErrorMessage = '';
+
+    try {
+      const result = await api.statistics(range, controller.signal);
+      if (requestGeneration !== statisticsGeneration) return;
+      statisticsCache[range] = { data: result, timestamp: Date.now() };
+      statistics = result;
+    } catch (error) {
+      if (requestGeneration !== statisticsGeneration || controller.signal.aborted) return;
+      const formatted = localizedError(error, 'Something went wrong while loading this page.', tr);
+      if (!statistics) {
+        statisticsErrorMessage = formatted;
+      } else {
+        statisticsInlineError = formatted;
+      }
+    } finally {
+      if (requestGeneration === statisticsGeneration) {
+        statisticsInitialLoading = false;
+        statisticsFetching = false;
+      }
+    }
+  }
+
   onMount(() => {
     void load(null);
+    void loadStatistics();
     liveController.start();
     ticker = window.setInterval(() => { nowMs = Date.now(); }, 1000);
   });
   onDestroy(() => {
     generation += 1;
     activeController?.abort();
+    statisticsGeneration += 1;
+    statisticsController?.abort();
     liveController.stop();
     if (ticker !== null) window.clearInterval(ticker);
     ticker = null;
@@ -238,6 +303,19 @@
     <RequestLogDeleteDialog {tr} {busy} disabled={loading} onConfirm={confirmDeleteAllRequestLogs} />
   </div>
 </PageHeading>
+
+<RequestStatisticsSummary
+  {tr}
+  {locale}
+  statistics={statistics}
+  selectedRange={selectedStatisticsRange}
+  isInitialLoading={statisticsInitialLoading}
+  isFetching={statisticsFetching}
+  errorMessage={statisticsErrorMessage}
+  inlineError={statisticsInlineError}
+  onRangeChange={(range) => void loadStatistics(range)}
+  onRefresh={() => void loadStatistics(selectedStatisticsRange, true)}
+/>
 
 <RequestMetricsStrip {tr} {locale} {metrics} {activeCount} />
 <RequestOutcomeBar {tr} {locale} {metrics} />
@@ -295,6 +373,10 @@
     <button class="secondary-button compact" disabled={!nextCursor || loading} onclick={nextPage}>{tr('Next')}<ChevronRight size={14} /></button>
   </div>
 </div>
+
+{#if statistics}
+  <RequestStatisticsDetails {tr} {locale} {statistics} />
+{/if}
 
 <RequestErrorDialog {tr} {locale} request={selectedErrorRequest} onClose={() => selectedErrorRequest = null} />
 <RequestDetailDrawer {tr} {locale} request={selectedRequest} liveClockMs={nowMs} onClose={() => selectedRequest = null} />

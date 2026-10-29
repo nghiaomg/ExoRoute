@@ -6,9 +6,9 @@
  * same shape.
  */
 
-import { formatPercent, type Translate } from '../../lib/format';
-import type { Locale } from '../../lib/i18n';
-import type { StatisticsDimension } from '../../lib/types';
+import { formatPercent, type Translate } from '../lib/format';
+import type { Locale } from '../lib/i18n';
+import type { StatisticsDimension } from '../lib/types';
 
 /** One row of a ranked or ordered bar list. */
 export interface BarRow {
