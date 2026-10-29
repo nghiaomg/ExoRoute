@@ -250,7 +250,7 @@
   .statistics-details > div { min-width: 0; display: grid; gap: 8px; padding: 15px 17px; background: var(--paper); }
   .statistics-details span { color: var(--muted); font-size: 12px; }
   .statistics-details strong { overflow: hidden; color: var(--ink); font: 600 12px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
-  .statistics-warning { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 12px 14px; color: #9a3412; border: 2px solid var(--ink); border-radius: 10px; box-shadow: 2px 2px 0 var(--ink); background: #fff7ed; }
+  .statistics-warning { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 12px 14px; color: #9a3412; border: 2px solid var(--ink); border-radius: 10px; box-shadow: 2px 2px 0 var(--ink); background: color-mix(in srgb, var(--accent) 7%, #fff); }
   .statistics-warning :global(svg) { flex: 0 0 auto; margin-top: 1px; }
   .statistics-warning > div { display: grid; gap: 3px; }
   .statistics-warning strong { font-size: 12px; }

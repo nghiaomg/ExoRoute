@@ -313,7 +313,7 @@
     gap: 8px;
     margin: 0 0 16px;
     padding: 10px 14px;
-    color: #c2410c;
+    color: var(--accent-deep);
     border: 2px solid var(--ink);
     border-radius: 12px;
     background: #fffaf5;
@@ -323,9 +323,9 @@
   }
 
   :global(:root[data-theme='dark']) .request-live-feedback {
-    color: #fed7aa;
+    color: color-mix(in srgb, var(--accent) 30%, #fff);
     border-color: #7c2d12;
-    background: #2b1d18;
+    background: color-mix(in srgb, var(--accent) 13%, #131313);
   }
 
   .request-pager {

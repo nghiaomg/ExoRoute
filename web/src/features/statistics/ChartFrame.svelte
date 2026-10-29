@@ -63,7 +63,7 @@
   .chart-titles p { margin: 3px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
   .chart-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 7px; }
   .chart-badge { padding: 2px 7px; color: #755621; border: 1px solid #ebd9a9; border-radius: 999px; background: #fffdf5; font: 600 11px var(--font-sans); white-space: nowrap; }
-  .chart-badge.partial { color: #9a3412; border-color: #f3cdb3; background: #fff7ed; }
+  .chart-badge.partial { color: #9a3412; border-color: #f3cdb3; background: color-mix(in srgb, var(--accent) 7%, #fff); }
   :global(:root[data-theme='dark']) .chart-badge { color: #f5d9a8; border-color: #5a4a24; background: #2a2314; }
   :global(:root[data-theme='dark']) .chart-badge.partial { color: #f7c9a8; border-color: #5c3a24; background: #2b1e14; }
   .chart-empty { margin: 0; padding: 26px 0; color: var(--muted); font-size: 12px; text-align: center; }

@@ -62,7 +62,7 @@
   }
   .search-box:focus-within {
     background: #e8ebf4;
-    color: var(--violet, #ea580c);
+    color: var(--violet, var(--accent-strong));
   }
   .search-box input {
     width: 175px;
@@ -98,7 +98,7 @@
   }
   :global(:root[data-theme='dark']) .search-box:focus-within {
     background: #1f2032 !important;
-    color: #fdba74;
+    color: var(--accent-soft);
   }
   :global(:root[data-theme='dark']) .search-box input {
     color: #f0edff !important;

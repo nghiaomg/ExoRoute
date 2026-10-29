@@ -94,7 +94,7 @@
 }
 .overview-view .empty-inline {
   background: #fdfdfd;
-  border: 1px dashed rgba(249, 115, 22, 0.2) !important;
+  border: 1px dashed color-mix(in srgb, var(--accent) 20%, transparent) !important;
 }
 .overview-view .secondary-button {
   border: 1px solid rgba(255, 255, 255, 0.85) !important;
@@ -115,7 +115,7 @@
 }
 .setup-icon.mint-icon { color: #278e6d; background: #e9faf5; }
 .setup-icon.blue-icon { color: #3d86dd; background: #ebf4ff; }
-.setup-icon.violet-icon { color: #f97316; background: #fff4e6; }
+.setup-icon.violet-icon { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, #fff); }
 .setup-card strong {
   color: #313548;
   font-size: var(--text-sm);
@@ -131,7 +131,7 @@
   position: absolute;
   right: 16px;
   bottom: 16px;
-  color: #fdba74;
+  color: var(--accent-soft);
   transition: transform 0.16s ease, color 0.16s ease;
 }
 .setup-card:hover .setup-arrow {
@@ -169,7 +169,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--info);
 }
 .quick-strip-items {
   display: flex;
@@ -238,7 +238,7 @@
   transition: transform 0.16s ease, color 0.16s ease;
 }
 .quick-strip-btn:hover .quick-step-arrow {
-  color: #6366f1;
+  color: var(--info);
   transform: translateX(2px);
 }
 

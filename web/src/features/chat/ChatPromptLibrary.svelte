@@ -236,7 +236,7 @@
     padding: 4px 9px;
     border: 1.5px solid var(--ink);
     border-radius: 8px;
-    background: #ffedd5;
+    background: color-mix(in srgb, var(--accent) 14%, #fff);
     color: var(--ink);
     font-size: 11px;
     font-weight: var(--font-semibold);
@@ -256,8 +256,8 @@
     cursor: pointer;
   }
 
-  :global(:root[data-theme='dark']) .prompt-library { background: rgba(14, 16, 26, 0.9); }
-  :global(:root[data-theme='dark']) .library-apply { background: rgba(249, 115, 22, 0.2); }
+  :global(:root[data-theme='dark']) .prompt-library { background: color-mix(in srgb, var(--surface-glass-base) 90%, transparent); }
+  :global(:root[data-theme='dark']) .library-apply { background: color-mix(in srgb, var(--accent) 20%, transparent); }
   :global(:root[data-theme='dark']) .library-name {
     background: rgba(255, 255, 255, 0.04);
     color: #e2e8f0;

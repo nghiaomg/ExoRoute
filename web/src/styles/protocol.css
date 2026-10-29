@@ -25,9 +25,9 @@
 .protocol-pill.messages,
 .providers-view .protocol-pill.protocol-messages,
 .providers-view .protocol-pill.messages {
-  color: #c2410c !important;
-  background: #ffedd5 !important;
-  border: 1px solid #fed7aa !important;
+  color: var(--accent-deep) !important;
+  background: color-mix(in srgb, var(--accent) 14%, #fff) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, #fff) !important;
 }
 /* Violet/Purple for Responses */
 .protocol-pill.protocol-responses,
@@ -43,7 +43,7 @@
 .provider-card-title code { display: block; overflow: hidden; color: #a1a4b2; font: 500 12px var(--font-sans); text-overflow: ellipsis; }
 .provider-card-url { overflow: hidden; margin: 0; color: #85899a; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .provider-card-details { display: flex; align-items: center; gap: 8px; color: #8e92a1; font-size: 12px; }
-.provider-prefix-chip { overflow: hidden; max-width: 140px; padding: 3px 6px; border: none; border-radius: 5px; color: #b45309; background: #fff7ed; font-family: var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
+.provider-prefix-chip { overflow: hidden; max-width: 140px; padding: 3px 6px; border: none; border-radius: 5px; color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 7%, #fff); font-family: var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
 .provider-card-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .provider-card-stats > div { display: grid; gap: 3px; min-width: 0; padding: 10px; border: none; border-radius: 8px; background: #f4f5fa; }
 .provider-card-stats strong { color: #484c60; font: 700 16px var(--font-heading); }
@@ -81,11 +81,11 @@
 .oauth-waiting-text { color: #8e92a2; font-size: 12px; font-style: italic; }
 .oauth-step-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .oauth-format-guide { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: #85899b; font-size: 11px; min-width: 0; max-width: 100%; word-break: break-all; overflow-wrap: anywhere; }
-.oauth-format-guide code { color: #c2410c; background: transparent; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; word-break: break-all; overflow-wrap: anywhere; }
+.oauth-format-guide code { color: var(--accent-deep); background: transparent; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; word-break: break-all; overflow-wrap: anywhere; }
 .oauth-callback-field { display: grid; gap: 6px; min-width: 0; max-width: 100%; color: #5b5f70; font-size: 12px; font-weight: 650; box-sizing: border-box; }
 .oauth-callback-textarea { width: 100%; min-width: 0; max-width: 100%; min-height: 80px; padding: 8px 10px; border: 1px solid #dfe1ea; border-radius: 8px; color: #343746; background: #ffffff; font: 500 12px/1.5 var(--font-mono, ui-monospace, monospace); overflow-wrap: anywhere; word-break: break-all; resize: vertical; box-sizing: border-box; }
-.oauth-callback-textarea:focus { border-color: #fb923c; outline: 3px solid rgb(129 115 208 / 18%); }
-.provider-oauth-callback-banner { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 11px 13px; border: 1px solid #fed7aa; border-radius: 9px; color: #9a3412; background: #fff7ed; font-size: 12px; line-height: 1.5; }
+.oauth-callback-textarea:focus { border-color: var(--accent-glow); outline: 3px solid color-mix(in srgb, var(--info) 18%, transparent); }
+.provider-oauth-callback-banner { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 11px 13px; border: 1px solid color-mix(in srgb, var(--accent) 30%, #fff); border-radius: 9px; color: #9a3412; background: color-mix(in srgb, var(--accent) 7%, #fff); font-size: 12px; line-height: 1.5; }
 .provider-oauth-callback-banner.success { color: #26734e; border-color: #cce9d7; background: #effaf4; }
 .provider-oauth-callback-banner.error { color: #a6404a; border-color: #f1cdd1; background: #fff3f4; }
 .provider-oauth-callback-banner > span { min-width: 0; }
@@ -193,8 +193,8 @@
 .detail-id-chip {
   padding: 3px 8px;
   border-radius: 6px;
-  background: #fff4e6;
-  color: #ea580c;
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
+  color: var(--accent-strong);
   font-family: var(--font-mono);
   font-size: 12px;
   border: none !important;

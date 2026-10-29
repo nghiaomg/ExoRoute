@@ -1,19 +1,19 @@
 /* Theme overrides: base */
 /* Dark layout overrides. Palette tokens live in styles/tokens.css. */
 :root[data-theme='dark'] body {
-  color: #f0f2f8;
-  background-color: #07080c;
+  color: var(--ink);
+  background-color: var(--canvas);
 }
 :root[data-theme='dark'] body::before {
-  background-color: #07080c;
+  background-color: var(--canvas);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 0%, color-mix(in srgb, var(--info) 8%, transparent) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(124, 58, 237, 0.06) 0px, transparent 45%),
     radial-gradient(at 50% 30%, rgba(30, 27, 75, 0.25) 0px, transparent 65%),
     radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.05) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(79, 70, 229, 0.06) 0px, transparent 45%);
 }
-:root[data-theme='dark'] ::selection { color: #ffffff; background: #6366f1; }
+:root[data-theme='dark'] ::selection { color: #ffffff; background: var(--info); }
 
 /* Dark Palette Custom Scrollbar */
 :root[data-theme='dark'] * {
@@ -34,21 +34,21 @@
 }
 
 :root[data-theme='dark'] ::-webkit-scrollbar-thumb:active {
-  background-color: #6366f1;
+  background-color: var(--info);
 }
 :root[data-theme='dark'] .login-screen,
 :root[data-theme='dark'] .session-check-screen { background: transparent; }
 :root[data-theme='dark'] .login-card, :root[data-theme='dark'] .session-check-card {
   color: #e2e4f0;
-  background: rgba(14, 16, 26, 0.78) !important;
+  background: color-mix(in srgb, var(--surface-glass-base) 78%, transparent) !important;
   backdrop-filter: blur(28px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
   border: 2px solid var(--ink) !important;
   box-shadow: 5px 5px 0 var(--ink) !important;
 }
 :root[data-theme='dark'] .session-check-notice {
-  color: #fdba74;
-  background: rgba(249, 115, 22, 0.1);
+  color: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border: 2px solid var(--ink);
   box-shadow: 2px 2px 0 var(--ink);
 }
@@ -67,19 +67,19 @@
 }
 :root[data-theme='dark'] .login-screen .preference-button:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(124, 103, 239, 0.4);
+  border-color: color-mix(in srgb, var(--info) 40%, transparent);
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
-:root[data-theme='dark'] .login-heading h1, :root[data-theme='dark'] .session-check-card h1 { color: #f0f2f8; }
-:root[data-theme='dark'] .login-heading p, :root[data-theme='dark'] .session-check-card p { color: #9aa0b6; }
-:root[data-theme='dark'] .session-check-notice { color: #c4b5fd; background: rgba(99, 102, 241, 0.14); border: 1px solid rgba(124, 103, 239, 0.25); }
+:root[data-theme='dark'] .login-heading h1, :root[data-theme='dark'] .session-check-card h1 { color: var(--ink); }
+:root[data-theme='dark'] .login-heading p, :root[data-theme='dark'] .session-check-card p { color: var(--text-dim); }
+:root[data-theme='dark'] .session-check-notice { color: var(--info-soft); background: color-mix(in srgb, var(--info) 14%, transparent); border: 1px solid color-mix(in srgb, var(--info) 25%, transparent); }
 :root[data-theme='dark'] .session-check-notice.rate-limited { color: #fcd34d; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); }
-:root[data-theme='dark'] .session-check-retry { color: #a5b4fc; }
+:root[data-theme='dark'] .session-check-retry { color: var(--info-soft); }
 :root[data-theme='dark'] .session-check-retry:disabled { color: #6b7086; }
 :root[data-theme='dark'] .login-icon {
-  color: #fdba74;
-  background: rgba(249, 115, 22, 0.16) !important;
+  color: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 16%, transparent) !important;
   border: 2px solid var(--ink) !important;
   box-shadow: 2px 2px 0 var(--ink) !important;
 }
@@ -104,13 +104,13 @@
 :root[data-theme='dark'] .login-screen .language-select-control:hover,
 :root[data-theme='dark'] .login-screen .language-select-root[data-state="open"] .language-select-control {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(124, 103, 239, 0.4);
+  border-color: color-mix(in srgb, var(--info) 40%, transparent);
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 :root[data-theme='dark'] .login-screen .preference-button:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(124, 103, 239, 0.4);
+  border-color: color-mix(in srgb, var(--info) 40%, transparent);
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
@@ -118,15 +118,15 @@
 :root[data-theme='dark'] .login-screen .ark-password-input,
 :root[data-theme='dark'] .login-screen .modal-form input {
   background: rgba(255, 255, 255, 0.04) !important;
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
   border: 1px solid rgba(255, 255, 255, 0.09) !important;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 :root[data-theme='dark'] .login-screen .ark-password-input:focus,
 :root[data-theme='dark'] .login-screen .modal-form input:focus {
   background: rgba(255, 255, 255, 0.07) !important;
-  border-color: #f97316 !important;
-  box-shadow: 2px 2px 0 #f97316 !important;
+  border-color: var(--accent) !important;
+  box-shadow: 2px 2px 0 var(--accent) !important;
   outline: none !important;
 }
 
@@ -134,16 +134,16 @@
   color: #7b8096;
 }
 :root[data-theme='dark'] .login-screen .ark-password-trigger:hover {
-  color: #c4b5fd;
+  color: var(--info-soft);
 }
 
 :root[data-theme='dark'] .login-screen .primary-button {
-  background: #f97316;
+  background: var(--accent);
   border: 2px solid var(--ink) !important;
   box-shadow: 3px 3px 0 var(--ink) !important;
 }
 :root[data-theme='dark'] .login-screen .primary-button:hover:not(:disabled) {
-  background: #ea580c;
+  background: var(--accent-strong);
   box-shadow: 4px 4px 0 var(--ink) !important;
 }
 :root[data-theme='dark'] .login-screen .primary-button:active:not(:disabled) {
@@ -157,7 +157,7 @@
   color: #c4c8d8;
 }
 :root[data-theme='dark'] .login-screen .secondary-button:hover {
-  background: rgba(249, 115, 22, 0.1);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-color: var(--ink) !important;
   color: #ffffff;
   box-shadow: 3px 3px 0 var(--ink) !important;
@@ -175,23 +175,23 @@
   background: #0c0d14 !important;
   border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
-:root[data-theme='dark'] .brand-word { color: #f0f2f8; }
-:root[data-theme='dark'] .brand-word span { color: #818cf8; }
+:root[data-theme='dark'] .brand-word { color: var(--ink); }
+:root[data-theme='dark'] .brand-word span { color: var(--info); }
 :root[data-theme='dark'] .brand-version {
-  color: #c4b5fd;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(124, 103, 239, 0.25);
+  color: var(--info-soft);
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent);
 }
 :root[data-theme='dark'] .workspace-label { color: #767a92; }
 :root[data-theme='dark'] .nav-item { color: #9ca0b6; }
 :root[data-theme='dark'] .nav-item:hover { color: #f0f2fb; background: rgba(255, 255, 255, 0.05); }
 :root[data-theme='dark'] .nav-item.active {
   color: #ffffff;
-  background: rgba(99, 102, 241, 0.16) !important;
-  border: 1px solid rgba(124, 103, 239, 0.3) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px rgba(99, 102, 241, 0.2) !important;
+  background: color-mix(in srgb, var(--info) 16%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--info) 30%, transparent) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px color-mix(in srgb, var(--info) 20%, transparent) !important;
 }
-:root[data-theme='dark'] .nav-count { color: #c4b5fd; background: rgba(255, 255, 255, 0.07); }
+:root[data-theme='dark'] .nav-count { color: var(--info-soft); background: rgba(255, 255, 255, 0.07); }
 :root[data-theme='dark'] .sidebar-status {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(14px);
@@ -204,7 +204,7 @@
 :root[data-theme='dark'] .profile-copy small { color: #8a8fa4; }
 :root[data-theme='dark'] .sidebar-footer { border-color: rgba(255, 255, 255, 0.06); }
 :root[data-theme='dark'] .profile-copy strong { color: #d5d6e1; }
-:root[data-theme='dark'] .avatar { color: #c4b5fd; background: rgba(99, 102, 241, 0.18); border-color: rgba(124, 103, 239, 0.35); }
+:root[data-theme='dark'] .avatar { color: var(--info-soft); background: color-mix(in srgb, var(--info) 18%, transparent); border-color: color-mix(in srgb, var(--info) 35%, transparent); }
 :root[data-theme='dark'] .icon-button { color: #9ca0b6; }
 :root[data-theme='dark'] .icon-button:hover { color: #ffffff; background: rgba(255, 255, 255, 0.08); }
 
@@ -250,7 +250,7 @@
   background: rgba(255, 255, 255, 0.09) !important;
 }
 :root[data-theme='dark'] .language-select-root[data-state="open"] .language-select-indicator {
-  color: #a5b4fc;
+  color: var(--info-soft);
 }
 
 /* Language Dropdown Menu (Portal) Dark Mode */
@@ -272,15 +272,15 @@
 }
 :root[data-theme='dark'] .language-select-item:hover,
 :root[data-theme='dark'] .language-select-item[data-highlighted] {
-  background: rgba(99, 102, 241, 0.15);
-  color: #c4b5fd;
+  background: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info-soft);
 }
 :root[data-theme='dark'] .language-select-item[data-state="checked"] {
-  background: rgba(99, 102, 241, 0.2);
-  color: #c4b5fd;
+  background: color-mix(in srgb, var(--info) 20%, transparent);
+  color: var(--info-soft);
 }
 :root[data-theme='dark'] .language-select-item-indicator {
-  color: #818cf8;
+  color: var(--info);
 }
 :root[data-theme='dark'] .gateway-pill code { color: #a1a4b7; border-color: rgba(255, 255, 255, 0.08); }
 
