@@ -1,5 +1,7 @@
 use super::request_encode::{content_to_anthropic, content_to_chat};
-use super::{CanonicalResponse, ContentBlock, Protocol};
+use super::{
+    CanonicalResponse, ContentBlock, Protocol, inclusive_input_tokens, uncached_input_tokens,
+};
 use serde_json::{Value, json};
 
 /// Encodes the canonical assistant response for the requested client wire
@@ -92,12 +94,18 @@ pub fn encode_response(protocol: Protocol, response: &CanonicalResponse) -> Valu
                     "message": message,
                     "finish_reason": normalize_chat_finish(&response.finish_reason)
                 }],
-                "usage": response.usage.as_ref().map(|usage| json!({
-                    "prompt_tokens": usage.input_tokens,
-                    "completion_tokens": usage.output_tokens,
-                    "total_tokens": usage.input_tokens.saturating_add(usage.output_tokens),
-                    "cost": usage.cost_micro_usd.map(|value| value as f64 / 1_000_000.0)
-                })).unwrap_or(Value::Null)
+                "usage": response.usage.as_ref().map(|usage| {
+                    // OpenAI reports the cached subset inside the prompt total,
+                    // so prompt_tokens uses the cache-inclusive input count.
+                    let prompt_tokens = inclusive_input_tokens(usage.input_tokens, usage.cache_input_tokens);
+                    json!({
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": usage.output_tokens,
+                        "total_tokens": prompt_tokens.saturating_add(usage.output_tokens),
+                        "prompt_tokens_details": {"cached_tokens": usage.cached_tokens},
+                        "cost": usage.cost_micro_usd.map(|value| value as f64 / 1_000_000.0)
+                    })
+                }).unwrap_or(Value::Null)
             })
         }
         Protocol::Responses => {
@@ -152,12 +160,18 @@ pub fn encode_response(protocol: Protocol, response: &CanonicalResponse) -> Valu
                 "model": response.model,
                 "output": output,
                 "output_text": text,
-                "usage": response.usage.as_ref().map(|usage| json!({
-                    "input_tokens": usage.input_tokens,
-                    "output_tokens": usage.output_tokens,
-                    "total_tokens": usage.input_tokens.saturating_add(usage.output_tokens),
-                    "cost": usage.cost_micro_usd.map(|value| value as f64 / 1_000_000.0)
-                })).unwrap_or(Value::Null)
+                "usage": response.usage.as_ref().map(|usage| {
+                    // The Responses API reports the cached subset inside the
+                    // input total, mirroring the Chat Completions shape.
+                    let input_tokens = inclusive_input_tokens(usage.input_tokens, usage.cache_input_tokens);
+                    json!({
+                        "input_tokens": input_tokens,
+                        "output_tokens": usage.output_tokens,
+                        "total_tokens": input_tokens.saturating_add(usage.output_tokens),
+                        "input_tokens_details": {"cached_tokens": usage.cached_tokens},
+                        "cost": usage.cost_micro_usd.map(|value| value as f64 / 1_000_000.0)
+                    })
+                }).unwrap_or(Value::Null)
             })
         }
         Protocol::Messages => {
@@ -194,11 +208,19 @@ pub fn encode_response(protocol: Protocol, response: &CanonicalResponse) -> Valu
                 "content": content,
                 "stop_reason": messages_finish_reason(&response.finish_reason),
                 "stop_sequence": null,
-                "usage": response.usage.as_ref().map(|usage| json!({
-                    "input_tokens": usage.input_tokens,
-                    "output_tokens": usage.output_tokens,
-                    "cost": usage.cost_micro_usd.map(|value| value as f64 / 1_000_000.0)
-                })).unwrap_or(Value::Null)
+                "usage": response.usage.as_ref().map(|usage| {
+                    // Anthropic reports cache reads beside the input total, so
+                    // input_tokens carries the uncached remainder and the two
+                    // fields sum back to the cache-inclusive total. Cache
+                    // creation is not tracked separately upstream, so it stays
+                    // folded into input_tokens instead of being reported as 0.
+                    json!({
+                        "input_tokens": uncached_input_tokens(usage.input_tokens, usage.cache_input_tokens, usage.cached_tokens),
+                        "output_tokens": usage.output_tokens,
+                        "cache_read_input_tokens": usage.cached_tokens,
+                        "cost": usage.cost_micro_usd.map(|value| value as f64 / 1_000_000.0)
+                    })
+                }).unwrap_or(Value::Null)
             })
         }
     }

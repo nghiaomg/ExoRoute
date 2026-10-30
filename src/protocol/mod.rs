@@ -30,9 +30,10 @@ pub use model::{
 // decoders, and the tests all resolve them through one path.
 pub use parse::parse_cost_micro_usd;
 pub(crate) use parse::{
-    cache_input_token_total, optional_bool, optional_f32, optional_u32, parse_cached_input_tokens,
-    parse_chat_tools, parse_content, parse_messages_tools, parse_response_tools, parse_role,
-    parse_string_list, parse_usage, string_field,
+    cache_input_token_total, inclusive_input_tokens, optional_bool, optional_f32, optional_u32,
+    parse_cached_input_tokens, parse_chat_tools, parse_content, parse_messages_tools,
+    parse_response_tools, parse_role, parse_string_list, parse_usage, string_field,
+    uncached_input_tokens,
 };
 pub(crate) use request_encode::encode_openai_family_request;
 #[cfg(test)]

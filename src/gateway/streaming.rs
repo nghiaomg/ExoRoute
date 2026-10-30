@@ -2,7 +2,7 @@ use super::{GatewayRequestLog, log_request};
 use crate::{
     config::GatewayResourceLimits,
     infra::telemetry::RequestAnalytics,
-    protocol::{Protocol, UpstreamProtocol},
+    protocol::{Protocol, UpstreamProtocol, inclusive_input_tokens, uncached_input_tokens},
     provider_adapters::ResponsesStreamAccumulator,
     state::{AppState, DynamicSemaphore, DynamicSemaphorePermit, RequestLiveGuard},
 };

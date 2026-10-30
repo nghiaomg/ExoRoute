@@ -36,9 +36,21 @@ pub(in crate::gateway::streaming) fn ensure_messages_client_start(
         return;
     }
     let start = if config.upstream_protocol == UpstreamProtocol::GoogleGenerateContent {
-        google_messages_stream_start(&state.upstream_id, &config.model, state.input_tokens)
+        google_messages_stream_start(
+            &state.upstream_id,
+            &config.model,
+            state.input_tokens,
+            state.cached_tokens,
+            state.cache_input_tokens,
+        )
     } else {
-        messages_stream_start(&state.upstream_id, &config.model, state.input_tokens)
+        messages_stream_start(
+            &state.upstream_id,
+            &config.model,
+            state.input_tokens,
+            state.cached_tokens,
+            state.cache_input_tokens,
+        )
     };
     output.push(Bytes::from(start));
     state.sent_start = true;

@@ -30,9 +30,21 @@ pub(in crate::gateway::streaming) fn complete_events(
     if !state.sent_start {
         let start = if client_protocol == Protocol::Messages {
             if upstream_protocol == UpstreamProtocol::GoogleGenerateContent {
-                google_messages_stream_start(&state.upstream_id, &config.model, state.input_tokens)
+                google_messages_stream_start(
+                    &state.upstream_id,
+                    &config.model,
+                    state.input_tokens,
+                    state.cached_tokens,
+                    state.cache_input_tokens,
+                )
             } else {
-                messages_stream_start(&state.upstream_id, &config.model, state.input_tokens)
+                messages_stream_start(
+                    &state.upstream_id,
+                    &config.model,
+                    state.input_tokens,
+                    state.cached_tokens,
+                    state.cache_input_tokens,
+                )
             }
         } else {
             encode_stream_start(client_protocol, &state.upstream_id, &config.model)
@@ -42,9 +54,12 @@ pub(in crate::gateway::streaming) fn complete_events(
         }
         state.sent_start = true;
     }
-    let usage = state
-        .has_usage
-        .then_some((state.input_tokens, state.output_tokens));
+    let usage = state.has_usage.then_some((
+        state.input_tokens,
+        state.output_tokens,
+        state.cached_tokens,
+        state.cache_input_tokens,
+    ));
     if upstream_protocol == UpstreamProtocol::ChatCompletions
         && client_protocol != Protocol::ChatCompletions
     {
@@ -98,6 +113,8 @@ pub(in crate::gateway::streaming) fn complete_events(
             &state.finish_reason,
             state.input_tokens,
             state.output_tokens,
+            state.cached_tokens,
+            state.cache_input_tokens,
             state.cost_micro_usd,
             state.google_message_text_started,
         )
@@ -106,6 +123,8 @@ pub(in crate::gateway::streaming) fn complete_events(
             &state.finish_reason,
             state.input_tokens,
             state.output_tokens,
+            state.cached_tokens,
+            state.cache_input_tokens,
             state.cost_micro_usd,
             &state.messages_open_blocks,
         )
@@ -126,6 +145,8 @@ pub(in crate::gateway::streaming) fn complete_events(
             events.push(Bytes::from(encode_stream_usage(
                 state.input_tokens,
                 state.output_tokens,
+                state.cached_tokens,
+                state.cache_input_tokens,
                 state.cost_micro_usd,
             )));
         }

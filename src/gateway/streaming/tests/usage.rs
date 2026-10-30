@@ -34,15 +34,61 @@ fn stream_completion_events_preserve_provider_cost_for_each_client_protocol() {
         "response-1",
         "cl/model",
         "stop",
-        Some((4, 6)),
+        Some((4, 6, 0, 0)),
         cost,
         None,
     );
     assert!(responses.contains("\"cost\":0.125"));
 
-    let messages = messages_stream_finish("stop", 4, 6, cost, &[]);
+    let messages = messages_stream_finish("stop", 4, 6, 0, 0, cost, &[]);
     assert!(messages.contains("\"cost\":0.125"));
 
-    let chat = encode_stream_usage(4, 6, cost);
+    let chat = encode_stream_usage(4, 6, 0, 0, cost);
     assert!(chat.contains("\"cost\":0.125"));
+}
+
+#[test]
+fn stream_usage_events_report_cache_fields_for_each_client_protocol() {
+    // Chat Completions keeps the cached subset inside the prompt total: the
+    // recorded cache denominator (6) covers the reported input count (4).
+    let chat = encode_stream_usage(4, 6, 2, 6, None);
+    assert!(chat.contains("\"prompt_tokens\":6"), "{chat}");
+    assert!(
+        chat.contains("\"prompt_tokens_details\":{\"cached_tokens\":2}"),
+        "{chat}"
+    );
+    assert!(chat.contains("\"total_tokens\":12"), "{chat}");
+
+    // Responses mirrors the Chat shape through input_tokens_details.
+    let responses = encode_stream_finish(
+        Protocol::Responses,
+        "response-1",
+        "cl/model",
+        "stop",
+        Some((4, 6, 2, 6)),
+        None,
+        None,
+    );
+    assert!(responses.contains("\"input_tokens\":6"), "{responses}");
+    assert!(
+        responses.contains("\"input_tokens_details\":{\"cached_tokens\":2}"),
+        "{responses}"
+    );
+
+    // Messages reports the uncached remainder beside the cache reads, so
+    // input_tokens + cache_read_input_tokens rebuilds the 9-token total.
+    let messages = messages_stream_finish("stop", 2, 3, 3, 9, None, &[]);
+    assert!(messages.contains("\"input_tokens\":6"), "{messages}");
+    assert!(
+        messages.contains("\"cache_read_input_tokens\":3"),
+        "{messages}"
+    );
+
+    let start = messages_stream_start("msg-1", "m", 2, 3, 9);
+    assert!(start.contains("\"cache_read_input_tokens\":3"), "{start}");
+    assert!(start.contains("\"input_tokens\":6"), "{start}");
+
+    let google = google_messages_stream_finish("stop", 2, 3, 3, 11, None, false);
+    assert!(google.contains("\"input_tokens\":8"), "{google}");
+    assert!(google.contains("\"cache_read_input_tokens\":3"), "{google}");
 }

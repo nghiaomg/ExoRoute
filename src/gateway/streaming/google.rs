@@ -297,10 +297,16 @@ pub(super) fn encode_google_tool_call_events(
     Ok((events, response_output))
 }
 
-pub(super) fn google_messages_stream_start(id: &str, model: &str, input_tokens: u64) -> String {
+pub(super) fn google_messages_stream_start(
+    id: &str,
+    model: &str,
+    input_tokens: u64,
+    cached_tokens: u64,
+    cache_input_tokens: u64,
+) -> String {
     format!(
         "event: message_start\ndata: {}\n\n",
-        json!({"type":"message_start","message":{"id":id,"type":"message","role":"assistant","model":model,"content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":input_tokens,"output_tokens":0}}})
+        json!({"type":"message_start","message":{"id":id,"type":"message","role":"assistant","model":model,"content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":uncached_input_tokens(input_tokens, cache_input_tokens, cached_tokens),"output_tokens":0,"cache_read_input_tokens":cached_tokens}}})
     )
 }
 
@@ -322,6 +328,8 @@ pub(super) fn google_messages_stream_finish(
     reason: &str,
     input_tokens: u64,
     output_tokens: u64,
+    cached_tokens: u64,
+    cache_input_tokens: u64,
     cost_micro_usd: Option<i64>,
     text_started: bool,
 ) -> String {
@@ -343,7 +351,7 @@ pub(super) fn google_messages_stream_finish(
     }
     output.push_str(&format!(
         "event: message_delta\ndata: {}\n\nevent: message_stop\ndata: {}\n\n",
-        json!({"type":"message_delta","delta":{"stop_reason":stop_reason,"stop_sequence":null},"usage":{"input_tokens":input_tokens,"output_tokens":output_tokens,"cost":cost_micro_usd.map(|value| value as f64 / 1_000_000.0)}}),
+        json!({"type":"message_delta","delta":{"stop_reason":stop_reason,"stop_sequence":null},"usage":{"input_tokens":uncached_input_tokens(input_tokens, cache_input_tokens, cached_tokens),"output_tokens":output_tokens,"cache_read_input_tokens":cached_tokens,"cost":cost_micro_usd.map(|value| value as f64 / 1_000_000.0)}}),
         json!({"type":"message_stop"})
     ));
     output

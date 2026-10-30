@@ -100,7 +100,7 @@ fn translates_google_function_calls_to_all_client_stream_formats() {
     assert!(messages.contains("\"type\":\"tool_use\""));
     assert!(messages.contains("input_json_delta"));
     assert!(
-        google_messages_stream_finish("tool_calls", 11, 7, None, false)
+        google_messages_stream_finish("tool_calls", 11, 7, 0, 0, None, false)
             .contains("\"stop_reason\":\"tool_use\"")
     );
 }
