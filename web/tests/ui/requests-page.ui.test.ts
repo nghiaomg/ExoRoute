@@ -259,4 +259,33 @@ describe('requests page', () => {
     expect(screen.getByText('Anthropic')).toBeTruthy();
     expect(api.providers).toHaveBeenCalledTimes(1);
   });
+
+  test('the live feed renders cached tokens when a finished event arrives', async () => {
+    const emit = mockLiveFeed([]);
+    vi.spyOn(api, 'requests').mockResolvedValue(page([]));
+    const { container } = renderPage();
+
+    await waitFor(() => expect(container.querySelector('.request-skeleton')).toBeNull());
+
+    emit({
+      type: 'finished',
+      live_id: 'live-finish-1',
+      finished_at_ms: Date.now(),
+      active_count: 0,
+      request: {
+        id: 'log-finished-cached',
+        model: 'openai/gpt-4o',
+        created_at: new Date().toISOString(),
+        status: 200,
+        duration_ms: 1500,
+        input_tokens: 25000,
+        output_tokens: 300,
+        cached_tokens: 18000,
+      },
+    });
+
+    await screen.findByText('openai/gpt-4o');
+    const row = screen.getByText('openai/gpt-4o').closest('tr');
+    expect(row?.querySelector('.req-token-cached')?.textContent).toContain('Cached 18,000');
+  });
 });

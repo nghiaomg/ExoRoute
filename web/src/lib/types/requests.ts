@@ -53,6 +53,8 @@ export type RequestLiveEvent =
       latest_log_id: string | null;
       input_tokens?: number | null;
       output_tokens?: number | null;
+      cached_tokens?: number | null;
+      cache_input_tokens?: number | null;
     }
   | {
       type: 'finished';
