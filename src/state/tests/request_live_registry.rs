@@ -87,7 +87,9 @@ async fn request_live_guard_updates_provider_and_finishes_once() {
     assert!(
         matches!(updates.recv().await.expect("provider event"), RequestLiveEvent::Updated { live_id: id, provider_id: Some(provider), .. } if id == live_id && provider == "provider-a")
     );
-    let record = live_test_record("request", Some("provider-a"));
+    let mut record = live_test_record("request", Some("provider-a"));
+    record.cached_tokens = Some(42);
+    record.cache_input_tokens = Some(100);
     let record_id = record.id.clone();
     guard.update_log(&record);
     assert!(matches!(
@@ -96,12 +98,22 @@ async fn request_live_guard_updates_provider_and_finishes_once() {
             latest_log_id: Some(id),
             input_tokens: Some(12),
             output_tokens: Some(7),
+            cached_tokens: Some(42),
+            cache_input_tokens: Some(100),
             ..
         } if id == record_id
     ));
+    let snapshot = registry.snapshot();
+    let row = snapshot
+        .requests
+        .iter()
+        .find(|r| r.live_id == live_id)
+        .expect("active live row in snapshot");
+    assert_eq!(row.cached_tokens, Some(42));
+    assert_eq!(row.cache_input_tokens, Some(100));
     drop(guard);
     assert!(
-        matches!(updates.recv().await.expect("finish event"), RequestLiveEvent::Finished { live_id: id, request: Some(record), .. } if id == live_id && record.status == 200)
+        matches!(updates.recv().await.expect("finish event"), RequestLiveEvent::Finished { live_id: id, request: Some(record), .. } if id == live_id && record.status == 200 && record.cached_tokens == Some(42))
     );
     assert!(matches!(
         updates.try_recv(),
