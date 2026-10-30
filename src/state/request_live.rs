@@ -24,6 +24,8 @@ pub(crate) struct RequestLiveRow {
     pub(crate) upstream_protocol: Option<String>,
     pub(crate) input_tokens: Option<i64>,
     pub(crate) output_tokens: Option<i64>,
+    pub(crate) cached_tokens: Option<i64>,
+    pub(crate) cache_input_tokens: Option<i64>,
     pub(crate) started_at_ms: i64,
 }
 
@@ -47,6 +49,8 @@ pub(crate) enum RequestLiveEvent {
         latest_log_id: Option<String>,
         input_tokens: Option<i64>,
         output_tokens: Option<i64>,
+        cached_tokens: Option<i64>,
+        cache_input_tokens: Option<i64>,
     },
     Finished {
         live_id: String,
@@ -184,6 +188,14 @@ impl RequestLiveRegistry {
                 .latest
                 .as_ref()
                 .and_then(|record| record.output_tokens),
+            cached_tokens: entry
+                .latest
+                .as_ref()
+                .and_then(|record| record.cached_tokens),
+            cache_input_tokens: entry
+                .latest
+                .as_ref()
+                .and_then(|record| record.cache_input_tokens),
         });
     }
 
@@ -202,6 +214,8 @@ impl RequestLiveRegistry {
                 latest_log_id,
                 input_tokens: record.input_tokens,
                 output_tokens: record.output_tokens,
+                cached_tokens: record.cached_tokens,
+                cache_input_tokens: record.cache_input_tokens,
             });
         }
     }
@@ -279,6 +293,8 @@ impl RequestLiveEntry {
             upstream_protocol: latest.and_then(|record| record.upstream_protocol.clone()),
             input_tokens: latest.and_then(|record| record.input_tokens),
             output_tokens: latest.and_then(|record| record.output_tokens),
+            cached_tokens: latest.and_then(|record| record.cached_tokens),
+            cache_input_tokens: latest.and_then(|record| record.cache_input_tokens),
             started_at_ms: self.started_at_ms,
         }
     }

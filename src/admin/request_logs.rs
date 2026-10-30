@@ -347,6 +347,8 @@ async fn request_live_event(
             latest_log_id,
             input_tokens,
             output_tokens,
+            cached_tokens,
+            cache_input_tokens,
         } => request_sse_event(
             "request-updated",
             json!({
@@ -355,6 +357,8 @@ async fn request_live_event(
                 "latest_log_id": latest_log_id,
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
+                "cached_tokens": cached_tokens,
+                "cache_input_tokens": cache_input_tokens,
             }),
         ),
         RequestLiveEvent::Finished {
@@ -415,8 +419,8 @@ fn request_live_row_value(row: &RequestLiveRow, api_key_name: Option<&str>) -> V
         "duration_ms": null,
         "input_tokens": row.input_tokens,
         "output_tokens": row.output_tokens,
-        "cached_tokens": null,
-        "cache_input_tokens": null,
+        "cached_tokens": row.cached_tokens,
+        "cache_input_tokens": row.cache_input_tokens,
         "cost_micro_usd": null,
         "error": null,
         "created_at": null,
