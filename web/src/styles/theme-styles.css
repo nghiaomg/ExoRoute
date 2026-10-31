@@ -1,0 +1,723 @@
+/* Theme Styles - Comprehensive Design Systems per Theme.
+ *
+ * Each theme in ExoRoute is a complete, distinct design system and aesthetic,
+ * not just a color palette swap:
+ *
+ * 1. Classic Light (light): Bold Neo-Brutalism Pop (2px ink borders, hard offset shadows, tactile bounce).
+ * 2. Classic Dark (dark): Glassmorphic Obsidian (translucent frosted panels, subtle glass borders, deep ambient depth).
+ * 3. Tokyo Night (tokyo-night): Developer IDE & Terminal (JetBrains Mono headers, editor panel dividers, dot matrix grid).
+ * 4. Catppuccin Mocha (catppuccin): Cozy Bubbly Pastels (generous pillowy radii, pill buttons, soft pastel halo glow).
+ * 5. Linear (linear): Precision Minimal SaaS (ultra-compact micro-radii, razor-thin hairline borders, dark matte graphite).
+ * 6. Cyber Neon (cyber-neon): Cyberpunk HUD Synthwave (sharp angular corners, glowing cyan neon borders, electric text glow).
+ * 7. Minimal Light (minimal-light): Swiss Modernist Light (delicate slate hairline borders, soft layered natural elevation, zero ink outlines).
+ */
+
+/* ==========================================================================
+   1. CLASSIC LIGHT (NEO-BRUTALISM POP)
+   ========================================================================== */
+:root[data-palette='light'] {
+  --nb-border: 2px solid var(--ink);
+  --nb-shadow-sm: 2px 2px 0 var(--ink);
+  --nb-shadow-md: 3px 3px 0 var(--ink);
+  --nb-shadow-lg: 4px 4px 0 var(--ink);
+  --nb-radius: 10px;
+}
+
+/* ==========================================================================
+   2. MINIMAL LIGHT (SWISS MODERNIST / CLEAN EDITORIAL LIGHT)
+   ========================================================================== */
+:root[data-palette='minimal-light'] {
+  --nb-border: 1px solid #e2e8f0;
+  --nb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --nb-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  --nb-shadow-lg: 0 10px 25px -4px rgba(0, 0, 0, 0.08);
+  --nb-radius: 8px;
+
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+}
+
+/* Strip Neo-Brutalist 2px ink borders & hard offset shadows in Minimal Light */
+:root[data-palette='minimal-light'] .combo-card,
+:root[data-palette='minimal-light'] .section-card,
+:root[data-palette='minimal-light'] .side-card,
+:root[data-palette='minimal-light'] .quick-action-strip,
+:root[data-palette='minimal-light'] .api-key-card,
+:root[data-palette='minimal-light'] .api-key-summary,
+:root[data-palette='minimal-light'] .detail-card,
+:root[data-palette='minimal-light'] .preset-card,
+:root[data-palette='minimal-light'] .provider-model-card,
+:root[data-palette='minimal-light'] .detail-hero-banner,
+:root[data-palette='minimal-light'] .combo-target-card,
+:root[data-palette='minimal-light'] .settings-panel,
+:root[data-palette='minimal-light'] .state-card,
+:root[data-palette='minimal-light'] .metric-card,
+:root[data-palette='minimal-light'] .table-card,
+:root[data-palette='minimal-light'] .login-card,
+:root[data-palette='minimal-light'] .appearance-theme-card,
+:root[data-palette='minimal-light'] .app-toast,
+:root[data-palette='minimal-light'] .summary-metric-card,
+:root[data-palette='minimal-light'] .quota-skeleton-section,
+:root[data-palette='minimal-light'] .quota-skeleton-card,
+:root[data-palette='minimal-light'] .quota-empty-state,
+:root[data-palette='minimal-light'] .quota-provider-section {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: var(--radius-md) !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.03) !important;
+  transform: none;
+}
+
+:root[data-palette='minimal-light'] .combo-card:hover,
+:root[data-palette='minimal-light'] .section-card:hover,
+:root[data-palette='minimal-light'] .api-key-card:hover,
+:root[data-palette='minimal-light'] .detail-card:hover,
+:root[data-palette='minimal-light'] .preset-card:hover,
+:root[data-palette='minimal-light'] .provider-model-card:hover,
+:root[data-palette='minimal-light'] .state-card:hover,
+:root[data-palette='minimal-light'] .metric-card:hover,
+:root[data-palette='minimal-light'] .summary-metric-card:hover {
+  transform: translateY(-1px) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 10px 24px -3px rgba(0, 0, 0, 0.07) !important;
+}
+
+:root[data-palette='minimal-light'] .primary-button,
+:root[data-palette='minimal-light'] .login-submit {
+  border: 1px solid transparent !important;
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2), 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+  font-weight: 600;
+  transform: none;
+}
+
+:root[data-palette='minimal-light'] .primary-button:hover:not(:disabled),
+:root[data-palette='minimal-light'] .login-submit:hover:not(:disabled) {
+  background: var(--accent-strong) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+
+:root[data-palette='minimal-light'] .secondary-button {
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transform: none;
+}
+
+:root[data-palette='minimal-light'] .secondary-button:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07) !important;
+}
+
+:root[data-palette='minimal-light'] .ark-field-input,
+:root[data-palette='minimal-light'] .ark-password-input,
+:root[data-palette='minimal-light'] .ark-select-trigger,
+:root[data-palette='minimal-light'] .ark-combobox-input,
+:root[data-palette='minimal-light'] .search-box,
+:root[data-palette='minimal-light'] .login-form input,
+:root[data-palette='minimal-light'] .modal-form input,
+:root[data-palette='minimal-light'] .provider-key-rename input {
+  border: 1px solid #cbd5e1 !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  background: #ffffff !important;
+}
+
+:root[data-palette='minimal-light'] .ark-checkbox-control {
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 4px !important;
+}
+
+:root[data-palette='minimal-light'] .strategy-badge,
+:root[data-palette='minimal-light'] .protocol-pill,
+:root[data-palette='minimal-light'] .status-badge,
+:root[data-palette='minimal-light'] .metric-chip,
+:root[data-palette='minimal-light'] .provider-avatar,
+:root[data-palette='minimal-light'] .combo-icon,
+:root[data-palette='minimal-light'] .app-toast-mark,
+:root[data-palette='minimal-light'] .login-icon {
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ==========================================================================
+   3. CLASSIC DARK (GLASSMORPHIC OBSIDIAN)
+   ========================================================================== */
+:root[data-palette='dark'] {
+  --nb-border: 1px solid rgba(255, 255, 255, 0.08);
+  --nb-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --nb-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --nb-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.55);
+  --nb-radius: 12px;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+:root[data-palette='dark'] .combo-card,
+:root[data-palette='dark'] .section-card,
+:root[data-palette='dark'] .side-card,
+:root[data-palette='dark'] .quick-action-strip,
+:root[data-palette='dark'] .api-key-card,
+:root[data-palette='dark'] .api-key-summary,
+:root[data-palette='dark'] .detail-card,
+:root[data-palette='dark'] .preset-card,
+:root[data-palette='dark'] .provider-model-card,
+:root[data-palette='dark'] .detail-hero-banner,
+:root[data-palette='dark'] .combo-target-card,
+:root[data-palette='dark'] .settings-panel,
+:root[data-palette='dark'] .state-card,
+:root[data-palette='dark'] .metric-card,
+:root[data-palette='dark'] .table-card,
+:root[data-palette='dark'] .login-card,
+:root[data-palette='dark'] .appearance-theme-card,
+:root[data-palette='dark'] .summary-metric-card,
+:root[data-palette='dark'] .app-toast {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--radius-lg) !important;
+  background: rgba(17, 19, 32, 0.75) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+:root[data-palette='dark'] .combo-card:hover,
+:root[data-palette='dark'] .section-card:hover,
+:root[data-palette='dark'] .api-key-card:hover,
+:root[data-palette='dark'] .detail-card:hover,
+:root[data-palette='dark'] .preset-card:hover,
+:root[data-palette='dark'] .provider-model-card:hover,
+:root[data-palette='dark'] .state-card:hover,
+:root[data-palette='dark'] .metric-card:hover,
+:root[data-palette='dark'] .summary-metric-card:hover {
+  border-color: rgba(249, 115, 22, 0.35) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 0 18px rgba(249, 115, 22, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='dark'] .primary-button,
+:root[data-palette='dark'] .login-submit {
+  border: 1px solid rgba(249, 115, 22, 0.5) !important;
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transform: none;
+}
+
+:root[data-palette='dark'] .primary-button:hover:not(:disabled),
+:root[data-palette='dark'] .login-submit:hover:not(:disabled) {
+  background: var(--accent-strong) !important;
+  box-shadow: 0 6px 22px rgba(249, 115, 22, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='dark'] .secondary-button {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #f0f2f8 !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  transform: none;
+}
+
+:root[data-palette='dark'] .strategy-badge,
+:root[data-palette='dark'] .protocol-pill,
+:root[data-palette='dark'] .status-badge,
+:root[data-palette='dark'] .metric-chip,
+:root[data-palette='dark'] .provider-avatar,
+:root[data-palette='dark'] .combo-icon {
+  border: 1px solid rgba(249, 115, 22, 0.25) !important;
+  border-radius: 8px !important;
+  background: rgba(249, 115, 22, 0.1) !important;
+  color: var(--accent-glow) !important;
+  box-shadow: none !important;
+}
+
+/* ==========================================================================
+   4. TOKYO NIGHT (DEVELOPER IDE & TERMINAL STUDIO)
+   ========================================================================== */
+:root[data-palette='tokyo-night'] {
+  --nb-border: 1px solid #2f354f;
+  --nb-shadow-sm: 0 2px 6px rgba(10, 12, 20, 0.5);
+  --nb-shadow-md: 0 4px 16px rgba(10, 12, 20, 0.6);
+  --nb-shadow-lg: 0 8px 24px rgba(10, 12, 20, 0.7);
+  --nb-radius: 6px;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+
+  --font-heading: "JetBrains Mono", "Space Grotesk", monospace;
+}
+
+:root[data-palette='tokyo-night'] body::before {
+  background-image:
+    radial-gradient(rgba(122, 162, 247, 0.12) 1px, transparent 1px),
+    radial-gradient(at 0% 0%, rgba(122, 162, 247, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(187, 154, 247, 0.06) 0px, transparent 50%) !important;
+  background-size: 22px 22px, 100% 100%, 100% 100% !important;
+}
+
+:root[data-palette='tokyo-night'] .combo-card,
+:root[data-palette='tokyo-night'] .section-card,
+:root[data-palette='tokyo-night'] .side-card,
+:root[data-palette='tokyo-night'] .quick-action-strip,
+:root[data-palette='tokyo-night'] .api-key-card,
+:root[data-palette='tokyo-night'] .api-key-summary,
+:root[data-palette='tokyo-night'] .detail-card,
+:root[data-palette='tokyo-night'] .preset-card,
+:root[data-palette='tokyo-night'] .provider-model-card,
+:root[data-palette='tokyo-night'] .detail-hero-banner,
+:root[data-palette='tokyo-night'] .combo-target-card,
+:root[data-palette='tokyo-night'] .settings-panel,
+:root[data-palette='tokyo-night'] .state-card,
+:root[data-palette='tokyo-night'] .metric-card,
+:root[data-palette='tokyo-night'] .table-card,
+:root[data-palette='tokyo-night'] .login-card,
+:root[data-palette='tokyo-night'] .appearance-theme-card,
+:root[data-palette='tokyo-night'] .summary-metric-card,
+:root[data-palette='tokyo-night'] .app-toast {
+  border: 1px solid #2f354f !important;
+  border-radius: var(--radius-md) !important;
+  background: #24283b !important;
+  box-shadow: 0 4px 16px rgba(10, 12, 20, 0.6) !important;
+}
+
+:root[data-palette='tokyo-night'] .combo-card:hover,
+:root[data-palette='tokyo-night'] .section-card:hover,
+:root[data-palette='tokyo-night'] .api-key-card:hover,
+:root[data-palette='tokyo-night'] .detail-card:hover,
+:root[data-palette='tokyo-night'] .preset-card:hover,
+:root[data-palette='tokyo-night'] .provider-model-card:hover,
+:root[data-palette='tokyo-night'] .state-card:hover,
+:root[data-palette='tokyo-night'] .metric-card:hover,
+:root[data-palette='tokyo-night'] .summary-metric-card:hover {
+  border-color: #7aa2f7 !important;
+  border-top-width: 2px !important;
+  box-shadow: 0 6px 22px rgba(10, 12, 20, 0.7), 0 0 12px rgba(122, 162, 247, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='tokyo-night'] .primary-button,
+:root[data-palette='tokyo-night'] .login-submit {
+  border: 1px solid #5f80cf !important;
+  background: #7aa2f7 !important;
+  color: #15161e !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 2px 8px rgba(122, 162, 247, 0.3) !important;
+  font-weight: 700;
+  transform: none;
+}
+
+:root[data-palette='tokyo-night'] .primary-button:hover:not(:disabled),
+:root[data-palette='tokyo-night'] .login-submit:hover:not(:disabled) {
+  background: #89b4fa !important;
+  box-shadow: 0 4px 14px rgba(122, 162, 247, 0.45) !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='tokyo-night'] .secondary-button {
+  border: 1px solid #2f354f !important;
+  background: #1f2335 !important;
+  color: #c0caf5 !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: 0 2px 6px rgba(10, 12, 20, 0.4) !important;
+  transform: none;
+}
+
+:root[data-palette='tokyo-night'] .strategy-badge,
+:root[data-palette='tokyo-night'] .protocol-pill,
+:root[data-palette='tokyo-night'] .status-badge,
+:root[data-palette='tokyo-night'] .metric-chip,
+:root[data-palette='tokyo-night'] .provider-avatar,
+:root[data-palette='tokyo-night'] .combo-icon {
+  border: 1px solid #3d59a1 !important;
+  border-radius: 4px !important;
+  background: rgba(122, 162, 247, 0.12) !important;
+  color: #7dcfff !important;
+  font-family: var(--font-mono);
+  box-shadow: none !important;
+}
+
+:root[data-palette='tokyo-night'] .ark-field-input,
+:root[data-palette='tokyo-night'] .ark-password-input,
+:root[data-palette='tokyo-night'] .ark-select-trigger,
+:root[data-palette='tokyo-night'] .ark-combobox-input,
+:root[data-palette='tokyo-night'] .search-box,
+:root[data-palette='tokyo-night'] .login-form input {
+  border-radius: 4px !important;
+  border: 1px solid #2f354f !important;
+  background: #1a1b26 !important;
+}
+
+/* ==========================================================================
+   5. CATPPUCCIN MOCHA (COZY BUBBLY PASTELS)
+   ========================================================================== */
+:root[data-palette='catppuccin'] {
+  --nb-border: 1px solid rgba(205, 214, 244, 0.12);
+  --nb-shadow-sm: 0 4px 12px rgba(17, 17, 27, 0.4);
+  --nb-shadow-md: 0 8px 24px rgba(17, 17, 27, 0.5);
+  --nb-shadow-lg: 0 14px 36px rgba(17, 17, 27, 0.6);
+  --nb-radius: 18px;
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
+}
+
+:root[data-palette='catppuccin'] body::before {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(137, 180, 250, 0.09) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(203, 166, 247, 0.08) 0px, transparent 45%),
+    radial-gradient(at 50% 50%, rgba(49, 50, 68, 0.3) 0px, transparent 70%),
+    radial-gradient(at 100% 100%, rgba(245, 194, 231, 0.07) 0px, transparent 50%) !important;
+}
+
+:root[data-palette='catppuccin'] .combo-card,
+:root[data-palette='catppuccin'] .section-card,
+:root[data-palette='catppuccin'] .side-card,
+:root[data-palette='catppuccin'] .quick-action-strip,
+:root[data-palette='catppuccin'] .api-key-card,
+:root[data-palette='catppuccin'] .api-key-summary,
+:root[data-palette='catppuccin'] .detail-card,
+:root[data-palette='catppuccin'] .preset-card,
+:root[data-palette='catppuccin'] .provider-model-card,
+:root[data-palette='catppuccin'] .detail-hero-banner,
+:root[data-palette='catppuccin'] .combo-target-card,
+:root[data-palette='catppuccin'] .settings-panel,
+:root[data-palette='catppuccin'] .state-card,
+:root[data-palette='catppuccin'] .metric-card,
+:root[data-palette='catppuccin'] .table-card,
+:root[data-palette='catppuccin'] .login-card,
+:root[data-palette='catppuccin'] .appearance-theme-card,
+:root[data-palette='catppuccin'] .summary-metric-card,
+:root[data-palette='catppuccin'] .app-toast {
+  border: 1px solid rgba(205, 214, 244, 0.12) !important;
+  border-radius: var(--nb-radius) !important;
+  background: #313244 !important;
+  box-shadow: 0 8px 24px -4px rgba(17, 17, 27, 0.6), 0 0 16px rgba(137, 180, 250, 0.05) !important;
+}
+
+:root[data-palette='catppuccin'] .combo-card:hover,
+:root[data-palette='catppuccin'] .section-card:hover,
+:root[data-palette='catppuccin'] .api-key-card:hover,
+:root[data-palette='catppuccin'] .detail-card:hover,
+:root[data-palette='catppuccin'] .preset-card:hover,
+:root[data-palette='catppuccin'] .provider-model-card:hover,
+:root[data-palette='catppuccin'] .state-card:hover,
+:root[data-palette='catppuccin'] .metric-card:hover,
+:root[data-palette='catppuccin'] .summary-metric-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(180, 190, 254, 0.35) !important;
+  box-shadow: 0 12px 32px -4px rgba(17, 17, 27, 0.7), 0 0 24px rgba(137, 180, 250, 0.12) !important;
+}
+
+:root[data-palette='catppuccin'] .primary-button,
+:root[data-palette='catppuccin'] .login-submit {
+  border: 1px solid rgba(205, 214, 244, 0.15) !important;
+  background: #89b4fa !important;
+  color: #1e1e2e !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 4px 16px rgba(137, 180, 250, 0.3) !important;
+  transform: none;
+}
+
+:root[data-palette='catppuccin'] .primary-button:hover:not(:disabled),
+:root[data-palette='catppuccin'] .login-submit:hover:not(:disabled) {
+  background: #b4befe !important;
+  box-shadow: 0 6px 20px rgba(137, 180, 250, 0.45) !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='catppuccin'] .secondary-button {
+  border: 1px solid rgba(205, 214, 244, 0.15) !important;
+  background: #313244 !important;
+  color: #cdd6f4 !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 2px 8px rgba(17, 17, 27, 0.4) !important;
+  transform: none;
+}
+
+:root[data-palette='catppuccin'] .strategy-badge,
+:root[data-palette='catppuccin'] .protocol-pill,
+:root[data-palette='catppuccin'] .status-badge,
+:root[data-palette='catppuccin'] .metric-chip,
+:root[data-palette='catppuccin'] .provider-avatar,
+:root[data-palette='catppuccin'] .combo-icon {
+  border: 1px solid rgba(205, 214, 244, 0.15) !important;
+  border-radius: 9999px !important;
+  background: rgba(137, 180, 250, 0.12) !important;
+  color: #89b4fa !important;
+  box-shadow: none !important;
+}
+
+:root[data-palette='catppuccin'] .ark-field-input,
+:root[data-palette='catppuccin'] .ark-password-input,
+:root[data-palette='catppuccin'] .ark-select-trigger,
+:root[data-palette='catppuccin'] .ark-combobox-input,
+:root[data-palette='catppuccin'] .search-box,
+:root[data-palette='catppuccin'] .login-form input {
+  border-radius: 12px !important;
+  border: 1px solid rgba(205, 214, 244, 0.14) !important;
+  background: #181825 !important;
+}
+
+/* ==========================================================================
+   6. LINEAR (PRECISION MINIMAL SAAS)
+   ========================================================================== */
+:root[data-palette='linear'] {
+  --nb-border: 1px solid rgba(255, 255, 255, 0.08);
+  --nb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --nb-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --nb-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --nb-radius: 6px;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+}
+
+:root[data-palette='linear'] body::before {
+  background-image:
+    radial-gradient(at 50% 0%, rgba(94, 106, 210, 0.08) 0px, transparent 60%),
+    radial-gradient(at 100% 100%, rgba(94, 106, 210, 0.04) 0px, transparent 50%) !important;
+}
+
+:root[data-palette='linear'] .combo-card,
+:root[data-palette='linear'] .section-card,
+:root[data-palette='linear'] .side-card,
+:root[data-palette='linear'] .quick-action-strip,
+:root[data-palette='linear'] .api-key-card,
+:root[data-palette='linear'] .api-key-summary,
+:root[data-palette='linear'] .detail-card,
+:root[data-palette='linear'] .preset-card,
+:root[data-palette='linear'] .provider-model-card,
+:root[data-palette='linear'] .detail-hero-banner,
+:root[data-palette='linear'] .combo-target-card,
+:root[data-palette='linear'] .settings-panel,
+:root[data-palette='linear'] .state-card,
+:root[data-palette='linear'] .metric-card,
+:root[data-palette='linear'] .table-card,
+:root[data-palette='linear'] .login-card,
+:root[data-palette='linear'] .appearance-theme-card,
+:root[data-palette='linear'] .summary-metric-card,
+:root[data-palette='linear'] .app-toast {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--nb-radius) !important;
+  background: #161618 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  letter-spacing: -0.01em;
+}
+
+:root[data-palette='linear'] .combo-card:hover,
+:root[data-palette='linear'] .section-card:hover,
+:root[data-palette='linear'] .api-key-card:hover,
+:root[data-palette='linear'] .detail-card:hover,
+:root[data-palette='linear'] .preset-card:hover,
+:root[data-palette='linear'] .provider-model-card:hover,
+:root[data-palette='linear'] .state-card:hover,
+:root[data-palette='linear'] .metric-card:hover,
+:root[data-palette='linear'] .summary-metric-card:hover {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='linear'] .primary-button,
+:root[data-palette='linear'] .login-submit {
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: #5e6ad2 !important;
+  color: #ffffff !important;
+  border-radius: 5px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+  font-weight: 600;
+  transform: none;
+}
+
+:root[data-palette='linear'] .primary-button:hover:not(:disabled),
+:root[data-palette='linear'] .login-submit:hover:not(:disabled) {
+  background: #6f7be2 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='linear'] .secondary-button {
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  background: #1a1a1c !important;
+  color: #e5e5e5 !important;
+  border-radius: 5px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+  transform: none;
+}
+
+:root[data-palette='linear'] .strategy-badge,
+:root[data-palette='linear'] .protocol-pill,
+:root[data-palette='linear'] .status-badge,
+:root[data-palette='linear'] .metric-chip,
+:root[data-palette='linear'] .provider-avatar,
+:root[data-palette='linear'] .combo-icon {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 4px !important;
+  background: rgba(94, 106, 210, 0.12) !important;
+  color: #a3aaf2 !important;
+  box-shadow: none !important;
+}
+
+:root[data-palette='linear'] .ark-field-input,
+:root[data-palette='linear'] .ark-password-input,
+:root[data-palette='linear'] .ark-select-trigger,
+:root[data-palette='linear'] .ark-combobox-input,
+:root[data-palette='linear'] .search-box,
+:root[data-palette='linear'] .login-form input {
+  border-radius: 5px !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  background: #0d0d0f !important;
+}
+
+/* ==========================================================================
+   7. CYBER NEON (CYBERPUNK HUD SYNTHWAVE)
+   ========================================================================== */
+:root[data-palette='cyber-neon'] {
+  --nb-border: 1px solid rgba(0, 245, 213, 0.4);
+  --nb-shadow-sm: 0 0 10px rgba(0, 245, 213, 0.25);
+  --nb-shadow-md: 0 0 18px rgba(0, 245, 213, 0.35);
+  --nb-shadow-lg: 0 0 30px rgba(0, 245, 213, 0.45);
+  --nb-radius: 3px;
+
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+}
+
+:root[data-palette='cyber-neon'] body::before {
+  background-image:
+    linear-gradient(rgba(0, 245, 213, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 213, 0.035) 1px, transparent 1px),
+    radial-gradient(at 50% 0%, rgba(0, 245, 213, 0.08) 0px, transparent 60%),
+    radial-gradient(at 100% 100%, rgba(179, 136, 255, 0.08) 0px, transparent 55%) !important;
+  background-size: 28px 28px, 28px 28px, 100% 100%, 100% 100% !important;
+}
+
+:root[data-palette='cyber-neon'] .combo-card,
+:root[data-palette='cyber-neon'] .section-card,
+:root[data-palette='cyber-neon'] .side-card,
+:root[data-palette='cyber-neon'] .quick-action-strip,
+:root[data-palette='cyber-neon'] .api-key-card,
+:root[data-palette='cyber-neon'] .api-key-summary,
+:root[data-palette='cyber-neon'] .detail-card,
+:root[data-palette='cyber-neon'] .preset-card,
+:root[data-palette='cyber-neon'] .provider-model-card,
+:root[data-palette='cyber-neon'] .detail-hero-banner,
+:root[data-palette='cyber-neon'] .combo-target-card,
+:root[data-palette='cyber-neon'] .settings-panel,
+:root[data-palette='cyber-neon'] .state-card,
+:root[data-palette='cyber-neon'] .metric-card,
+:root[data-palette='cyber-neon'] .table-card,
+:root[data-palette='cyber-neon'] .login-card,
+:root[data-palette='cyber-neon'] .appearance-theme-card,
+:root[data-palette='cyber-neon'] .summary-metric-card,
+:root[data-palette='cyber-neon'] .app-toast {
+  border: 1px solid rgba(0, 245, 213, 0.35) !important;
+  border-radius: var(--nb-radius) !important;
+  background: rgba(18, 18, 26, 0.9) !important;
+  box-shadow: 0 0 15px rgba(0, 245, 213, 0.18), inset 0 0 10px rgba(0, 245, 213, 0.04) !important;
+}
+
+:root[data-palette='cyber-neon'] .combo-card:hover,
+:root[data-palette='cyber-neon'] .section-card:hover,
+:root[data-palette='cyber-neon'] .api-key-card:hover,
+:root[data-palette='cyber-neon'] .detail-card:hover,
+:root[data-palette='cyber-neon'] .preset-card:hover,
+:root[data-palette='cyber-neon'] .provider-model-card:hover,
+:root[data-palette='cyber-neon'] .state-card:hover,
+:root[data-palette='cyber-neon'] .metric-card:hover,
+:root[data-palette='cyber-neon'] .summary-metric-card:hover {
+  border-color: #00f5d5 !important;
+  box-shadow: 0 0 25px rgba(0, 245, 213, 0.4), inset 0 0 14px rgba(0, 245, 213, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='cyber-neon'] .primary-button,
+:root[data-palette='cyber-neon'] .login-submit {
+  border: 1px solid #00f5d5 !important;
+  background: #00f5d5 !important;
+  color: #08080c !important;
+  box-shadow: 0 0 18px rgba(0, 245, 213, 0.5) !important;
+  border-radius: 2px !important;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  transform: none;
+}
+
+:root[data-palette='cyber-neon'] .primary-button:hover:not(:disabled),
+:root[data-palette='cyber-neon'] .login-submit:hover:not(:disabled) {
+  box-shadow: 0 0 28px rgba(0, 245, 213, 0.8) !important;
+  background: #4dffe0 !important;
+  transform: translateY(-1px) !important;
+}
+
+:root[data-palette='cyber-neon'] .secondary-button {
+  border: 1px solid rgba(0, 245, 213, 0.5) !important;
+  background: rgba(0, 245, 213, 0.05) !important;
+  color: #00f5d5 !important;
+  box-shadow: 0 0 10px rgba(0, 245, 213, 0.2) !important;
+  border-radius: 2px !important;
+  transform: none;
+}
+
+:root[data-palette='cyber-neon'] .strategy-badge,
+:root[data-palette='cyber-neon'] .protocol-pill,
+:root[data-palette='cyber-neon'] .status-badge,
+:root[data-palette='cyber-neon'] .metric-chip,
+:root[data-palette='cyber-neon'] .provider-avatar,
+:root[data-palette='cyber-neon'] .combo-icon {
+  border: 1px solid rgba(0, 245, 213, 0.4) !important;
+  background: rgba(0, 245, 213, 0.08) !important;
+  color: #00f5d5 !important;
+  box-shadow: 0 0 8px rgba(0, 245, 213, 0.25) !important;
+  border-radius: 2px !important;
+  font-family: var(--font-mono);
+}
+
+:root[data-palette='cyber-neon'] .ark-field-input,
+:root[data-palette='cyber-neon'] .ark-password-input,
+:root[data-palette='cyber-neon'] .ark-select-trigger,
+:root[data-palette='cyber-neon'] .ark-combobox-input,
+:root[data-palette='cyber-neon'] .search-box,
+:root[data-palette='cyber-neon'] .login-form input {
+  border-radius: 2px !important;
+  border: 1px solid rgba(0, 245, 213, 0.3) !important;
+  background: #08080c !important;
+}
+
+:root[data-palette='cyber-neon'] h1,
+:root[data-palette='cyber-neon'] .hero-headline,
+:root[data-palette='cyber-neon'] .metric-value,
+:root[data-palette='cyber-neon'] .brand-word {
+  text-shadow: 0 0 10px rgba(0, 245, 213, 0.55), 0 0 20px rgba(0, 245, 213, 0.25) !important;
+}
