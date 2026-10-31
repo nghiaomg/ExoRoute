@@ -49,7 +49,6 @@ const destinations = [
   'Quota',
   'API keys',
   'Requests',
-  'Statistics',
   'Chat',
   'Settings',
   'Docs',

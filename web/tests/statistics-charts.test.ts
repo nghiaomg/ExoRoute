@@ -5,7 +5,7 @@
  */
 import { strict as assert } from 'node:assert/strict';
 import test from 'node:test';
-import { dimensionBars } from '../src/features/statistics/chartTypes';
+import { dimensionBars } from '../src/components/chartTypes';
 import type { StatisticsDimension } from '../src/lib/types';
 
 const tr = (key: string, vars: Record<string, string | number> = {}): string =>
