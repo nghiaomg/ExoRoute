@@ -60,6 +60,7 @@ const architectureIssues = [];
 const providerModules = [
   'antigravity',
   'cline',
+  'cloud_api',
   'codex',
   'command_code',
   'freebuff',
