@@ -1104,7 +1104,10 @@ fn enqueue_request(telemetry: &Telemetry, index: usize) {
 ///
 /// The 10 ms pacing step caps the delivered rate at roughly 1.2k requests per
 /// second on Windows, so a higher target would only repeat the same load.
+#[cfg(not(windows))]
 const SWEEP_RATES: [usize; 5] = [125, 250, 500, 1_000, 2_000];
+#[cfg(windows)]
+const SWEEP_RATES: [usize; 4] = [125, 250, 500, 1_000];
 const SWEEP_SECONDS: usize = 3;
 
 /// Sustained request traffic must reach the writer without the bounded queue
