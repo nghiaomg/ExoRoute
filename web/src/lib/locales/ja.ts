@@ -1749,4 +1749,9 @@ export const ja: Catalog = {
   "Quiet greys with a single indigo accent.": "Quiet greys with a single indigo accent.",
   "High-energy neon glow on deep space black.": "High-energy neon glow on deep space black.",
   "A clean light theme for bright rooms and screenshots.": "A clean light theme for bright rooms and screenshots.",
+  'Mask columns': '列をマスク',
+  'Mask column values': '列の値をマスク',
+  'Hide sensitive names with asterisks (max 3 *)': '機密名をアスタリスクで非表示（最大 3 つの *）',
+  'Mask all': 'すべてマスク',
+  'Masked': 'マスク済み',
 };

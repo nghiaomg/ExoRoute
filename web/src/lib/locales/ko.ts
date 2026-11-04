@@ -1749,4 +1749,9 @@ export const ko: Catalog = {
   "Quiet greys with a single indigo accent.": "Quiet greys with a single indigo accent.",
   "High-energy neon glow on deep space black.": "High-energy neon glow on deep space black.",
   "A clean light theme for bright rooms and screenshots.": "A clean light theme for bright rooms and screenshots.",
+  'Mask columns': '열 마스킹',
+  'Mask column values': '열 값 마스킹',
+  'Hide sensitive names with asterisks (max 3 *)': '민감한 이름을 별표로 숨기기 (최대 3개 *)',
+  'Mask all': '모두 마스킹',
+  'Masked': '마스킹됨',
 };

@@ -1749,4 +1749,9 @@ export const id: Catalog = {
   "Quiet greys with a single indigo accent.": "Quiet greys with a single indigo accent.",
   "High-energy neon glow on deep space black.": "High-energy neon glow on deep space black.",
   "A clean light theme for bright rooms and screenshots.": "A clean light theme for bright rooms and screenshots.",
+  'Mask columns': 'Samarkan kolom',
+  'Mask column values': 'Samarkan nilai kolom',
+  'Hide sensitive names with asterisks (max 3 *)': 'Sembunyikan nama sensitif với tanda bintang (maks. 3 *)',
+  'Mask all': 'Samarkan semua',
+  'Masked': 'Disamarkan',
 };

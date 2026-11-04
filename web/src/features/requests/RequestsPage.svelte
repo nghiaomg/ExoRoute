@@ -11,6 +11,7 @@
   import RequestLiveToggle from './RequestLiveToggle.svelte';
   import RequestLogDeleteDialog from './RequestLogDeleteDialog.svelte';
   import RequestMetricsStrip from './RequestMetricsStrip.svelte';
+  import RequestMaskMenu from './RequestMaskMenu.svelte';
   import RequestOutcomeBar from './RequestOutcomeBar.svelte';
   import RequestSkeleton from './RequestSkeleton.svelte';
   import RequestStatisticsDetails from './RequestStatisticsDetails.svelte';
@@ -28,6 +29,12 @@
     type RequestFilterKey,
   } from './request.metrics';
   import { createRequestLiveController, type RequestLiveController } from './request.live';
+  import {
+    loadMaskedColumns,
+    saveMaskedColumns,
+    type MaskableRequestColumn,
+    type MaskedColumnsState,
+  } from './request.mask';
   import {
     createRequestLiveState,
     hasRequestFilters,
@@ -75,6 +82,22 @@
   let lastUpdatedMs = 0;
   let nowMs = Date.now();
   let ticker: number | null = null;
+  let maskedColumns: MaskedColumnsState = loadMaskedColumns();
+
+  function toggleMaskColumn(column: MaskableRequestColumn): void {
+    maskedColumns = { ...maskedColumns, [column]: !maskedColumns[column] };
+    saveMaskedColumns(maskedColumns);
+  }
+
+  function maskAllColumns(): void {
+    maskedColumns = { alias: true, key: true, model: true, provider: true };
+    saveMaskedColumns(maskedColumns);
+  }
+
+  function showAllColumns(): void {
+    maskedColumns = { alias: false, key: false, model: false, provider: false };
+    saveMaskedColumns(maskedColumns);
+  }
 
   // Aggregate traffic summary (formerly the Statistics page). The request log
   // and the aggregates fail independently: a broken statistics call must not
@@ -299,6 +322,13 @@
 
 <PageHeading title={tr('Requests')} subtitle={tr('Recent gateway traffic, timings, and outcomes.')} {tr}>
   <div class="request-heading-actions">
+    <RequestMaskMenu
+      {tr}
+      {maskedColumns}
+      onToggleColumn={toggleMaskColumn}
+      onMaskAll={maskAllColumns}
+      onShowAll={showAllColumns}
+    />
     <RequestLiveToggle {tr} live={!livePaused} {lastUpdatedMs} {nowMs} onToggle={toggleLive} />
     <RequestLogDeleteDialog {tr} {busy} disabled={loading} onConfirm={confirmDeleteAllRequestLogs} />
   </div>
@@ -354,6 +384,7 @@
     {tr}
     {locale}
     rows={displayRequests}
+    {maskedColumns}
     liveClockMs={nowMs}
     slowestDurationMs={metrics.slowestDurationMs}
     {selectedKey}
@@ -379,7 +410,7 @@
 {/if}
 
 <RequestErrorDialog {tr} {locale} request={selectedErrorRequest} onClose={() => selectedErrorRequest = null} />
-<RequestDetailDrawer {tr} {locale} request={selectedRequest} liveClockMs={nowMs} onClose={() => selectedRequest = null} />
+<RequestDetailDrawer {tr} {locale} request={selectedRequest} {maskedColumns} liveClockMs={nowMs} onClose={() => selectedRequest = null} />
 
 <style>
   .request-heading-actions {
