@@ -11,12 +11,15 @@ fn compat_adapters_keep_distinct_adapter_ids() {
         &DEEPINFRA_ADAPTER,
         &NOVITA_ADAPTER,
         &GITHUB_MODELS_ADAPTER,
+        &OLLAMA_ADAPTER,
+        &LM_STUDIO_ADAPTER,
+        &VLLM_ADAPTER,
     ];
     let mut ids = std::collections::HashSet::new();
     for adapter in adapters {
         assert!(ids.insert(adapter.adapter_id()), "duplicate compat id");
     }
-    assert_eq!(ids.len(), 8);
+    assert_eq!(ids.len(), 11);
 }
 
 #[test]
@@ -128,6 +131,34 @@ fn compat_model_list_endpoint_appends_models() {
             .unwrap()
             .as_str(),
         "https://open.bigmodel.cn/api/paas/v4/models"
+    );
+}
+
+#[test]
+fn compat_local_presets_have_no_default_base_url() {
+    // A local server's endpoint is deployment-specific, and the catalog rejects
+    // a plain-HTTP default, so the dashboard must collect the URL itself.
+    for adapter_id in [OLLAMA_ADAPTER_ID, LM_STUDIO_ADAPTER_ID, VLLM_ADAPTER_ID] {
+        let preset = preset_for_adapter(adapter_id).expect("local preset");
+        assert_eq!(preset.default_base_url, None, "{adapter_id}");
+        assert!(
+            preset.supported_auth_types.contains(&"none"),
+            "{adapter_id} must allow keyless access"
+        );
+        assert_eq!(preset.default_auth_type, "none", "{adapter_id}");
+    }
+}
+
+#[test]
+fn compat_local_endpoints_accept_a_supplied_loopback_url() {
+    // Endpoint construction is URL-shape only; egress owns the loopback policy.
+    let adapter = &OLLAMA_ADAPTER as &dyn ProviderAdapter;
+    assert_eq!(
+        adapter
+            .endpoint("http://127.0.0.1:11434/v1", Protocol::ChatCompletions, None)
+            .unwrap()
+            .as_str(),
+        "http://127.0.0.1:11434/v1/chat/completions"
     );
 }
 

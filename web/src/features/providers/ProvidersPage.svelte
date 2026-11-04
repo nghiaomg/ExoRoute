@@ -35,6 +35,9 @@ import { localizedError } from '../../lib/errors';
   let deletingId = '';
   let providerToDelete: Provider | null = null;
   let createOpen = false;
+  /// Preset handed to the create dialog when a catalog entry has no default
+  /// base URL, so the dialog can prefill the provider and ask for the URL.
+  let createPreset: ProviderPreset | null = null;
   let keysOpen = false;
   let openingPresetId = '';
   let activeProvider: Provider | null = null;
@@ -88,6 +91,7 @@ import { localizedError } from '../../lib/errors';
   }
 
   function openCustomProvider(): void {
+    createPreset = null;
     createOpen = true;
   }
 
@@ -105,8 +109,16 @@ import { localizedError } from '../../lib/errors';
         'chat_completions', 'responses', 'messages', 'google_generate_content',
       ].includes(String(protocol)),
     ))];
-    if (!baseUrl || !supportedProtocols.length) {
+    if (!supportedProtocols.length) {
       errorMessage = tr('Could not open provider details. Reload the page and try again.');
+      return;
+    }
+    // Presets whose endpoint depends on the deployment (local servers, Azure
+    // resources) declare no base URL. Ask for it in the create dialog instead
+    // of creating a provider pointed at a guessed host.
+    if (!baseUrl) {
+      createPreset = preset;
+      createOpen = true;
       return;
     }
 
@@ -380,7 +392,7 @@ import { localizedError } from '../../lib/errors';
   {/if}
 </div>
 
-<ProviderCreateDialog bind:open={createOpen} {presets} {tr} onSaved={providerSaved} />
+<ProviderCreateDialog bind:open={createOpen} {presets} {tr} onSaved={providerSaved} preset={createPreset} onPresetConsumed={() => (createPreset = null)} />
 <ProviderKeysDialog bind:open={keysOpen} provider={activeProvider} {tr} {locale} onChanged={refreshProviders} />
 
 <DeleteProviderDialog

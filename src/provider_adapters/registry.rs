@@ -15,7 +15,7 @@ static CLINEPASS_ADAPTER: ClineAdapter = ClineAdapter {
     adapter_id: CLINEPASS_ADAPTER_ID,
 };
 
-static ADAPTERS: [&'static dyn ProviderAdapter; 36] = [
+static ADAPTERS: [&'static dyn ProviderAdapter; 39] = [
     &generic::GENERIC_ADAPTER,
     &cloud_api::OPENAI_ADAPTER,
     &cloud_api::ANTHROPIC_ADAPTER,
@@ -52,6 +52,9 @@ static ADAPTERS: [&'static dyn ProviderAdapter; 36] = [
     &compat::DEEPINFRA_ADAPTER,
     &compat::NOVITA_ADAPTER,
     &compat::GITHUB_MODELS_ADAPTER,
+    &compat::OLLAMA_ADAPTER,
+    &compat::LM_STUDIO_ADAPTER,
+    &compat::VLLM_ADAPTER,
 ];
 
 pub(super) fn adapter(adapter_id: &str) -> Option<&'static dyn ProviderAdapter> {

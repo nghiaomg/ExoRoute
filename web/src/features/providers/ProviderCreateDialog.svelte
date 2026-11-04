@@ -14,8 +14,16 @@ import { localizedError } from '../../lib/errors';
   export let presets: ProviderPreset[] = [];
   export let tr: Translate;
   export let onSaved: (id: string, adapterId: string) => void;
+  /// Preset chosen from the catalog that needs a user-supplied base URL, such as
+  /// a local inference server. When set, the dialog prefills from it instead of
+  /// the bundled custom preset.
+  export let preset: ProviderPreset | null = null;
+  /// Cleared by the parent once it has consumed the preset, so reopening the
+  /// dialog from the toolbar starts from a blank custom provider again.
+  export let onPresetConsumed: () => void = () => {};
 
   const DEFAULT_CUSTOM_PROTOCOLS: Protocol[] = ['chat_completions', 'responses', 'messages'];
+  const SELECTABLE_PROTOCOLS: Protocol[] = ['chat_completions', 'responses', 'messages'];
 
   let providerName = '';
   let providerUrl = '';
@@ -31,39 +39,53 @@ import { localizedError } from '../../lib/errors';
   let errorMessage = '';
   let saving = false;
   let wasOpen = false;
+  /// Snapshot taken when the dialog opens. The `preset` prop is cleared by the
+  /// parent immediately afterwards, so reading it mid-dialog would lose the
+  /// provider being created.
+  let dialogPreset: ProviderPreset | null = null;
 
-  $: activePreset = presets.find((preset) => preset.id === 'custom' || preset.adapter_id === 'generic') ?? null;
-  $: selectableProtocols = (activePreset?.default_supported_protocols?.length
-    ? activePreset.default_supported_protocols
-    : DEFAULT_CUSTOM_PROTOCOLS)
-    .map((protocol) => String(protocol))
-    .filter((protocol): protocol is Protocol => ['chat_completions', 'responses', 'messages'].includes(protocol as Protocol));
+  /// Resolves the protocols a preset may offer. Pure so `reset()` can use the
+  /// value for the preset it is about to prefill, instead of a reactive binding
+  /// that only updates after this flush.
+  function selectableProtocolsFor(source: ProviderPreset | null): Protocol[] {
+    const declared = source?.default_supported_protocols?.length
+      ? source.default_supported_protocols
+      : DEFAULT_CUSTOM_PROTOCOLS;
+    return declared
+      .map((protocol) => String(protocol))
+      .filter((protocol): protocol is Protocol => SELECTABLE_PROTOCOLS.includes(protocol as Protocol));
+  }
+
+  $: activePreset = dialogPreset;
+  $: selectableProtocols = selectableProtocolsFor(activePreset);
   $: protocolSelectable = true;
   $: supportedAuthTypes = activePreset?.supported_auth_types ?? ['bearer', 'header'];
   $: if (open && !wasOpen) {
     wasOpen = true;
+    dialogPreset = preset ?? presets.find((candidate) => candidate.id === 'custom' || candidate.adapter_id === 'generic') ?? null;
     reset();
   } else if (!open) {
     wasOpen = false;
   }
 
   function reset(): void {
+    const source = dialogPreset;
+    const protocols = selectableProtocolsFor(source);
     result = null;
     errorMessage = '';
-    providerName = '';
-    providerUrl = '';
-    providerLogoUrl = '';
-    providerModelPrefix = '';
+    providerName = source?.name ?? '';
+    providerUrl = source?.default_base_url ?? '';
+    providerLogoUrl = source?.default_logo_url ?? '';
+    providerModelPrefix = source?.default_model_prefix ?? '';
     providerKeyDrafts = [''];
     providerHeaderDrafts = [];
-    providerAuthType = activePreset?.supported_auth_types?.includes('bearer')
-      ? 'bearer'
-      : (activePreset?.default_auth_type ?? 'bearer');
+    providerAuthType = source?.default_auth_type ?? 'bearer';
     providerAuthHeader = 'x-api-key';
-    const preferred = activePreset?.default_preferred_protocol;
-    providerProtocol = (preferred && selectableProtocols.includes(preferred as Protocol)
+    const preferred = source?.default_preferred_protocol;
+    providerProtocol = (preferred && protocols.includes(preferred as Protocol)
       ? preferred
-      : (selectableProtocols[0] ?? 'chat_completions')) as Protocol;
+      : (protocols[0] ?? 'chat_completions')) as Protocol;
+    if (preset) onPresetConsumed();
   }
 
   function closeDialog(): void {

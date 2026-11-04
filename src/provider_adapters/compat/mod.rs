@@ -80,6 +80,9 @@ pub const HYPERBOLIC_ADAPTER_ID: &str = "hyperbolic";
 pub const DEEPINFRA_ADAPTER_ID: &str = "deepinfra";
 pub const NOVITA_ADAPTER_ID: &str = "novita";
 pub const GITHUB_MODELS_ADAPTER_ID: &str = "github_models";
+pub const OLLAMA_ADAPTER_ID: &str = "ollama";
+pub const LM_STUDIO_ADAPTER_ID: &str = "lm_studio";
+pub const VLLM_ADAPTER_ID: &str = "vllm";
 
 pub(super) static MOONSHOT_ADAPTER: CompatAdapter = CompatAdapter {
     adapter_id: MOONSHOT_ADAPTER_ID,
@@ -104,6 +107,19 @@ pub(super) static NOVITA_ADAPTER: CompatAdapter = CompatAdapter {
 };
 pub(super) static GITHUB_MODELS_ADAPTER: CompatAdapter = CompatAdapter {
     adapter_id: GITHUB_MODELS_ADAPTER_ID,
+};
+/// Local inference servers. The preset declares no default base URL because
+/// the endpoint is deployment-specific, and the catalog rejects plain-HTTP
+/// defaults; the dashboard asks for the URL and egress still decides whether a
+/// loopback destination is permitted for this installation.
+pub(super) static OLLAMA_ADAPTER: CompatAdapter = CompatAdapter {
+    adapter_id: OLLAMA_ADAPTER_ID,
+};
+pub(super) static LM_STUDIO_ADAPTER: CompatAdapter = CompatAdapter {
+    adapter_id: LM_STUDIO_ADAPTER_ID,
+};
+pub(super) static VLLM_ADAPTER: CompatAdapter = CompatAdapter {
+    adapter_id: VLLM_ADAPTER_ID,
 };
 
 #[cfg(test)]
