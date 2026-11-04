@@ -99,6 +99,7 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
         "antigravity_oauth",
         "kilocode_oauth",
         "qoder_oauth",
+        "azure_api_key",
     ];
     const PROTOCOLS: &[&str] = &[
         "chat_completions",

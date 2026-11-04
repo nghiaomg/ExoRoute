@@ -1337,3 +1337,36 @@ providers:
       model_catalog_authoritative: false
       event_stream_response: false
       auth_panel: null
+
+  - id: azure_openai
+    adapter_id: azure_openai
+    name: Azure OpenAI
+    description: Route an Azure OpenAI resource. Enter the resource endpoint with its api-version query parameter, and use the deployment name as the model.
+    category: cloud_api
+    labels: []
+    default_base_url: null
+    default_logo_url: null
+    default_model_prefix: azr
+    default_auth_type: azure_api_key
+    supported_auth_types:
+      - azure_api_key
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+      - responses
+    protocol_selectable: true
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      local_quota_tracking: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions, responses]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null

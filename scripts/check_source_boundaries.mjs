@@ -59,6 +59,7 @@ const architectureIssues = [];
 // what makes a new provider unable to be added with its module rule unchecked.
 const providerModules = [
   'antigravity',
+  'azure',
   'cline',
   'cloud_api',
   'codex',

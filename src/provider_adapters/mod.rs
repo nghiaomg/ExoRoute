@@ -19,6 +19,7 @@ use std::{collections::BTreeMap, future::Future, pin::Pin};
 
 mod antigravity;
 pub(crate) mod auth;
+mod azure;
 mod cline;
 mod cloud_api;
 mod codex;

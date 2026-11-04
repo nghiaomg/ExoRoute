@@ -31,6 +31,7 @@ export function labelAuthType(value: string, tr: Translate): string {
     header: tr('Custom header'),
     codex_oauth: tr('OpenAI Codex OAuth'),
     antigravity_oauth: tr('Antigravity OAuth'),
+    azure_api_key: tr('Azure API key'),
   } as Record<string, string>)[value] ?? value;
 }
 
