@@ -74,6 +74,7 @@ const providerModules = [
   'opencode',
   'openrouter',
   'qoder',
+  'vertex',
 ];
 
 for (const provider of providerModules) {

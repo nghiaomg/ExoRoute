@@ -1370,3 +1370,35 @@ providers:
       model_catalog_authoritative: false
       event_stream_response: false
       auth_panel: null
+
+  - id: vertex_ai
+    adapter_id: vertex_ai
+    name: Google Vertex AI
+    description: Route Vertex AI Gemini models with a service-account key. Enter the regional endpoint and project path, for example https://us-central1-aiplatform.googleapis.com/v1/projects/your-project.
+    category: cloud_api
+    labels: []
+    default_base_url: null
+    default_logo_url: null
+    default_model_prefix: vtx
+    default_auth_type: vertex_service_account
+    supported_auth_types:
+      - vertex_service_account
+    default_preferred_protocol: google_generate_content
+    default_supported_protocols:
+      - google_generate_content
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      local_quota_tracking: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [google_generate_content]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null

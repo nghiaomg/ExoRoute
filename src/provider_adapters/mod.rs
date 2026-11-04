@@ -41,6 +41,7 @@ mod presets;
 mod qoder;
 mod registry;
 mod usage;
+mod vertex;
 mod workspace_relay;
 
 #[cfg(test)]

@@ -32,6 +32,7 @@ export function labelAuthType(value: string, tr: Translate): string {
     codex_oauth: tr('OpenAI Codex OAuth'),
     antigravity_oauth: tr('Antigravity OAuth'),
     azure_api_key: tr('Azure API key'),
+    vertex_service_account: tr('Service account key'),
   } as Record<string, string>)[value] ?? value;
 }
 

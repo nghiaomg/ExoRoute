@@ -1,7 +1,7 @@
 use super::{
     CLINE_ADAPTER_ID, CLINEPASS_ADAPTER_ID, ProviderAdapter, antigravity, azure, cloud_api,
     command_code, compat, freebuff, generic, kilo, kilocode, muse, nvidia_nim, opencode,
-    openrouter, qoder,
+    openrouter, qoder, vertex,
 };
 
 pub(crate) struct ClineAdapter {
@@ -16,7 +16,7 @@ static CLINEPASS_ADAPTER: ClineAdapter = ClineAdapter {
     adapter_id: CLINEPASS_ADAPTER_ID,
 };
 
-static ADAPTERS: [&'static dyn ProviderAdapter; 40] = [
+static ADAPTERS: [&'static dyn ProviderAdapter; 41] = [
     &generic::GENERIC_ADAPTER,
     &cloud_api::OPENAI_ADAPTER,
     &cloud_api::ANTHROPIC_ADAPTER,
@@ -57,6 +57,7 @@ static ADAPTERS: [&'static dyn ProviderAdapter; 40] = [
     &compat::LM_STUDIO_ADAPTER,
     &compat::VLLM_ADAPTER,
     &azure::AZURE_ADAPTER,
+    &vertex::VERTEX_ADAPTER,
 ];
 
 pub(super) fn adapter(adapter_id: &str) -> Option<&'static dyn ProviderAdapter> {
