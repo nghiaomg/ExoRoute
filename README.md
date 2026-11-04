@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>The Local-First AI Protocol Gateway & High-Performance Model Router</strong><br>
-  Route, failover, translate, and stream across 15+ AI providers through standard OpenAI and Anthropic SDKs with zero GC and microsecond overhead.
+  Route, failover, translate, and stream across 40 built-in provider presets through standard OpenAI and Anthropic SDKs.
 </p>
 
 <p align="center">
@@ -39,7 +39,7 @@ Write your client code or configure your developer tools (**Cursor**, **Continue
 
 * ⚡ **Blazing Fast Rust Core**: Zero garbage collection pauses, instant cold starts (<10ms), and predictable memory usage managed via RAII guards.
 * 🌐 **Universal 3-Way Protocol Translation**: Seamlessly translate requests, responses, tool calls, and streaming SSE frames between OpenAI Chat, OpenAI Responses, and Anthropic Claude Messages formats.
-* ☁️ **12+ Official Cloud AI Providers**: Native adapters with automatic endpoint routing, dynamic model discovery, and credential validation for OpenAI, Anthropic, Google Gemini, DeepSeek, xAI Grok, Mistral, Perplexity, Groq, Cerebras, DashScope, Together, and Fireworks.
+* ☁️ **22 Official Cloud AI Providers**: Native adapters with automatic endpoint routing, dynamic model discovery, and credential validation for OpenAI, Anthropic, Google Gemini, DeepSeek, xAI Grok, Mistral, Perplexity, Groq, Cerebras, DashScope, Together, Fireworks, Moonshot Kimi, Zhipu GLM, MiniMax, SambaNova, Hyperbolic, DeepInfra, Novita, GitHub Models, Azure OpenAI, and Google Vertex AI.
 * 🛡️ **Combo Fallback & Model Aliases**: Group models into virtual aliases (e.g. `coding-fast`, `reasoning-pro`) with prioritized or round-robin failover. If an upstream encounters rate limits (429) or transient transport errors (5xx), ExoRoute fails over to the next candidate instantly.
 * 🔑 **Automatic API Key Rotation**: Register unlimited API keys per provider. ExoRoute rotates keys across requests and automatically switches when an upstream key quota is exhausted or rejected.
 * 🌊 **Live Streaming Cache Token Tracking**: Real-time decoding of prompt cache hit and read tokens inside streaming SSE responses—visible immediately in telemetry without requiring page reloads.
@@ -52,7 +52,7 @@ Write your client code or configure your developer tools (**Cursor**, **Continue
 
 ## 📋 Supported Provider Matrix
 
-ExoRoute natively supports 15+ official cloud platforms, gateways, and subscription protocols:
+ExoRoute natively supports 40 built-in presets — 22 cloud APIs, 10 gateways, and 8 OAuth subscriptions — plus a custom OpenAI-compatible provider:
 
 | Provider | Preset Type | Default Protocols | Features |
 | :--- | :--- | :--- | :--- |
@@ -68,11 +68,30 @@ ExoRoute natively supports 15+ official cloud platforms, gateways, and subscript
 | **Alibaba DashScope** | Cloud API | Chat Completions | Qwen 2.5 Coder, Qwen-Max, Qwen-Plus |
 | **Together AI** | Cloud API | Chat Completions | Open-weights hosting, DeepSeek R1, Llama 3.3 |
 | **Fireworks AI** | Cloud API | Chat Completions | Enterprise serverless inference, speculative decoding |
-| **OpenRouter** | Gateway | Chat Completions, Responses | 300+ models, multi-provider routing, spend cap tracking |
+| **Moonshot Kimi** | Cloud API | Chat Completions | Kimi long-context models |
+| **Zhipu GLM** | Cloud API | Chat Completions | GLM models via the BigModel API |
+| **MiniMax** | Cloud API | Chat Completions | MiniMax chat models |
+| **SambaNova Cloud** | Cloud API | Chat Completions | SambaNova open-model inference |
+| **Hyperbolic** | Cloud API | Chat Completions | Hyperbolic open-model inference |
+| **DeepInfra** | Cloud API | Chat Completions | DeepInfra hosted open models |
+| **Novita AI** | Cloud API | Chat Completions | Novita AI hosted models |
+| **GitHub Models** | Cloud API | Chat Completions | GitHub Models catalog inference |
+| **Azure OpenAI** | Cloud API | Chat Completions, Responses | Deployment-addressed resources, `api-key` header |
+| **Google Vertex AI** | Cloud API | Google Generate Content | Service-account RS256 tokens, project/region routing |
+| **OpenRouter** | Gateway | Chat Completions, Responses, Messages | 300+ models, multi-provider routing, spend cap tracking |
 | **NVIDIA NIM** | Gateway | Chat Completions | NVIDIA hosted microservices, local RPM quota tracking |
+| **Kilo AI Gateway** | Gateway | Chat Completions | Kilo models, optional keyless free tier |
+| **Command Code** | Gateway | Chat Completions, Messages | Studio sign-in or API key |
+| **OpenCode Go** | Gateway | Chat Completions, Responses, Messages | OpenCode hosted models, local quota tracking |
+| **OpenCode Zen** | Gateway | Chat Completions, Responses, Messages, Google Generate Content | OpenCode hosted models |
 | **CodeBuff / Freebuff** | Gateway | Chat Completions | Curated coding models, Bearer auth passthrough |
-| **OpenAI Codex** | OAuth | Chat Completions | Browser OAuth subscription flow |
-| **Google Antigravity** | OAuth | Chat Completions, Messages | Cloud Code Gemini & Claude access via OAuth |
+| **Ollama / LM Studio / vLLM** | Gateway | Chat Completions, Responses, Messages | Self-hosted servers; set `EXOROUTE_ALLOW_PRIVATE_PROVIDER_URLS=1` for loopback |
+| **OpenAI Codex** | OAuth | Responses | Browser OAuth subscription flow |
+| **Google Antigravity** | OAuth | Google Generate Content | Cloud Code Gemini & Claude access via OAuth |
+| **Kilo Code** | OAuth | Chat Completions | Account-linked OpenRouter-style catalog |
+| **Qoder / Qoder CN** | OAuth | Chat Completions | Device-code account sign-in |
+| **Cline / ClinePass** | OAuth | Chat Completions | Account sign-in with local usage metering |
+| **Meta Muse Code** | OAuth | Responses, Chat Completions | Device code or API key |
 
 ---
 
