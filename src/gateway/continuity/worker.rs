@@ -499,6 +499,7 @@ async fn finish_cancelled_run(
     live_sender: &mpsc::Sender<Bytes>,
     journal_available: &mut bool,
 ) {
+    state.remove_stream_cancellation(run_id);
     let upstream = state.operational_settings().settings.upstream;
     let cancellation_sequence = sequence.saturating_add(1);
     let payload = numbered_event(

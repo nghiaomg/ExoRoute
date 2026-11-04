@@ -76,6 +76,14 @@ impl ProviderAdapter for OpenCodeGoAdapter {
         })
     }
 
+    fn apply_client_headers(
+        &self,
+        request: reqwest::RequestBuilder,
+        client_headers: &HeaderMap,
+    ) -> reqwest::RequestBuilder {
+        apply_client_identity(request, client_headers)
+    }
+
     fn apply_upstream_request_auth(
         &self,
         request: reqwest::RequestBuilder,

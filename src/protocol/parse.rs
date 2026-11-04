@@ -542,6 +542,27 @@ pub(crate) fn cache_input_token_total(value: &Value, input_key: &str, input_toke
         )
 }
 
+/// Total prompt tokens including cache-served tokens. Anthropic upstreams
+/// report cache reads and creation outside `input_tokens`, and the gateway
+/// records the adjusted total as the cache input denominator; OpenAI and
+/// Google upstreams already include cached tokens in their input count, so
+/// their recorded total equals it. The `max` keeps a missing denominator from
+/// erasing a known input count.
+pub(crate) fn inclusive_input_tokens(input_tokens: u64, cache_input_tokens: u64) -> u64 {
+    cache_input_tokens.max(input_tokens)
+}
+
+/// Prompt tokens that were not served from the cache. Adding the cache-read
+/// subset back rebuilds [`inclusive_input_tokens`] exactly, so every client
+/// protocol can report one consistent (uncached, cached) split of the total.
+pub(crate) fn uncached_input_tokens(
+    input_tokens: u64,
+    cache_input_tokens: u64,
+    cached_tokens: u64,
+) -> u64 {
+    inclusive_input_tokens(input_tokens, cache_input_tokens).saturating_sub(cached_tokens)
+}
+
 pub(crate) fn parse_usage(
     value: Option<&Value>,
     input_key: &str,

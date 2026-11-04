@@ -604,6 +604,111 @@ async fn time_to_first_token_average_covers_only_streamed_requests() {
 }
 
 #[tokio::test]
+async fn traffic_time_series_reflects_usage_minutes_when_request_logs_are_pruned() {
+    let (database, path) = test_db().await;
+    let telemetry = Telemetry::new(database.clone());
+    let current_minute = unix_minute();
+
+    let base = Counts {
+        requests: 5,
+        succeeded: 4,
+        failed: 1,
+        duration_ms: 1_000,
+        input_tokens: 50_000,
+        output_tokens: 2_500,
+        cached_tokens: 10_000,
+        cache_input_tokens: 50_000,
+        first_output_ms: 0,
+        first_output_events: 0,
+    };
+    let minutes_and_counts = [
+        (current_minute, base),
+        (current_minute - 120, base),
+        (current_minute - 300, base),
+    ];
+
+    database
+        .write(move |transaction| {
+            for (minute, counts) in minutes_and_counts {
+                let key = minute_key(minute, 0, "")?;
+                transaction.put(Table::UsageMinutes, &key, &counts_record(counts))?;
+                for (window, _) in STATISTICS_RANGES {
+                    let aggregate_key = window_key(window, 0, "")?;
+                    update_window_counts(transaction, &aggregate_key, window, 0, "", counts)?;
+                }
+            }
+            Ok(())
+        })
+        .await
+        .expect("seed usage minutes");
+
+    telemetry.enqueue_request_log(RequestLogRecord {
+        id: "log-only-one".to_owned(),
+        request_id: "request-only-one".to_owned(),
+        route_alias: "default".to_owned(),
+        provider_id: Some("provider".to_owned()),
+        provider_credential_id: None,
+        api_key_id: None,
+        model: "provider/model".to_owned(),
+        client_protocol: "chat_completions".to_owned(),
+        upstream_protocol: Some("chat_completions".to_owned()),
+        status: 200,
+        duration_ms: 200,
+        input_tokens: Some(10_000),
+        output_tokens: Some(500),
+        cached_tokens: None,
+        cache_input_tokens: None,
+        cost_micro_usd: None,
+        error: None,
+    });
+    telemetry.flush().await.expect("flush telemetry");
+
+    let snapshot = statistics_snapshot(&database, "1d", 1440, &telemetry)
+        .await
+        .expect("statistics snapshot");
+
+    assert_eq!(snapshot["total_requests"], 15);
+    assert_eq!(snapshot["input_tokens"], 150_000);
+    assert_eq!(snapshot["output_tokens"], 7_500);
+    assert_eq!(snapshot["logged_requests"], 1);
+
+    let points = snapshot["series"]["points"]
+        .as_array()
+        .expect("series points");
+    assert_eq!(points.len(), 24);
+
+    let total_series_requests: i64 = points
+        .iter()
+        .map(|p| p["requests"].as_i64().unwrap_or(0))
+        .sum();
+    let total_series_input_tokens: i64 = points
+        .iter()
+        .map(|p| p["input_tokens"].as_i64().unwrap_or(0))
+        .sum();
+    let total_series_output_tokens: i64 = points
+        .iter()
+        .map(|p| p["output_tokens"].as_i64().unwrap_or(0))
+        .sum();
+
+    assert_eq!(
+        total_series_requests, 15,
+        "all requests across all hours are represented in series"
+    );
+    assert_eq!(
+        total_series_input_tokens, 150_000,
+        "all input tokens are represented in series"
+    );
+    assert_eq!(
+        total_series_output_tokens, 7_500,
+        "all output tokens are represented in series"
+    );
+
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
 async fn request_logs_survive_telemetry_and_database_restart() {
     let (database, path) = test_db().await;
     let telemetry = Telemetry::new(database.clone());
@@ -999,7 +1104,10 @@ fn enqueue_request(telemetry: &Telemetry, index: usize) {
 ///
 /// The 10 ms pacing step caps the delivered rate at roughly 1.2k requests per
 /// second on Windows, so a higher target would only repeat the same load.
+#[cfg(not(windows))]
 const SWEEP_RATES: [usize; 5] = [125, 250, 500, 1_000, 2_000];
+#[cfg(windows)]
+const SWEEP_RATES: [usize; 4] = [125, 250, 500, 1_000];
 const SWEEP_SECONDS: usize = 3;
 
 /// Sustained request traffic must reach the writer without the bounded queue
@@ -1061,6 +1169,209 @@ async fn paced_request_traffic_does_not_overflow_the_telemetry_queue() {
             "request logging at {rate}/s lost {drop_pct:.2}% of its events"
         );
     }
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
+async fn time_series_matches_usage_minutes_even_when_request_logs_are_pruned() {
+    let (database, path) = test_db().await;
+    let now_minute = unix_minute();
+    let minute_5h_ago = now_minute - 300;
+    let minute_2h_ago = now_minute - 120;
+    let minute_now = now_minute;
+
+    let counts_5h = Counts {
+        requests: 50,
+        succeeded: 48,
+        failed: 2,
+        duration_ms: 100_000,
+        input_tokens: 1_000_000,
+        output_tokens: 20_000,
+        cached_tokens: 500_000,
+        cache_input_tokens: 1_000_000,
+        first_output_ms: 5_000,
+        first_output_events: 48,
+    };
+    let counts_2h = Counts {
+        requests: 100,
+        succeeded: 99,
+        failed: 1,
+        duration_ms: 250_000,
+        input_tokens: 2_500_000,
+        output_tokens: 50_000,
+        cached_tokens: 1_200_000,
+        cache_input_tokens: 2_500_000,
+        first_output_ms: 10_000,
+        first_output_events: 99,
+    };
+    let counts_now = Counts {
+        requests: 1,
+        succeeded: 1,
+        failed: 0,
+        duration_ms: 4_683,
+        input_tokens: 91_884,
+        output_tokens: 54,
+        cached_tokens: 0,
+        cache_input_tokens: 91_884,
+        first_output_ms: 500,
+        first_output_events: 1,
+    };
+
+    let total = counts_5h.add(counts_2h).add(counts_now);
+
+    database
+        .write(move |transaction| {
+            let k_5h = minute_key(minute_5h_ago, 0, "")?;
+            let k_2h = minute_key(minute_2h_ago, 0, "")?;
+            let k_now = minute_key(minute_now, 0, "")?;
+            transaction.put(Table::UsageMinutes, &k_5h, &counts_record(counts_5h))?;
+            transaction.put(Table::UsageMinutes, &k_2h, &counts_record(counts_2h))?;
+            transaction.put(Table::UsageMinutes, &k_now, &counts_record(counts_now))?;
+
+            for (window, _) in STATISTICS_RANGES {
+                let w_key = window_key(window, 0, "")?;
+                update_window_counts(transaction, &w_key, window, 0, "", total)?;
+            }
+            Ok(())
+        })
+        .await
+        .expect("seed usage minutes");
+
+    let telemetry = Telemetry::new(database.clone());
+    telemetry.enqueue_request_log(RequestLogRecord {
+        id: "log-retained-recent".to_owned(),
+        request_id: "req-retained".to_owned(),
+        route_alias: "default".to_owned(),
+        provider_id: Some("provider".to_owned()),
+        provider_credential_id: None,
+        api_key_id: None,
+        model: "provider/model".to_owned(),
+        client_protocol: "chat_completions".to_owned(),
+        upstream_protocol: Some("chat_completions".to_owned()),
+        status: 200,
+        duration_ms: 4_683,
+        input_tokens: Some(91_884),
+        output_tokens: Some(54),
+        cached_tokens: None,
+        cache_input_tokens: None,
+        cost_micro_usd: None,
+        error: None,
+    });
+    telemetry.flush().await.expect("flush telemetry");
+
+    let snapshot = statistics_snapshot(&database, "1d", 1440, &telemetry)
+        .await
+        .expect("statistics snapshot");
+
+    assert_eq!(snapshot["total_requests"], 151);
+    assert_eq!(snapshot["input_tokens"], 3_591_884);
+    assert_eq!(snapshot["output_tokens"], 70_054);
+    assert_eq!(snapshot["logged_requests"], 1);
+    assert_eq!(snapshot["model_breakdown_incomplete"], true);
+
+    let points = snapshot["series"]["points"]
+        .as_array()
+        .expect("points array");
+    assert_eq!(points.len(), 24);
+
+    let sum_requests: i64 = points
+        .iter()
+        .map(|p| p["requests"].as_i64().unwrap_or(0))
+        .sum();
+    let sum_input_tokens: i64 = points
+        .iter()
+        .map(|p| p["input_tokens"].as_i64().unwrap_or(0))
+        .sum();
+    let sum_output_tokens: i64 = points
+        .iter()
+        .map(|p| p["output_tokens"].as_i64().unwrap_or(0))
+        .sum();
+    let sum_successes: i64 = points
+        .iter()
+        .map(|p| p["successes"].as_i64().unwrap_or(0))
+        .sum();
+    let sum_failures: i64 = points
+        .iter()
+        .map(|p| p["failures"].as_i64().unwrap_or(0))
+        .sum();
+
+    assert_eq!(sum_requests, snapshot["total_requests"].as_i64().unwrap());
+    assert_eq!(sum_input_tokens, snapshot["input_tokens"].as_i64().unwrap());
+    assert_eq!(
+        sum_output_tokens,
+        snapshot["output_tokens"].as_i64().unwrap()
+    );
+    assert_eq!(sum_successes, snapshot["successes"].as_i64().unwrap());
+    assert_eq!(sum_failures, snapshot["failures"].as_i64().unwrap());
+
+    let non_zero_buckets = points
+        .iter()
+        .filter(|p| p["requests"].as_i64().unwrap_or(0) > 0)
+        .count();
+    assert_eq!(
+        non_zero_buckets, 3,
+        "all 3 distinct hourly buckets must have data"
+    );
+
+    drop(telemetry);
+    drop(database);
+    let _ = fs::remove_dir_all(&path);
+}
+
+#[tokio::test]
+async fn api_key_time_series_matches_usage_minutes_for_api_key() {
+    let (database, path) = test_db().await;
+    let now_minute = unix_minute();
+    let minute_3h_ago = now_minute - 180;
+
+    let counts = Counts {
+        requests: 25,
+        succeeded: 25,
+        failed: 0,
+        duration_ms: 50_000,
+        input_tokens: 500_000,
+        output_tokens: 10_000,
+        cached_tokens: 200_000,
+        cache_input_tokens: 500_000,
+        first_output_ms: 2_000,
+        first_output_events: 25,
+    };
+
+    database
+        .write(move |transaction| {
+            transaction.put(Table::ApiKeys, "key-ts", &api_key_record("Key TimeSeries"))?;
+            let k = minute_key(minute_3h_ago, 1, "key-ts")?;
+            transaction.put(Table::UsageMinutes, &k, &counts_record(counts))?;
+            for (window, _) in STATISTICS_RANGES {
+                let w_key = window_key(window, 1, "key-ts")?;
+                update_window_counts(transaction, &w_key, window, 1, "key-ts", counts)?;
+            }
+            Ok(())
+        })
+        .await
+        .expect("seed API key usage minutes");
+
+    let telemetry = Telemetry::new(database.clone());
+    let snapshot = api_key_statistics_snapshot(&database, "key-ts", "1d", 1440, &telemetry)
+        .await
+        .expect("API key statistics snapshot");
+
+    assert_eq!(snapshot["total_requests"], 25);
+    assert_eq!(snapshot["input_tokens"], 500_000);
+    assert_eq!(snapshot["output_tokens"], 10_000);
+
+    let points = snapshot["series"]["points"]
+        .as_array()
+        .expect("series points");
+    assert_eq!(points.len(), 24);
+    let sum_tokens: i64 = points
+        .iter()
+        .map(|p| p["input_tokens"].as_i64().unwrap_or(0))
+        .sum();
+    assert_eq!(sum_tokens, 500_000);
+
     drop(telemetry);
     drop(database);
     let _ = fs::remove_dir_all(&path);

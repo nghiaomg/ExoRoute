@@ -5,6 +5,11 @@ import './styles/theme.css';
 // Imported after the theme files so the dark-mode flattening rules are
 // injected last in the production CSS order.
 import './styles/dark-mode.css';
+// Palette layers come last so their token blocks win the cascade over the
+// scheme-scoped defaults above.
+import './styles/palettes.css';
+// Theme styles declare complete, distinct design systems per theme.
+import './styles/theme-styles.css';
 
 const app = mount(App, { target: document.getElementById('app')! });
 

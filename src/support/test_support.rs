@@ -302,7 +302,17 @@ pub enum RouteTargetSeed<'a> {
         protocol: &'a str,
     },
     /// A nested combo reference, which stores no provider of its own.
-    Combo { combo_id: &'a str },
+    Combo {
+        combo_id: &'a str,
+    },
+    DisabledProvider {
+        provider_id: &'a str,
+        model: &'a str,
+        protocol: &'a str,
+    },
+    DisabledCombo {
+        combo_id: &'a str,
+    },
 }
 
 /// Seeds a whole route with arbitrary target rows: disabled routes and nested
@@ -366,6 +376,39 @@ pub async fn seed_route_with_targets(
                     .with("priority", Field::I64(ordinal as i64))
                     .with("weight", Field::Null)
                     .with("enabled", Field::Bool(true)),
+                Some((
+                    Table::RouteTargetComboIndex,
+                    format!("c/{}/{target_key}", hex_component(combo_id)),
+                )),
+            ),
+            RouteTargetSeed::DisabledProvider {
+                provider_id,
+                model,
+                protocol,
+            } => (
+                Record::new()
+                    .with("route_id", Field::Text(route_id.clone()))
+                    .with("provider_id", Field::Text((*provider_id).to_owned()))
+                    .with("model", Field::Text((*model).to_owned()))
+                    .with("protocol", Field::Text((*protocol).to_owned()))
+                    .with("priority", Field::I64(ordinal as i64))
+                    .with("weight", Field::Null)
+                    .with("enabled", Field::Bool(false)),
+                Some((
+                    Table::RouteTargetProviderIndex,
+                    format!("p/{}/{target_key}", hex_component(provider_id)),
+                )),
+            ),
+            RouteTargetSeed::DisabledCombo { combo_id } => (
+                Record::new()
+                    .with("route_id", Field::Text(route_id.clone()))
+                    .with("combo_id", Field::Text((*combo_id).to_owned()))
+                    .with("provider_id", Field::Null)
+                    .with("model", Field::Null)
+                    .with("protocol", Field::Null)
+                    .with("priority", Field::I64(ordinal as i64))
+                    .with("weight", Field::Null)
+                    .with("enabled", Field::Bool(false)),
                 Some((
                     Table::RouteTargetComboIndex,
                     format!("c/{}/{target_key}", hex_component(combo_id)),

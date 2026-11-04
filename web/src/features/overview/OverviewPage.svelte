@@ -8,6 +8,7 @@
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
   import type { GatewayCombo, Overview, Provider, PublicSettings, RequestLog } from '../../lib/types';
+  import OverviewAnalytics from './OverviewAnalytics.svelte';
   import OverviewHighlights from './OverviewHighlights.svelte';
   import OverviewQuickSetup from './OverviewQuickSetup.svelte';
   import OverviewRoutingSummary from './OverviewRoutingSummary.svelte';
@@ -88,5 +89,6 @@ import { localizedError } from '../../lib/errors';
       />
       <OverviewRoutingSummary {combos} {providers} {tr} {onNavigate} onCreateRequest={onCreateRequest} />
     </div>
+    <OverviewAnalytics {tr} {locale} />
   </div>
 {/if}

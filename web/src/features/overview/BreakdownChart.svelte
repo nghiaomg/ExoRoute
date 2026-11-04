@@ -4,8 +4,8 @@
   import type { RequestStatistics } from '../../lib/types';
   import ChartFrame from './ChartFrame.svelte';
   import ChartTableView from './ChartTableView.svelte';
-  import RankedBars from './RankedBars.svelte';
-  import { dimensionBars, type BarRow, type ChartColumn } from './chartTypes';
+  import RankedBars from '../../components/RankedBars.svelte';
+  import { dimensionBars, type BarRow, type ChartColumn } from '../../components/chartTypes';
 
   /**
    * One ranked panel over the request history, switchable between the dimensions

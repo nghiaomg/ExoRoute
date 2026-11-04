@@ -11,20 +11,20 @@
 }
 :root[data-theme='dark'] .settings-view .settings-nav-tab:hover:not(.active):not([data-selected]) {
   background: rgba(255, 255, 255, 0.06) !important;
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-nav-tab.active,
 :root[data-theme='dark'] .settings-view .settings-nav-tab[data-selected] {
-  background: #6366f1 !important;
+  background: var(--info) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--info) 40%, transparent) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-hero-card,
 :root[data-theme='dark'] .settings-view .settings-panel,
 :root[data-theme='dark'] .settings-view .resource-limits-panel,
 :root[data-theme='dark'] .settings-view .database-panel {
-  background: rgba(14, 16, 26, 0.72) !important;
-  color: #f0f2f8 !important;
+  background: color-mix(in srgb, var(--surface-glass-base) 72%, transparent) !important;
+  color: var(--ink) !important;
   backdrop-filter: blur(20px) saturate(170%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
   border: 1px solid rgba(255, 255, 255, 0.07) !important;
@@ -54,7 +54,7 @@
 :root[data-theme='dark'] .settings-view .hero-card-value,
 :root[data-theme='dark'] .settings-view .panel-heading h2,
 :root[data-theme='dark'] .settings-view .settings-row strong {
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .settings-view .hero-card-sub,
 :root[data-theme='dark'] .settings-view .panel-heading p,
@@ -67,9 +67,9 @@
   color: #60a5fa !important;
 }
 :root[data-theme='dark'] .settings-view .panel-icon.violet-panel {
-  background: rgba(99, 102, 241, 0.14) !important;
-  border: 1px solid rgba(99, 102, 241, 0.25) !important;
-  color: #a5b4fc !important;
+  background: color-mix(in srgb, var(--info) 14%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent) !important;
+  color: var(--info-soft) !important;
 }
 :root[data-theme='dark'] .settings-view .panel-icon.amber {
   background: rgba(245, 158, 11, 0.14) !important;
@@ -80,9 +80,9 @@
   background: rgba(255, 255, 255, 0.02) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-badge-code {
-  background: rgba(99, 102, 241, 0.12) !important;
+  background: color-mix(in srgb, var(--info) 12%, transparent) !important;
   color: #c7d2fe !important;
-  border: 1px solid rgba(99, 102, 241, 0.25) !important;
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-badge-uptime {
   background: rgba(255, 255, 255, 0.04) !important;
@@ -109,28 +109,28 @@
   border-color: rgba(16, 185, 129, 0.28) !important;
 }
 :root[data-theme='dark'] .settings-view .config-tile-code {
-  background: rgba(99, 102, 241, 0.12) !important;
+  background: color-mix(in srgb, var(--info) 12%, transparent) !important;
   color: #c7d2fe !important;
 }
 :root[data-theme='dark'] .settings-view .settings-note {
-  background: rgba(99, 102, 241, 0.08) !important;
+  background: color-mix(in srgb, var(--info) 8%, transparent) !important;
   color: #c4c8d8 !important;
-  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  border: 1px solid color-mix(in srgb, var(--info) 20%, transparent) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-note svg {
-  color: #818cf8 !important;
+  color: var(--info) !important;
 }
 :root[data-theme='dark'] .settings-view .resource-limits-active {
   background: rgba(255, 255, 255, 0.03) !important;
   color: #8e93aa !important;
 }
 :root[data-theme='dark'] .settings-view .resource-limits-active strong {
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .settings-view .resource-limit-input input,
 :root[data-theme='dark'] .settings-view .resource-limit-input select {
   background: rgba(255, 255, 255, 0.04) !important;
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 :root[data-theme='dark'] .settings-view .database-file-label {
@@ -140,17 +140,17 @@
 }
 :root[data-theme='dark'] .settings-view .database-file-label:hover {
   background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(99, 102, 241, 0.4) !important;
+  border-color: color-mix(in srgb, var(--info) 40%, transparent) !important;
 }
 :root[data-theme='dark'] .settings-view .database-file-label.has-file {
-  background: rgba(99, 102, 241, 0.14) !important;
+  background: color-mix(in srgb, var(--info) 14%, transparent) !important;
   color: #c7d2fe !important;
 }
 
 
 :root[data-theme='dark'] .api-key-summary,
 :root[data-theme='dark'] .api-key-card {
-  background: #111320 !important;
+  background: var(--surface) !important;
   border: none !important;
   box-shadow: none !important;
 }
@@ -166,30 +166,30 @@
   box-shadow: none !important;
 }
 :root[data-theme='dark'] .api-key-summary strong,
-:root[data-theme='dark'] .api-key-card-heading h2 { color: #f0f2f8; font-weight: 600; }
+:root[data-theme='dark'] .api-key-card-heading h2 { color: var(--ink); font-weight: 600; }
 :root[data-theme='dark'] .api-key-summary span:not(.api-key-summary-icon),
 :root[data-theme='dark'] .api-key-card-dates span { color: #8e93aa; font-weight: 500; }
-:root[data-theme='dark'] .api-key-card-heading code { color: #fed7aa; background: rgba(249, 115, 22, 0.14); border: none !important; box-shadow: none !important; font-weight: 500; }
+:root[data-theme='dark'] .api-key-card-heading code { color: color-mix(in srgb, var(--accent) 30%, #fff); background: color-mix(in srgb, var(--accent) 14%, transparent); border: none !important; box-shadow: none !important; font-weight: 500; }
 :root[data-theme='dark'] .api-key-summary-icon,
-:root[data-theme='dark'] .api-key-card-icon { color: #fb923c; background: rgba(249, 115, 22, 0.14); }
+:root[data-theme='dark'] .api-key-card-icon { color: var(--accent-glow); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 :root[data-theme='dark'] .api-key-card-dates > div { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0; }
-:root[data-theme='dark'] .api-key-card-dates strong { color: #f0f2f8; font-weight: 600; }
+:root[data-theme='dark'] .api-key-card-dates strong { color: var(--ink); font-weight: 600; }
 :root[data-theme='dark'] .api-key-revoke { border: none !important; box-shadow: none !important; background: rgba(255, 255, 255, 0.06); color: #c4c7d4; font-weight: 600; }
 :root[data-theme='dark'] .api-key-revoke:hover { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
 :root[data-theme='dark'] .resource-limits-description,
 :root[data-theme='dark'] .resource-limits-active,
 :root[data-theme='dark'] .resource-limit-field > small { color: #8e93aa; }
 :root[data-theme='dark'] .resource-limits-active strong,
-:root[data-theme='dark'] .resource-limit-field { color: #f0f2f8; }
-:root[data-theme='dark'] .resource-continuity-control { color: #f0f2f8; }
+:root[data-theme='dark'] .resource-limit-field { color: var(--ink); }
+:root[data-theme='dark'] .resource-continuity-control { color: var(--ink); }
 :root[data-theme='dark'] .resource-limit-input input,
 :root[data-theme='dark'] .resource-limit-input select {
-  color: #f0f2f8;
+  color: var(--ink);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 :root[data-theme='dark'] .resource-limit-input input:focus-visible,
-:root[data-theme='dark'] .resource-limit-input select:focus-visible { outline-color: rgba(99, 102, 241, 0.4); border-color: #818cf8; }
+:root[data-theme='dark'] .resource-limit-input select:focus-visible { outline-color: color-mix(in srgb, var(--info) 40%, transparent); border-color: var(--info); }
 :root[data-theme='dark'] .resource-limits-notice { color: #fde047; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); }
 :root[data-theme='dark'] .resource-limits-error { color: #fca5a5; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.28); }
 :root[data-theme='dark'] .resource-limits-success { color: #86efac; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.28); }
@@ -207,20 +207,20 @@
 }
 :root[data-theme='dark'] .settings-view .settings-nav-tab:hover:not(.active):not([data-selected]) {
   background: rgba(255, 255, 255, 0.06) !important;
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-nav-tab.active,
 :root[data-theme='dark'] .settings-view .settings-nav-tab[data-selected] {
-  background: #6366f1 !important;
+  background: var(--info) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--info) 40%, transparent) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-hero-card,
 :root[data-theme='dark'] .settings-view .settings-panel,
 :root[data-theme='dark'] .settings-view .resource-limits-panel,
 :root[data-theme='dark'] .settings-view .database-panel {
-  background: rgba(14, 16, 26, 0.72) !important;
-  color: #f0f2f8 !important;
+  background: color-mix(in srgb, var(--surface-glass-base) 72%, transparent) !important;
+  color: var(--ink) !important;
   backdrop-filter: blur(20px) saturate(170%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
   border: 1px solid rgba(255, 255, 255, 0.07) !important;
@@ -250,7 +250,7 @@
 :root[data-theme='dark'] .settings-view .hero-card-value,
 :root[data-theme='dark'] .settings-view .panel-heading h2,
 :root[data-theme='dark'] .settings-view .settings-row strong {
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .settings-view .hero-card-sub,
 :root[data-theme='dark'] .settings-view .panel-heading p,
@@ -263,9 +263,9 @@
   color: #60a5fa !important;
 }
 :root[data-theme='dark'] .settings-view .panel-icon.violet-panel {
-  background: rgba(99, 102, 241, 0.14) !important;
-  border: 1px solid rgba(99, 102, 241, 0.25) !important;
-  color: #a5b4fc !important;
+  background: color-mix(in srgb, var(--info) 14%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent) !important;
+  color: var(--info-soft) !important;
 }
 :root[data-theme='dark'] .settings-view .panel-icon.amber {
   background: rgba(245, 158, 11, 0.14) !important;
@@ -276,9 +276,9 @@
   background: rgba(255, 255, 255, 0.02) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-badge-code {
-  background: rgba(99, 102, 241, 0.12) !important;
+  background: color-mix(in srgb, var(--info) 12%, transparent) !important;
   color: #c7d2fe !important;
-  border: 1px solid rgba(99, 102, 241, 0.25) !important;
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-badge-uptime {
   background: rgba(255, 255, 255, 0.04) !important;
@@ -305,28 +305,28 @@
   border-color: rgba(16, 185, 129, 0.28) !important;
 }
 :root[data-theme='dark'] .settings-view .config-tile-code {
-  background: rgba(99, 102, 241, 0.12) !important;
+  background: color-mix(in srgb, var(--info) 12%, transparent) !important;
   color: #c7d2fe !important;
 }
 :root[data-theme='dark'] .settings-view .settings-note {
-  background: rgba(99, 102, 241, 0.08) !important;
+  background: color-mix(in srgb, var(--info) 8%, transparent) !important;
   color: #c4c8d8 !important;
-  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  border: 1px solid color-mix(in srgb, var(--info) 20%, transparent) !important;
 }
 :root[data-theme='dark'] .settings-view .settings-note svg {
-  color: #818cf8 !important;
+  color: var(--info) !important;
 }
 :root[data-theme='dark'] .settings-view .resource-limits-active {
   background: rgba(255, 255, 255, 0.03) !important;
   color: #8e93aa !important;
 }
 :root[data-theme='dark'] .settings-view .resource-limits-active strong {
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .settings-view .resource-limit-input input,
 :root[data-theme='dark'] .settings-view .resource-limit-input select {
   background: rgba(255, 255, 255, 0.04) !important;
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 :root[data-theme='dark'] .settings-view .database-file-label {
@@ -336,31 +336,31 @@
 }
 :root[data-theme='dark'] .settings-view .database-file-label:hover {
   background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(99, 102, 241, 0.4) !important;
+  border-color: color-mix(in srgb, var(--info) 40%, transparent) !important;
 }
 :root[data-theme='dark'] .settings-view .database-file-label.has-file {
-  background: rgba(99, 102, 241, 0.14) !important;
+  background: color-mix(in srgb, var(--info) 14%, transparent) !important;
   color: #c7d2fe !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
+  border-color: color-mix(in srgb, var(--info) 30%, transparent) !important;
 }
 
 
 /* Overview Side Column Cards & Routing Mini Lists Dark Mode */
 :root[data-theme='dark'] .side-card-title {
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .side-card-caption {
   color: #8e93aa !important;
 }
 :root[data-theme='dark'] .compact-btn,
 :root[data-theme='dark'] .text-button {
-  color: #fb923c !important;
+  color: var(--accent-glow) !important;
   cursor: pointer;
   transition: color 0.15s ease;
 }
 :root[data-theme='dark'] .compact-btn:hover,
 :root[data-theme='dark'] .text-button:hover {
-  color: #fdba74 !important;
+  color: var(--accent-soft) !important;
 }
 
 :root[data-theme='dark'] .combo-mini-item,
@@ -386,11 +386,11 @@
   transform: none !important;
 }
 :root[data-theme='dark'] .combo-mini-top strong {
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .strategy-pill {
-  color: #fb923c !important;
-  background: rgba(249, 115, 22, 0.14) !important;
+  color: var(--accent-glow) !important;
+  background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
   border: none !important;
   box-shadow: none !important;
 }
@@ -402,10 +402,10 @@
   color: #8e93aa !important;
 }
 :root[data-theme='dark'] .mini-target-chip code {
-  color: #fdba74 !important;
+  color: var(--accent-soft) !important;
 }
 :root[data-theme='dark'] .mini-target-more {
-  color: #9aa0b6 !important;
+  color: var(--text-dim) !important;
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   padding: 1px 6px;
@@ -413,20 +413,20 @@
 }
 
 :root[data-theme='dark'] .route-mini-main strong {
-  color: #f0f2f8;
+  color: var(--ink);
 }
 :root[data-theme='dark'] .route-mini-path {
   color: #8e93aa;
 }
 :root[data-theme='dark'] .route-target-pill {
-  background: rgba(99, 102, 241, 0.14);
-  border: 1px solid rgba(124, 103, 239, 0.25);
-  color: #c4b5fd;
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent);
+  color: var(--info-soft);
 }
 :root[data-theme='dark'] .route-more-pill {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  color: #9aa0b6;
+  color: var(--text-dim);
 }
 :root[data-theme='dark'] .provider-mini-row {
   background: rgba(255, 255, 255, 0.03) !important;
@@ -438,17 +438,17 @@
   transition: background-color 0.15s ease !important;
 }
 :root[data-theme='dark'] .provider-mini-avatar {
-  background: rgba(99, 102, 241, 0.16) !important;
-  border: 1px solid rgba(124, 103, 239, 0.25) !important;
+  background: color-mix(in srgb, var(--info) 16%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  color: #c4b5fd !important;
+  color: var(--info-soft) !important;
 }
 :root[data-theme='dark'] .provider-mini-avatar.has-image {
   background: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 :root[data-theme='dark'] .provider-mini-info strong {
-  color: #f0f2f8 !important;
+  color: var(--ink) !important;
 }
 :root[data-theme='dark'] .provider-mini-info small {
   color: #8e93aa !important;

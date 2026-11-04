@@ -81,3 +81,7 @@ docs/*
 # fresh clone, a new contributor, and the next investigation.
 !docs/design/
 !docs/design/**
+
+# Official releases and changelogs
+!docs/releases/
+!docs/releases/**

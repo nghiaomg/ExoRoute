@@ -639,7 +639,7 @@
   }
 }
 
-.codex-auth-link { display: inline-flex; align-items: center; gap: 5px; color: #ea580c; font-size: 12px; font-weight: 700; text-decoration: none; }
+.codex-auth-link { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-strong); font-size: 12px; font-weight: 700; text-decoration: none; }
 .codex-auth-link:hover { text-decoration: underline; }
 .codex-accounts-section .provider-key-list { max-height: min(32vh, 280px); overflow-y: auto; }
 .provider-model-section { display: grid; gap: 10px; min-width: 0; }
@@ -662,7 +662,7 @@
 .model-routing-table th { position: sticky; top: 0; z-index: 1; padding: 8px 9px; color: #777b8d; background: #f8f8fb; border-bottom: 1px solid #e8e9f0; font-size: 12px; font-weight: 700; }
 .model-routing-table td { padding: 8px 9px; color: #64697c; vertical-align: middle; border-bottom: 1px solid #eff0f4; }
 .model-routing-table tbody tr:last-child td { border-bottom: 0; }
-.model-routing-table td:first-child code { display: block; max-width: 300px; color: #c2410c; overflow-wrap: anywhere; }
+.model-routing-table td:first-child code { display: block; max-width: 300px; color: var(--accent-deep); overflow-wrap: anywhere; }
 .model-routing-table td strong,
 .model-routing-table td small { display: block; }
 .model-routing-table td small { margin-top: 3px; color: #9296a6; font-size: 12px; line-height: 1.35; }

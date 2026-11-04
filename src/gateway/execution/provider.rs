@@ -7,6 +7,7 @@ use crate::{
     security::decrypt_secret,
     state::AppState,
 };
+use http::StatusCode;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -64,13 +65,40 @@ pub(super) async fn mark_provider_key_used(state: &AppState, credential: &Provid
                 else {
                     return Ok(());
                 };
-                let provider_id = record.text("provider_id")?;
-                let Some(provider) = transaction.get::<Record>(Table::Providers, provider_id)?
+                let provider_id = record.text("provider_id")?.to_owned();
+                let Some(provider) = transaction.get::<Record>(Table::Providers, &provider_id)?
                 else {
                     return Ok(());
                 };
                 if crate::admin::providers::provider_is_deleting(&provider)? {
                     return Ok(());
+                }
+                if record.boolean("invalid")? {
+                    record.insert("invalid", Field::Bool(false));
+                    record.insert("invalidated_at", Field::Null);
+                    record.insert("last_error", Field::Null);
+                    let available_index =
+                        crate::infra::db::provider_api_key_index_key(&provider_id, &id, true)?;
+                    transaction.put(
+                        Table::ProviderApiKeyAvailabilityIndex,
+                        &available_index,
+                        &id,
+                    )?;
+                    if let Some(mut provider) =
+                        transaction.get::<Record>(Table::Providers, &provider_id)?
+                    {
+                        let invalid_count = provider
+                            .integer("invalid_api_key_count")?
+                            .saturating_sub(1)
+                            .max(0);
+                        provider.insert("invalid_api_key_count", Field::I64(invalid_count));
+                        transaction.put(Table::Providers, &provider_id, &provider)?;
+                    }
+                    tracing::info!(
+                        %provider_id,
+                        provider_key_id = %id,
+                        "provider API key recovered and marked usable after successful request"
+                    );
                 }
                 record.insert("last_used_at", Field::Text(timestamp.clone()));
                 transaction.put(Table::ProviderApiKeys, &id, &record)
@@ -86,11 +114,15 @@ pub(super) async fn mark_provider_key_invalid(
     state: &AppState,
     provider_id: &str,
     key_id: &str,
+    status: Option<StatusCode>,
 ) -> Result<(), StorageError> {
     let provider_id = provider_id.to_owned();
     let key_id = key_id.to_owned();
     let timestamp = crate::infra::db::utc_timestamp_now()?;
-    let last_error = "provider API key received HTTP 401".to_owned();
+    let last_error = match status {
+        Some(code) => format!("provider API key received HTTP {}", code.as_u16()),
+        None => "provider API key rejected by upstream".to_owned(),
+    };
     let available_index =
         crate::infra::db::provider_api_key_index_key(&provider_id, &key_id, true)?;
     state
@@ -128,6 +160,7 @@ pub(super) async fn mark_provider_key_invalid(
                 }
             }
             key.insert("invalid", Field::Bool(true));
+            key.insert("invalidated_at", Field::Text(timestamp.clone()));
             key.insert("last_error", Field::Text(last_error.clone()));
             key.insert("last_used_at", Field::Text(timestamp.clone()));
             transaction.put(Table::ProviderApiKeys, &key_id, &key)

@@ -1,0 +1,192 @@
+/* Palette themes.
+ *
+ * data-theme keeps the base scheme ('light' | 'dark') so every scheme-scoped
+ * rule in the existing stylesheets keeps applying unchanged; data-palette
+ * selects a palette layer that overrides the color tokens on top of that
+ * scheme. The two classic themes (light / dark) define no palette layer and
+ * render exactly as before. Palettes only need to restate the tokens they
+ * recolor; everything else (glass panels, focus rings, selection, charts)
+ * follows through the shared tokens in styles/tokens.css.
+ *
+ * main.ts imports this file after dark-mode.css so these token blocks win the
+ * cascade at equal specificity.
+ */
+
+/* ── Tokyo Night ───────────────────────────────────────────────────────── */
+:root[data-theme='dark'][data-palette='tokyo-night'] {
+  --canvas: #1a1b26;
+  --surface: #24283b;
+  --surface-raised: #292e42;
+  --surface-sunken: #16161e;
+  --surface-glass-base: #1e2030;
+  --ink: #c0caf5;
+  --muted: #7c83ae;
+  --text-dim: #5d6488;
+  --line: rgba(169, 177, 214, 0.13);
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --accent: #7aa2f7;
+  --accent-strong: #5f80cf;
+  --accent-deep: #3d59a1;
+  --accent-soft: #7dcfff;
+  --accent-glow: #89ddff;
+  --info: #bb9af7;
+  --info-soft: #cdb9fb;
+  --chart-series: #7aa2f7;
+  --chart-series-soft: #7dcfff;
+  --chart-grid: rgba(169, 177, 214, 0.13);
+}
+:root[data-theme='dark'][data-palette='tokyo-night'] body {
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'][data-palette='tokyo-night'] body::before {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(122, 162, 247, 0.07) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(187, 154, 247, 0.05) 0px, transparent 45%),
+    radial-gradient(at 50% 30%, rgba(41, 46, 66, 0.4) 0px, transparent 65%),
+    radial-gradient(at 0% 100%, rgba(125, 207, 255, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(122, 162, 247, 0.05) 0px, transparent 45%);
+}
+:root[data-theme='dark'][data-palette='tokyo-night'] .overview-hero {
+  background: radial-gradient(ellipse at 80% 45%, rgba(42, 48, 74, 0.95) 0, rgba(28, 30, 46, 0.97) 45%, rgba(24, 25, 38, 0.99) 100%) !important;
+}
+
+/* ── Catppuccin Mocha ──────────────────────────────────────────────────── */
+:root[data-theme='dark'][data-palette='catppuccin'] {
+  --canvas: #1e1e2e;
+  --surface: #313244;
+  --surface-raised: #45475a;
+  --surface-sunken: #181825;
+  --surface-glass-base: #181825;
+  --ink: #cdd6f4;
+  --muted: #9399b2;
+  --text-dim: #6c7086;
+  --line: rgba(205, 214, 244, 0.1);
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --accent: #89b4fa;
+  --accent-strong: #6d95e8;
+  --accent-deep: #3f5ba9;
+  --accent-soft: #b4befe;
+  --accent-glow: #89dceb;
+  --info: #cba6f7;
+  --info-soft: #d7b9fb;
+  --chart-series: #89b4fa;
+  --chart-series-soft: #74c7ec;
+  --chart-grid: rgba(205, 214, 244, 0.1);
+}
+:root[data-theme='dark'][data-palette='catppuccin'] body {
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'][data-palette='catppuccin'] body::before {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(137, 180, 250, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(203, 166, 247, 0.05) 0px, transparent 45%),
+    radial-gradient(at 50% 30%, rgba(49, 50, 68, 0.35) 0px, transparent 65%),
+    radial-gradient(at 0% 100%, rgba(166, 227, 161, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(137, 180, 250, 0.04) 0px, transparent 45%);
+}
+
+/* ── Linear ────────────────────────────────────────────────────────────── */
+:root[data-theme='dark'][data-palette='linear'] {
+  --canvas: #111111;
+  --surface: #1a1a1c;
+  --surface-raised: #222226;
+  --surface-sunken: #0d0d0f;
+  --surface-glass-base: #161618;
+  --ink: #e5e5e5;
+  --muted: #a1a1aa;
+  --text-dim: #71717a;
+  --line: rgba(255, 255, 255, 0.08);
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --accent: #5e6ad2;
+  --accent-strong: #4f58bd;
+  --accent-deep: #3f47a1;
+  --accent-soft: #a3aaf2;
+  --accent-glow: #8a92ef;
+  --info: #6366f1;
+  --info-soft: #a5b4fc;
+  --chart-series: #5e6ad2;
+  --chart-series-soft: #8a92ef;
+  --chart-grid: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme='dark'][data-palette='linear'] body {
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'][data-palette='linear'] body::before {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(94, 106, 210, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(94, 106, 210, 0.03) 0px, transparent 45%),
+    radial-gradient(at 50% 30%, rgba(26, 26, 28, 0.4) 0px, transparent 65%),
+    radial-gradient(at 0% 100%, rgba(99, 102, 241, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(94, 106, 210, 0.03) 0px, transparent 45%);
+}
+
+/* ── Cyber Neon ────────────────────────────────────────────────────────── */
+:root[data-theme='dark'][data-palette='cyber-neon'] {
+  --canvas: #0a0a0f;
+  --surface: #12121a;
+  --surface-raised: #1a1a26;
+  --surface-sunken: #08080c;
+  --surface-glass-base: #0e0e16;
+  --ink: #e0e0ff;
+  --muted: #a0a0c2;
+  --text-dim: #6e6e94;
+  --line: rgba(224, 224, 255, 0.1);
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --accent: #00f5d5;
+  --accent-strong: #00cbb0;
+  --accent-deep: #00967f;
+  --accent-soft: #7dffec;
+  --accent-glow: #4dffe0;
+  --info: #b388ff;
+  --info-soft: #d1b8ff;
+  --chart-series: #00f5d5;
+  --chart-series-soft: #b388ff;
+  --chart-grid: rgba(224, 224, 255, 0.1);
+}
+:root[data-theme='dark'][data-palette='cyber-neon'] body {
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'][data-palette='cyber-neon'] body::before {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(0, 245, 213, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(179, 136, 255, 0.07) 0px, transparent 45%),
+    radial-gradient(at 50% 30%, rgba(18, 18, 26, 0.4) 0px, transparent 65%),
+    radial-gradient(at 0% 100%, rgba(179, 136, 255, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(0, 245, 213, 0.05) 0px, transparent 45%);
+}
+
+/* ── Minimal Light ─────────────────────────────────────────────────────── */
+:root[data-theme='light'][data-palette='minimal-light'] {
+  --canvas: #f8fafc;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --text-dim: #94a3b8;
+  --line: #e2e8f0;
+  --accent: #3b82f6;
+  --accent-strong: #2563eb;
+  --accent-deep: #1d4ed8;
+  --accent-soft: #93c5fd;
+  --accent-glow: #60a5fa;
+  --info: #6366f1;
+  --info-soft: #a5b4fc;
+  --chart-series: #2563eb;
+  --chart-series-soft: #3b82f6;
+  --chart-grid: #e2e8f0;
+}
+:root[data-theme='light'][data-palette='minimal-light'] .sidebar {
+  background: #f1f5f9;
+}
+:root[data-theme='light'][data-palette='minimal-light'] body::before {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.04) 0px, transparent 50%);
+}
+:root[data-theme='dark'][data-palette='catppuccin'] .overview-hero {
+  background: radial-gradient(ellipse at 80% 45%, rgba(49, 50, 68, 0.95) 0, rgba(34, 35, 52, 0.97) 45%, rgba(30, 30, 46, 0.99) 100%) !important;
+}
+:root[data-theme='dark'][data-palette='linear'] .overview-hero {
+  background: radial-gradient(ellipse at 80% 45%, rgba(30, 30, 32, 0.95) 0, rgba(22, 22, 24, 0.97) 45%, rgba(17, 17, 17, 0.99) 100%) !important;
+}
+:root[data-theme='dark'][data-palette='cyber-neon'] .overview-hero {
+  background: radial-gradient(ellipse at 80% 45%, rgba(18, 26, 36, 0.95) 0, rgba(13, 14, 22, 0.97) 45%, rgba(10, 10, 15, 0.99) 100%) !important;
+}

@@ -175,13 +175,13 @@
   }
   .request-table-card .status-badge.live {
     color: #9a3412;
-    background: #ffedd5;
+    background: color-mix(in srgb, var(--accent) 14%, #fff);
   }
   :global(:root[data-theme='dark']) .request-table-card tr.live-request {
     background: #261f1d;
   }
   :global(:root[data-theme='dark']) .request-table-card .status-badge.live {
-    color: #fed7aa;
+    color: color-mix(in srgb, var(--accent) 30%, #fff);
     background: #431f12;
   }
   .req-model-title {
@@ -229,14 +229,14 @@
     font-size: 12px;
   }
   .request-table-card td.req-duration {
-    color: #ea580c;
+    color: var(--accent-strong);
     font-weight: 600;
     font-family: var(--font-mono);
     font-size: 12px;
     white-space: nowrap;
   }
   :global(:root[data-theme='dark']) .request-table-card td.req-duration {
-    color: #fb923c;
+    color: var(--accent-glow);
   }
   .request-table-card td.req-status {
     vertical-align: middle;
@@ -281,7 +281,7 @@
     font-size: 11px;
   }
   :global(:root[data-theme='dark']) .request-error-credential {
-    color: #fed7aa;
+    color: color-mix(in srgb, var(--accent) 30%, #fff);
   }
   .request-table-card td.req-time {
     font-size: 12px;

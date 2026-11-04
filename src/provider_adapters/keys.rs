@@ -17,6 +17,32 @@ pub struct ProviderApiKeyCursor {
     stop_before: Option<String>,
     /// Whether a rotating scan already wrapped around the last key.
     wrapped: bool,
+    /// Whether active keys have been exhausted and the cursor is probing
+    /// cooled-down invalid keys for recovery.
+    recovering: bool,
+}
+
+/// How long an invalidated key must cool down before being eligible for a recovery probe.
+pub const KEY_INVALIDATION_COOLDOWN_SECONDS: u64 = 30;
+
+fn is_key_cooldown_elapsed(record: &Record) -> Result<bool, StorageError> {
+    if !record.boolean("invalid")? {
+        return Ok(false);
+    }
+    let timestamp_str = record
+        .optional_text("invalidated_at")?
+        .or_else(|| record.optional_text("last_used_at").ok().flatten());
+    let Some(timestamp_str) = timestamp_str else {
+        return Ok(false);
+    };
+    let Some(timestamp_secs) = crate::infra::db::parse_utc_timestamp(timestamp_str) else {
+        return Ok(false);
+    };
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    Ok(now_secs.saturating_sub(timestamp_secs) >= KEY_INVALIDATION_COOLDOWN_SECONDS)
 }
 
 /// How many ordering-index entries one read transaction may inspect while it
@@ -84,6 +110,7 @@ impl ProviderApiKeyCursor {
             finished: false,
             stop_before: None,
             wrapped: false,
+            recovering: false,
         }
     }
 
@@ -100,13 +127,22 @@ impl ProviderApiKeyCursor {
     pub async fn next(&mut self, db: &Database) -> Result<Option<ProviderApiKeyRow>, StorageError> {
         loop {
             if self.finished {
-                if self.wrapped || self.stop_before.is_none() {
+                if !self.wrapped && self.stop_before.is_some() {
+                    // Continue with the keys that precede the wrapped position.
+                    self.wrapped = true;
+                    self.after = None;
+                    self.finished = false;
+                } else if !self.recovering {
+                    // Active keys are exhausted. Enter recovery mode to probe
+                    // enabled keys that were marked invalid but have cooled down.
+                    self.recovering = true;
+                    self.after = None;
+                    self.finished = false;
+                    self.wrapped = false;
+                    self.stop_before = None;
+                } else {
                     return Ok(None);
                 }
-                // Continue with the keys that precede the wrapped position.
-                self.wrapped = true;
-                self.after = None;
-                self.finished = false;
             }
             let provider_id = self.provider_id.clone();
             let after = self.after.clone();
@@ -118,6 +154,7 @@ impl ProviderApiKeyCursor {
             } else {
                 None
             };
+            let recovering = self.recovering;
             let prefix = crate::infra::db::provider_api_key_created_prefix(&provider_id)?;
             let (found, last_position, exhausted) = db
                 .read(move |transaction| {
@@ -144,8 +181,14 @@ impl ProviderApiKeyCursor {
                         };
                         if record.text("provider_id")? != provider_id
                             || !record.boolean("enabled")?
-                            || record.boolean("invalid")?
                         {
+                            continue;
+                        }
+                        let is_invalid = record.boolean("invalid")?;
+                        if !recovering && is_invalid {
+                            continue;
+                        }
+                        if recovering && (!is_invalid || !is_key_cooldown_elapsed(&record)?) {
                             continue;
                         }
                         let adapter_id = transaction
@@ -368,6 +411,38 @@ mod tests {
                 .expect("query keys")
                 .is_none()
         );
+        drop(db);
+        let _ = fs::remove_dir_all(path);
+    }
+
+    #[tokio::test]
+    async fn invalid_key_past_cooldown_is_returned_for_recovery() {
+        let path =
+            std::env::temp_dir().join(format!("exoroute-provider-keys-{}", uuid::Uuid::new_v4()));
+        let db = crate::infra::db::connect(&path).await.expect("open LMDB");
+        let past = crate::infra::db::utc_timestamp_before(std::time::Duration::from_secs(60))
+            .expect("past timestamp");
+        let past_for_write = past.clone();
+        db.write(move |transaction| {
+            let mut record = key_record(
+                "key-cooled",
+                "provider",
+                "2026-04-01T00:00:00.000Z",
+                true,
+                true,
+            );
+            record.insert("invalidated_at", Field::Text(past_for_write.clone()));
+            seed_key(transaction, &record)
+        })
+        .await
+        .expect("seed provider keys");
+
+        let (mut cursor, first) = ProviderApiKeyCursor::start(&db, "provider")
+            .await
+            .expect("query keys")
+            .expect("cooled down key is returned in recovery mode");
+        assert_eq!(first.id, "key-cooled");
+        assert!(cursor.next(&db).await.expect("exhausted cursor").is_none());
         drop(db);
         let _ = fs::remove_dir_all(path);
     }

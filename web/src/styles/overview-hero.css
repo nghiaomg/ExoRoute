@@ -10,7 +10,7 @@
   border-radius: var(--radius-2xl);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 246, 235, 0.9) 100%);
   border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 8px 30px rgba(249, 115, 22, 0.05);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--accent) 5%, transparent);
 }
 .overview-hero-left {
   display: flex;
@@ -195,14 +195,14 @@
   width: 48px;
   height: 48px;
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, #fb923c, #ea580c);
+  background: linear-gradient(135deg, var(--accent-glow), var(--accent-strong));
   box-shadow: 0 6px 18px rgba(234, 88, 12, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.25);
   position: relative;
   transition: all 0.25s ease;
 }
 button.core-node:hover .core-logo-badge {
-  background: linear-gradient(135deg, #ea580c, #c2410c);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent-deep));
 }
 .pipeline-node .node-text strong {
   display: block;
@@ -251,8 +251,8 @@ button.core-node:hover .core-logo-badge {
   border-radius: 999px;
 }
 .stream-inbound .stream-line {
-  background: linear-gradient(90deg, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0.45) 50%, rgba(249, 115, 22, 0.7) 100%);
-  box-shadow: 0 0 6px rgba(249, 115, 22, 0.2);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 15%, transparent) 0%, color-mix(in srgb, var(--accent) 45%, transparent) 50%, color-mix(in srgb, var(--accent) 70%, transparent) 100%);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .stream-outbound .stream-line {
   background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.5) 50%, rgba(16, 185, 129, 0.75) 100%);
@@ -270,7 +270,7 @@ button.core-node:hover .core-logo-badge {
   transform: translateY(-50%) rotate(45deg);
 }
 .stream-inbound .stream-line::after {
-  border-color: #f97316;
+  border-color: var(--accent);
 }
 .stream-outbound .stream-line::after {
   border-color: #10b981;
@@ -291,9 +291,9 @@ button.core-node:hover .core-logo-badge {
   line-height: 1.35;
 }
 .stream-inbound .stream-label {
-  color: #c2410c;
+  color: var(--accent-deep);
   background: rgba(255, 237, 213, 0.75);
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .stream-outbound .stream-label {
   color: #047857;
@@ -312,8 +312,8 @@ button.core-node:hover .core-logo-badge {
   animation: stream-flow-beam 2.2s infinite cubic-bezier(0.4, 0, 0.2, 1);
 }
 .stream-inbound .stream-particle {
-  background: linear-gradient(90deg, transparent 0%, #f97316 65%, #ffedd5 100%);
-  box-shadow: 0 0 8px rgba(249, 115, 22, 0.9), 0 0 3px #fdba74;
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 65%, color-mix(in srgb, var(--accent) 14%, #fff) 100%);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 90%, transparent), 0 0 3px var(--accent-soft);
 }
 .stream-outbound .stream-particle {
   background: linear-gradient(90deg, transparent 0%, #10b981 65%, #d1fae5 100%);
@@ -357,9 +357,9 @@ button.upstream-node:hover .upstream-mini-chip {
 .upstream-mini-chip.stream-count-chip {
   justify-content: center;
   font-size: 12px;
-  color: #f97316;
-  background: rgba(249, 115, 22, 0.09);
-  border-color: rgba(249, 115, 22, 0.2);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
   font-weight: 600;
 }
 .upstream-mini-chip.empty-chip {

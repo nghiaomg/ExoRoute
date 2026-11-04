@@ -178,8 +178,18 @@ async fn explicit_cancel_stops_the_worker_and_releases_its_slot() {
     assert_eq!(cancel_response.status(), StatusCode::ACCEPTED);
     let snapshot = wait_for_status(&state, "cancel-run", "cancelled").await;
     assert!(snapshot.latest_sequence >= 2);
-    assert_eq!(state.gates.stream_continuity_in_flight.active_count(), 0);
-    assert!(!state.request_stream_cancellation("cancel-run"));
+    tokio::time::timeout(Duration::from_secs(1), async {
+        loop {
+            if state.gates.stream_continuity_in_flight.active_count() == 0
+                && !state.request_stream_cancellation("cancel-run")
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("continuity slot and cancellation registration are released");
 
     let first = receiver.recv().await.expect("first event remains buffered");
     assert!(String::from_utf8_lossy(&first).contains("started"));

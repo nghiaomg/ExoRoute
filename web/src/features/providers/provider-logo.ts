@@ -7,6 +7,18 @@ import nvidiaLogo from '../../../../assets/providers/nvidia.webp';
 import clineLogo from '../../../../assets/providers/cline.webp';
 import freebuffLogo from '../../../../assets/providers/freebuff.webp';
 import antigravityLogo from '../../../../assets/providers/antigravity.webp';
+import openaiLogo from '../../../../assets/models/openai.svg';
+import claudeLogo from '../../../../assets/models/claude.svg';
+import geminiLogo from '../../../../assets/models/gemini.svg';
+import deepseekLogo from '../../../../assets/models/deepseek.svg';
+import grokLogo from '../../../../assets/models/grok.svg';
+import mistralLogo from '../../../../assets/models/mistral.svg';
+import qwenLogo from '../../../../assets/models/qwen.svg';
+import perplexityLogo from '../../../../assets/models/perplexity.svg';
+import groqLogo from '../../../../assets/models/groq.svg';
+import cerebrasLogo from '../../../../assets/models/cerebras.svg';
+import togetherLogo from '../../../../assets/models/together.svg';
+import fireworksLogo from '../../../../assets/models/fireworks.svg';
 
 const adapterLogos: Record<string, string> = {
   command_code: commandCodeLogo,
@@ -20,6 +32,18 @@ const adapterLogos: Record<string, string> = {
   clinepass: clineLogo,
   freebuff: freebuffLogo,
   antigravity: antigravityLogo,
+  openai: openaiLogo,
+  anthropic: claudeLogo,
+  gemini: geminiLogo,
+  deepseek: deepseekLogo,
+  xai: grokLogo,
+  mistral: mistralLogo,
+  perplexity: perplexityLogo,
+  groq: groqLogo,
+  cerebras: cerebrasLogo,
+  dashscope: qwenLogo,
+  together: togetherLogo,
+  fireworks: fireworksLogo,
 };
 
 export function providerLogoSrc(value?: string | null): string | null {
@@ -70,6 +94,18 @@ export function providerDefaultLogo(
   if (identities.some((value) => value.includes('kilocode') || value.includes('kiloaigateway'))) return kiloCodeLogo;
   if (identities.some((value) => value.includes('cline'))) return clineLogo;
   if (identities.some((value) => value.includes('antigravity'))) return antigravityLogo;
+  if (identities.some((value) => value.includes('openai'))) return openaiLogo;
+  if (identities.some((value) => value.includes('anthropic') || value.includes('claude'))) return claudeLogo;
+  if (identities.some((value) => value.includes('gemini'))) return geminiLogo;
+  if (identities.some((value) => value.includes('deepseek'))) return deepseekLogo;
+  if (identities.some((value) => value.includes('grok') || value === 'xai')) return grokLogo;
+  if (identities.some((value) => value.includes('mistral'))) return mistralLogo;
+  if (identities.some((value) => value.includes('perplexity'))) return perplexityLogo;
+  if (identities.some((value) => value.includes('groq'))) return groqLogo;
+  if (identities.some((value) => value.includes('cerebras'))) return cerebrasLogo;
+  if (identities.some((value) => value.includes('dashscope') || value.includes('qwen'))) return qwenLogo;
+  if (identities.some((value) => value.includes('together'))) return togetherLogo;
+  if (identities.some((value) => value.includes('fireworks'))) return fireworksLogo;
   return null;
 }
 

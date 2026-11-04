@@ -211,7 +211,7 @@
   }
 
   .palette-entry.active {
-    background: #ffedd5;
+    background: color-mix(in srgb, var(--accent) 14%, #fff);
   }
 
   .palette-entry-kind {
@@ -242,8 +242,8 @@
     color: var(--muted);
   }
 
-  :global(:root[data-theme='dark']) .palette { background: rgba(14, 16, 26, 0.97); color: #e2e8f0; }
-  :global(:root[data-theme='dark']) .palette-entry.active { background: rgba(249, 115, 22, 0.18); }
+  :global(:root[data-theme='dark']) .palette { background: color-mix(in srgb, var(--surface-glass-base) 97%, transparent); color: #e2e8f0; }
+  :global(:root[data-theme='dark']) .palette-entry.active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
   :global(:root[data-theme='dark']) .palette-input {
     background: transparent;
     color: #e2e8f0;

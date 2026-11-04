@@ -223,7 +223,7 @@
 
   .compare-warning {
     font-size: 10px;
-    color: #b45309;
+    color: var(--accent-strong);
     font-weight: var(--font-semibold);
   }
 
@@ -288,7 +288,7 @@
   }
 
   .compare-option.active {
-    background: #ffedd5;
+    background: color-mix(in srgb, var(--accent) 14%, #fff);
     font-weight: var(--font-bold);
   }
 
@@ -358,7 +358,7 @@
     color: var(--muted);
   }
 
-  :global(:root[data-theme='dark']) .compare-panel { background: rgba(14, 16, 26, 0.9); }
+  :global(:root[data-theme='dark']) .compare-panel { background: color-mix(in srgb, var(--surface-glass-base) 90%, transparent); }
   :global(:root[data-theme='dark']) .compare-column { border-color: rgba(255, 255, 255, 0.25); }
-  :global(:root[data-theme='dark']) .compare-option.active { background: rgba(249, 115, 22, 0.2); }
+  :global(:root[data-theme='dark']) .compare-option.active { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 </style>

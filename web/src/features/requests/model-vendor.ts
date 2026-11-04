@@ -31,6 +31,11 @@ const VENDOR_ALIASES: ReadonlyArray<readonly [stem: string, tokens: readonly str
   ['poolside', ['poolside', 'laguna']],
   ['sakana', ['sakana', 'fugu']],
   ['inclusion', ['ling', 'ring']],
+  ['perplexity', ['perplexity', 'sonar', 'pplx']],
+  ['groq', ['groq']],
+  ['cerebras', ['cerebras']],
+  ['together', ['together']],
+  ['fireworks', ['fireworks']],
 ];
 
 function modelTokens(model: string): string[] {

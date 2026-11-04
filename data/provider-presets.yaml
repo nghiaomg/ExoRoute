@@ -2,6 +2,426 @@
 # adapter_id must refer to a Rust adapter registered in src/provider_adapters.rs.
 # Metadata cannot add protocol/auth behavior that the adapter does not implement.
 providers:
+  - id: openai
+    adapter_id: openai
+    name: OpenAI
+    description: Connect directly to the official OpenAI platform using an API key.
+    category: cloud_api
+    labels: []
+    default_base_url: https://api.openai.com/v1
+    default_logo_url: null
+    default_model_prefix: openai
+    default_models:
+      - gpt-4o
+      - gpt-4o-mini
+      - o1
+      - o3-mini
+      - gpt-4.5-preview
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+      - responses
+    protocol_selectable: true
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions, responses]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: anthropic
+    adapter_id: anthropic
+    name: Anthropic
+    description: Connect directly to the official Anthropic Claude Messages API using an API key.
+    category: cloud_api
+    labels: []
+    default_base_url: https://api.anthropic.com/v1
+    default_logo_url: null
+    default_model_prefix: anthropic
+    default_models:
+      - claude-3-7-sonnet-20250219
+      - claude-3-5-sonnet-20241022
+      - claude-3-5-haiku-20241022
+    default_auth_type: header
+    supported_auth_types:
+      - header
+      - bearer
+    default_preferred_protocol: messages
+    default_supported_protocols:
+      - messages
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [messages]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: gemini
+    adapter_id: gemini
+    name: Google Gemini
+    description: Connect to Google AI Studio Gemini models using OpenAI-compatible endpoints.
+    category: cloud_api
+    labels: [free_tier]
+    default_base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    default_logo_url: null
+    default_model_prefix: gemini
+    default_models:
+      - gemini-2.5-pro
+      - gemini-2.5-flash
+      - gemini-2.0-flash
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: deepseek
+    adapter_id: deepseek
+    name: DeepSeek
+    description: Connect directly to DeepSeek official platform with an API key.
+    category: cloud_api
+    labels: []
+    default_base_url: https://api.deepseek.com/v1
+    default_logo_url: null
+    default_model_prefix: deepseek
+    default_models:
+      - deepseek-chat
+      - deepseek-reasoner
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: xai
+    adapter_id: xai
+    name: xAI Grok
+    description: Route official xAI Grok models via OpenAI-compatible endpoints.
+    category: cloud_api
+    labels: []
+    default_base_url: https://api.x.ai/v1
+    default_logo_url: null
+    default_model_prefix: xai
+    default_models:
+      - grok-2-1212
+      - grok-2-vision-1212
+      - grok-beta
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: mistral
+    adapter_id: mistral
+    name: Mistral AI
+    description: Connect directly to the Mistral AI platform using an API key.
+    category: cloud_api
+    labels: []
+    default_base_url: https://api.mistral.ai/v1
+    default_logo_url: null
+    default_model_prefix: mistral
+    default_models:
+      - mistral-large-latest
+      - codestral-latest
+      - pixtral-large-latest
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: perplexity
+    adapter_id: perplexity
+    name: Perplexity AI
+    description: Connect to Perplexity Sonar search and reasoning models with an API key.
+    category: cloud_api
+    labels: []
+    default_base_url: https://api.perplexity.ai
+    default_logo_url: null
+    default_model_prefix: pplx
+    default_models:
+      - sonar
+      - sonar-pro
+      - sonar-reasoning
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: groq
+    adapter_id: groq
+    name: Groq Cloud
+    description: High-speed LPU inference for open models on Groq Cloud.
+    category: cloud_api
+    labels: [free_tier]
+    default_base_url: https://api.groq.com/openai/v1
+    default_logo_url: null
+    default_model_prefix: groq
+    default_models:
+      - llama-3.3-70b-versatile
+      - deepseek-r1-distill-llama-70b
+      - qwen-2.5-coder-32b
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: cerebras
+    adapter_id: cerebras
+    name: Cerebras Cloud
+    description: Ultra-fast wafer-scale Llama model inference on Cerebras CS-3.
+    category: cloud_api
+    labels: [free_tier]
+    default_base_url: https://api.cerebras.ai/v1
+    default_logo_url: null
+    default_model_prefix: cerebras
+    default_models:
+      - llama3.3-70b
+      - llama3.1-8b
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: dashscope
+    adapter_id: dashscope
+    name: Alibaba DashScope
+    description: Connect to Alibaba Cloud DashScope Qwen models with an API key.
+    category: cloud_api
+    labels: [free_tier]
+    default_base_url: https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+    default_logo_url: null
+    default_model_prefix: dashscope
+    default_models:
+      - qwen-2.5-coder-32b-instruct
+      - qwen-plus
+      - qwen-max
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: together
+    adapter_id: together
+    name: Together AI
+    description: Fast inference platform for open-source foundation models on Together AI.
+    category: cloud_api
+    labels: []
+    default_base_url: https://api.together.xyz/v1
+    default_logo_url: null
+    default_model_prefix: together
+    default_models:
+      - meta-llama/Llama-3.3-70B-Instruct-Turbo
+      - deepseek-ai/DeepSeek-R1
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
+  - id: fireworks
+    adapter_id: fireworks
+    name: Fireworks AI
+    description: Production-grade inference platform for open models on Fireworks AI.
+    category: cloud_api
+    labels: []
+    default_base_url: https://api.fireworks.ai/inference/v1
+    default_logo_url: null
+    default_model_prefix: fireworks
+    default_models:
+      - accounts/fireworks/models/deepseek-r1
+      - accounts/fireworks/models/llama-v3p3-70b-instruct
+    default_auth_type: bearer
+    supported_auth_types:
+      - bearer
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: true
+      oauth_accounts: false
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: false
+      event_stream_response: false
+      auth_panel: null
+
   - id: kilo_gateway
     adapter_id: kilo_gateway
     name: Kilo AI Gateway

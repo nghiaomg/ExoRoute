@@ -1,20 +1,21 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import {
-    Activity, BookOpen, Boxes, ChartPie, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
+    Activity, BookOpen, Boxes, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
   } from '@lucide/svelte';
   import FlyingFishLogo from './FlyingFishLogo.svelte';
   import LanguageSelect from './LanguageSelect.svelte';
   import type { DashboardPage } from '../lib/navigation';
   import type { Locale } from '../lib/i18n';
   import type { Translate } from '../lib/format';
+  import type { ThemeId, ThemeScheme } from '../lib/theme';
 
-  type Theme = 'light' | 'dark';
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
   interface GatewayStatus { state: ConnectionState; address: string }
   interface Preferences {
     locale: Locale;
-    theme: Theme;
+    theme: ThemeId;
+    scheme: ThemeScheme;
     setLocale: (locale: Locale) => void;
     toggleTheme: () => void;
   }
@@ -43,7 +44,6 @@
     { id: 'quota', label: 'Quota', icon: Gauge },
     { id: 'api-keys', label: 'API keys', icon: KeyRound },
     { id: 'requests', label: 'Requests', icon: Activity },
-    { id: 'statistics', label: 'Statistics', icon: ChartPie },
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings2 },
   ] as const;
@@ -59,7 +59,7 @@
     { id: 'more', label: 'More', icon: Ellipsis },
   ] as const;
 
-  $: isMoreActive = ['api-keys', 'quota', 'statistics', 'settings', 'chat'].includes(currentPage);
+  $: isMoreActive = ['api-keys', 'quota', 'settings', 'chat'].includes(currentPage);
 
   function navigateFromLink(event: MouseEvent, page: DashboardPage): void {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -150,7 +150,7 @@
         <div class="topbar-actions">
           <div class="preference-controls" aria-label={tr('Language and appearance')}>
             <LanguageSelect locale={preferences.locale} {tr} onLocaleChange={preferences.setLocale} />
-            <button class="preference-button theme-button" aria-label={tr(preferences.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.theme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.theme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</button>
+            <button class="preference-button theme-button" aria-label={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.scheme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</button>
           </div>
           <div class="gateway-pill"><span class="status-light" class:online={gateway.state === 'loaded'} class:offline={gateway.state === 'error'}></span><span>{tr(gateway.state === 'error' ? 'Disconnected' : 'Gateway')}</span><code>{gateway.address}</code></div>
           <button class="icon-button mobile-menu-btn" aria-label={tr('Main navigation')} onclick={() => mobileMoreOpen = true}><Menu size={18} /></button>

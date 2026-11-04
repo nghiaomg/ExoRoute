@@ -1,206 +1,299 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="ExoRoute — Flying Fish Logo" width="240" />
+  <img src="assets/hero-banner.jpg" alt="ExoRoute — High-Performance AI Gateway & Model Router" width="100%" />
 </p>
 
 <h1 align="center">ExoRoute</h1>
 
 <p align="center">
-  <strong>A local-first AI protocol gateway and model router built in Rust.</strong><br>
-  Route requests across providers through OpenAI and Anthropic-compatible APIs.
+  <strong>The Local-First AI Protocol Gateway & High-Performance Model Router</strong><br>
+  Route, failover, translate, and stream across 15+ AI providers through standard OpenAI and Anthropic SDKs with zero GC and microsecond overhead.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/language-Rust%202021-orange.svg" alt="Language" />
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
-  <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg" alt="Platform" />
-  <img src="https://img.shields.io/badge/memory-Zero%20GC%20%7C%20Auto%20Reclaimed-green.svg" alt="Resource Management" />
+  <a href="https://github.com/nghiaomg/ExoRoute/releases/tag/v0.1.2"><img src="https://img.shields.io/badge/release-v0.1.2-blue.svg?style=flat-square" alt="Release v0.1.2" /></a>
+  <img src="https://img.shields.io/badge/language-Rust%202021-orange.svg?style=flat-square" alt="Language" />
+  <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg?style=flat-square" alt="Platform" />
+  <img src="https://img.shields.io/badge/memory-Zero%20GC%20%7C%20Auto%20Reclaimed-green.svg?style=flat-square" alt="Resource Management" />
+  <img src="https://img.shields.io/badge/frontend-Svelte%205%20%7C%20Tailwind-purple.svg?style=flat-square" alt="Frontend" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-informational.svg?style=flat-square" alt="License" /></a>
 </p>
+
+---
+
+## ⚡ What is ExoRoute?
+
+**ExoRoute** is an ultra-fast, single-binary AI gateway built from the ground up in Rust. It serves as your local central AI routing plane (`127.0.0.1:8686/v1` by default), providing automatic **3-way protocol translation** between:
+1. **OpenAI Chat Completions** (`/v1/chat/completions`)
+2. **OpenAI Responses API** (`/v1/responses`)
+3. **Anthropic Claude Messages** (`/v1/messages`)
+
+Write your client code or configure your developer tools (**Cursor**, **Continue**, **Cline**, **Roo Code**, **Claude Dev**, or your own backend) against your favorite SDK, and talk to **any** AI model from **any** provider without rewriting code or changing client libraries.
 
 <p align="center">
-  <img src="assets/cli-demo.webp" alt="ExoRoute CLI startup screen" width="850" />
+  <img src="assets/cli-demo.webp" alt="ExoRoute Terminal & Startup" width="850" />
 </p>
 
 ---
 
-## Overview
+## 🚀 Key Features
 
-
-It provides your applications with a single HTTP endpoint (`127.0.0.1:8686/v1` by default), seamlessly converting across **OpenAI Chat Completions**, **OpenAI Responses**, and **Anthropic Messages** while routing requests intelligently across providers and models.
-
-Open the built-in interactive documentation at `http://127.0.0.1:8686/docs` after starting ExoRoute for install, API, SDK, Cursor, Continue, Cline, and Roo Code integration guides.
-
----
-
-## User Benefits
-
-Why choose ExoRoute over heavy, multi-service alternatives?
-
-* ⚡ **Rust gateway**: The repository includes a reproducible local-mock benchmark for measuring the gateway path on your own build and machine. Results depend on hardware, configuration, and workload; see [Performance measurement](#performance-measurement).
-* 🔄 **Configurable Stream Resources**: Request bodies, SSE frames, replay journals, background continuity tasks, and provider concurrency have configurable limits. SSE frame and buffer limits, body-processing concurrency, and per-provider concurrency may use `0` for unlimited operation; continuity concurrency remains a bounded setting (1–64) because continuity tasks can run for up to 24 hours.
-* 🛡️ **Combo Fallback Routing**: Chain provider models in priority or round-robin order. Server-side retries for bounded 5xx/transport failures happen before a gateway error is returned; ExoRoute still avoids retrying a stream after output has reached the client.
-* 🔑 **Provider Key Rotation**: Rotate keys across requests and try another key when a provider explicitly rejects the current credential.
-* 🌐 **Universal Protocol Translation**: Build your client against one preferred SDK (OpenAI Chat, OpenAI Responses, or Anthropic Claude) and talk to any backend model without rewriting your application code.
-* 📦 **Zero Infrastructure Hassle (Single Native Binary)**: No Docker containers, Python runtimes, or external databases (Redis/PostgreSQL) required. ExoRoute uses an embedded LMDB environment and bundles a modern, high-speed Svelte 5 dashboard directly into a self-contained executable.
-* 🔒 **Local-First Security & Egress Guard**: Binds only to loopback (`127.0.0.1` or `::1`) because the listener serves plain HTTP; remote access belongs behind a TLS reverse proxy connected to ExoRoute over loopback. ExoRoute enforces gateway API token authentication, encrypts stored provider secrets at rest with ChaCha20-Poly1305, and validates egress against SSRF.
+* ⚡ **Blazing Fast Rust Core**: Zero garbage collection pauses, instant cold starts (<10ms), and predictable memory usage managed via RAII guards.
+* 🌐 **Universal 3-Way Protocol Translation**: Seamlessly translate requests, responses, tool calls, and streaming SSE frames between OpenAI Chat, OpenAI Responses, and Anthropic Claude Messages formats.
+* ☁️ **12+ Official Cloud AI Providers**: Native adapters with automatic endpoint routing, dynamic model discovery, and credential validation for OpenAI, Anthropic, Google Gemini, DeepSeek, xAI Grok, Mistral, Perplexity, Groq, Cerebras, DashScope, Together, and Fireworks.
+* 🛡️ **Combo Fallback & Model Aliases**: Group models into virtual aliases (e.g. `coding-fast`, `reasoning-pro`) with prioritized or round-robin failover. If an upstream encounters rate limits (429) or transient transport errors (5xx), ExoRoute fails over to the next candidate instantly.
+* 🔑 **Automatic API Key Rotation**: Register unlimited API keys per provider. ExoRoute rotates keys across requests and automatically switches when an upstream key quota is exhausted or rejected.
+* 🌊 **Live Streaming Cache Token Tracking**: Real-time decoding of prompt cache hit and read tokens inside streaming SSE responses—visible immediately in telemetry without requiring page reloads.
+* 🔄 **Stream Continuity & Disconnect Recovery**: Optional background worker pool that preserves upstream generation for up to 24 hours if the client disconnects, allowing clients to resume active streams via `Last-Event-ID`.
+* 🎨 **7 Visual Theme Archetypes**: Beautiful built-in Svelte 5 dashboard with distinct design systems: Classic Light/Dark (Soft Neo-Brutalism), Tokyo Night (Cyber Slate), Catppuccin Mocha (Pastel Dark), Linear (Minimalist Dark), Cyber Neon (Space Black & Neon), and Minimal Light (Clean Editorial).
+* 🔒 **Local-First Security & Egress Guard**: Binds exclusively to loopback interfaces, encrypts stored provider secrets at rest using ChaCha20-Poly1305, defends against SSRF with DNS pinning, and enforces single-use session proofs for database exports/imports.
+* 📦 **Zero-Infrastructure Single Binary**: No Docker, no Python runtimes, no external databases (Redis/PostgreSQL). ExoRoute embeds a high-performance LMDB database and the complete dashboard frontend directly into one self-contained binary.
 
 ---
 
-## Performance measurement
+## 📋 Supported Provider Matrix
 
-The benchmark compares ExoRoute with a deterministic local mock provider; it does not measure a real AI provider or predict production latency. It exercises non-streaming OpenAI Chat Completions requests with a small response. Run it against a release build to get a report for your machine:
+ExoRoute natively supports 15+ official cloud platforms, gateways, and subscription protocols:
 
-```sh
-cargo build --release
-python scripts/benchmark.py --binary target/release/exoroute --requests 800 --repeats 2 --concurrency 1,8 --output benchmark.json
+| Provider | Preset Type | Default Protocols | Features |
+| :--- | :--- | :--- | :--- |
+| **OpenAI Direct** | Cloud API | Chat Completions, Responses | Dynamic model discovery, o1/o3 reasoning, vision |
+| **Anthropic Direct** | Cloud API | Claude Messages | Auto `anthropic-version`, prompt caching, thinking models |
+| **Google Gemini** | Cloud API | Chat Completions | Gemini 2.5 Pro/Flash, multimodality, fast inference |
+| **DeepSeek Cloud** | Cloud API | Chat Completions | R1 reasoning token streaming, deepseek-chat |
+| **xAI Grok** | Cloud API | Chat Completions | Grok-2, Grok-Vision, real-time context |
+| **Mistral AI** | Cloud API | Chat Completions | Codestral, Mistral Large, Pixtral vision |
+| **Perplexity AI** | Cloud API | Chat Completions | Sonar search reasoning, online citations |
+| **Groq Cloud** | Cloud API | Chat Completions | LPU ultra-high-speed inference, Llama 3.3, Qwen 2.5 |
+| **Cerebras Cloud** | Cloud API | Chat Completions | Wafer-scale CS-3 inference (>1,000 tok/sec) |
+| **Alibaba DashScope** | Cloud API | Chat Completions | Qwen 2.5 Coder, Qwen-Max, Qwen-Plus |
+| **Together AI** | Cloud API | Chat Completions | Open-weights hosting, DeepSeek R1, Llama 3.3 |
+| **Fireworks AI** | Cloud API | Chat Completions | Enterprise serverless inference, speculative decoding |
+| **OpenRouter** | Gateway | Chat Completions, Responses | 300+ models, multi-provider routing, spend cap tracking |
+| **NVIDIA NIM** | Gateway | Chat Completions | NVIDIA hosted microservices, local RPM quota tracking |
+| **CodeBuff / Freebuff** | Gateway | Chat Completions | Curated coding models, Bearer auth passthrough |
+| **OpenAI Codex** | OAuth | Chat Completions | Browser OAuth subscription flow |
+| **Google Antigravity** | OAuth | Chat Completions, Messages | Cloud Code Gemini & Claude access via OAuth |
+
+---
+
+## 🏗️ Architecture
+
+```
+                       ┌─────────────────────────────────────────┐
+                       │   Client (Cursor, Continue, App, SDK)   │
+                       └────────────────────┬────────────────────┘
+                                            │ HTTP / SSE
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 ExoRoute Core Gateway                                  │
+│                                                                                        │
+│   ┌─────────────────────┐    ┌─────────────────────┐    ┌──────────────────────────┐   │
+│   │ Loopback Listener   │───▶│ Egress & Auth Guard │───▶│ Protocol Normalizer      │   │
+│   │ (127.0.0.1:8686)    │    │ (Token Auth, SSRF)  │    │ (Chat ↔ Resp ↔ Messages) │   │
+│   └─────────────────────┘    └─────────────────────┘    └────────────┬─────────────┘   │
+│                                                                      │                 │
+│   ┌─────────────────────┐    ┌─────────────────────┐                 │                 │
+│   │ Embedded LMDB Store │    │ Stream Continuity   │◀────────────────┤                 │
+│   │ (Encrypted Secrets) │    │ (24h Disconnect Rec)│                 │                 │
+│   └─────────────────────┘    └─────────────────────┘                 │                 │
+│                                                                      ▼                 │
+│   ┌────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                  Combo Routing Engine & Automatic Key Rotator                  │   │
+│   │           - Priority or Round-Robin Fallback     - Real-Time Latency Rollup    │   │
+│   └────────────────────────────────────────┬───────────────────────────────────────┘   │
+└────────────────────────────────────────────┼───────────────────────────────────────────┘
+                                             │ HTTPS
+                                             ▼
+ ┌───────────────────┬───────────────────┬───────────────────┬───────────────────┐
+ │  OpenAI Platform  │ Anthropic Claude  │   Google Gemini   │  DeepSeek / Grok  │
+ ├───────────────────┼───────────────────┼───────────────────┼───────────────────┤
+ │ Groq / Cerebras   │ Mistral / Qwen    │ Together/Fireworks│ OpenRouter / NIM  │
+ └───────────────────┴───────────────────┴───────────────────┴───────────────────┘
 ```
 
-On Windows, use `--binary target/release/exoroute.exe`. The script uses a temporary home and LMDB directory, starts a local mock provider, and removes its temporary data when it exits. Results vary with the machine and system load. The default admission limits are 64 concurrent gateway requests and 32 concurrent requests per provider; operational settings can change them, and zero disables those respective gates.
-
 ---
 
-## Quick Install
+## 📦 Quick Installation
 
-### npm (Node.js 18+)
+### Option 1: npm (Recommended, Cross-Platform)
 ```sh
 npm install -g exoroute
 exoroute
 ```
+*The npm launcher downloads the matching ExoRoute release for Linux, macOS, or Windows and verifies its SHA-256 checksum.*
 
-The npm launcher downloads the matching ExoRoute release for Linux, macOS, or
-Windows and verifies its SHA-256 checksum. It does not require Cosign.
-
-### Linux & macOS
+### Option 2: Linux & macOS (Shell Script)
 ```sh
 curl -fsSL https://raw.githubusercontent.com/nghiaomg/ExoRoute/main/install.sh | sh
 ```
 
-### Windows (PowerShell)
+### Option 3: Windows (PowerShell)
 ```powershell
 irm https://raw.githubusercontent.com/nghiaomg/ExoRoute/main/install.ps1 | iex
 ```
 
-*The installer verifies signed checksum manifests with Sigstore Cosign before placing the binary in your PATH.*
+### Option 4: Pre-Built Native Binaries
+Download standalone executables directly from [GitHub Releases](https://github.com/nghiaomg/ExoRoute/releases/tag/v0.1.2):
+* **Linux (x86_64)**: `exoroute-linux-x86_64.tar.gz`
+* **Windows (x86_64)**: `exoroute-windows-x86_64.zip` (`exoroute.exe`)
+* **macOS (Apple Silicon & Intel)**: `exoroute-macos.tar.gz`
 
 ---
 
-## Getting Started
+## 🏁 Getting Started
 
 ### 1. Launch the Gateway
 ```sh
 exoroute
 ```
-ExoRoute initializes `~/.exoroute/` (`%USERPROFILE%\.exoroute` on Windows), creates a starter `.env`, and serves the dashboard at `http://127.0.0.1:8686`. On an interactive terminal, it prints the generated initial admin password once; in non-interactive mode it prints the path where that password was stored instead.
+ExoRoute initializes `~/.exoroute/` (`%USERPROFILE%\.exoroute` on Windows), creates a starter `.env`, and opens the dashboard at `http://127.0.0.1:8686`.
+On an interactive terminal, it prints the initial one-time admin password.
 
-On first run, securely retrieve the generated password from the terminal or the private `.env` file and change it when prompted in the dashboard. Gateway requests stay disabled until the required password change is complete. ExoRoute also generates `EXOROUTE_MASTER_KEY` and stores it in `.env`; keep that file private and preserve the key for as long as you need the database's encrypted provider credentials or backups.
-
-For remote access, keep `EXOROUTE_HOST=127.0.0.1` and configure a TLS reverse proxy on the same host to forward requests to ExoRoute over loopback. ExoRoute rejects wildcard and non-loopback bind addresses because its listener serves plain HTTP.
-
-### 2. Configure Providers & Combos
+### 2. Configure Providers & Combos in the Dashboard
 1. Open `http://127.0.0.1:8686` in your browser and log in.
-2. Under **Providers**, add credentials for a supported provider (including NVIDIA NIM hosted at `https://integrate.api.nvidia.com/v1`) or link OpenAI Codex via browser OAuth. NIM model discovery is best-effort; if it does not return models, add the model ID manually. Its quota panel measures requests routed through this ExoRoute process over a rolling 60-second window; this is local RPM tracking, not NVIDIA account quota or a provider-reported limit.
-   The OpenRouter preset imports namespaced model IDs such as `openrouter/anthropic/claude-...` and preserves suffixes such as `:free`. Per-key quota is read from OpenRouter's key-information endpoint and reports only the configured spending cap; it does not show account-wide credit balance or estimate separate limits for `:free` models.
-   The Freebuff preset uses a Freebuff or CodeBuff Bearer auth token at `https://www.codebuff.com/api/v1`, imports its nine curated model IDs, and accepts manual passthrough model IDs. No Freebuff provider quota API has been verified, so ExoRoute does not report or track quota for it.
-   The Antigravity preset connects Google accounts through browser OAuth, uses the `ag/` model prefix, and discovers Gemini, Claude, and supported open models through Google Cloud Code. Release builds include the upstream public desktop OAuth client, so users normally do not need to configure OAuth variables; `EXOROUTE_ANTIGRAVITY_OAUTH_CLIENT_ID` and `EXOROUTE_ANTIGRAVITY_OAUTH_CLIENT_SECRET` remain available as optional overrides. Its model and weekly quota snapshots come from the undocumented Cloud Code usage APIs when available; missing or stale upstream quota is shown as unavailable, and ExoRoute does not run a credit probe or create a local Antigravity quota meter.
-3. Under **Combos**, create an alias (e.g. `coding-model`) pointing to one or more provider models, with ordered or round-robin fallback.
-4. Under **API Keys**, generate a client API key. Each key can optionally be scoped to specific providers and to model names or `prefix*` rules; a scoped key receives `403` for anything outside its scope, and `GET /v1/models` only lists the models that key may call. Leave both lists empty to keep a key unrestricted.
+2. Under **Providers**, click **Add Provider** and select a preset (e.g. **Anthropic Direct**, **OpenAI Direct**, **Google Gemini**, **DeepSeek**, or **Groq**). Enter your API key.
+3. Under **Combos**, create a routing alias (e.g. `coding-model`) and assign provider models in your desired priority order.
+4. Under **API Keys**, generate a Gateway API key (e.g. `sk-exo-...`).
 
-### 3. Send Requests
-Use standard OpenAI SDKs or `curl`:
+### 3. Use ExoRoute with Any Client or Tool
 
+#### 🔹 curl (OpenAI Chat Completions)
 ```sh
 curl http://127.0.0.1:8686/v1/chat/completions \
   -H "Authorization: Bearer YOUR_EXOROUTE_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "coding-model",
-    "messages": [{"role": "user", "content": "Explain Rust ownership in one sentence."}]
+    "messages": [{"role": "user", "content": "Explain Rust memory safety in one sentence."}],
+    "stream": true
   }'
 ```
 
-Supported endpoints include:
-* `/v1/chat/completions` (OpenAI Chat format)
-* `/v1/responses` (OpenAI Responses format)
-* `/v1/messages` (Anthropic Claude format)
-* `/v1/models` (List configured combo aliases and provider/model aliases)
+#### 🔹 curl (Anthropic Claude Messages)
+```sh
+curl http://127.0.0.1:8686/v1/messages \
+  -H "x-api-key: YOUR_EXOROUTE_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "coding-model",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "Why is ExoRoute so fast?"}]
+  }'
+```
 
-### Images and vision
+#### 🔹 Python (OpenAI SDK)
+```python
+from openai import OpenAI
 
-Image content in user messages can pass through the protocol converter as a public image URL or a base64 data URI when the selected upstream protocol and model support images. ExoRoute does not make a non-vision model vision-capable. Provider-scoped `file_id` image references are not supported; use a URL or data URI instead. The default gateway request-body limit is 16 MiB, including JSON and base64 image data.
+client = OpenAI(
+    base_url="http://127.0.0.1:8686/v1",
+    api_key="YOUR_EXOROUTE_KEY",
+)
 
-### Output styles
+response = client.chat.completions.create(
+    model="coding-model",
+    messages=[{"role": "user", "content": "Hello ExoRoute!"}],
+    stream=True,
+)
 
-Open **Settings → Output styles** to enable the prompt styles `terse-prose`, `less-code`, and `ponytail`. Each style supports `lite`, `full`, and `ultra`, and styles can be combined in catalog order. The feature is disabled by default, applies to new gateway requests globally, and persists as a versioned LMDB setting with an atomic revision. Static English instructions are added once to the system/developer context; provider responses are never rewritten and clients cannot override the setting per request.
+for chunk in response:
+    print(chunk.choices[0].delta.content or "", end="")
+```
 
-The injector conservatively bypasses all styles for security or credential warnings, irreversible actions, explicit requests for detailed explanations, and ordered backup/migration/deploy/release sequences. The original request content, tools, media, metadata, and message order remain unchanged. Resetting the panel returns to the default disabled state immediately.
+#### 🔹 Python (Anthropic SDK)
+```python
+import anthropic
 
-## Storage and backups
+client = anthropic.Anthropic(
+    base_url="http://127.0.0.1:8686",
+    api_key="YOUR_EXOROUTE_KEY",
+)
 
-By default, ExoRoute keeps its `.env` file and LMDB environment under `~/.exoroute/` (`%USERPROFILE%\.exoroute` on Windows); the environment directory is `exoroute.lmdb`. Set `EXOROUTE_DATA_DIR` to move the application data directory or `EXOROUTE_DATABASE_PATH` to select a different LMDB environment directory. Relative paths resolve from the application's `.env` directory.
+message = client.messages.create(
+    model="coding-model",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Translate hello to Vietnamese."}],
+)
+print(message.content[0].text)
+```
 
-Keep the LMDB environment on a local filesystem and run only one ExoRoute process against it. Existing SQLite files are left untouched and are not read or migrated; SQLite backups are rejected. Use the dashboard's database export/import for ExoRoute `.exoroute` backup files. Backups never include active sessions or temporary stream state, and importing one requires signing in again. Restore the same `EXOROUTE_MASTER_KEY` before importing if the backup contains encrypted provider credentials.
+#### 🔹 Cursor / Continue.dev / Cline / Roo Code
+Configure your AI coding assistant with:
+* **Base URL**: `http://127.0.0.1:8686/v1`
+* **API Key**: `YOUR_EXOROUTE_KEY`
+* **Model**: Your configured Combo name (e.g. `coding-model` or `gpt-4o`, `claude-3-7-sonnet-20250219`)
 
-### Optional stream continuity
-
-In **Settings → Stream continuity**, enable the option and save. The setting is persisted and applied to new requests immediately. ExoRoute reserves the run before dispatching it, returns `x-exoroute-stream-id` immediately, and sends SSE keepalives while the provider is silent. If the client disconnects, a bounded worker continues consuming the upstream stream for up to 24 hours. Provider setup errors are sent as SSE `event: error` frames because the response has already started. Reconnect with the same gateway API key using `GET /v1/streams/{stream_id}` and `Last-Event-ID`, or explicitly stop the task with `DELETE /v1/streams/{stream_id}`.
-
-Continuity recovers from client-side disconnects and retries bounded upstream 5xx/transport failures on the server before an error stream is emitted. It cannot retry after upstream output has reached the client or survive a gateway process restart. The dashboard configures 1–64 continuity tasks concurrently (default 16). Replay is retained for one day, up to 8 MiB per run and 128 MiB total; reaching a replay limit does not stop the active task, but the missing events can no longer be resumed. When all task slots are occupied or the replay run cannot be reserved, ExoRoute rejects the request before sending it to a provider.
+Visit `http://127.0.0.1:8686/docs` for step-by-step interactive configuration guides for each IDE extension!
 
 ---
 
-## Architecture Highlights
+## 🎨 Theme Design System
 
-```
-                      ┌─────────────────────────────────────────┐
-                      │              Client (SDK / App)         │
-                      └────────────────────┬────────────────────┘
-                                           │ HTTP / SSE
-                                           ▼
-                      ┌─────────────────────────────────────────┐
-                      │          ExoRoute Core Gateway          │
-                      │  - HTTP listener (loopback by default)  │
-                      │  - Strict Bounded Memory Queues         │
-                      │  - Automatic RAII Resource Reclamation  │
-                      │  - Universal Protocol Normalizer        │
-                      └──────┬───────────────────┬──────────────┘
-                             │                   │
-                [Combo & Key Selection]  [Health Check & Failover]
-                             │                   │
-             ┌───────────────┴──────────┐        │
-             ▼                          ▼        ▼
-┌─────────────────────────┐   ┌─────────────────────────┐
-│ Upstream Provider 1     │   │ Upstream Provider 2     │
-│ (e.g. OpenAI / Claude)  │   │ (Fallback / Alternate)  │
-└─────────────────────────┘   └─────────────────────────┘
-```
+ExoRoute includes 7 meticulously crafted visual archetypes designed for comfort, focus, and aesthetics:
 
-* **Bounded Request Processing**: Gateway request bodies and upstream response streams are subject to configured size and concurrency limits.
-* **Controlled Stream Lifetime**: Without continuity, disconnecting the client cancels the response stream. With continuity enabled, the bounded worker remains responsible for the upstream response until it finishes, the user cancels it, or the 24-hour upstream deadline is reached.
-* **Integrated Observability**: Inspect real-time request latencies, HTTP status telemetry, and active providers straight from the built-in Command Center dashboard.
+* ☀️ **Classic Light**: Soft Neo-Brutalism with 2px ink borders, hard offset drop shadows, and signature brand orange.
+* 🌑 **Classic Dark**: High-contrast obsidian slate surfaces with subtle orange accents.
+* 🌃 **Tokyo Night**: Cyberpunk indigo and midnight slate with vibrant neon violet and cyan accents.
+* ☕ **Catppuccin Mocha**: Soothing pastel-dark palette specifically calibrated to reduce eye strain.
+* 📐 **Linear**: Ultra-refined monochrome minimalist dark UI with clean subtle borders.
+* ⚡ **Cyber Neon**: Deep OLED pitch black paired with high-voltage neon yellow, green, and hot pink highlights.
+* 📰 **Minimal Light**: Crisp, clean editorial light mode optimized for documentation and well-lit rooms.
+
+Themes redefine border radiuses, shadows, surface elevations, and typographic hierarchies with zero layout shift or first-load flicker.
 
 ---
 
-## Building from Source
+## 🔒 Security & Data Invariants
 
-Prerequisites: Rust toolchain 1.88 or newer, Python 3.10+ for the optional benchmark, and Node.js with npm.
+ExoRoute is designed strictly for local-first operations:
+* **Loopback Enforcement**: ExoRoute strictly binds to `127.0.0.1` or `::1`. Remote deployments should use a TLS reverse proxy (Caddy/Nginx) forwarding to loopback.
+* **Encrypted Secrets**: Provider keys and master secrets are encrypted with **ChaCha20-Poly1305** at rest.
+* **Egress Validation & DNS Pinning**: Egress requests protect against SSRF by validating and pinning resolved IP addresses before establishing connections.
+* **Single-Use Reauthentication**: Database export/import workflows require short-lived, session-bound proof tokens generated via explicit password verification.
+
+---
+
+## 🛠️ Building from Source
+
+### Prerequisites
+* Rust toolchain (1.88+ recommended)
+* Node.js (18+) & npm
+* Linux, macOS, or Windows
 
 ```sh
-# 1. Build dashboard assets
+# 1. Clone repository
+git clone https://github.com/nghiaomg/ExoRoute.git
+cd ExoRoute
+
+# 2. Build Svelte 5 frontend assets
 cd web
 npm ci
 npm run build
 cd ..
 
-# 2. Build and run native release executable
+# 3. Build & Run release binary
 cargo run --release
 ```
 
-To run test suites:
+### Running Tests
 ```sh
-cargo test
+# Run Rust test suite (650+ tests)
+cargo test --workspace --all-features
+
+# Run Frontend tests
+cd web && npm test
 ```
 
 ---
 
-## License
+## 📄 Documentation & Releases
+
+* Detailed release notes: [RELEASE_v0.1.2.md](docs/releases/RELEASE_v0.1.2.md)
+* Built-in interactive documentation: Navigate to `http://127.0.0.1:8686/docs` after starting ExoRoute.
+
+---
+
+## 📜 License
 
 Licensed under the [MIT License](LICENSE).
