@@ -63,6 +63,7 @@ const providerModules = [
   'cloud_api',
   'codex',
   'command_code',
+  'compat',
   'freebuff',
   'generic',
   'kilo',

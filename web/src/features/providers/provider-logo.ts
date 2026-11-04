@@ -7,6 +7,7 @@ import nvidiaLogo from '../../../../assets/providers/nvidia.webp';
 import clineLogo from '../../../../assets/providers/cline.webp';
 import freebuffLogo from '../../../../assets/providers/freebuff.webp';
 import antigravityLogo from '../../../../assets/providers/antigravity.webp';
+import minimaxLogo from '../../../../assets/providers/minimax.webp';
 import openaiLogo from '../../../../assets/models/openai.svg';
 import claudeLogo from '../../../../assets/models/claude.svg';
 import geminiLogo from '../../../../assets/models/gemini.svg';
@@ -19,6 +20,8 @@ import groqLogo from '../../../../assets/models/groq.svg';
 import cerebrasLogo from '../../../../assets/models/cerebras.svg';
 import togetherLogo from '../../../../assets/models/together.svg';
 import fireworksLogo from '../../../../assets/models/fireworks.svg';
+import kimiLogo from '../../../../assets/models/kimi.svg';
+import zaiLogo from '../../../../assets/models/z-ai.svg';
 
 const adapterLogos: Record<string, string> = {
   command_code: commandCodeLogo,
@@ -44,6 +47,9 @@ const adapterLogos: Record<string, string> = {
   dashscope: qwenLogo,
   together: togetherLogo,
   fireworks: fireworksLogo,
+  moonshot: kimiLogo,
+  zhipu: zaiLogo,
+  minimax: minimaxLogo,
 };
 
 export function providerLogoSrc(value?: string | null): string | null {

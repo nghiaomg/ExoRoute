@@ -69,6 +69,27 @@ fn registry_has_unique_ids_and_valid_metadata() {
     assert!(adapter_ids.contains(CLINE_ADAPTER_ID));
     assert!(adapter_ids.contains(CLINEPASS_ADAPTER_ID));
     assert!(adapter_ids.contains(MUSE_ADAPTER_ID));
+    // Every shared OpenAI-compatible adapter is registered and resolves to a
+    // preset with its own model prefix, so two providers never claim one prefix.
+    for (adapter_id, prefix) in [
+        (compat::MOONSHOT_ADAPTER_ID, "kimi"),
+        (compat::ZHIPU_ADAPTER_ID, "glm"),
+        (compat::MINIMAX_ADAPTER_ID, "mmx"),
+        (compat::SAMBANOVA_ADAPTER_ID, "snva"),
+        (compat::HYPERBOLIC_ADAPTER_ID, "hyp"),
+        (compat::DEEPINFRA_ADAPTER_ID, "dinf"),
+        (compat::NOVITA_ADAPTER_ID, "nvt"),
+        (compat::GITHUB_MODELS_ADAPTER_ID, "ghm"),
+    ] {
+        assert!(adapter_ids.contains(adapter_id), "{adapter_id}");
+        assert_eq!(
+            preset_for_adapter(adapter_id)
+                .unwrap_or_else(|| panic!("{adapter_id} preset"))
+                .default_model_prefix,
+            Some(prefix),
+            "{adapter_id} model prefix"
+        );
+    }
     assert_eq!(
         preset_for_adapter(MUSE_ADAPTER_ID)
             .expect("Muse preset")

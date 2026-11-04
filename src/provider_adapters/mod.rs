@@ -23,6 +23,7 @@ mod cline;
 mod cloud_api;
 mod codex;
 mod command_code;
+mod compat;
 mod dispatch;
 mod freebuff;
 mod generic;
