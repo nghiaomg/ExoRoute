@@ -24,6 +24,10 @@ const detailsSource = readFileSync(
   new URL('../src/features/requests/RequestStatisticsDetails.svelte', import.meta.url),
   'utf8',
 );
+const filterPanelSource = readFileSync(
+  new URL('../src/features/requests/RequestFilterPanel.svelte', import.meta.url),
+  'utf8',
+);
 const baseCss = readFileSync(new URL('../src/styles/base.css', import.meta.url), 'utf8');
 
 /** Returns the declarations of the first rule whose selector list contains `selector`. */
@@ -110,4 +114,14 @@ test('the statistics panel follows the theme system outside classic light', () =
   // resolves it to the identical ink offset), not a hardcoded light shadow.
   const panel = declarationsFor(detailsSource, '.statistics-details {');
   assert.equal(panel['box-shadow'], 'var(--nb-shadow-md, 3px 3px 0 var(--ink))');
+});
+
+test('the filter panel stays a normal flow sibling of the table card', () => {
+  // A sticky filter panel pinned itself to the scrolling column while the table
+  // card kept scrolling, so the two framed cards rendered stacked on top of
+  // each other on laptop-height displays. The panel must stay an ordinary flex
+  // sibling; the table card's own sticky header already covers row scanning.
+  const panel = declarationsFor(filterPanelSource, '.request-filter-panel {');
+  assert.ok(!('position' in panel), 'the filter panel must stay in normal flow');
+  assert.ok(!('z-index' in panel), 'an in-flow panel needs no stacking order');
 });

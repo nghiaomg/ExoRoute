@@ -200,18 +200,19 @@
 </form>
 
 <style>
-  /* Soft Neo-Brutalism frame, like every other card in the light theme. */
+  /* Soft Neo-Brutalism frame, like every other card in the light theme. The
+     panel used to be position: sticky here, but once the page column scrolls
+     (it does on laptop-height displays now that every section keeps its real
+     height) the pinned panel let the table card slide underneath it, and the
+     two framed cards rendered stacked on top of each other. As an ordinary
+     flex sibling of the table card nothing can overlap it; the table card
+     keeps its own sticky header, so scanning rows loses nothing. */
   .request-filter-panel {
-    position: sticky;
-    top: 0;
-    z-index: 6;
     margin: 0 0 18px;
     padding: 14px 16px;
     border: 2px solid var(--ink);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     box-shadow: 3px 3px 0 var(--ink);
     transition: box-shadow 0.16s ease, border-color 0.16s ease;
   }
