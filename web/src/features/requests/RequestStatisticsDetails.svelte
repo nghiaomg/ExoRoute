@@ -33,7 +33,12 @@
 </section>
 
 <style>
-  .statistics-details { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 2px solid var(--ink); border-radius: 13px; background: var(--line); box-shadow: 3px 3px 0 var(--ink); margin-top: 14px; }
+  /* .content-wrap is a scrolling flex column, so this section is a flex item.
+     `overflow: hidden` (needed to clip the cells inside the rounded frame)
+     zeroes its automatic minimum size, which let it absorb every pixel of
+     negative free space and collapse to just its borders. flex-shrink: 0 keeps
+     the frame at its content height. */
+  .statistics-details { display: grid; flex-shrink: 0; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 2px solid var(--ink); border-radius: 13px; background: var(--line); box-shadow: 3px 3px 0 var(--ink); margin-top: 14px; }
   .statistics-details > div { min-width: 0; display: grid; gap: 8px; padding: 15px 17px; background: var(--paper); }
   .statistics-details span { color: var(--muted); font-size: 12px; }
   .statistics-details strong { overflow: hidden; color: var(--ink); font: 600 12px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
