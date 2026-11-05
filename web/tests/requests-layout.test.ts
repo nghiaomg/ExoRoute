@@ -86,3 +86,28 @@ test('the statistics panel keeps its grid tracks and cell padding', () => {
   assert.match(detailsSource, /\.statistics-details \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/);
   assert.match(detailsSource, /\.statistics-details \{ grid-template-columns: 1fr 1fr; \}/);
 });
+
+test('the statistics panel follows the theme system outside classic light', () => {
+  // In dark themes `--ink` is near-white, so the light rule's 2px ink frame and
+  // hard offset shadow would render as a glaring white strip around the glass
+  // panel. The api-key statistics tokens panel (dark overrides in
+  // styles/theme-shell.css) is the reference treatment these mirror.
+  const darkFrame = declarationsFor(
+    detailsSource,
+    ":global(:root[data-theme='dark']) .statistics-details {",
+  );
+  assert.equal(darkFrame.background, 'rgba(255, 255, 255, 0.07)');
+  assert.equal(darkFrame['border-color'], 'rgba(255, 255, 255, 0.07)');
+
+  // Cells keep the same glass fill the dark tokens panel uses.
+  const darkCell = declarationsFor(
+    detailsSource,
+    ":global(:root[data-theme='dark']) .statistics-details > div {",
+  );
+  assert.equal(darkCell.background, 'color-mix(in srgb, var(--surface-glass-base) 72%, transparent)');
+
+  // Elevation comes from the per-theme --nb-shadow-md token (classic light
+  // resolves it to the identical ink offset), not a hardcoded light shadow.
+  const panel = declarationsFor(detailsSource, '.statistics-details {');
+  assert.equal(panel['box-shadow'], 'var(--nb-shadow-md, 3px 3px 0 var(--ink))');
+});

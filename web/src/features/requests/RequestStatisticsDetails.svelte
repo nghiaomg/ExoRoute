@@ -38,10 +38,19 @@
      zeroes its automatic minimum size, which let it absorb every pixel of
      negative free space and collapse to just its borders. flex-shrink: 0 keeps
      the frame at its content height. */
-  .statistics-details { display: grid; flex-shrink: 0; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 2px solid var(--ink); border-radius: 13px; background: var(--line); box-shadow: 3px 3px 0 var(--ink); margin-top: 14px; }
+  .statistics-details { display: grid; flex-shrink: 0; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 2px solid var(--ink); border-radius: 13px; background: var(--line); box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)); margin-top: 14px; }
   .statistics-details > div { min-width: 0; display: grid; gap: 8px; padding: 15px 17px; background: var(--paper); }
   .statistics-details span { color: var(--muted); font-size: 12px; }
   .statistics-details strong { overflow: hidden; color: var(--ink); font: 600 12px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
+  /* Dark themes replace the light theme's ink strokes with glass hairlines —
+     the api-key statistics tokens panel (dark overrides in theme-shell.css) is
+     the reference. Left unoverridden, the 2px --ink frame renders as a glaring
+     near-white border and hard offset shadow on the dark glass surfaces, and
+     the panel reads as an unstyled strip. --nb-shadow-md above already carries
+     each theme's own elevation; here the frame is pinned to the dark hairline
+     and the cells to the same glass fill the tokens panel uses. */
+  :global(:root[data-theme='dark']) .statistics-details { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.07); }
+  :global(:root[data-theme='dark']) .statistics-details > div { background: color-mix(in srgb, var(--surface-glass-base) 72%, transparent); }
   @media (max-width: 1000px) { .statistics-details { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 620px) { .statistics-details { grid-template-columns: 1fr 1fr; } }
 </style>
