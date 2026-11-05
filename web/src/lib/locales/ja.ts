@@ -1769,4 +1769,6 @@ export const ja: Catalog = {
   'Hide sensitive names with asterisks (max 3 *)': '機密名をアスタリスクで非表示（最大 3 つの *）',
   'Mask all': 'すべてマスク',
   'Masked': 'マスク済み',
+  'Update available': 'アップデートがあります',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} がリリースされています。現在は {current} を実行中です。',
 };

@@ -367,7 +367,7 @@ export const fr: Catalog = {
   "You are running the latest version": "You are running the latest version",
   "Update status is not available": "Update status is not available",
   "Use Check now to check the latest stable release.": "Use Check now to check the latest stable release.",
-  "View release": "View release",
+  "View release": "Voir la version",
   "Check now": "Check now",
   "Operational settings": "Operational settings",
   "Configure gateway timeouts, admission, authenticated quotas, and request-log retention.": "Configure gateway timeouts, admission, authenticated quotas, and request-log retention.",
@@ -1769,4 +1769,6 @@ export const fr: Catalog = {
   'Hide sensitive names with asterisks (max 3 *)': 'Masquer les noms sensibles par des astérisques (max 3 *)',
   'Mask all': 'Tout masquer',
   'Masked': 'Masqué',
+  'Update available': 'Mise à jour disponible',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} est disponible. Vous utilisez {current}.',
 };

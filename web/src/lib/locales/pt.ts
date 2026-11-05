@@ -1769,4 +1769,6 @@ export const pt: Catalog = {
   'Hide sensitive names with asterisks (max 3 *)': 'Ocultar nomes confidenciais com asteriscos (máx. 3 *)',
   'Mask all': 'Mascarar tudo',
   'Masked': 'Mascarado',
+  'Update available': 'Atualização disponível',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} está disponível. Você está executando {current}.',
 };

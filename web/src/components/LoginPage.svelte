@@ -9,6 +9,7 @@
 import { localizedError } from '../lib/errors';
   import type { Locale } from '../lib/i18n';
   import type { ThemeId, ThemeScheme } from '../lib/theme';
+  import { DASHBOARD_VERSION } from '../lib/version';
   import { docsCopy } from '../features/docs/docsCopy';
 
   interface Preferences {
@@ -57,7 +58,7 @@ import { localizedError } from '../lib/errors';
       <a class="login-brand" href="/login" aria-label={tr('ExoRoute')}>
         <span class="brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
         <span class="brand-word">exo<span>route</span></span>
-        <span class="brand-version">0.1.2</span>
+        <span class="brand-version">{DASHBOARD_VERSION}</span>
       </a>
       <div class="preference-controls" aria-label={tr('Language and appearance')}>
         <LanguageSelect locale={preferences.locale} {tr} onLocaleChange={preferences.setLocale} />

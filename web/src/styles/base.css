@@ -647,6 +647,48 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600;
 }
 .gateway-pill code { padding-left: 7px; border-left: 1px solid color-mix(in srgb, var(--accent) 15%, transparent); color: #9b9eac; font: 500 12px var(--font-sans); }
+/* Release update notice. Sits between the topbar and the scroll column, so
+   flex-shrink: 0 is load-bearing: as a flex item of .main-area it would
+   otherwise absorb negative free space like the page sections do. */
+.update-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  max-width: var(--content-max-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: 10px var(--content-gutter);
+}
+.update-notice-text {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.update-notice-text strong { font-size: 12px; font-weight: 700; }
+.update-notice-text span { color: var(--muted); }
+.update-notice-icon { display: grid; place-items: center; flex: 0 0 auto; color: var(--accent-strong); }
+.update-notice-link {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+.update-notice-link:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.update-notice-dismiss { flex: 0 0 auto; width: 26px; height: 26px; font-size: 16px; }
+@media (max-width: 900px) {
+  .update-notice { padding: 8px var(--content-gutter); }
+  .update-notice-text span { display: none; }
+}
 .content-wrap {
   max-width: var(--content-max-width);
   width: 100%;

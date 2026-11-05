@@ -367,7 +367,7 @@ export const hi: Catalog = {
   "You are running the latest version": "You are running the latest version",
   "Update status is not available": "Update status is not available",
   "Use Check now to check the latest stable release.": "Use Check now to check the latest stable release.",
-  "View release": "View release",
+  "View release": "रिलीज़ देखें",
   "Check now": "Check now",
   "Operational settings": "Operational settings",
   "Configure gateway timeouts, admission, authenticated quotas, and request-log retention.": "गेटवे टाइमआउट, प्रवेश, प्रमाणित कोटा और अनुरोध-लॉग प्रतिधारण कॉन्फ़िगर करें।",
@@ -1769,4 +1769,6 @@ export const hi: Catalog = {
   'Hide sensitive names with asterisks (max 3 *)': 'संवेदनशील नामों को तारांकन से छिपाएं (अधिकतम 3 *)',
   'Mask all': 'सभी छिपाएं',
   'Masked': 'छिपा हुआ',
+  'Update available': 'अपडेट उपलब्ध है',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} उपलब्ध है। आप वर्तमान में {current} चला रहे हैं।',
 };

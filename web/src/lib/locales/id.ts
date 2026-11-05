@@ -1769,4 +1769,6 @@ export const id: Catalog = {
   'Hide sensitive names with asterisks (max 3 *)': 'Sembunyikan nama sensitif với tanda bintang (maks. 3 *)',
   'Mask all': 'Samarkan semua',
   'Masked': 'Disamarkan',
+  'Update available': 'Pembaruan tersedia',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} tersedia. Anda menjalankan {current}.',
 };

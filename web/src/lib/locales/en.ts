@@ -1764,4 +1764,6 @@ export const en = {
   'Hide sensitive names with asterisks (max 3 *)': 'Hide sensitive names with asterisks (max 3 *)',
   'Mask all': 'Mask all',
   'Masked': 'Masked',
+  'Update available': 'Update available',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} is available. You are running {current}.',
 } as const;

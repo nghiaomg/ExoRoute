@@ -1766,4 +1766,6 @@ export const vi: Record<TranslationKey, string> = {
   'Hide sensitive names with asterisks (max 3 *)': 'Ẩn tên nhạy cảm bằng dấu hoa thị (tối đa 3 *)',
   'Mask all': 'Ẩn tất cả',
   'Masked': 'Đã ẩn',
+  'Update available': 'Có bản cập nhật mới',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} đã có sẵn. Bạn đang chạy {current}.',
 };

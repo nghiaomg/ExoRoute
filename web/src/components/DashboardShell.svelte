@@ -1,13 +1,15 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import {
-    Activity, BookOpen, Boxes, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
+    Activity, ArrowUpCircle, BookOpen, Boxes, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
   } from '@lucide/svelte';
   import FlyingFishLogo from './FlyingFishLogo.svelte';
   import LanguageSelect from './LanguageSelect.svelte';
   import type { DashboardPage } from '../lib/navigation';
   import type { Locale } from '../lib/i18n';
   import type { Translate } from '../lib/format';
+  import { checkForReleaseUpdate, dismissRelease, type ReleaseUpdate } from '../lib/release-check';
+  import { DASHBOARD_VERSION } from '../lib/version';
   import type { ThemeId, ThemeScheme } from '../lib/theme';
 
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
@@ -36,6 +38,9 @@
   let signingOut = false;
   let signOutError = '';
   let mobileMoreOpen = false;
+  // Best-effort release notice: the check runs once per shell mount and every
+  // failure path leaves this null, so the shell renders exactly as before.
+  let updateNotice: ReleaseUpdate | null = null;
 
   const navigation = [
     { id: 'overview', label: 'Overview', icon: Gauge },
@@ -87,8 +92,16 @@
     }
   }
 
+  function dismissUpdateNotice(): void {
+    if (updateNotice) dismissRelease(updateNotice.latest);
+    updateNotice = null;
+  }
+
   onMount(() => {
     window.addEventListener('keydown', handleKeydown);
+    void checkForReleaseUpdate().then((update) => {
+      updateNotice = update;
+    });
     return () => window.removeEventListener('keydown', handleKeydown);
   });
 </script>
@@ -99,7 +112,7 @@
       <a class="brand" href="/overview" onclick={(event) => navigateFromLink(event, 'overview')} aria-label={tr('ExoRoute overview')}>
         <span class="brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
         <span class="brand-word">exo<span>route</span></span>
-        <span class="brand-version">0.1.2</span>
+        <span class="brand-version">{DASHBOARD_VERSION}</span>
       </a>
       <button
         type="button"
@@ -157,6 +170,20 @@
         </div>
       </div>
     </header>
+
+    {#if updateNotice}
+      <!-- flex-shrink: 0 keeps the notice intact inside the flex column, the
+           same invariant the page sections rely on (tests/requests-layout). -->
+      <div class="update-notice" role="status">
+        <span class="update-notice-icon" aria-hidden="true"><ArrowUpCircle size={15} /></span>
+        <p class="update-notice-text">
+          <strong>{tr('Update available')}</strong>
+          <span>{tr('ExoRoute {latest} is available. You are running {current}.', { latest: updateNotice.latest, current: DASHBOARD_VERSION })}</span>
+        </p>
+        <a class="update-notice-link" href={updateNotice.url} target="_blank" rel="noopener noreferrer">{tr('View release')}</a>
+        <button type="button" class="icon-button update-notice-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissUpdateNotice}>×</button>
+      </div>
+    {/if}
 
     <div class="content-wrap" class:overview-wrap={currentPage === 'overview'}>
       <slot />

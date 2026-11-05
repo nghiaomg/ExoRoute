@@ -1769,4 +1769,6 @@ export const ko: Catalog = {
   'Hide sensitive names with asterisks (max 3 *)': '민감한 이름을 별표로 숨기기 (최대 3개 *)',
   'Mask all': '모두 마스킹',
   'Masked': '마스킹됨',
+  'Update available': '업데이트가 있습니다',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} 버전이 출시되었습니다. 현재 {current} 버전을 사용 중입니다.',
 };

@@ -1768,4 +1768,6 @@ export const zh: Catalog = {
   'Hide sensitive names with asterisks (max 3 *)': '用星号隐藏敏感名称（最多 3 个 *）',
   'Mask all': '遮蔽全部',
   'Masked': '已遮蔽',
+  'Update available': '有可用更新',
+  'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} 已发布，当前运行的是 {current}。',
 };

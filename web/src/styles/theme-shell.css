@@ -83,6 +83,17 @@
 }
 
 /* ── Mobile App Style & Shell (Dark Mode) ── */
+:root[data-theme='dark'] .update-notice-text span {
+  color: var(--muted);
+}
+:root[data-theme='dark'] .update-notice-link {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--accent-glow);
+}
+:root[data-theme='dark'] .update-notice-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
 :root[data-theme='dark'] .mobile-brand .brand-word {
   color: var(--ink);
 }
