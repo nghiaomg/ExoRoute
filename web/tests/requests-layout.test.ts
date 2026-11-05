@@ -28,6 +28,10 @@ const filterPanelSource = readFileSync(
   new URL('../src/features/requests/RequestFilterPanel.svelte', import.meta.url),
   'utf8',
 );
+const tableSource = readFileSync(
+  new URL('../src/features/requests/RequestsTable.svelte', import.meta.url),
+  'utf8',
+);
 const baseCss = readFileSync(new URL('../src/styles/base.css', import.meta.url), 'utf8');
 
 /** Returns the declarations of the first rule whose selector list contains `selector`. */
@@ -120,8 +124,32 @@ test('the filter panel stays a normal flow sibling of the table card', () => {
   // A sticky filter panel pinned itself to the scrolling column while the table
   // card kept scrolling, so the two framed cards rendered stacked on top of
   // each other on laptop-height displays. The panel must stay an ordinary flex
-  // sibling; the table card's own sticky header already covers row scanning.
+  // sibling of the table card so nothing can overlap it.
   const panel = declarationsFor(filterPanelSource, '.request-filter-panel {');
   assert.ok(!('position' in panel), 'the filter panel must stay in normal flow');
   assert.ok(!('z-index' in panel), 'an in-flow panel needs no stacking order');
+});
+
+test('the requests table renders at full height in the page column', () => {
+  // A fixed-height internal scroll viewport wrapped the rows in a second
+  // scroll container beside the page column and the table's own horizontal
+  // one, which read as stacked containers with cut-off rows. The card now
+  // grows with its rows — the same full-height pattern as the overview request
+  // table and the mobile card feed — so the page column is the only vertical
+  // scroller.
+  const card = declarationsFor(tableSource, '.request-table-card {');
+  assert.ok(!('max-height' in card), 'the card must not cap its height');
+  assert.ok(!('min-height' in card), 'the card must not force a height floor');
+  assert.ok(!('overflow-y' in card), 'the card must not scroll vertically');
+
+  // overflow-x keeps narrow viewports able to pan the columns, which also
+  // makes the card a scroll container with a zero automatic minimum size —
+  // the same flex hazard the statistics panel hit — so it must opt out.
+  assert.equal(card['overflow-x'], 'auto');
+  assert.equal(card['flex-shrink'], '0');
+
+  // Sticky against the page column rendered unreliably, and the card no
+  // longer scrolls internally, so the header simply scrolls with the page.
+  const header = declarationsFor(tableSource, '.request-table-card thead th {');
+  assert.ok(!('position' in header), 'the header must not be sticky');
 });

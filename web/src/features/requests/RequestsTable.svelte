@@ -7,9 +7,11 @@
   import { DEFAULT_MASKED_COLUMNS, type MaskedColumnsState } from './request.mask';
   import { requestRowKey } from './request.metrics';
 
-  // The table owns the sticky header, the scroll shell, and the row list. The
-  // props it forwards are exactly one row's inputs plus the two row actions, so
-  // the row stays dumb and the page keeps the drawer/dialog ownership.
+  // The table owns the row list and its framed shell, which grows with its
+  // rows: the page column is the only vertical scroller, matching the overview
+  // request table and the mobile card feed. The props it forwards are exactly
+  // one row's inputs plus the two row actions, so the row stays dumb and the
+  // page keeps the drawer/dialog ownership.
   export let tr: Translate;
   export let locale: Locale;
   export let rows: Array<RequestLog | RequestLiveRow> = [];
@@ -56,13 +58,15 @@
 
 <style>
   /* Soft Neo-Brutalism frame, like every other card in the light theme:
-     2px ink border + a hard offset ink shadow instead of a soft drop shadow. */
+     2px ink border + a hard offset ink shadow instead of a soft drop shadow.
+     The card grows with its rows so the page column stays the only vertical
+     scroll container. flex-shrink: 0 keeps the column's negative free space
+     from squashing it: with overflow-x set the card is still a scroll
+     container, so its automatic minimum size is zero. */
   .request-table-card {
     position: relative;
-    max-height: calc(100dvh - 275px);
-    min-height: 400px;
+    flex-shrink: 0;
     overflow-x: auto;
-    overflow-y: auto;
     overscroll-behavior: contain;
     border: var(--nb-border, 2px solid var(--ink));
     border-radius: 12px;
@@ -96,9 +100,6 @@
     color: #93c5fd;
   }
   .request-table-card thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
     height: 42px;
     padding: 0 14px;
     color: #626679;
