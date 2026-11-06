@@ -30,6 +30,10 @@
   } from './request.metrics';
   import { createRequestLiveController, type RequestLiveController } from './request.live';
   import {
+    loadSavedRequestFilters,
+    saveSavedRequestFilters,
+  } from './request.filters.persist';
+  import {
     loadMaskedColumns,
     saveMaskedColumns,
     type MaskableRequestColumn,
@@ -62,7 +66,9 @@
   let previousCursors: Array<string | null> = [];
   let activeController: AbortController | null = null;
   let hasFilters = false;
-  let activeFilters: RequestLogFilters = { ...EMPTY_FILTERS };
+  // The filter set survives reloads (masked columns already do the same); the
+  // panel seeds its draft from it, so the table reopen with the last view.
+  let activeFilters: RequestLogFilters = { ...loadSavedRequestFilters() };
   let requestLiveState = createRequestLiveState();
   let liveConnection: RequestLiveConnectionState = 'connecting';
   let liveController: RequestLiveController;
@@ -163,9 +169,12 @@
   }
 
   // Applying a filter set always returns to the first page and to live rows:
-  // a frozen snapshot would describe a query that no longer matches.
+  // a frozen snapshot would describe a query that no longer matches. The set
+  // is persisted so the same view survives reloads; clearing saves the empty
+  // set, so a cleared filter never comes back.
   function applyFilters(next: RequestLogFilters): void {
     activeFilters = { ...next };
+    saveSavedRequestFilters(activeFilters);
     livePaused = false;
     pausedRequests = null;
     pausedActiveCount = null;
