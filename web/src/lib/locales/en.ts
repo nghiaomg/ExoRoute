@@ -1766,4 +1766,6 @@ export const en = {
   'Masked': 'Masked',
   'Update available': 'Update available',
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} is available. You are running {current}.',
+  'Export CSV': 'Export CSV',
+  'Exporting requests…': 'Exporting requests…',
 } as const;

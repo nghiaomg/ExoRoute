@@ -1771,4 +1771,6 @@ export const id: Catalog = {
   'Masked': 'Disamarkan',
   'Update available': 'Pembaruan tersedia',
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} tersedia. Anda menjalankan {current}.',
+  'Export CSV': 'Ekspor CSV',
+  'Exporting requests…': 'Mengekspor permintaan…',
 };

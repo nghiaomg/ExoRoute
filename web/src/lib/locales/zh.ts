@@ -1770,4 +1770,6 @@ export const zh: Catalog = {
   'Masked': '已遮蔽',
   'Update available': '有可用更新',
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} 已发布，当前运行的是 {current}。',
+  'Export CSV': '导出 CSV',
+  'Exporting requests…': '正在导出请求…',
 };

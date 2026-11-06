@@ -1768,4 +1768,6 @@ export const vi: Record<TranslationKey, string> = {
   'Masked': 'Đã ẩn',
   'Update available': 'Có bản cập nhật mới',
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} đã có sẵn. Bạn đang chạy {current}.',
+  'Export CSV': 'Xuất CSV',
+  'Exporting requests…': 'Đang xuất requests…',
 };

@@ -1771,4 +1771,6 @@ export const ja: Catalog = {
   'Masked': 'マスク済み',
   'Update available': 'アップデートがあります',
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} がリリースされています。現在は {current} を実行中です。',
+  'Export CSV': 'CSV エクスポート',
+  'Exporting requests…': 'リクエストをエクスポート中…',
 };

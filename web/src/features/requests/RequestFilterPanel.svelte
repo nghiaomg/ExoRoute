@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { Search, SlidersHorizontal, X } from '@lucide/svelte';
+  import { Download, LoaderCircle, Search, SlidersHorizontal, X } from '@lucide/svelte';
   import ArkCombobox from '../../components/ArkCombobox.svelte';
   import ArkField from '../../components/ArkField.svelte';
   import ArkSelect from '../../components/ArkSelect.svelte';
@@ -17,9 +17,11 @@
   export let tr: Translate;
   export let activeFilters: RequestLogFilters;
   export let loading: boolean;
+  export let exporting: boolean;
   export let onApply: (filters: RequestLogFilters) => void;
   export let onClearFilters: () => void;
   export let onRemoveFilter: (key: RequestFilterKey) => void;
+  export let onExport: () => void;
 
   // The gateway's marker for a request that carried no key. The id field is a
   // select now, so this filter value needs its own entry to stay reachable.
@@ -174,6 +176,20 @@
         </button>
       </div>
     {/if}
+    <div class="request-filter-actions">
+      <button
+        class="secondary-button compact"
+        type="button"
+        disabled={loading || exporting}
+        onclick={onExport}
+      >
+        {#if exporting}
+          <LoaderCircle size={13} class="spin" />{tr('Exporting requests…')}
+        {:else}
+          <Download size={13} />{tr('Export CSV')}
+        {/if}
+      </button>
+    </div>
   </div>
 
   {#if applied.length}

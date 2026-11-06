@@ -1771,4 +1771,6 @@ export const ar: Catalog = {
   'Masked': 'مخفي',
   'Update available': 'يتوفر تحديث',
   'ExoRoute {latest} is available. You are running {current}.': 'إصدار ExoRoute {latest} متاح. أنت تستخدم حاليًا {current}.',
+  'Export CSV': 'تصدير CSV',
+  'Exporting requests…': 'جارٍ تصدير الطلبات…',
 };

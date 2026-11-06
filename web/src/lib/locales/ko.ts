@@ -1771,4 +1771,6 @@ export const ko: Catalog = {
   'Masked': '마스킹됨',
   'Update available': '업데이트가 있습니다',
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} 버전이 출시되었습니다. 현재 {current} 버전을 사용 중입니다.',
+  'Export CSV': 'CSV 내보내기',
+  'Exporting requests…': '요청을 내보내는 중…',
 };

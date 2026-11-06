@@ -1771,4 +1771,6 @@ export const hi: Catalog = {
   'Masked': 'छिपा हुआ',
   'Update available': 'अपडेट उपलब्ध है',
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} उपलब्ध है। आप वर्तमान में {current} चला रहे हैं।',
+  'Export CSV': 'CSV एक्सपोर्ट करें',
+  'Exporting requests…': 'अनुरोध डाउनलोड हो रहे हैं…',
 };

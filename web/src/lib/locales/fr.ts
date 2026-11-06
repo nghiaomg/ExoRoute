@@ -1771,4 +1771,6 @@ export const fr: Catalog = {
   'Masked': 'Masqué',
   'Update available': 'Mise à jour disponible',
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} est disponible. Vous utilisez {current}.',
+  'Export CSV': 'Exporter en CSV',
+  'Exporting requests…': 'Export des demandes…',
 };

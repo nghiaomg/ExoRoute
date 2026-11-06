@@ -33,6 +33,8 @@
     loadSavedRequestFilters,
     saveSavedRequestFilters,
   } from './request.filters.persist';
+  import { MAX_EXPORT_ROWS, requestsCsvFilename, requestsToCsv } from './request.csv';
+  import { downloadTextFile } from '../chat/chat.state';
   import {
     loadMaskedColumns,
     saveMaskedColumns,
@@ -65,6 +67,8 @@
   let currentCursor: string | null = null;
   let previousCursors: Array<string | null> = [];
   let activeController: AbortController | null = null;
+  let exporting = false;
+  let exportController: AbortController | null = null;
   let hasFilters = false;
   // The filter set survives reloads (masked columns already do the same); the
   // panel seeds its draft from it, so the table reopen with the last view.
@@ -219,6 +223,47 @@
     void load(nextCursor);
   }
 
+  // Exports every row matching the current filters, not only the visible
+  // page: the API paginates by cursor (50 per page), so this walks
+  // next_cursor until it stops, with a hard cap so a runaway stream can
+  // never blow up memory. The export is aborted when the page unmounts.
+  async function exportCsv(): Promise<void> {
+    if (exporting) return;
+    exporting = true;
+    exportController?.abort();
+    const controller = new AbortController();
+    exportController = controller;
+    try {
+      const collected: RequestLog[] = [];
+      let cursor: string | null = null;
+      do {
+        const result = await api.requests({ ...activeFilters, cursor }, controller.signal);
+        if (controller.signal.aborted) return;
+        for (const item of result.requests) {
+          if (collected.length >= MAX_EXPORT_ROWS) break;
+          collected.push(item);
+        }
+        if (collected.length >= MAX_EXPORT_ROWS) break;
+        cursor = result.next_cursor ?? null;
+      } while (cursor);
+      if (controller.signal.aborted) return;
+      downloadTextFile(
+        requestsCsvFilename(),
+        `﻿${requestsToCsv(collected, { maskedColumns })}`,
+        'text/csv;charset=utf-8',
+      );
+    } catch {
+      // No error surface: the button simply re-enables. A cancelled export
+      // and a failed one share the same silent contract as the other
+      // background loads on this page.
+    } finally {
+      if (exportController === controller) {
+        exportController = null;
+        exporting = false;
+      }
+    }
+  }
+
   function previousPage(): void {
     if (!previousCursors.length || loading) return;
     const previous = previousCursors[previousCursors.length - 1] ?? null;
@@ -321,6 +366,7 @@
   onDestroy(() => {
     generation += 1;
     activeController?.abort();
+    exportController?.abort();
     statisticsGeneration += 1;
     statisticsController?.abort();
     liveController.stop();
@@ -363,9 +409,11 @@
   {tr}
   {activeFilters}
   {loading}
+  {exporting}
   onApply={applyFilters}
   onClearFilters={clearFilters}
   onRemoveFilter={removeFilter}
+  onExport={exportCsv}
 />
 
 {#if !livePaused && liveConnection === 'reconnecting'}
