@@ -141,7 +141,8 @@ pub async fn require_api_key(
                 }
                 _ => response,
             };
-            let response = attach_rate_limit_headers(response, rate_limit_limit, rate_limit_remaining);
+            let response =
+                attach_rate_limit_headers(response, rate_limit_limit, rate_limit_remaining);
             drop(body_processing_permit);
             let (mut parts, body) = response.into_parts();
             let live = parts.extensions.remove::<RequestLiveGuard>();

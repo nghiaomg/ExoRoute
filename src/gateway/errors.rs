@@ -49,7 +49,9 @@ pub(in crate::gateway) fn attach_rate_limit_headers(
         HeaderValue::from_str(&limit.to_string()),
         HeaderValue::from_str(&remaining.to_string()),
     ) {
-        response.headers_mut().insert("X-RateLimit-Limit", limit_value);
+        response
+            .headers_mut()
+            .insert("X-RateLimit-Limit", limit_value);
         response
             .headers_mut()
             .insert("X-RateLimit-Remaining", remaining_value);
