@@ -262,6 +262,8 @@ async fn gateway_rate_limit_returns_retry_after_and_updates_usage_in_lmdb() {
         .await
         .expect("first gateway response");
     assert_eq!(first.status(), StatusCode::OK);
+    assert_eq!(first.headers()["x-ratelimit-limit"], "1");
+    assert_eq!(first.headers()["x-ratelimit-remaining"], "0");
     let limited = app
         .oneshot(
             Request::builder()
@@ -274,6 +276,7 @@ async fn gateway_rate_limit_returns_retry_after_and_updates_usage_in_lmdb() {
         .expect("second gateway response");
     assert_eq!(limited.status(), StatusCode::TOO_MANY_REQUESTS);
     assert_eq!(limited.headers()["retry-after"], "60");
+    assert_eq!(limited.headers()["x-ratelimit-remaining"], "0");
 
     state.telemetry.flush().await.expect("flush usage");
     let request_count = database

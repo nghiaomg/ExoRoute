@@ -36,6 +36,27 @@ pub(in crate::gateway) fn rate_limited_response(
     response
 }
 
+/// `X-RateLimit-Limit` / `X-RateLimit-Remaining` for a gateway response.
+/// Headers a client can rely on to pace itself; the limit is the configured
+/// per-key token bucket capacity, remaining the post-check balance.
+pub(in crate::gateway) fn attach_rate_limit_headers(
+    response: Response,
+    limit: u32,
+    remaining: u32,
+) -> Response {
+    let mut response = response;
+    if let (Ok(limit_value), Ok(remaining_value)) = (
+        HeaderValue::from_str(&limit.to_string()),
+        HeaderValue::from_str(&remaining.to_string()),
+    ) {
+        response.headers_mut().insert("X-RateLimit-Limit", limit_value);
+        response
+            .headers_mut()
+            .insert("X-RateLimit-Remaining", remaining_value);
+    }
+    response
+}
+
 pub(in crate::gateway) fn attach_request_live_guard(
     mut response: Response,
     live: RequestLiveGuard,

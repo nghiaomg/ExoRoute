@@ -104,8 +104,8 @@ static PROVIDER_KEY_LAST_USED_UPDATES: LazyLock<RateLimiter> = LazyLock::new(|| 
 // The handler layer and the request pipeline share the gateway's configuration
 // and types, so they are re-exported here as one namespace.
 pub(in crate::gateway) use errors::{
-    attach_request_live_guard, gateway_database_error, gateway_error, rate_limited_response,
-    track_analytics_response,
+    attach_rate_limit_headers, attach_request_live_guard, gateway_database_error, gateway_error,
+    rate_limited_response, track_analytics_response,
 };
 pub(in crate::gateway) use flow::*;
 pub(crate) use routes::*;

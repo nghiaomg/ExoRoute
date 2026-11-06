@@ -113,6 +113,11 @@ pub(crate) fn admin_rate_limited_response(
             response.headers_mut().insert(header::RETRY_AFTER, value);
         }
     }
+    if let Ok(value) = HeaderValue::from_str(&decision.remaining.to_string()) {
+        response
+            .headers_mut()
+            .insert("X-RateLimit-Remaining", value);
+    }
     response
 }
 

@@ -61,7 +61,7 @@ pub async fn require_api_key(
                 key_id: api_key_id,
                 scope,
             } = authenticated;
-            let (operational_settings, permit) = {
+            let (operational_settings, permit, rate_limit_remaining, rate_limit_limit) = {
                 let runtime = state
                     .runtime
                     .operational_settings
@@ -77,7 +77,11 @@ pub async fn require_api_key(
                     .gateway_key_limiter
                     .check_with_policy(&api_key_id, policy);
                 if !decision.allowed {
-                    return rate_limited_response(decision.retry_after);
+                    return attach_rate_limit_headers(
+                        rate_limited_response(decision.retry_after),
+                        runtime.settings.gateway_key_capacity,
+                        0,
+                    );
                 }
                 let permit = match state.gates.gateway_in_flight.clone().try_acquire_owned() {
                     Some(permit) => permit,
@@ -88,7 +92,12 @@ pub async fn require_api_key(
                         );
                     }
                 };
-                (runtime.settings, permit)
+                (
+                    runtime.settings,
+                    permit,
+                    decision.remaining,
+                    runtime.settings.gateway_key_capacity,
+                )
             };
             let body_processing_permit = if request.method() == axum::http::Method::POST {
                 match tokio::time::timeout(
@@ -132,6 +141,7 @@ pub async fn require_api_key(
                 }
                 _ => response,
             };
+            let response = attach_rate_limit_headers(response, rate_limit_limit, rate_limit_remaining);
             drop(body_processing_permit);
             let (mut parts, body) = response.into_parts();
             let live = parts.extensions.remove::<RequestLiveGuard>();
