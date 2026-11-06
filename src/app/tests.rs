@@ -95,6 +95,16 @@ async fn health_and_readiness_work_with_initialized_lmdb() {
             .await
             .expect("health response");
         assert_eq!(response.status(), StatusCode::OK, "{path}");
+        let body = axum::body::to_bytes(response.into_body(), 4096)
+            .await
+            .expect("health body");
+        let payload: serde_json::Value =
+            serde_json::from_slice(&body).expect("health payload is JSON");
+        assert_eq!(
+            payload.get("version").and_then(serde_json::Value::as_str),
+            Some(env!("CARGO_PKG_VERSION")),
+            "{path} reports the package version",
+        );
     }
 }
 

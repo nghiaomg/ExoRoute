@@ -1,7 +1,7 @@
 use super::*;
 
 pub async fn health() -> Json<Value> {
-    Json(json!({"status":"ok","service":"exoroute"}))
+    Json(json!({"status":"ok","service":"exoroute","version":env!("CARGO_PKG_VERSION")}))
 }
 
 pub async fn readiness(State(state): State<AppState>) -> Response {
@@ -25,7 +25,7 @@ pub async fn readiness(State(state): State<AppState>) -> Response {
     };
     (
         status,
-        Json(json!({"status": if ready {"ready"} else {"not_ready"},"service":"exoroute"})),
+        Json(json!({"status": if ready {"ready"} else {"not_ready"},"service":"exoroute","version":env!("CARGO_PKG_VERSION")})),
     )
         .into_response()
 }
