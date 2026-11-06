@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import {
-    Activity, ArrowUpCircle, BookOpen, Boxes, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
+    Activity, AlertTriangle, ArrowUpCircle, BookOpen, Boxes, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
   } from '@lucide/svelte';
   import FlyingFishLogo from './FlyingFishLogo.svelte';
   import LanguageSelect from './LanguageSelect.svelte';
@@ -9,6 +9,13 @@
   import type { Locale } from '../lib/i18n';
   import type { Translate } from '../lib/format';
   import { checkForReleaseUpdate, dismissRelease, type ReleaseUpdate } from '../lib/release-check';
+  import {
+    checkFailureRate,
+    dismissFailureAlert,
+    FAILURE_RATE_POLL_MS,
+    failureAlertMessage,
+    type FailureAlert,
+  } from '../lib/failure-rate';
   import { DASHBOARD_VERSION } from '../lib/version';
   import type { ThemeId, ThemeScheme } from '../lib/theme';
 
@@ -41,6 +48,10 @@
   // Best-effort release notice: the check runs once per shell mount and every
   // failure path leaves this null, so the shell renders exactly as before.
   let updateNotice: ReleaseUpdate | null = null;
+  // Same best-effort contract for the failure-rate banner; polled once a
+  // minute while the tab is visible.
+  let failureAlert: FailureAlert | null = null;
+  let failurePoller: number | null = null;
 
   const navigation = [
     { id: 'overview', label: 'Overview', icon: Gauge },
@@ -97,12 +108,28 @@
     updateNotice = null;
   }
 
+  async function refreshFailureAlert(): Promise<void> {
+    if (document.hidden) return;
+    failureAlert = await checkFailureRate();
+  }
+
+  function dismissFailureNotice(): void {
+    if (failureAlert) dismissFailureAlert(failureAlert.incidentId);
+    failureAlert = null;
+  }
+
   onMount(() => {
     window.addEventListener('keydown', handleKeydown);
     void checkForReleaseUpdate().then((update) => {
       updateNotice = update;
     });
-    return () => window.removeEventListener('keydown', handleKeydown);
+    void refreshFailureAlert();
+    failurePoller = window.setInterval(() => { void refreshFailureAlert(); }, FAILURE_RATE_POLL_MS);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      if (failurePoller !== null) window.clearInterval(failurePoller);
+      failurePoller = null;
+    };
   });
 </script>
 
@@ -182,6 +209,30 @@
         </p>
         <a class="update-notice-link" href={updateNotice.url} target="_blank" rel="noopener noreferrer">{tr('View release')}</a>
         <button type="button" class="icon-button update-notice-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissUpdateNotice}>×</button>
+      </div>
+    {/if}
+
+    {#if failureAlert}
+      <!-- Same shell slot as the update notice; amber tone so the two never
+           read as the same kind of message. -->
+      <div class="failure-notice" role="alert">
+        <span class="failure-notice-icon" aria-hidden="true"><AlertTriangle size={15} /></span>
+        <p class="failure-notice-text">
+          <strong>{tr('High failure rate')}</strong>
+          <span>{failureAlertMessage(failureAlert, preferences.locale)}</span>
+        </p>
+        <a
+          class="failure-notice-link"
+          href="/requests"
+          onclick={(event) => {
+            const modifier = event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+            if (modifier) return;
+            event.preventDefault();
+            dismissFailureNotice();
+            onNavigate('requests');
+          }}
+        >{tr('Requests')}</a>
+        <button type="button" class="icon-button update-notice-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissFailureNotice}>×</button>
       </div>
     {/if}
 

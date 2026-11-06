@@ -1770,4 +1770,6 @@ export const vi: Record<TranslationKey, string> = {
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} đã có sẵn. Bạn đang chạy {current}.',
   'Export CSV': 'Xuất CSV',
   'Exporting requests…': 'Đang xuất requests…',
+  'High failure rate': 'Tỷ lệ lỗi cao',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': 'Tỷ lệ lỗi là {rate} trong 24 giờ qua ({failures} trên {total} requests).',
 };

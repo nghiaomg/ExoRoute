@@ -1773,4 +1773,6 @@ export const ko: Catalog = {
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} 버전이 출시되었습니다. 현재 {current} 버전을 사용 중입니다.',
   'Export CSV': 'CSV 내보내기',
   'Exporting requests…': '요청을 내보내는 중…',
+  'High failure rate': '실패율이 높습니다',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': '지난 24시간 동안의 실패율은 {rate} 입니다 ({total} 중 {failures}건).',
 };

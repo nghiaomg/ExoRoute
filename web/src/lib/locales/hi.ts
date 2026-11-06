@@ -1773,4 +1773,6 @@ export const hi: Catalog = {
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} उपलब्ध है। आप वर्तमान में {current} चला रहे हैं।',
   'Export CSV': 'CSV एक्सपोर्ट करें',
   'Exporting requests…': 'अनुरोध डाउनलोड हो रहे हैं…',
+  'High failure rate': 'उच्च विफलता दर',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': 'पिछले दिन में विफलता दर {rate} है ({total} में से {failures})।',
 };

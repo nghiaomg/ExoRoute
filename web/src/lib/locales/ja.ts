@@ -1773,4 +1773,6 @@ export const ja: Catalog = {
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} がリリースされています。現在は {current} を実行中です。',
   'Export CSV': 'CSV エクスポート',
   'Exporting requests…': 'リクエストをエクスポート中…',
+  'High failure rate': '失敗率が高くなっています',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': '過去24時間の失敗率は {rate} です（{total} 件中 {failures} 件）。',
 };

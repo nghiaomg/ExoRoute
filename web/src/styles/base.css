@@ -685,6 +685,42 @@ a { color: inherit; text-decoration: none; }
 }
 .update-notice-link:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .update-notice-dismiss { flex: 0 0 auto; width: 26px; height: 26px; font-size: 16px; }
+/* Failure alert: same shell notice slot, amber tone so it never reads as a
+   release announcement. */
+.failure-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  max-width: var(--content-max-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: 10px var(--content-gutter);
+}
+.failure-notice-text {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.failure-notice-text strong { font-size: 12px; font-weight: 700; }
+.failure-notice-text span { color: var(--muted); }
+.failure-notice-icon { display: grid; place-items: center; flex: 0 0 auto; color: #b45309; }
+.failure-notice-link {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, #b45309 35%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, #b45309 9%, transparent);
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 700;
+}
+.failure-notice-link:hover { background: color-mix(in srgb, #b45309 16%, transparent); }
 @media (max-width: 900px) {
   .update-notice { padding: 8px var(--content-gutter); }
   .update-notice-text span { display: none; }

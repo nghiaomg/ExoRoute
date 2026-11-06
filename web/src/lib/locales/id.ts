@@ -1773,4 +1773,6 @@ export const id: Catalog = {
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} tersedia. Anda menjalankan {current}.',
   'Export CSV': 'Ekspor CSV',
   'Exporting requests…': 'Mengekspor permintaan…',
+  'High failure rate': 'Tingkat kegagalan tinggi',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': 'Tingkat kegagalan adalah {rate} dalam 24 jam terakhir ({failures} dari {total} permintaan).',
 };

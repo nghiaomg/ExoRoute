@@ -1773,4 +1773,6 @@ export const de: Catalog = {
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} ist verfügbar. Du verwendest {current}.',
   'Export CSV': 'CSV exportieren',
   'Exporting requests…': 'Anfragen werden exportiert…',
+  'High failure rate': 'Hohe Fehlerrate',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': 'Die Fehlerrate liegt bei {rate} in den letzten 24 Stunden ({failures} von {total} Anfragen).',
 };

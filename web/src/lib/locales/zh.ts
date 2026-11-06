@@ -1772,4 +1772,6 @@ export const zh: Catalog = {
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} 已发布，当前运行的是 {current}。',
   'Export CSV': '导出 CSV',
   'Exporting requests…': '正在导出请求…',
+  'High failure rate': '失败率过高',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': '过去一天的失败率为 {rate}（{total} 个请求中的 {failures} 个）。',
 };

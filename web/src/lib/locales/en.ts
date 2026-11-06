@@ -1768,4 +1768,6 @@ export const en = {
   'ExoRoute {latest} is available. You are running {current}.': 'ExoRoute {latest} is available. You are running {current}.',
   'Export CSV': 'Export CSV',
   'Exporting requests…': 'Exporting requests…',
+  'High failure rate': 'High failure rate',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': 'Failure rate is {rate} over the last day ({failures} of {total} requests).',
 } as const;

@@ -1773,4 +1773,6 @@ export const ar: Catalog = {
   'ExoRoute {latest} is available. You are running {current}.': 'إصدار ExoRoute {latest} متاح. أنت تستخدم حاليًا {current}.',
   'Export CSV': 'تصدير CSV',
   'Exporting requests…': 'جارٍ تصدير الطلبات…',
+  'High failure rate': 'معدل فشل مرتفع',
+  'Failure rate is {rate} over the last day ({failures} of {total} requests).': 'معدل الفشل هو {rate} خلال اليوم الماضي ({failures} من {total} طلب).',
 };
