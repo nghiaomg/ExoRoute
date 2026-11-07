@@ -11,6 +11,7 @@ import type {
   RequestLog,
   RequestLogPage,
 } from '../../src/lib/types';
+import { statisticsFixture } from './support/statistics';
 
 const tr: Translate = (key, vars) =>
   key.replace(/\{(\w+)\}/g, (_, name: string) => String(vars?.[name] ?? `{${name}}`));
@@ -287,5 +288,42 @@ describe('requests page', () => {
     await screen.findByText('openai/gpt-4o');
     const row = screen.getByText('openai/gpt-4o').closest('tr');
     expect(row?.querySelector('.req-token-cached')?.textContent).toContain('Cached 18,000');
+  });
+
+  test('a finished live event silently refetches the traffic summary', async () => {
+    const emit = mockLiveFeed([]);
+    let statisticsCalls = 0;
+    vi.spyOn(api, 'statistics').mockImplementation(async () => {
+      statisticsCalls += 1;
+      return statisticsFixture({ total_requests: statisticsCalls === 1 ? 100 : 101 });
+    });
+    vi.spyOn(api, 'requests').mockResolvedValue(page([]));
+    const { container } = renderPage();
+
+    // The initial load happens on mount; the summary renders once it lands.
+    await waitFor(() => expect(statisticsCalls).toBe(1));
+    await waitFor(() => expect(container.querySelector('.statistics-skeleton')).toBeNull());
+
+    emit({
+      type: 'finished',
+      live_id: 'live-stats-1',
+      finished_at_ms: Date.now(),
+      active_count: 0,
+      request: {
+        id: 'log-finished-stats',
+        model: 'openai/gpt-4o',
+        created_at: new Date().toISOString(),
+        status: 200,
+        duration_ms: 800,
+        input_tokens: 100,
+        output_tokens: 10,
+      },
+    });
+
+    // The live-triggered refetch is debounced and silent: the numbers move
+    // without the progress bar ever appearing.
+    await waitFor(() => expect(statisticsCalls).toBe(2), { timeout: 5000 });
+    await waitFor(() => expect(container.querySelector('.statistics-kpi > strong')?.textContent?.trim()).toBe('101'));
+    expect(container.querySelector('.range-progress.visible')).toBeNull();
   });
 });

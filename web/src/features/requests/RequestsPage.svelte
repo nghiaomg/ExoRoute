@@ -34,6 +34,7 @@
     saveSavedRequestFilters,
   } from './request.filters.persist';
   import { MAX_EXPORT_ROWS, requestsCsvFilename, requestsToCsv } from './request.csv';
+  import { createStatisticsLiveRefresher } from './request.stats.refresh';
   import { downloadTextFile } from '../chat/chat.state';
   import {
     loadMaskedColumns,
@@ -123,6 +124,7 @@
   let statisticsController: AbortController | null = null;
   const statisticsCache: Partial<Record<RequestStatistics['range'], { data: RequestStatistics; timestamp: number }>> = {};
   const STATISTICS_CACHE_TTL_MS = 60_000;
+  const STATISTICS_LIVE_REFRESH_MS = 3_000;
 
   $: liveRequests = requestLiveState.requests;
   $: liveTruncated = requestLiveState.truncated;
@@ -304,6 +306,9 @@
       if (!livePaused) lastUpdatedMs = Date.now();
     },
     onFinished: (finished) => {
+      // Aggregates are range-wide, so the statistics refresh runs even while
+      // the table shows a cursor page instead of the live view.
+      statisticsRefresher.schedule();
       if (currentCursor === null) {
         const identity = requestIdentity(finished);
         requests = [finished, ...requests.filter((request) => requestIdentity(request) !== identity)].slice(0, 50);
@@ -312,7 +317,19 @@
     onConnectionChange: (state) => { liveConnection = state; },
   });
 
-  async function loadStatistics(range: RequestStatistics['range'] = selectedStatisticsRange, forceRefresh = false): Promise<void> {
+  /**
+   * Loads the aggregates for a range. A `silent` load (live-feed triggered)
+   * skips every loading indicator and error surface: it must never fight
+   * with the user's manual refresh for the UI, and a failed background
+   * refresh just keeps the current data until the next event or a manual
+   * refresh reports it.
+   */
+  async function loadStatistics(
+    range: RequestStatistics['range'] = selectedStatisticsRange,
+    forceRefresh = false,
+    options: { silent?: boolean } = {},
+  ): Promise<void> {
+    const silent = options.silent === true;
     selectedStatisticsRange = range;
     statisticsInlineError = '';
 
@@ -330,11 +347,13 @@
     const controller = new AbortController();
     statisticsController = controller;
 
-    if (!statistics) {
-      statisticsInitialLoading = true;
+    if (!silent) {
+      if (!statistics) {
+        statisticsInitialLoading = true;
+      }
+      statisticsFetching = true;
+      statisticsErrorMessage = '';
     }
-    statisticsFetching = true;
-    statisticsErrorMessage = '';
 
     try {
       const result = await api.statistics(range, controller.signal);
@@ -343,6 +362,7 @@
       statistics = result;
     } catch (error) {
       if (requestGeneration !== statisticsGeneration || controller.signal.aborted) return;
+      if (silent) return;
       const formatted = localizedError(error, 'Something went wrong while loading this page.', tr);
       if (!statistics) {
         statisticsErrorMessage = formatted;
@@ -357,6 +377,19 @@
     }
   }
 
+  // Finished live events are exactly when the server-side aggregates change,
+  // so each one schedules one silent, debounced refetch of the current range.
+  // Totals are refetched rather than updated in place: client-side counters
+  // drift on missed events and cannot place a point into the series buckets.
+  const statisticsRefresher = createStatisticsLiveRefresher({
+    minIntervalMs: STATISTICS_LIVE_REFRESH_MS,
+    refresh: () => {
+      // A manual refresh owns the UI: never abort it with a background one.
+      if (statisticsFetching) return;
+      void loadStatistics(selectedStatisticsRange, true, { silent: true });
+    },
+  });
+
   onMount(() => {
     void load(null);
     void loadStatistics();
@@ -369,6 +402,7 @@
     exportController?.abort();
     statisticsGeneration += 1;
     statisticsController?.abort();
+    statisticsRefresher.dispose();
     liveController.stop();
     if (ticker !== null) window.clearInterval(ticker);
     ticker = null;
