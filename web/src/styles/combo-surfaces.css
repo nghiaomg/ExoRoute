@@ -1,67 +1,4 @@
 /* ─── Combos View Surface Rules ─── */
-.combos-summary-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.summary-metric-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
-  background: #ffffff;
-  cursor: pointer;
-  border: 1px solid rgba(235, 237, 245, 0.95);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-}
-.summary-metric-card .metric-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-.summary-metric-card .metric-icon.mint {
-  background: #ecfdf5;
-  color: #059669;
-}
-.summary-metric-card .metric-icon.orange {
-  background: color-mix(in srgb, var(--accent) 7%, #fff);
-  color: var(--accent-strong);
-}
-.summary-metric-card .metric-icon.blue {
-  background: #eff6ff;
-  color: #2563eb;
-}
-.summary-metric-card .metric-icon.purple {
-  background: #f5f3ff;
-  color: #7c3aed;
-}
-.summary-metric-card .metric-body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.summary-metric-card .metric-count {
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 700;
-  color: #1e202e;
-  line-height: 1.2;
-}
-.summary-metric-card .metric-name {
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #8e92a4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 /* Combo Summary Metrics Strip */
 .combos-summary-strip {
   display: grid;
@@ -129,6 +66,11 @@
   text-overflow: ellipsis;
 }
 
+.combos-view .combo-list {
+  /* Grid rows take the tallest card's height; start keeps every card at its
+     own content height instead of stretching short cards into whitespace. */
+  align-items: start;
+}
 .combos-view .combo-card {
   background: #ffffff;
   border: none !important;
@@ -222,12 +164,27 @@
   font-weight: 700;
 }
 
-/* Target Pipeline Flow */
+/* Target Pipeline Flow: an ordered chain draws a left timeline rail linking
+   the step badges; round robin renders an unordered wrapping chip grid. */
 .target-pipeline {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 7px;
   padding-top: 8px;
+}
+.target-pipeline.is-rail {
+  padding-left: 16px;
+}
+.target-pipeline.is-rail::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  border-radius: 1px;
+  background: #e2e5f0;
 }
 .pipeline-target-item {
   display: flex;
@@ -274,9 +231,17 @@
   background: #eef0f5;
   color: #64748b;
 }
-.step-tag.disabled {
+.target-disabled-pill {
+  flex: none;
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 4px;
   background: #fee2e2;
   color: #b91c1c;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 .meta-disabled-count {
   font-size: 11px;
@@ -342,38 +307,30 @@
   background: #fee2e2;
   color: #b91c1c;
 }
-.pipeline-connector {
+/* Round robin chips: unordered, wrapping. */
+.pipeline-chip-grid {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 0 2px 18px;
-  position: relative;
+  flex-wrap: wrap;
+  gap: 7px;
 }
-.pipeline-connector .connector-line {
-  width: 2px;
-  height: 100%;
-  position: absolute;
-  left: 28px;
-  top: 0;
-  bottom: 0;
-  background: #e2e5f0;
-}
-.pipeline-connector .connector-badge {
+.pipeline-chip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #94a3b8;
+  gap: 6px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: 9px;
   background: #f8f9fc;
-  padding: 1px 6px;
-  border-radius: 4px;
   border: none;
-  margin-left: 20px;
-  position: relative;
-  z-index: 1;
+  box-shadow: none;
+}
+.pipeline-chip.is-disabled {
+  opacity: 0.55;
+  background: #f1f3f7;
+}
+.pipeline-chip.is-disabled .target-model-chip {
+  text-decoration: line-through;
+  opacity: 0.8;
 }
 
 .combos-view .search-box {

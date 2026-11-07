@@ -129,3 +129,56 @@ describe('nested combo targets', () => {
     expect(screen.getByText('child')).toBeTruthy();
   });
 });
+
+describe('combo card pipeline rendering', () => {
+  test('a disabled target keeps its fallback position and gains a disabled pill', async () => {
+    const parent = combo('parent', 'Parent', [
+      { provider_id: 'openai', model: 'gpt-4o', priority: 1, enabled: true },
+      { provider_id: 'openai', model: 'gpt-4o-turbo', priority: 2, enabled: true },
+      { provider_id: 'openai', model: 'gpt-4o-mini', priority: 3, enabled: false },
+    ]);
+
+    render(ComboCard, {
+      props: {
+        combo: parent,
+        providerNames: { openai: 'OpenAI' },
+        comboNames: {},
+        tr,
+        onDelete: vi.fn(),
+      },
+    });
+
+    expect(await screen.findByText('Fallback 2')).toBeTruthy();
+    expect(screen.getByText('Disabled')).toBeTruthy();
+    // The full-width failover labels between rows are gone.
+    expect(screen.queryByText('Failover')).toBeNull();
+    // A truncated model name stays reachable through its tooltip.
+    expect(screen.getByTitle('gpt-4o-mini')).toBeTruthy();
+  });
+
+  test('a round robin combo renders unordered chips without step badges', async () => {
+    const roundRobin: GatewayCombo = {
+      ...combo('rr', 'RR', [
+        { provider_id: 'openai', model: 'gpt-4o', priority: 1, enabled: true },
+        { provider_id: 'openai', model: 'gpt-4o-mini', priority: 2, enabled: true },
+      ]),
+      strategy: 'round_robin',
+    };
+
+    render(ComboCard, {
+      props: {
+        combo: roundRobin,
+        providerNames: { openai: 'OpenAI' },
+        comboNames: {},
+        tr,
+        onDelete: vi.fn(),
+      },
+    });
+
+    expect((await screen.findAllByText('OpenAI')).length).toBe(2);
+    expect(screen.getByTitle('gpt-4o-mini')).toBeTruthy();
+    // Round robin has no order: neither numbered fallbacks nor connectors.
+    expect(screen.queryByText('Fallback 2')).toBeNull();
+    expect(screen.queryByText('Failover')).toBeNull();
+  });
+});

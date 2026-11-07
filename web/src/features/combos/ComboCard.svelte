@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowDown, ArrowRight, Check, Copy, Layers3, ListOrdered, Pencil, Radio, RefreshCw, Trash2 } from '@lucide/svelte';
+  import { ArrowRight, Check, Copy, Layers3, ListOrdered, Pencil, Radio, RefreshCw, Trash2 } from '@lucide/svelte';
   import type { GatewayCombo } from '../../lib/types';
   import type { Translate } from '../../lib/format';
   import { labelProtocol, labelStrategy } from '../../lib/labels';
@@ -29,6 +29,7 @@
   let copied = false;
   let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 
+  $: isRoundRobin = combo.strategy === 'round_robin';
   // Resolved here so the markup never indexes the name maps with a
   // possibly-absent combo id.
   $: pipelineRows = combo.targets.map((target): PipelineRow => target.combo_id
@@ -46,6 +47,9 @@
         missingCombo: false,
         enabled: target.enabled !== false,
       });
+  // The order rail only means something for an ordered chain with more than
+  // one node; round robin has no order and a single row needs no connector.
+  $: railVisible = !isRoundRobin && pipelineRows.length > 1;
 
   async function copyModelName(event: MouseEvent): Promise<void> {
     event.stopPropagation();
@@ -116,7 +120,7 @@
         type="button"
         class="row-icon danger-hover combo-delete"
         aria-label={tr('Delete combo “{name}”? This cannot be undone.', { name: combo.name })}
-        title={tr('Delete combo “{name}”? This cannot be undone.', { name: combo.name })}
+        title={tr('Delete combo')}
         disabled={deleting}
         onclick={(e) => { e.stopPropagation(); onDelete(combo); }}
       >
@@ -145,48 +149,64 @@
     </span>
   </div>
 
-  <div class="target-pipeline">
-    {#each pipelineRows as row, index}
-      {#if index > 0}
-        <div class="pipeline-connector">
-          <span class="connector-line"></span>
-          <span class="connector-badge">
-            <ArrowDown size={11} />
-            <span>{tr(combo.strategy === 'round_robin' ? 'Round robin' : 'Failover')}</span>
-          </span>
-        </div>
-      {/if}
-      <div class="pipeline-target-item" class:is-primary={index === 0} class:is-disabled={!row.enabled}>
-        <div class="target-step-indicator">
-          {#if !row.enabled}
-            <span class="step-tag disabled">
-              {tr('Disabled')}
-            </span>
-          {:else}
-            <span class="step-tag" class:primary={index === 0} class:fallback={index > 0}>
-              {index === 0 ? tr('Primary') : tr('Fallback {index}', { index })}
-            </span>
-          {/if}
-        </div>
-        <div class="target-details">
-          {#if row.isNested}
-            <div class="target-provider-model">
+  <div
+    class="target-pipeline"
+    class:is-round-robin={isRoundRobin}
+    class:is-rail={railVisible}
+  >
+    {#if isRoundRobin}
+      <!-- Round robin has no order: targets render as an unordered chip grid. -->
+      <div class="pipeline-chip-grid">
+        {#each pipelineRows as row}
+          <div class="pipeline-chip" class:is-disabled={!row.enabled}>
+            {#if row.isNested}
               <span class="nested-combo-chip" class:is-missing={row.missingCombo}>
                 <Layers3 size={11} />
                 <span>{tr(row.missingCombo ? 'Missing combo' : 'Nested combo')}</span>
               </span>
-              <code class="target-model-chip">{row.label}</code>
-            </div>
-          {:else}
-            <div class="target-provider-model">
-              <strong class="target-provider-name">{row.provider}</strong>
+              <code class="target-model-chip" title={row.label}>{row.label}</code>
+            {:else}
+              <strong class="target-provider-name" title={row.provider}>{row.provider}</strong>
               <span class="target-arrow"><ArrowRight size={13} /></span>
-              <code class="target-model-chip">{row.label}</code>
-            </div>
-          {/if}
-        </div>
+              <code class="target-model-chip" title={row.label}>{row.label}</code>
+            {/if}
+            {#if !row.enabled}
+              <span class="target-disabled-pill">{tr('Disabled')}</span>
+            {/if}
+          </div>
+        {/each}
       </div>
-    {/each}
+    {:else}
+      {#each pipelineRows as row, index}
+        <div class="pipeline-target-item" class:is-primary={index === 0} class:is-disabled={!row.enabled}>
+          <div class="target-step-indicator">
+            <span class="step-tag" class:primary={index === 0} class:fallback={index > 0}>
+              {index === 0 ? tr('Primary') : tr('Fallback {index}', { index })}
+            </span>
+          </div>
+          <div class="target-details">
+            {#if row.isNested}
+              <div class="target-provider-model">
+                <span class="nested-combo-chip" class:is-missing={row.missingCombo}>
+                  <Layers3 size={11} />
+                  <span>{tr(row.missingCombo ? 'Missing combo' : 'Nested combo')}</span>
+                </span>
+                <code class="target-model-chip" title={row.label}>{row.label}</code>
+              </div>
+            {:else}
+              <div class="target-provider-model">
+                <strong class="target-provider-name" title={row.provider}>{row.provider}</strong>
+                <span class="target-arrow"><ArrowRight size={13} /></span>
+                <code class="target-model-chip" title={row.label}>{row.label}</code>
+              </div>
+            {/if}
+            {#if !row.enabled}
+              <span class="target-disabled-pill">{tr('Disabled')}</span>
+            {/if}
+          </div>
+        </div>
+      {/each}
+    {/if}
     {#if !pipelineRows.length}
       <div class="no-targets">{tr('No targets configured')}</div>
     {/if}

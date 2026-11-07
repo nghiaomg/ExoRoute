@@ -63,7 +63,7 @@
   background: rgba(255, 255, 255, 0.06) !important;
   color: #94a3b8 !important;
 }
-:root[data-theme='dark'] .step-tag.disabled {
+:root[data-theme='dark'] .target-disabled-pill {
   background: rgba(239, 68, 68, 0.18) !important;
   color: #fca5a5 !important;
 }
@@ -82,13 +82,17 @@
   color: var(--ink) !important;
   border: none !important;
 }
-:root[data-theme='dark'] .pipeline-connector .connector-line {
-  background: rgba(255, 255, 255, 0.08) !important;
+:root[data-theme='dark'] .target-pipeline.is-rail::before {
+  background: rgba(255, 255, 255, 0.1) !important;
 }
-:root[data-theme='dark'] .pipeline-connector .connector-badge {
-  background: #151828 !important;
-  color: #8e93aa !important;
+:root[data-theme='dark'] .pipeline-chip {
+  background: rgba(255, 255, 255, 0.02) !important;
   border: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .pipeline-chip.is-disabled {
+  opacity: 0.45 !important;
+  background: rgba(255, 255, 255, 0.01) !important;
 }
 
 /* Combo Editor Modal & Target Cards: Dark Mode */
