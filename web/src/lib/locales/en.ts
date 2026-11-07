@@ -1415,6 +1415,8 @@ export const en = {
   'Upstream rate limits or credit balance for this credential have been reached.': 'Upstream rate limits or credit balance for this credential have been reached.',
   'Showing {count} of {total} models': 'Showing {count} of {total} models',
   'Show all': 'Show all',
+  'Show all {count} targets': 'Show all {count} targets',
+  'Show less': 'Show less',
   'Edit combo': 'Edit combo',
   'Edit combo “{name}”': 'Edit combo “{name}”',
   'Save changes': 'Save changes',

@@ -13,6 +13,9 @@
   export let onDelete: (combo: GatewayCombo) => void;
   export let onEdit: ((combo: GatewayCombo) => void) | undefined = undefined;
 
+  /** Targets shown before the show-all expander hides the rest of the chain. */
+  const PIPELINE_PREVIEW_COUNT = 4;
+
   /** One row of the target pipeline, resolved to what the row displays. */
   interface PipelineRow {
     isNested: boolean;
@@ -28,6 +31,7 @@
 
   let copied = false;
   let copyTimeout: ReturnType<typeof setTimeout> | undefined;
+  let expanded = false;
 
   $: isRoundRobin = combo.strategy === 'round_robin';
   // Resolved here so the markup never indexes the name maps with a
@@ -50,6 +54,15 @@
   // The order rail only means something for an ordered chain with more than
   // one node; round robin has no order and a single row needs no connector.
   $: railVisible = !isRoundRobin && pipelineRows.length > 1;
+  // Long chains collapse to a prefix; the preview is always a prefix, so the
+  // 0-based slice index stays the true position for the step badges.
+  $: showExpander = pipelineRows.length > PIPELINE_PREVIEW_COUNT;
+  $: visibleRows = expanded || !showExpander ? pipelineRows : pipelineRows.slice(0, PIPELINE_PREVIEW_COUNT);
+
+  function toggleExpanded(event: MouseEvent): void {
+    event.stopPropagation();
+    expanded = !expanded;
+  }
 
   async function copyModelName(event: MouseEvent): Promise<void> {
     event.stopPropagation();
@@ -157,7 +170,7 @@
     {#if isRoundRobin}
       <!-- Round robin has no order: targets render as an unordered chip grid. -->
       <div class="pipeline-chip-grid">
-        {#each pipelineRows as row}
+        {#each visibleRows as row}
           <div class="pipeline-chip" class:is-disabled={!row.enabled}>
             {#if row.isNested}
               <span class="nested-combo-chip" class:is-missing={row.missingCombo}>
@@ -177,7 +190,7 @@
         {/each}
       </div>
     {:else}
-      {#each pipelineRows as row, index}
+      {#each visibleRows as row, index}
         <div class="pipeline-target-item" class:is-primary={index === 0} class:is-disabled={!row.enabled}>
           <div class="target-step-indicator">
             <span class="step-tag" class:primary={index === 0} class:fallback={index > 0}>
@@ -206,6 +219,16 @@
           </div>
         </div>
       {/each}
+    {/if}
+    {#if showExpander}
+      <button
+        type="button"
+        class="pipeline-toggle"
+        onclick={toggleExpanded}
+        onkeydown={(e) => { e.stopPropagation(); }}
+      >
+        {expanded ? tr('Show less') : tr('Show all {count} targets', { count: pipelineRows.length })}
+      </button>
     {/if}
     {#if !pipelineRows.length}
       <div class="no-targets">{tr('No targets configured')}</div>

@@ -1371,6 +1371,8 @@ export const zh: Catalog = {
   'Upstream rate limits or credit balance for this credential have been reached.': '此凭据已达到上游速率限制或积分余额上限。',
   'Showing {count} of {total} models': '显示 {count} / {total} 个模型',
   'Show all': '显示全部',
+  'Show all {count} targets': '显示全部 {count} 个目标',
+  'Show less': '收起',
   'Edit combo': '编辑 Combo',
   'Edit combo “{name}”': '编辑 Combo “{name}”',
   'Save changes': '保存更改',

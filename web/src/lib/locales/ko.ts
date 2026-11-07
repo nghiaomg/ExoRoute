@@ -1380,6 +1380,8 @@ export const ko: Catalog = {
   "Upstream rate limits or credit balance for this credential have been reached.": "이 자격 증명에 대한 업스트림 속도 제한 또는 크레딧 잔액에 도달했습니다.",
   "Showing {count} of {total} models": "{total} 모델 중 {count} 표시 중",
   "Show all": "모두 표시",
+  "Show all {count} targets": "{count}개 목표 모두 표시",
+  "Show less": "접기",
   "Edit combo": "콤보 편집",
   "Edit combo “{name}”": "콤보 “{name}” 편집",
   "Save changes": "변경사항 저장",

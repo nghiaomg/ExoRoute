@@ -1332,6 +1332,8 @@ export const pt: Catalog = {
   'Upstream rate limits or credit balance for this credential have been reached.': 'Os limites de taxa do upstream ou o saldo de créditos desta credencial foram atingidos.',
   'Showing {count} of {total} models': 'Mostrando {count} de {total} modelos',
   'Show all': 'Mostrar tudo',
+  'Show all {count} targets': 'Mostrar todos os {count} destinos',
+  'Show less': 'Mostrar menos',
   'Edit combo': 'Editar combo',
   'Edit combo “{name}”': 'Editar combo “{name}”',
   'Save changes': 'Salvar alterações',

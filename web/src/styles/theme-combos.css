@@ -94,6 +94,13 @@
   opacity: 0.45 !important;
   background: rgba(255, 255, 255, 0.01) !important;
 }
+:root[data-theme='dark'] .pipeline-toggle {
+  color: var(--accent-glow) !important;
+  background: transparent !important;
+}
+:root[data-theme='dark'] .pipeline-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent) !important;
+}
 
 /* Combo Editor Modal & Target Cards: Dark Mode */
 :root[data-theme='dark'] .modal-card.combo-editor-dialog {

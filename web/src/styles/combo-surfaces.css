@@ -332,6 +332,22 @@
   text-decoration: line-through;
   opacity: 0.8;
 }
+.pipeline-toggle {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  padding: 3px 7px;
+  margin-left: 8px;
+  border-radius: 5px;
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color .12s ease;
+}
+.pipeline-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 7%, #fff);
+}
 
 .combos-view .search-box {
   background: #f0f2f8;

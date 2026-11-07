@@ -1332,6 +1332,8 @@ export const id: Catalog = {
   'Upstream rate limits or credit balance for this credential have been reached.': 'Batas laju upstream atau saldo kredit untuk kredensial ini telah tercapai.',
   'Showing {count} of {total} models': 'Menampilkan {count} dari {total} model',
   'Show all': 'Tampilkan semua',
+  'Show all {count} targets': 'Tampilkan semua {count} target',
+  'Show less': 'Tampilkan lebih sedikit',
   'Edit combo': 'Edit combo',
   'Edit combo “{name}”': 'Edit combo “{name}”',
   'Save changes': 'Simpan perubahan',

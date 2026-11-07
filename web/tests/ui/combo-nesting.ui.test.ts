@@ -181,4 +181,39 @@ describe('combo card pipeline rendering', () => {
     expect(screen.queryByText('Fallback 2')).toBeNull();
     expect(screen.queryByText('Failover')).toBeNull();
   });
+
+  test('a nine-target chain collapses to a preview and expands on demand', async () => {
+    const targets = Array.from({ length: 9 }, (_, index) => ({
+      provider_id: 'openai',
+      model: `model-${index}`,
+      priority: index + 1,
+      enabled: true,
+    }));
+    const big = combo('big', 'Big', targets);
+
+    const { unmount } = render(ComboCard, {
+      props: {
+        combo: big,
+        providerNames: { openai: 'OpenAI' },
+        comboNames: {},
+        tr,
+        onDelete: vi.fn(),
+      },
+    });
+
+    // Collapsed: only the first four positions render.
+    expect(await screen.findByText('Fallback 3')).toBeTruthy();
+    expect(screen.queryByText('Fallback 4')).toBeNull();
+    const showAll = screen.getByRole('button', { name: 'Show all 9 targets' });
+    await fireEvent.click(showAll);
+
+    // Expanded: every position renders and the toggle flips.
+    expect(await screen.findByText('Fallback 8')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+
+    expect(await screen.findByText('Fallback 3')).toBeTruthy();
+    expect(screen.queryByText('Fallback 4')).toBeNull();
+    unmount();
+  });
 });

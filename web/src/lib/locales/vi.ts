@@ -1417,6 +1417,8 @@ export const vi: Record<TranslationKey, string> = {
   'Upstream rate limits or credit balance for this credential have been reached.': 'Đã đạt giới hạn tần suất hoặc hạn mức tín dụng upstream của thông tin xác thực này.',
   'Showing {count} of {total} models': 'Đang hiển thị {count} / {total} mô hình',
   'Show all': 'Hiển thị tất cả',
+  'Show all {count} targets': 'Hiển thị tất cả {count} đích',
+  'Show less': 'Thu gọn',
   'Edit combo': 'Sửa combo',
   'Edit combo “{name}”': 'Sửa combo “{name}”',
   'Save changes': 'Lưu thay đổi',

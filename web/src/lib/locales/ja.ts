@@ -1332,6 +1332,8 @@ export const ja: Catalog = {
   'Upstream rate limits or credit balance for this credential have been reached.': 'この認証情報の上流レート制限またはクレジット残高の上限に達しました。',
   'Showing {count} of {total} models': '{count} / {total} 件のモデルを表示中',
   'Show all': 'すべて表示',
+  'Show all {count} targets': '{count} 件のターゲットをすべて表示',
+  'Show less': '折りたたむ',
   'Edit combo': 'Combo を編集',
   'Edit combo “{name}”': 'Combo「{name}」を編集',
   'Save changes': '変更を保存',
