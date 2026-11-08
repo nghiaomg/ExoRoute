@@ -202,9 +202,15 @@ async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
         Ok(value) => value.to_owned(),
         Err(error) => return model_test_database_error(provider_id, model, error),
     };
-    let auth_type = match provider.text("auth_type") {
-        Ok(value) => value.to_owned(),
-        Err(error) => return model_test_database_error(provider_id, model, error),
+    // Auth-none-only transports ignore stored auth headers; normalize stale
+    // records so the probe takes the credential-less path.
+    let auth_type = if super::providers::validation::adapter_is_auth_none_only(&adapter_id) {
+        "none".to_owned()
+    } else {
+        match provider.text("auth_type") {
+            Ok(value) => value.to_owned(),
+            Err(error) => return model_test_database_error(provider_id, model, error),
+        }
     };
     let auth_header: Option<String> = match provider.optional_text("auth_header") {
         Ok(value) => value.map(str::to_owned),

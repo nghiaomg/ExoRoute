@@ -54,7 +54,13 @@ pub(crate) async fn import_provider_models(
 
     let base_url = provider.text("base_url").map_err(internal)?.to_owned();
     let adapter_id = provider.text("adapter_id").map_err(internal)?.to_owned();
-    let auth_type = provider.text("auth_type").map_err(internal)?.to_owned();
+    // Auth-none-only transports take no credential; normalize stale records
+    // so import does not demand keys the transport would ignore.
+    let auth_type = if validation::adapter_is_auth_none_only(&adapter_id) {
+        "none".to_owned()
+    } else {
+        provider.text("auth_type").map_err(internal)?.to_owned()
+    };
     let auth_header = provider
         .optional_text("auth_header")
         .map_err(internal)?

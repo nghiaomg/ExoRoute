@@ -212,10 +212,17 @@ pub(super) fn decode_provider(
         enabled: record
             .boolean("enabled")
             .map_err(|error| error.to_string())?,
-        auth_type: record
-            .text("auth_type")
-            .map_err(|error| error.to_string())?
-            .to_owned(),
+        // Auth-none-only transports (local CLI, env-var credentials) always
+        // run unauthenticated at the HTTP layer; normalize stale records that
+        // stored bearer/header before the preset dropped api_keys.
+        auth_type: if crate::admin::providers::validation::adapter_is_auth_none_only(adapter_id) {
+            "none".to_owned()
+        } else {
+            record
+                .text("auth_type")
+                .map_err(|error| error.to_string())?
+                .to_owned()
+        },
         auth_header: record
             .optional_text("auth_header")
             .map_err(|error| error.to_string())?

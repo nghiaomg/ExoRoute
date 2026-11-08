@@ -424,7 +424,13 @@ pub(super) async fn prepare_chat_turn(
         ));
     }
     let base_url = provider.text("base_url").map_err(internal)?.to_owned();
-    let auth_type = provider.text("auth_type").map_err(internal)?.to_owned();
+    // Auth-none-only transports ignore stored auth material; normalize stale
+    // records so credential resolution takes the unauthenticated path.
+    let auth_type = if super::super::providers::validation::adapter_is_auth_none_only(&adapter_id) {
+        "none".to_owned()
+    } else {
+        provider.text("auth_type").map_err(internal)?.to_owned()
+    };
     let auth_header = provider
         .optional_text("auth_header")
         .map_err(internal)?
