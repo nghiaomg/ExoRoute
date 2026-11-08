@@ -9,8 +9,13 @@ pub(super) fn validate_opencode_config(
     supported_protocols: &[String],
     zen: bool,
 ) -> Result<(), &'static str> {
-    if !preset.supported_auth_types.contains(&auth_type) || auth_type != "bearer" {
-        return Err("OpenCode Go and Zen require Bearer API-key authentication");
+    // Zen's free tier is a public endpoint: `none` auth is valid there, while
+    // Go and keyed Zen lanes still require Bearer API-key authentication.
+    let auth_ok = auth_type == "bearer" || (zen && auth_type == "none");
+    if !preset.supported_auth_types.contains(&auth_type) || !auth_ok {
+        return Err(
+            "OpenCode Go requires Bearer API-key authentication; OpenCode Zen also allows no authentication for free-tier models",
+        );
     }
     if supported_protocols.is_empty()
         || !supported_protocols
@@ -156,7 +161,12 @@ pub(super) fn apply_opencode_auth(
         "public"
     } else {
         let Some(secret) = auth.secret else {
-            return Err("OpenCode provider API key is missing".to_owned());
+            return Err(if auth.auth_type == "none" {
+                "OpenCode Zen paid models require an API key; free-tier models work without one"
+                    .to_owned()
+            } else {
+                "OpenCode provider API key is missing".to_owned()
+            });
         };
         if auth.auth_type != "bearer" {
             return Err("OpenCode provider requires Bearer API-key authentication".to_owned());

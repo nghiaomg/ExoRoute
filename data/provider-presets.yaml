@@ -703,8 +703,9 @@ providers:
     default_base_url: https://opencode.ai/zen/v1
     default_logo_url: null
     default_model_prefix: ocz
-    default_auth_type: bearer
+    default_auth_type: none
     supported_auth_types:
+      - none
       - bearer
     default_preferred_protocol: chat_completions
     default_supported_protocols:

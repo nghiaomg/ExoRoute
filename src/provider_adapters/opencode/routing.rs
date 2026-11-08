@@ -194,5 +194,6 @@ fn zen_model_protocol(model: &str) -> Option<UpstreamProtocol> {
 pub(crate) fn is_opencode_free_tier_model(model: &str) -> bool {
     let clean = model.split('(').next().unwrap_or(model).trim();
     let base = clean.split('/').next_back().unwrap_or(clean);
-    base.ends_with("-free")
+    // `big-pickle` is the one zero-price Zen model without the `-free` suffix.
+    base == "big-pickle" || base.ends_with("-free")
 }

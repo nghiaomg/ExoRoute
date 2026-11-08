@@ -638,6 +638,7 @@ fn test_opencode_free_tier_model_detection() {
     for model in [
         "mimo-v2.6-flash-free",
         "muse-spark-1.3-contributor-free",
+        "big-pickle",
         "big-pickle-free",
         "deepseek-v4-flash-free",
         "jev-1.13-free",
@@ -650,14 +651,7 @@ fn test_opencode_free_tier_model_detection() {
         );
     }
 
-    for paid in [
-        "big-pickle",
-        "muse-spark-1.3",
-        "gpt-5.5",
-        "claude-opus-5",
-        "kimi-k3",
-        "",
-    ] {
+    for paid in ["muse-spark-1.3", "gpt-5.5", "claude-opus-5", "kimi-k3", ""] {
         assert!(
             !is_opencode_free_tier_model(paid),
             "expected {paid} to not be free tier"
@@ -715,7 +709,7 @@ fn zen_free_tier_auth_switches_to_bearer_public() {
                 oauth_auth: None,
                 session_id: "test-session",
                 protocol: UpstreamProtocol::ChatCompletions,
-                model: Some("big-pickle"),
+                model: Some("gpt-5.5"),
             },
         )
         .expect("auth success")
@@ -728,5 +722,105 @@ fn zen_free_tier_auth_switches_to_bearer_public() {
             .get("authorization")
             .and_then(|v| v.to_str().ok()),
         Some("Bearer oc_sk_real_user_key")
+    );
+}
+
+#[test]
+fn zen_no_auth_serves_free_tier_and_rejects_paid_models() {
+    // A provider stored with auth_type "none" still reaches the free tier:
+    // the adapter substitutes the public attested identity upstream requires.
+    let request = reqwest::Client::new().post("https://example.test");
+    let free = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request,
+            UpstreamAuthContext {
+                auth_type: "none",
+                auth_header: None,
+                secret: None,
+                oauth_auth: None,
+                session_id: "test-session",
+                protocol: UpstreamProtocol::ChatCompletions,
+                model: Some("big-pickle"),
+            },
+        )
+        .expect("free-tier auth should succeed without a key")
+        .build()
+        .expect("build request");
+    assert_eq!(
+        free.headers()
+            .get("authorization")
+            .and_then(|v| v.to_str().ok()),
+        Some("Bearer public")
+    );
+
+    // Paid models on the same provider fail fast with a clear diagnostic
+    // instead of silently sending an empty credential upstream.
+    let request_paid = reqwest::Client::new().post("https://example.test");
+    let error = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request_paid,
+            UpstreamAuthContext {
+                auth_type: "none",
+                auth_header: None,
+                secret: None,
+                oauth_auth: None,
+                session_id: "test-session",
+                protocol: UpstreamProtocol::ChatCompletions,
+                model: Some("gpt-5.5"),
+            },
+        )
+        .expect_err("paid models require a key");
+    assert!(
+        error.contains("require an API key"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn zen_config_accepts_none_auth_but_go_does_not() {
+    let preset =
+        crate::provider_adapters::preset_for_adapter(OPENCODE_ZEN_ADAPTER_ID).expect("zen preset");
+    let protocols = vec!["chat_completions".to_owned()];
+    assert!(
+        OPENCODE_ZEN_ADAPTER
+            .validate_config(
+                preset,
+                "none",
+                "https://opencode.ai/zen/v1",
+                "chat_completions",
+                &protocols,
+                false
+            )
+            .is_ok(),
+        "zen should accept auth_type none"
+    );
+    assert!(
+        OPENCODE_ZEN_ADAPTER
+            .validate_config(
+                preset,
+                "bearer",
+                "https://opencode.ai/zen/v1",
+                "chat_completions",
+                &protocols,
+                true
+            )
+            .is_ok(),
+        "zen should keep accepting bearer"
+    );
+
+    let go_preset =
+        crate::provider_adapters::preset_for_adapter(OPENCODE_GO_ADAPTER_ID).expect("go preset");
+    assert!(
+        OPENCODE_GO_ADAPTER
+            .validate_config(
+                go_preset,
+                "none",
+                "https://opencode.ai/zen/go/v1",
+                "chat_completions",
+                &protocols,
+                false
+            )
+            .is_err(),
+        "go must keep requiring bearer"
     );
 }
