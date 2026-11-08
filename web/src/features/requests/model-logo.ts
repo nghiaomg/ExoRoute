@@ -1,10 +1,11 @@
 import { pickModelVendor } from './model-vendor';
 
-// Every SVG in `assets/models`, keyed by its path. The folder is the source of
-// truth: adding `<vendor>.svg` publishes that vendor here with no code change,
+// Every logo file in `assets/models`, keyed by its path. The folder is the
+// source of truth: adding `<vendor>.svg` or `<vendor>.webp` publishes that
+// vendor here with no code change,
 // which is why the mapping in `model-vendor` is consulted against these stems
 // rather than against a hard-coded vendor list.
-const modelAssets = import.meta.glob('../../../../assets/models/*.svg', {
+const modelAssets = import.meta.glob('../../../../assets/models/*.{svg,webp}', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -14,7 +15,7 @@ function logoByStem(): Record<string, string> {
   const logos: Record<string, string> = {};
   for (const [path, url] of Object.entries(modelAssets)) {
     if (typeof url !== 'string') continue;
-    const stem = path.split('/').pop()?.replace(/\.svg$/, '');
+    const stem = path.split('/').pop()?.replace(/\.(svg|webp)$/, '');
     if (stem && !logos[stem]) logos[stem] = url;
   }
   return logos;

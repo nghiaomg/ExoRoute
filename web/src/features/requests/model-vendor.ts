@@ -4,8 +4,9 @@
  * `assets/models` names each logo after its vendor (`openai.svg`, `z-ai.svg`),
  * while a model id names a family (`gpt-5.4`, `glm-5.3`, `ocg/minimax-m3`).
  * This module maps the second onto the first without knowing which files exist,
- * so dropping a new `<vendor>.svg` into that folder is enough for its own model
- * ids to resolve — the file set, not this table, decides what can be drawn.
+ * so dropping a new `<vendor>.svg` or `<vendor>.webp` into that folder is enough
+ * for its own model ids to resolve — the file set, not this table, decides
+ * what can be drawn.
  *
  * Kept free of asset imports so the mapping stays testable under plain Node.
  */
@@ -15,6 +16,7 @@
  * the tie-break order when one model id matches two vendors.
  */
 const VENDOR_ALIASES: ReadonlyArray<readonly [stem: string, tokens: readonly string[]]> = [
+  ['devinai', ['devin', 'swe']],
   ['openai', ['gpt', 'o1', 'o3', 'o4', 'codex', 'chatgpt', 'davinci']],
   ['claude', ['claude', 'anthropic']],
   ['gemini', ['gemini', 'google', 'imagen', 'palm']],
