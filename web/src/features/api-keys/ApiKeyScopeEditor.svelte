@@ -12,6 +12,8 @@
   export let apiKey: GatewayApiKey;
   export let tr: Translate;
   export let onUpdated: () => void;
+  /** Render without the card chrome and heading when hosted inside a dialog. */
+  export let embedded = false;
 
   let providers: Provider[] = [];
   let providersLoading = true;
@@ -81,11 +83,13 @@
   }
 </script>
 
-<section class="scope-editor" aria-labelledby="api-key-scope-heading">
-  <header class="scope-editor-heading">
-    <h2 id="api-key-scope-heading">{tr('Access scope')}</h2>
-    <p>{tr('Restrict this key to specific providers and models.')}</p>
-  </header>
+<section class="scope-editor" class:embedded aria-labelledby={embedded ? undefined : 'api-key-scope-heading'}>
+  {#if !embedded}
+    <header class="scope-editor-heading">
+      <h2 id="api-key-scope-heading">{tr('Access scope')}</h2>
+      <p>{tr('Restrict this key to specific providers and models.')}</p>
+    </header>
+  {/if}
 
   {#if apiKey.scope_valid === false}
     <p class="scope-alert" role="alert">
@@ -130,6 +134,14 @@
     border-radius: var(--nb-radius, 10px);
     background: var(--paper);
     box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink));
+  }
+  .scope-editor.embedded {
+    gap: 14px;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
   .scope-editor-heading h2 {
     margin: 0 0 4px;

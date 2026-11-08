@@ -7,10 +7,13 @@
     Clock3,
     Copy,
     KeyRound,
+    ShieldAlert,
+    SlidersHorizontal,
     Trash2,
     Zap,
   } from '@lucide/svelte';
   import { api } from '../../lib/api';
+  import ArkDialog from '../../components/ArkDialog.svelte';
   import { getIntlLocale, type Locale } from '../../lib/i18n';
   import { formatDate, type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -27,6 +30,7 @@ import { localizedError } from '../../lib/errors';
 
   let copiedKeyId = false;
   let copyTimer: ReturnType<typeof setTimeout> | undefined;
+  let scopeDialogOpen = false;
 
   function formatTimestamp(value: string | null): string {
     if (!value) return tr('Not available');
@@ -125,6 +129,16 @@ import { localizedError } from '../../lib/errors';
     <div class="detail-hero-actions">
       <button
         type="button"
+        class="detail-scope-btn"
+        class:scope-invalid={apiKey.scope_valid === false}
+        title={tr('Restrict this key to specific providers and models.')}
+        onclick={() => { scopeDialogOpen = true; }}
+      >
+        {#if apiKey.scope_valid === false}<ShieldAlert size={15} />{:else}<SlidersHorizontal size={15} />{/if}
+        {tr('Access scope')}
+      </button>
+      <button
+        type="button"
         class="detail-delete-btn"
         title={tr('Revoke {name}', { name: apiKey.name })}
         onclick={() => onRevoke(apiKey)}
@@ -135,7 +149,23 @@ import { localizedError } from '../../lib/errors';
     </div>
   </header>
 
-  <ApiKeyScopeEditor {apiKey} {tr} {onUpdated} />
+  {#if apiKey.scope_valid === false}
+    <p class="scope-invalid-alert" role="alert">
+      <ShieldAlert size={14} />
+      {tr('The stored access scope is invalid, so every request with this key is rejected. Save a scope to repair it.')}
+    </p>
+  {/if}
+
+  <ArkDialog
+    open={scopeDialogOpen}
+    closeLabel={tr('Close dialog')}
+    title={tr('Access scope')}
+    kicker={tr('EXOROUTE CONTROL PLANE')}
+    wide
+    onClose={() => { scopeDialogOpen = false; }}
+  >
+    <ApiKeyScopeEditor {apiKey} {tr} {onUpdated} embedded />
+  </ArkDialog>
 
   <ApiKeyStatisticsView apiKeyId={apiKey.id} {tr} {locale} />
 
@@ -168,5 +198,40 @@ import { localizedError } from '../../lib/errors';
   }
   .detail-tags-row :global(svg) {
     color: var(--muted);
+  }
+  .detail-scope-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: none !important;
+    box-shadow: none !important;
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    color: var(--accent-strong);
+    font-size: 13px;
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: background 0.14s ease;
+  }
+  .detail-scope-btn:hover {
+    background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  }
+  .detail-scope-btn.scope-invalid {
+    background: color-mix(in srgb, #d97706 12%, var(--surface));
+    color: #b45309;
+  }
+  .scope-invalid-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 0;
+    padding: 9px 11px;
+    color: #b45309;
+    border: 1px solid rgba(180, 83, 9, 0.28);
+    border-radius: 9px;
+    background: rgba(249, 115, 22, 0.08);
+    font-size: 12px;
+    line-height: 1.45;
   }
 </style>
