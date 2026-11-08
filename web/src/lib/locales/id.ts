@@ -1791,4 +1791,10 @@ export const id: Catalog = {
   'Prompt': 'Prompt',
   'Local CLI': 'CLI lokal',
   'Auto-refresh every 60s': 'Penyegaran otomatis setiap 60 dtk',
+  "Import Antigravity CLI login": "Impor login Antigravity CLI",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "Tempel JSON file token agy, atau deteksi otomatis login CLI lokal di mesin ini.",
+  "Import CLI login": "Impor login CLI",
+  "Auto-detect local login": "Deteksi otomatis login lokal",
+  "Paste the agy token file contents first.": "Tempel dulu isi file token agy.",
+  "Could not import the Antigravity CLI login.": "Tidak dapat mengimpor login Antigravity CLI.",
 };

@@ -99,8 +99,17 @@ async fn refresh_account(
     let Some(refresh_token) = account.refresh_token.as_deref() else {
         return Err(RefreshError::ReauthenticationRequired);
     };
-    let client_id = oauth_client_id().map_err(RefreshError::Temporary)?;
-    let client_secret = oauth_client_secret().map_err(RefreshError::Temporary)?;
+    let (client_id, client_secret) = if account.client_profile == PROFILE_CLI {
+        (
+            cli_oauth_client_id().map_err(RefreshError::Temporary)?,
+            cli_oauth_client_secret().map_err(RefreshError::Temporary)?,
+        )
+    } else {
+        (
+            oauth_client_id().map_err(RefreshError::Temporary)?,
+            oauth_client_secret().map_err(RefreshError::Temporary)?,
+        )
+    };
     let (url, client) = oauth_client(TOKEN_URL, connect_timeout, request_timeout, upstream)
         .await
         .map_err(RefreshError::Temporary)?;

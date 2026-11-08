@@ -1791,4 +1791,10 @@ export const ja: Catalog = {
   'Prompt': 'プロンプト',
   'Local CLI': 'ローカル CLI',
   'Auto-refresh every 60s': '60 秒ごとに自動更新',
+  "Import Antigravity CLI login": "Antigravity CLI ログインをインポート",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "agy のトークンファイル JSON をペーストするか、このマシンのローカル CLI ログインを自動検出します。",
+  "Import CLI login": "CLI ログインをインポート",
+  "Auto-detect local login": "ローカルログインを自動検出",
+  "Paste the agy token file contents first.": "まず agy トークンファイルの内容をペーストしてください。",
+  "Could not import the Antigravity CLI login.": "Antigravity CLI ログインをインポートできませんでした。",
 };

@@ -67,7 +67,9 @@ pub(crate) use provider_auth::{
     MAX_PROVIDER_AUTH_CALLBACK_BODY_BYTES, complete_provider_auth_callback,
     complete_provider_auth_callback_for_flow,
 };
-pub(crate) use provider_auth::{list_provider_presets, start_provider_auth};
+pub(crate) use provider_auth::{
+    import_antigravity_cli_login, list_provider_presets, start_provider_auth,
+};
 pub(crate) use router::router;
 
 pub(crate) fn cleanup_stale_database_temp_dirs(app_dir: &std::path::Path) -> io::Result<usize> {

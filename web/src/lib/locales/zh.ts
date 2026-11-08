@@ -1790,4 +1790,10 @@ export const zh: Catalog = {
   'Prompt': '提示词',
   'Local CLI': '本地 CLI',
   'Auto-refresh every 60s': '每 60 秒自动刷新',
+  "Import Antigravity CLI login": "导入 Antigravity CLI 登录",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "粘贴 agy 令牌文件的 JSON，或自动检测此机器上的本地 CLI 登录。",
+  "Import CLI login": "导入 CLI 登录",
+  "Auto-detect local login": "自动检测本地登录",
+  "Paste the agy token file contents first.": "请先粘贴 agy 令牌文件的内容。",
+  "Could not import the Antigravity CLI login.": "无法导入 Antigravity CLI 登录。",
 };

@@ -1791,4 +1791,10 @@ export const ko: Catalog = {
   'Prompt': '프롬프트',
   'Local CLI': '로컬 CLI',
   'Auto-refresh every 60s': '60초마다 자동 새로고침',
+  "Import Antigravity CLI login": "Antigravity CLI 로그인 가져오기",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "agy 토큰 파일 JSON을 붙여넣거나 이 머신의 로컬 CLI 로그인을 자동 감지하세요.",
+  "Import CLI login": "CLI 로그인 가져오기",
+  "Auto-detect local login": "로컬 로그인 자동 감지",
+  "Paste the agy token file contents first.": "먼저 agy 토큰 파일 내용을 붙여넣으세요.",
+  "Could not import the Antigravity CLI login.": "Antigravity CLI 로그인을 가져올 수 없습니다.",
 };

@@ -278,6 +278,37 @@ import { localizedError } from '../../lib/errors';
     }
   }
 
+  let cliImportOpen = false;
+  let cliImportContent = '';
+  let cliImportBusy = false;
+  let cliImportError = '';
+
+  async function importCliLogin(autoDetect: boolean): Promise<void> {
+    if (cliImportBusy) return;
+    const content = autoDetect ? undefined : cliImportContent.trim();
+    if (!autoDetect && !content) {
+      cliImportError = tr('Paste the agy token file contents first.');
+      return;
+    }
+    cliImportBusy = true;
+    cliImportError = '';
+    try {
+      await api.importAntigravityCliLogin(providerId, content);
+      cliImportContent = '';
+      cliImportOpen = false;
+      showToast(
+        'success',
+        tr('Successful'),
+        tr('{provider} account connected successfully.', { provider: providerName })
+      );
+      onConnected();
+    } catch (error) {
+      cliImportError = localizedError(error, 'Could not import the Antigravity CLI login.', tr);
+    } finally {
+      cliImportBusy = false;
+    }
+  }
+
   onDestroy(() => {
     stopPolling();
     if (toastTimer) clearTimeout(toastTimer);
@@ -317,6 +348,38 @@ import { localizedError } from '../../lib/errors';
   {#if notice && noticeTone !== 'success'}
     <div class="codex-oauth-notice" class:error={noticeTone === 'error'} role={noticeTone === 'error' ? 'alert' : 'status'}>
       {notice}
+    </div>
+  {/if}
+
+  {#if providerAdapterId === 'antigravity'}
+    <div class="agy-cli-import">
+      <button type="button" class="secondary-button compact" aria-expanded={cliImportOpen} onclick={() => (cliImportOpen = !cliImportOpen)}>
+        {tr('Import Antigravity CLI login')}
+      </button>
+      {#if cliImportOpen}
+        <p class="agy-cli-hint">{tr('Paste the agy token file JSON, or auto-detect a local CLI login on this machine.')}</p>
+        <textarea
+          class="oauth-callback-textarea agy-cli-textarea"
+          bind:value={cliImportContent}
+          rows="4"
+          maxlength="262144"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          disabled={cliImportBusy}
+          placeholder={'{"token":{"access_token":"…","refresh_token":"…","expiry":"…"}}'}
+        ></textarea>
+        <div class="agy-cli-actions">
+          <button type="button" class="secondary-button compact" disabled={cliImportBusy || !cliImportContent.trim()} onclick={() => void importCliLogin(false)}>
+            {#if cliImportBusy}<LoaderCircle size={13} class="spin" />{/if}
+            {tr('Import CLI login')}
+          </button>
+          <button type="button" class="secondary-button compact" disabled={cliImportBusy} onclick={() => void importCliLogin(true)}>
+            {tr('Auto-detect local login')}
+          </button>
+        </div>
+        {#if cliImportError}<div class="form-error" role="alert">{cliImportError}</div>{/if}
+      {/if}
     </div>
   {/if}
 </section>

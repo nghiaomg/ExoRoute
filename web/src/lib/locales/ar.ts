@@ -1791,4 +1791,10 @@ export const ar: Catalog = {
   'Prompt': 'الموجّه',
   'Local CLI': 'CLI محلي',
   'Auto-refresh every 60s': 'تحديث تلقائي كل 60 ثانية',
+  "Import Antigravity CLI login": "استيراد تسجيل دخول Antigravity CLI",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "الصق JSON لملف رمز agy، أو اكتشف تلقائيًا تسجيل دخول CLI محلي على هذا الجهاز.",
+  "Import CLI login": "استيراد تسجيل دخول CLI",
+  "Auto-detect local login": "اكتشاف تسجيل الدخول المحلي تلقائيًا",
+  "Paste the agy token file contents first.": "الصق محتوى ملف رمز agy أولاً.",
+  "Could not import the Antigravity CLI login.": "تعذر استيراد تسجيل دخول Antigravity CLI.",
 };

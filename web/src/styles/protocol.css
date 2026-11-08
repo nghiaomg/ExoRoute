@@ -85,6 +85,10 @@
 .oauth-callback-field { display: grid; gap: 6px; min-width: 0; max-width: 100%; color: var(--muted); font-size: 12px; font-weight: 650; box-sizing: border-box; }
 .oauth-callback-textarea { width: 100%; min-width: 0; max-width: 100%; min-height: 80px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); font: 500 12px/1.5 var(--font-mono, ui-monospace, monospace); overflow-wrap: anywhere; word-break: break-all; resize: vertical; box-sizing: border-box; }
 .oauth-callback-textarea:focus { border-color: var(--accent-glow); outline: 3px solid color-mix(in srgb, var(--info) 18%, transparent); }
+.agy-cli-import { display: grid; gap: 8px; justify-items: start; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.agy-cli-hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.agy-cli-textarea { min-height: 96px; }
+.agy-cli-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .provider-oauth-callback-banner { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 11px 13px; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); border-radius: 9px; color: var(--accent-deep); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); font-size: 12px; line-height: 1.5; }
 .provider-oauth-callback-banner.success { color: var(--chart-good); border-color: color-mix(in srgb, var(--chart-good) 28%, var(--line)); background: color-mix(in srgb, var(--chart-good) 9%, var(--surface)); }
 .provider-oauth-callback-banner.error { color: var(--chart-critical); border-color: color-mix(in srgb, var(--chart-critical) 28%, var(--line)); background: color-mix(in srgb, var(--chart-critical) 8%, var(--surface)); }

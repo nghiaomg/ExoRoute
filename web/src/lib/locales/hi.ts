@@ -1791,4 +1791,10 @@ export const hi: Catalog = {
   'Prompt': 'प्रॉम्प्ट',
   'Local CLI': 'लोकल CLI',
   'Auto-refresh every 60s': 'हर 60 सेकंड में ऑटो-रिफ्रेश',
+  "Import Antigravity CLI login": "Antigravity CLI लॉगिन आयात करें",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "agy टोकन फ़ाइल JSON पेस्ट करें, या इस मशीन पर स्थानीय CLI लॉगिन अपने आप पहचानें.",
+  "Import CLI login": "CLI लॉगिन आयात करें",
+  "Auto-detect local login": "स्थानीय लॉगिन अपने आप पहचानें",
+  "Paste the agy token file contents first.": "पहले agy टोकन फ़ाइल की सामग्री पेस्ट करें.",
+  "Could not import the Antigravity CLI login.": "Antigravity CLI लॉगिन आयात नहीं हो सका.",
 };

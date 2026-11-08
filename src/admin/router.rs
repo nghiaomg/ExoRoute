@@ -109,6 +109,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/providers/{id}/api-key-auth/{flow_id}/apply",
             post(provider_api_key_auth::apply),
         )
+        .route(
+            "/api/v1/admin/providers/{id}/antigravity-cli/import",
+            post(import_antigravity_cli_login),
+        )
         // Kept as aliases so existing dashboard builds and API clients keep working.
         .route(
             "/api/v1/admin/providers/{id}/codex/oauth/start",

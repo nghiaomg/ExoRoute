@@ -1786,4 +1786,10 @@ export const en = {
   'Failure rate is {rate} over the last day ({failures} of {total} requests).': 'Failure rate is {rate} over the last day ({failures} of {total} requests).',
   'Prompt': 'Prompt',
   'Auto-refresh every 60s': 'Auto-refresh every 60s',
+  "Import Antigravity CLI login": "Import Antigravity CLI login",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.",
+  "Import CLI login": "Import CLI login",
+  "Auto-detect local login": "Auto-detect local login",
+  "Paste the agy token file contents first.": "Paste the agy token file contents first.",
+  "Could not import the Antigravity CLI login.": "Could not import the Antigravity CLI login.",
 } as const;

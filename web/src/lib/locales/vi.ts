@@ -1788,4 +1788,10 @@ export const vi: Record<TranslationKey, string> = {
   'Failure rate is {rate} over the last day ({failures} of {total} requests).': 'Tỷ lệ lỗi là {rate} trong 24 giờ qua ({failures} trên {total} requests).',
   'Prompt': 'Prompt',
   'Auto-refresh every 60s': 'Tự động làm mới mỗi 60 giây',
+  "Import Antigravity CLI login": "Nhập đăng nhập Antigravity CLI",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "Dán JSON tệp token của agy, hoặc tự động phát hiện đăng nhập CLI trên máy này.",
+  "Import CLI login": "Nhập đăng nhập CLI",
+  "Auto-detect local login": "Tự phát hiện đăng nhập cục bộ",
+  "Paste the agy token file contents first.": "Hãy dán nội dung tệp token agy trước.",
+  "Could not import the Antigravity CLI login.": "Không thể nhập đăng nhập Antigravity CLI.",
 };

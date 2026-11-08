@@ -24,6 +24,7 @@ providerAuthStatus: (id: string, flowId: string) => request<ProviderAuthStatus>(
 pollProviderAuth: (id: string, flowId: string) => request<ProviderAuthPollResult>(`/providers/${encodeURIComponent(id)}/auth/${encodeURIComponent(flowId)}/poll`, { method: 'POST' }),
 completeProviderAuthCallback: (callbackUrl: string) => request<ProviderAuthCompletionResult>('/providers/auth/callback', { method: 'POST', body: JSON.stringify({ callback_url: callbackUrl }) }),
 completeProviderAuthCallbackForFlow: (id: string, flowId: string, callbackUrl: string) => request<ProviderAuthCompletionResult>(`/providers/${encodeURIComponent(id)}/auth/${encodeURIComponent(flowId)}/complete`, { method: 'POST', body: JSON.stringify({ callback_url: callbackUrl }) }),
+importAntigravityCliLogin: (id: string, content?: string) => request<{ status: string; account?: string }>(`/providers/${encodeURIComponent(id)}/antigravity-cli/import`, { method: 'POST', body: JSON.stringify(content === undefined ? {} : { content }) }),
 startProviderApiKeyAuth: (id: string) => request<ProviderApiKeyAuthStartResult>(`/providers/${encodeURIComponent(id)}/api-key-auth/start`, { method: 'POST' }),
 providerApiKeyAuthStatus: (id: string, flowId: string) => request<ProviderApiKeyAuthStatus>(`/providers/${encodeURIComponent(id)}/api-key-auth/${encodeURIComponent(flowId)}`),
 applyProviderApiKeyAuth: (id: string, flowId: string) => request<{ status: 'applied'; key?: ProviderKeyCreateResult }>(`/providers/${encodeURIComponent(id)}/api-key-auth/${encodeURIComponent(flowId)}/apply`, { method: 'POST' }),

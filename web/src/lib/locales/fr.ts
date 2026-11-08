@@ -1791,4 +1791,10 @@ export const fr: Catalog = {
   'Prompt': 'Prompt',
   'Local CLI': 'CLI locale',
   'Auto-refresh every 60s': 'Actualisation automatique toutes les 60 s',
+  "Import Antigravity CLI login": "Importer la connexion Antigravity CLI",
+  "Paste the agy token file JSON, or auto-detect a local CLI login on this machine.": "Collez le JSON du fichier de jeton agy, ou détectez automatiquement une connexion CLI locale sur cette machine.",
+  "Import CLI login": "Importer la connexion CLI",
+  "Auto-detect local login": "Détecter la connexion locale automatiquement",
+  "Paste the agy token file contents first.": "Collez d’abord le contenu du fichier de jeton agy.",
+  "Could not import the Antigravity CLI login.": "Impossible d’importer la connexion Antigravity CLI.",
 };

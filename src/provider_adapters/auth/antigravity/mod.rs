@@ -51,6 +51,7 @@ const SCOPES: &[&str] = &[
 mod account;
 mod account_store;
 mod catalog;
+mod cli_import;
 mod oauth;
 mod payload;
 mod project;
@@ -65,6 +66,8 @@ pub(in crate::provider_adapters) use account_store::{
 };
 pub(crate) use catalog::{is_stale_unsupported_model, normalize_model_id};
 use catalog::{is_supported_model, log_discovery_shape, model_id, parse_model_list};
+use cli_import::PROFILE_CLI;
+pub use cli_import::{CLI_CLIENT_ID_ENV, CLI_CLIENT_SECRET_ENV, import_cli_login};
 pub(crate) use oauth::{authorization_url, exchange_code, pkce_challenge};
 pub(crate) use payload::{
     extract_credit_balance, extract_onboard_project_id, extract_plan, extract_project_id,
@@ -398,6 +401,26 @@ fn oauth_client_secret() -> Result<Option<String>, String> {
     )?))
 }
 
+/// OAuth client credentials for `agy` CLI imports. The CLI issues refresh
+/// tokens bound to its own client; operators can pin those values through the
+/// environment, and the bundled desktop client remains the fallback so a CLI
+/// token issued by the same public client keeps refreshing.
+fn cli_oauth_client_id() -> Result<String, String> {
+    resolve_public_oauth_client_value(
+        CLI_CLIENT_ID_ENV,
+        std::env::var(CLI_CLIENT_ID_ENV).ok(),
+        bundled_client_id()?,
+    )
+}
+
+fn cli_oauth_client_secret() -> Result<Option<String>, String> {
+    Ok(Some(resolve_public_oauth_client_value(
+        CLI_CLIENT_SECRET_ENV,
+        std::env::var(CLI_CLIENT_SECRET_ENV).ok(),
+        bundled_client_secret()?,
+    )?))
+}
+
 fn resolve_public_oauth_client_value(
     env_name: &str,
     configured: Option<String>,
@@ -461,7 +484,7 @@ fn validate_account(account: &AntigravityAccount) -> Result<(), String> {
     if let Some(refresh_token) = account.refresh_token.as_deref() {
         bounded_token(refresh_token)?;
     }
-    if account.client_profile != PROFILE_IDE && account.client_profile != "cli" {
+    if account.client_profile != PROFILE_IDE && account.client_profile != PROFILE_CLI {
         return Err("stored Antigravity client profile is invalid".to_owned());
     }
     Ok(())

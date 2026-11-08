@@ -4,9 +4,11 @@
 
 use super::*;
 
+mod antigravity_cli;
 mod callback;
 mod device;
 
+pub(crate) use antigravity_cli::import_antigravity_cli_login;
 pub(crate) use callback::{
     LEGACY_PROVIDER_AUTH_CALLBACK_URL, complete_provider_auth_callback,
     complete_provider_auth_callback_for_flow, ensure_provider_auth_callback_listener_locked,
