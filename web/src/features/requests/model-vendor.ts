@@ -27,6 +27,7 @@ const VENDOR_ALIASES: ReadonlyArray<readonly [stem: string, tokens: readonly str
   ['xiaomi', ['mimo', 'xiaomi']],
   ['z-ai', ['glm', 'zai', 'zhipu']],
   ['qwen', ['qwen', 'qwq']],
+  ['nvidia', ['nemotron']],
   ['meta', ['llama', 'meta']],
   ['mistral', ['mistral', 'mixtral', 'codestral', 'magistral', 'devstral', 'pixtral']],
   ['tencenthy', ['hy', 'hunyuan', 'tencent']],

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import {
-    Activity, AlertTriangle, ArrowUpCircle, Bot, BookOpen, Boxes, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
+    Activity, AlertTriangle, ArrowUpCircle, BookOpen, Boxes, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
   } from '@lucide/svelte';
   import FlyingFishLogo from './FlyingFishLogo.svelte';
   import LanguageSelect from './LanguageSelect.svelte';
@@ -60,7 +60,6 @@
     { id: 'quota', label: 'Quota', icon: Gauge },
     { id: 'api-keys', label: 'API keys', icon: KeyRound },
     { id: 'requests', label: 'Requests', icon: Activity },
-    { id: 'devin', label: 'Devin', icon: Bot },
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'settings', label: 'Settings', icon: Settings2 },
   ] as const;
@@ -76,7 +75,7 @@
     { id: 'more', label: 'More', icon: Ellipsis },
   ] as const;
 
-  $: isMoreActive = ['api-keys', 'devin', 'quota', 'settings', 'chat'].includes(currentPage);
+  $: isMoreActive = ['api-keys', 'quota', 'settings', 'chat'].includes(currentPage);
 
   function navigateFromLink(event: MouseEvent, page: DashboardPage): void {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

@@ -14,6 +14,7 @@ const shipped = new Set([
   'meta',
   'minimax',
   'mistral',
+  'nvidia',
   'openai',
   'poolside',
   'qwen',
@@ -40,6 +41,8 @@ test('model families resolve to their vendor file', () => {
     ['glm-5.3-flash', 'z-ai'],
     ['qwen3.8-max', 'qwen'],
     ['qwen3.6-plus', 'qwen'],
+    ['nemotron-3-ultra-free', 'nvidia'],
+    ['nvidia/llama-3.1-nemotron', 'nvidia'],
     ['llama-4-maverick', 'meta'],
     ['mistral-large-3', 'mistral'],
     ['devstral-small', 'mistral'],
@@ -69,7 +72,6 @@ test('an unknown family keeps the monogram fallback', () => {
   for (const model of [
     'live/preview-model',
     'muse-spark-1.3',
-    'nemotron-3-ultra-free',
     'space-bunny-free',
     'longcat-2.0',
     'brand-new-model',
@@ -82,11 +84,11 @@ test('an unknown family keeps the monogram fallback', () => {
 });
 
 test('a newly shipped vendor covers its own model ids without a mapping', () => {
-  // `nemotron.svg` is not part of the alias table; adding the file is enough.
-  assert.equal(pickModelVendor('nemotron-3-ultra-free', new Set(['nemotron'])), 'nemotron');
+  // `nvidia.svg` ships; the `nvidia` prefix resolves by name and `nemotron`
+  // ids resolve through the alias table.
   assert.equal(pickModelVendor('nvidia/nemotron-4', new Set(['nvidia'])), 'nvidia');
   // A file that ships is only used when its own name appears in the id.
-  assert.equal(pickModelVendor('muse-spark-1.3', new Set(['nemotron'])), null);
+  assert.equal(pickModelVendor('muse-spark-1.3', new Set(['nvidia'])), null);
 });
 
 test('matching ignores case and separators', () => {
