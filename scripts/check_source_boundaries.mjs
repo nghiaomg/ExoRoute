@@ -66,6 +66,7 @@ const providerModules = [
   'command_code',
   'compat',
   'devin_cli',
+  'devin_desktop',
   'freebuff',
   'generic',
   'kilo',

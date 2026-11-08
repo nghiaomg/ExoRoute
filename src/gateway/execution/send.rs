@@ -70,17 +70,20 @@ pub(super) async fn send_request(
     let provider = &attempt.provider;
     let provider_id = &provider.id;
     let response = if provider_adapters::uses_local_transport(&provider.adapter_id) {
-        // The local transport spawns the provider's own CLI process and
-        // synthesizes an HTTP-shaped response from it, so the classification
-        // and streaming pipeline below stays transport-agnostic. Rotation is
-        // pointless here: every attempt would spawn the same local binary.
+        // Adapter-owned transports (a local CLI process, or an HTTP protocol
+        // the shared send path cannot express) synthesize an HTTP-shaped
+        // response themselves, so the classification and streaming pipeline
+        // below stays transport-agnostic. Rotation is pointless here: every
+        // attempt would drive the same transport with the same inputs.
         match provider_adapters::send_local_upstream_request(
+            &attempt.scope.state,
             &provider.adapter_id,
             &attempt.upstream_body,
             attempt.target_model,
             &attempt.scope.request_id,
             attempt.scope.canonical_stream,
             attempt.scope.operational_settings.request_timeout,
+            credential_secret,
         )
         .await
         {

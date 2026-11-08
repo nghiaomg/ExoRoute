@@ -1,7 +1,7 @@
 use super::{
-    CLINE_ADAPTER_ID, CLINEPASS_ADAPTER_ID, DEVIN_CLI_ADAPTER_ID, ProviderAdapter, antigravity,
-    azure, cloud_api, command_code, compat, devin_cli, freebuff, generic, kilo, kilocode, muse,
-    nvidia_nim, opencode, openrouter, qoder, vertex,
+    CLINE_ADAPTER_ID, CLINEPASS_ADAPTER_ID, DEVIN_CLI_ADAPTER_ID, DEVIN_DESKTOP_ADAPTER_ID,
+    ProviderAdapter, antigravity, azure, cloud_api, command_code, compat, devin_cli, devin_desktop,
+    freebuff, generic, kilo, kilocode, muse, nvidia_nim, opencode, openrouter, qoder, vertex,
 };
 use serde_json::Value;
 
@@ -17,9 +17,10 @@ static CLINEPASS_ADAPTER: ClineAdapter = ClineAdapter {
     adapter_id: CLINEPASS_ADAPTER_ID,
 };
 
-static ADAPTERS: [&'static dyn ProviderAdapter; 42] = [
+static ADAPTERS: [&'static dyn ProviderAdapter; 43] = [
     &generic::GENERIC_ADAPTER,
     &devin_cli::DEVIN_CLI_ADAPTER,
+    &devin_desktop::DEVIN_DESKTOP_ADAPTER,
     &cloud_api::OPENAI_ADAPTER,
     &cloud_api::ANTHROPIC_ADAPTER,
     &cloud_api::GEMINI_ADAPTER,
@@ -73,11 +74,13 @@ pub(super) fn adapters() -> &'static [&'static dyn ProviderAdapter] {
     &ADAPTERS
 }
 
-/// Whether an adapter's upstream is a local process transport instead of an
-/// HTTP endpoint. Local transports never reach egress: target preparation
-/// skips URL validation and the send step owns the child-process lifecycle.
+/// Whether an adapter owns its whole transport instead of going through the
+/// gateway's shared HTTP send path. Adapter-owned transports build their own
+/// egress-validated clients where they use HTTP (Devin Desktop) or spawn a
+/// local process (Devin CLI); the send step only consumes the synthesized
+/// response these adapters return.
 pub fn uses_local_transport(adapter_id: &str) -> bool {
-    adapter_id == DEVIN_CLI_ADAPTER_ID
+    adapter_id == DEVIN_CLI_ADAPTER_ID || adapter_id == DEVIN_DESKTOP_ADAPTER_ID
 }
 
 /// Placeholder HTTP client for local-transport attempts. It is never used for
@@ -89,31 +92,48 @@ pub(crate) fn local_transport_client() -> reqwest::Client {
     PLACEHOLDER.get_or_init(reqwest::Client::new).clone()
 }
 
-/// Sends one request through an adapter's local process transport and returns
-/// a synthesized HTTP-shaped response (SSE or JSON by client streaming mode).
-/// Preflight failures — missing CLI, handshake refusal, concurrency cap —
-/// return an error before any response exists.
+/// Sends one request through an adapter-owned transport and returns a
+/// synthesized HTTP-shaped response (SSE or JSON by client streaming mode).
+/// Preflight failures — missing CLI, rejected key, egress refusal — return an
+/// error before any response exists.
+#[allow(clippy::too_many_arguments)]
 pub async fn send_local_upstream_request(
+    state: &crate::state::AppState,
     adapter_id: &str,
     upstream_body: &Value,
     model: &str,
     request_id: &str,
     streaming: bool,
     request_timeout: std::time::Duration,
+    credential_secret: Option<&str>,
 ) -> Result<reqwest::Response, String> {
     match adapter_id {
         DEVIN_CLI_ADAPTER_ID => {
             devin_cli::send_local_upstream(
+                state,
                 upstream_body,
                 model,
                 request_id,
                 streaming,
                 request_timeout,
+                credential_secret,
+            )
+            .await
+        }
+        DEVIN_DESKTOP_ADAPTER_ID => {
+            devin_desktop::send_local_upstream(
+                state,
+                upstream_body,
+                model,
+                request_id,
+                streaming,
+                request_timeout,
+                credential_secret,
             )
             .await
         }
         other => Err(format!(
-            "adapter '{other}' does not provide a local transport"
+            "adapter '{other}' does not provide an adapter-owned transport"
         )),
     }
 }

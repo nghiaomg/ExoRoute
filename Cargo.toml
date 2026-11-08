@@ -27,6 +27,8 @@ md-5 = "0.10"
 mime_guess = "2"
 rand = "0.8"
 reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+# Gzip decoding for compressed Connect frames on the Devin Desktop transport.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 rsa = { version = "0.9", default-features = false, features = ["pem"] }
 rust-embed = "8"
 serde = { version = "1", features = ["derive"] }

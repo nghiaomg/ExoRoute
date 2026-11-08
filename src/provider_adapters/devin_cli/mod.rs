@@ -123,11 +123,13 @@ impl ProviderAdapter for DevinCliAdapter {
 /// exactly like any OpenAI-compatible upstream. Non-streaming clients get a
 /// buffered `chat.completion` JSON response.
 pub(super) async fn send_local_upstream(
+    _state: &AppState,
     upstream_body: &Value,
     model: &str,
     request_id: &str,
     streaming: bool,
     request_timeout: Duration,
+    _credential_secret: Option<&str>,
 ) -> Result<reqwest::Response, String> {
     let prompt = acp::flatten_chat_messages(upstream_body)?;
     let permit = acp::acquire_session_permit()?;

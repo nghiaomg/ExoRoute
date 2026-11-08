@@ -26,6 +26,7 @@ mod codex;
 mod command_code;
 mod compat;
 mod devin_cli;
+mod devin_desktop;
 mod dispatch;
 mod freebuff;
 mod generic;
@@ -78,6 +79,7 @@ use command_code::{
 
 pub const GENERIC_ADAPTER_ID: &str = "generic";
 pub const DEVIN_CLI_ADAPTER_ID: &str = "devin_cli";
+pub const DEVIN_DESKTOP_ADAPTER_ID: &str = "devin_desktop";
 pub const CODEX_ADAPTER_ID: &str = "openai_codex";
 pub const KILO_GATEWAY_ADAPTER_ID: &str = "kilo_gateway";
 pub const KILOCODE_ADAPTER_ID: &str = "kilocode";

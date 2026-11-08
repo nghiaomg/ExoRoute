@@ -381,3 +381,17 @@ fn devin_cli_declares_the_local_process_transport() {
     assert!(uses_local_transport(DEVIN_CLI_ADAPTER_ID));
     assert!(!uses_local_transport(OPENAI_ADAPTER_ID));
 }
+
+#[test]
+fn devin_desktop_declares_the_reverse_engineered_http_transport() {
+    let preset =
+        preset_for_adapter(DEVIN_DESKTOP_ADAPTER_ID).expect("devin_desktop preset registered");
+    assert_eq!(preset.default_base_url, Some("https://server.codeium.com"));
+    assert_eq!(preset.default_auth_type, "none");
+    assert_eq!(preset.supported_auth_types, ["none"]);
+    assert_eq!(preset.default_supported_protocols, ["chat_completions"]);
+    assert!(!preset.capabilities.model_discovery);
+    assert!(!preset.capabilities.event_stream_response);
+    assert!(adapter(DEVIN_DESKTOP_ADAPTER_ID).is_some());
+    assert!(uses_local_transport(DEVIN_DESKTOP_ADAPTER_ID));
+}
