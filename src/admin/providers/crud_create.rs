@@ -8,8 +8,8 @@ use super::{
     provider_view::ProviderInput,
     validation::{
         DEFAULT_KEY_STRATEGY, create_local_rpm_target, effective_adapter_id,
-        normalized_provider_logo_url, normalized_provider_model_prefix_for_adapter, provider_keys,
-        validate_provider,
+        normalized_provider_auth_header, normalized_provider_logo_url,
+        normalized_provider_model_prefix_for_adapter, provider_keys, validate_provider,
     },
 };
 use crate::{
@@ -81,6 +81,8 @@ pub(crate) async fn create_provider(
     } else {
         input.auth_type.clone()
     };
+    let auth_header =
+        normalized_provider_auth_header(input.auth_header.as_deref(), &effective_auth_type);
     let mut key_tests = Vec::with_capacity(keys.len());
     let mut encrypted_keys = Vec::with_capacity(keys.len());
     for (index, key) in keys.iter().enumerate() {
@@ -90,7 +92,7 @@ pub(crate) async fn create_provider(
                 state: &state,
                 base_url: &input.base_url,
                 auth_type: &effective_auth_type,
-                auth_header: input.auth_header.as_deref(),
+                auth_header: auth_header.as_deref(),
                 custom_headers: &normalized_custom_headers,
                 preferred_protocol: &input.preferred_protocol,
                 credential: key,
@@ -117,7 +119,6 @@ pub(crate) async fn create_provider(
     let prefix_index = provider_prefix_index_key(&model_prefix).map_err(internal)?;
     let base_url = input.base_url.trim_end_matches('/').to_owned();
     let logo_url = normalized_provider_logo_url(&input);
-    let auth_header = input.auth_header.clone();
     let enabled = input.enabled;
     let preferred_protocol = input.preferred_protocol.clone();
     let api_key_count = i64::try_from(encrypted_keys.len()).map_err(internal)?;

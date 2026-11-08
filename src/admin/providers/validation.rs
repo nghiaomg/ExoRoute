@@ -85,6 +85,28 @@ pub(crate) fn yes() -> bool {
     true
 }
 
+/// Header name applied when a provider uses `header` authentication but the
+/// request omits `auth_header`; matches the dashboard's default.
+pub(crate) const DEFAULT_PROVIDER_AUTH_HEADER: &str = "x-api-key";
+
+/// Resolves the header name used for `header` authentication: the trimmed
+/// supplied value, or the default when omitted. Non-header auth types keep
+/// whatever was supplied (usually nothing).
+pub(crate) fn normalized_provider_auth_header(
+    auth_header: Option<&str>,
+    auth_type: &str,
+) -> Option<String> {
+    let supplied = auth_header
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned);
+    if auth_type == "header" {
+        Some(supplied.unwrap_or_else(|| DEFAULT_PROVIDER_AUTH_HEADER.to_owned()))
+    } else {
+        supplied
+    }
+}
+
 pub(crate) fn no_auth() -> String {
     "none".to_owned()
 }
@@ -248,14 +270,11 @@ pub(crate) fn validate_provider(
         !keys.is_empty(),
     )
     .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
-    if input.auth_type == "header" && input.auth_header.as_deref().unwrap_or("").trim().is_empty() {
-        return Err(fail(
-            StatusCode::BAD_REQUEST,
-            "auth_header is required for header authentication",
-        ));
-    }
     if input.auth_type == "header" {
-        egress::provider_auth_header_name(input.auth_header.as_deref().unwrap_or(""))
+        let header_name =
+            normalized_provider_auth_header(input.auth_header.as_deref(), &input.auth_type)
+                .expect("header auth always resolves a header name");
+        egress::provider_auth_header_name(&header_name)
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
     }
     let preferred = input

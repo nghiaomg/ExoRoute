@@ -9,8 +9,9 @@ use super::{
     provider_view::{ProviderInput, ProviderKeyStrategyInput, ProviderThinkingSettingsInput},
     validation::{
         DEFAULT_KEY_STRATEGY, KEY_STRATEGY_ROUND_ROBIN, effective_adapter_id,
-        normalized_provider_logo_url, normalized_provider_model_prefix_for_adapter, provider_keys,
-        stored_key_strategy, stored_thinking_settings, updated_local_rpm_target, validate_provider,
+        normalized_provider_auth_header, normalized_provider_logo_url,
+        normalized_provider_model_prefix_for_adapter, provider_keys, stored_key_strategy,
+        stored_thinking_settings, updated_local_rpm_target, validate_provider,
     },
 };
 use crate::{
@@ -96,6 +97,8 @@ pub(crate) async fn update_provider(
     } else {
         "none"
     };
+    let auth_header =
+        normalized_provider_auth_header(input.auth_header.as_deref(), effective_auth_type);
     let encrypted_keys = keys
         .iter()
         .map(|key| {
@@ -114,7 +117,7 @@ pub(crate) async fn update_provider(
                 state: &state,
                 base_url: &input.base_url,
                 auth_type: effective_auth_type,
-                auth_header: input.auth_header.as_deref(),
+                auth_header: auth_header.as_deref(),
                 custom_headers: &normalized_custom_headers,
                 preferred_protocol: &input.preferred_protocol,
                 credential: key,
@@ -128,7 +131,6 @@ pub(crate) async fn update_provider(
     let prefix_index = provider_prefix_index_key(&model_prefix).map_err(internal)?;
     let base_url = input.base_url.trim_end_matches('/').to_owned();
     let logo_url = normalized_provider_logo_url(&input);
-    let auth_header = input.auth_header.clone();
     let name = input.name.clone();
     let preferred_protocol = input.preferred_protocol.clone();
     let enabled = input.enabled;

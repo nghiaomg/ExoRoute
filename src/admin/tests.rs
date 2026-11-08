@@ -132,6 +132,47 @@ fn devin_cli_provider_accepts_the_local_process_endpoint() {
 }
 
 #[test]
+fn header_auth_defaults_the_api_key_header_name() {
+    use super::providers::validation::normalized_provider_auth_header;
+    assert_eq!(
+        normalized_provider_auth_header(None, "header").as_deref(),
+        Some("x-api-key")
+    );
+    assert_eq!(
+        normalized_provider_auth_header(Some("  "), "header").as_deref(),
+        Some("x-api-key")
+    );
+    assert_eq!(
+        normalized_provider_auth_header(Some(" api-key "), "header").as_deref(),
+        Some("api-key")
+    );
+    assert_eq!(normalized_provider_auth_header(None, "bearer"), None);
+
+    let mut input = ProviderInput {
+        id: String::new(),
+        name: "Anthropic".to_owned(),
+        base_url: "https://api.anthropic.com/v1".to_owned(),
+        logo_url: None,
+        model_prefix: Some("anthropic".to_owned()),
+        adapter_id: Some(provider_adapters::ANTHROPIC_ADAPTER_ID.to_owned()),
+        enabled: true,
+        auth_type: "header".to_owned(),
+        auth_header: None,
+        custom_headers: None,
+        api_key: None,
+        api_keys: vec!["sk-ant-test".to_owned()],
+        local_rpm_target: None,
+        preferred_protocol: "messages".to_owned(),
+        supported_protocols: vec!["messages".to_owned()],
+    };
+    assert!(validate_provider(&input, provider_adapters::ANTHROPIC_ADAPTER_ID, false).is_ok());
+    input.auth_header = Some("x-custom-auth".to_owned());
+    assert!(validate_provider(&input, provider_adapters::ANTHROPIC_ADAPTER_ID, false).is_ok());
+    input.auth_header = Some("bad header!".to_owned());
+    assert!(validate_provider(&input, provider_adapters::ANTHROPIC_ADAPTER_ID, false).is_err());
+}
+
+#[test]
 fn provider_model_prefixes_are_normalized_and_bounded() {
     assert_eq!(
         normalized_provider_model_prefix(None, "OpenAI Compatible").unwrap(),
