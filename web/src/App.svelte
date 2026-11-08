@@ -35,6 +35,7 @@
     quota: 'Quota',
     requests: 'Requests',
     'api-keys': 'Gateway API keys',
+    devin: 'Devin',
     settings: 'Settings',
     chat: 'Chat',
     docs: 'Documentation',
@@ -420,6 +421,8 @@
           <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {:else if currentPage === 'api-keys'}
           <svelte:component this={activeFeature} {tr} {locale} {actionRequest} onConnectionChange={handleConnectionChange} />
+        {:else if currentPage === 'devin'}
+          <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {:else if currentPage === 'settings'}
           <svelte:component this={activeFeature} {tr} {locale} {theme} onThemeChange={changeTheme} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
         {:else if currentPage === 'chat'}

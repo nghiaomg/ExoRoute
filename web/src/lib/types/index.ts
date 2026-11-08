@@ -109,3 +109,9 @@ export type {
   ChatConversationMessage,
   ChatClientProtocol,
 } from './chat';
+export type {
+  DevinSettingsResult,
+  DevinVerifyResult,
+  DevinPullRequest,
+  DevinSession,
+} from './devin';

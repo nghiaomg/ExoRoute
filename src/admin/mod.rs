@@ -40,6 +40,7 @@ mod auth;
 mod combos;
 mod cookie_policy;
 mod database;
+mod devin;
 mod errors;
 mod gates;
 mod metrics;

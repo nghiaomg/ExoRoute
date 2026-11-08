@@ -18,6 +18,7 @@ const featureLoaders: Record<DashboardPage, FeatureLoader> = {
   quota: () => import('../features/quota/QuotaPage.svelte'),
   requests: () => import('../features/requests/RequestsPage.svelte'),
   'api-keys': () => import('../features/api-keys/ApiKeysPage.svelte'),
+  devin: () => import('../features/devin/DevinPage.svelte'),
   settings: () => import('../features/settings/SettingsPage.svelte'),
   chat: () => import('../features/chat/ChatPage.svelte'),
 };

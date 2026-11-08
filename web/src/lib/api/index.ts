@@ -12,6 +12,7 @@ import { requestApi } from './requests';
 import { routeApi } from './routes';
 import { statisticsApi } from './statistics';  import { workspaceChatApi } from './workspace-chat';
   import { workspaceChatStreamApi } from './workspace-chat-stream';
+import { devinApi } from './devin';
 
 /**
  * Stable dashboard API surface composed from feature-scoped endpoint modules.
@@ -31,4 +32,5 @@ export const api = {
   ...statisticsApi,
   ...workspaceChatApi,
   ...workspaceChatStreamApi,
+  ...devinApi,
 };

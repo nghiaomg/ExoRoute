@@ -13,6 +13,7 @@ use std::path::Path;
 pub(crate) mod admin_auth;
 pub(crate) mod bootstrap;
 pub(crate) mod clock;
+pub(crate) mod devin_store;
 pub(crate) mod gateway_limits;
 pub(crate) mod operational_settings;
 pub(crate) mod output_styles_store;

@@ -20,6 +20,21 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
         .route("/api/v1/admin/metrics", get(prometheus_metrics))
         .route("/api/v1/admin/provider-presets", get(list_provider_presets))
         .route(
+            "/api/v1/admin/devin/settings",
+            get(devin::devin_settings)
+                .put(devin::save_devin_settings)
+                .delete(devin::delete_devin_settings),
+        )
+        .route("/api/v1/admin/devin/verify", post(devin::verify_devin))
+        .route(
+            "/api/v1/admin/devin/sessions",
+            get(devin::list_devin_sessions).post(devin::create_devin_session),
+        )
+        .route(
+            "/api/v1/admin/devin/sessions/{session_id}",
+            get(devin::get_devin_session).post(devin::send_devin_message),
+        )
+        .route(
             "/api/v1/admin/providers",
             get(providers::list_providers).post(providers::create_provider),
         )

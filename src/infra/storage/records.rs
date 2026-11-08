@@ -130,6 +130,7 @@ pub enum Table {
     RouteNameIndex,
     RouteTargetProviderIndex,
     RouteTargetComboIndex,
+    Integrations,
 }
 
 impl Table {
@@ -172,6 +173,7 @@ impl Table {
         Table::RouteNameIndex,
         Table::RouteTargetProviderIndex,
         Table::RouteTargetComboIndex,
+        Table::Integrations,
     ];
 
     pub(crate) const fn name(self) -> &'static str {
@@ -212,6 +214,7 @@ impl Table {
             Table::RouteNameIndex => "route_name_index",
             Table::RouteTargetProviderIndex => "route_target_provider_index",
             Table::RouteTargetComboIndex => "route_target_combo_index",
+            Table::Integrations => "integrations",
         }
     }
 }
