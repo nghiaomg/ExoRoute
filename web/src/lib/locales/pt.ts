@@ -1821,4 +1821,6 @@ export const pt: Catalog = {
   'Message': 'Mensagem',
   'Auto-refreshes every 10 seconds while this page is open.': 'Atualiza automaticamente a cada 10 segundos enquanto esta página estiver aberta.',
   'Request failed.': 'A solicitação falhou.',
+  'Local CLI': 'CLI local',
+  'Auto-refresh every 60s': 'Atualização automática a cada 60 s',
 };

@@ -1821,4 +1821,6 @@ export const ja: Catalog = {
   'Message': 'メッセージ',
   'Auto-refreshes every 10 seconds while this page is open.': 'このページを開いている間、10 秒ごとに自動更新します。',
   'Request failed.': 'リクエストに失敗しました。',
+  'Local CLI': 'ローカル CLI',
+  'Auto-refresh every 60s': '60 秒ごとに自動更新',
 };

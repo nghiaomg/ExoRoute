@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Gauge, LoaderCircle, RefreshCw } from '@lucide/svelte';
   import { onDestroy, onMount } from 'svelte';
+  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import GatewayError from '../../components/GatewayError.svelte';
   import PageHeading from '../../components/PageHeading.svelte';
   import Toast from '../../components/Toast.svelte';
@@ -18,6 +19,12 @@
     type CredentialState,
   } from './quota.state';
   import { createQuotaCredentialsController } from './quota.credentials';
+  import {
+    getQuotaAutoRefresh,
+    loadQuotaCache,
+    scheduleQuotaCacheSave,
+    setQuotaAutoRefresh,
+  } from './quota.cache';
 
   export let tr: Translate;
   export let locale: Locale;
@@ -47,12 +54,16 @@
     getProviders: () => providers,
     getCredentialStates: () => credentialStates,
     onProviders: (next) => { providers = next; },
-    onCredentialStates: (next) => { credentialStates = next; },
+    onCredentialStates: (next) => {
+      credentialStates = next;
+      scheduleQuotaCacheSave(next);
+    },
     onProvidersLoading: (loading) => { providersLoading = loading; },
     onProviderError: (message) => { providerError = message; },
     onConnectionChange,
     onProviderCountChange,
     tr,
+    initialCredentialStates: loadQuotaCache(),
   });
 
   // Thin delegations keep the original template handler names.
@@ -86,16 +97,43 @@
     toast = null;
   }
 
+  const AUTO_REFRESH_MS = 60_000;
+  let autoRefresh = getQuotaAutoRefresh();
+  let autoRefreshTimer: ReturnType<typeof setInterval> | undefined;
+
+  function syncAutoRefreshTimer(enabled: boolean): void {
+    if (enabled && autoRefreshTimer === undefined) {
+      autoRefreshTimer = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        void credentials.refreshAll();
+      }, AUTO_REFRESH_MS);
+    } else if (!enabled && autoRefreshTimer !== undefined) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = undefined;
+    }
+  }
+  $: syncAutoRefreshTimer(autoRefresh);
+
   onMount(() => {
     void credentials.load();
   });
   onDestroy(() => {
     credentials.destroy();
+    if (autoRefreshTimer !== undefined) clearInterval(autoRefreshTimer);
     if (toastTimer) clearTimeout(toastTimer);
   });
 </script>
 
 <PageHeading title={tr('Quota')} subtitle={tr('Monitor provider quota and local usage from one place.')} {tr}>
+  <ArkCheckbox
+    checked={autoRefresh}
+    ariaLabel={tr('Auto-refresh every 60s')}
+    onCheckedChange={(checked) => {
+      autoRefresh = checked === true;
+      setQuotaAutoRefresh(autoRefresh);
+    }}
+  />
+  <span class="quota-autorefresh-label">{tr('Auto-refresh every 60s')}</span>
   {#if hasCredentialKeys}
     <button class="secondary-button" disabled={credentialsLoading || credentialsRefreshing || !hasCredentialKeys} onclick={refreshCredentials}>
       {#if credentialsRefreshing}<LoaderCircle size={14} class="spin" />{tr('Refreshing limits…')}

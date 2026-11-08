@@ -559,3 +559,4 @@
 .command-code-auth-notice.error { color: #b65059; border-color: #f2dada; background: #fff7f6; }
 .command-code-auth-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 
+.quota-autorefresh-label { color: var(--muted); font-size: var(--text-sm); white-space: nowrap; }

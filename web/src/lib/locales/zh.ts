@@ -1820,4 +1820,6 @@ export const zh: Catalog = {
   'Message': '消息',
   'Auto-refreshes every 10 seconds while this page is open.': '页面打开期间每 10 秒自动刷新。',
   'Request failed.': '请求失败。',
+  'Local CLI': '本地 CLI',
+  'Auto-refresh every 60s': '每 60 秒自动刷新',
 };

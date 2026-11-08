@@ -1819,4 +1819,5 @@ export const vi: Record<TranslationKey, string> = {
   'Message': 'Tin nhắn',
   'Auto-refreshes every 10 seconds while this page is open.': 'Tự động làm mới mỗi 10 giây khi trang này đang mở.',
   'Request failed.': 'Yêu cầu thất bại.',
+  'Auto-refresh every 60s': 'Tự động làm mới mỗi 60 giây',
 };

@@ -1821,4 +1821,6 @@ export const hi: Catalog = {
   'Message': 'संदेश',
   'Auto-refreshes every 10 seconds while this page is open.': 'इस पेज के खुले रहने पर हर 10 सेकंड में अपने आप रिफ्रेश होता है।',
   'Request failed.': 'अनुरोध विफल रहा।',
+  'Local CLI': 'लोकल CLI',
+  'Auto-refresh every 60s': 'हर 60 सेकंड में ऑटो-रिफ्रेश',
 };

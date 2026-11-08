@@ -1817,4 +1817,5 @@ export const en = {
   'Message': 'Message',
   'Auto-refreshes every 10 seconds while this page is open.': 'Auto-refreshes every 10 seconds while this page is open.',
   'Request failed.': 'Request failed.',
+  'Auto-refresh every 60s': 'Auto-refresh every 60s',
 } as const;

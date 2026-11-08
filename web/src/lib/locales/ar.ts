@@ -1821,4 +1821,6 @@ export const ar: Catalog = {
   'Message': 'الرسالة',
   'Auto-refreshes every 10 seconds while this page is open.': 'يُحدَّث تلقائيًا كل 10 ثوانٍ أثناء فتح هذه الصفحة.',
   'Request failed.': 'فشل الطلب.',
+  'Local CLI': 'CLI محلي',
+  'Auto-refresh every 60s': 'تحديث تلقائي كل 60 ثانية',
 };

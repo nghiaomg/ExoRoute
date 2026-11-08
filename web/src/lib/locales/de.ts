@@ -1821,4 +1821,6 @@ export const de: Catalog = {
   'Message': 'Nachricht',
   'Auto-refreshes every 10 seconds while this page is open.': 'Aktualisiert automatisch alle 10 Sekunden, solange diese Seite geöffnet ist.',
   'Request failed.': 'Anfrage fehlgeschlagen.',
+  'Local CLI': 'Lokale CLI',
+  'Auto-refresh every 60s': 'Alle 60 s automatisch aktualisieren',
 };

@@ -1821,4 +1821,6 @@ export const ko: Catalog = {
   'Message': '메시지',
   'Auto-refreshes every 10 seconds while this page is open.': '이 페이지가 열려 있는 동안 10초마다 자동으로 새로 고칩니다.',
   'Request failed.': '요청이 실패했습니다.',
+  'Local CLI': '로컬 CLI',
+  'Auto-refresh every 60s': '60초마다 자동 새로고침',
 };

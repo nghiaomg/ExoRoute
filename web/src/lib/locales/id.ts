@@ -1821,4 +1821,6 @@ export const id: Catalog = {
   'Message': 'Pesan',
   'Auto-refreshes every 10 seconds while this page is open.': 'Menyegarkan otomatis setiap 10 detik selama halaman ini terbuka.',
   'Request failed.': 'Permintaan gagal.',
+  'Local CLI': 'CLI lokal',
+  'Auto-refresh every 60s': 'Penyegaran otomatis setiap 60 dtk',
 };

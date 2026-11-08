@@ -40,6 +40,8 @@ type QuotaCredentialsOptions = {
   onConnectionChange: (state: 'idle' | 'loading' | 'loaded' | 'error') => void;
   onProviderCountChange: (count: number) => void;
   tr: Translate;
+  /** Last-known credential states restored from the local quota cache. */
+  initialCredentialStates?: Record<string, CredentialState>;
 };
 
 const PROVIDER_REQUEST_CONCURRENCY = 4;
@@ -53,7 +55,10 @@ export function createQuotaCredentialsController(options: QuotaCredentialsOption
   let providerGeneration = 0;
   let lifecycleGeneration = 0;
   let providers: Provider[] = options.getProviders();
-  let credentialStates: Record<string, CredentialState> = options.getCredentialStates();
+  let credentialStates: Record<string, CredentialState> = {
+    ...(options.initialCredentialStates ?? {}),
+    ...options.getCredentialStates(),
+  };
 
   function updateCredentialState(providerId: string, patch: Partial<CredentialState>): void {
     credentialStates = {
