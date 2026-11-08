@@ -195,27 +195,37 @@ pub(super) async fn prepare_target<'a>(
         Ok(url) => url,
         Err(error) => return Err(TargetPreparationError::Skip(error)),
     };
-    let (endpoint, provider_http) = match egress::provider_client(
-        endpoint.as_str(),
-        state.config.allow_private_provider_urls,
-        scope.operational_settings.connect_timeout,
-        scope.operational_settings.request_timeout,
-        // Streaming responses must not inherit the total request timeout:
-        // reqwest's timeout spans the whole body and would abort a healthy
-        // stream once `request_timeout` elapses. The SSE reader owns stream
-        // liveness through its idle deadlines instead.
-        scope.canonical_stream || provider_adapters::wants_event_stream(&provider.adapter_id),
-        concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
-        scope.operational_settings.upstream,
-    )
-    .await
+    let (endpoint, provider_http) = if provider_adapters::uses_local_transport(&provider.adapter_id)
     {
-        Ok(client) => client,
-        Err(error) => {
-            return Err(TargetPreparationError::Skip(format!(
-                "provider '{}' egress rejected: {error}",
-                provider.id
-            )));
+        // Local transports never reach egress: the endpoint is a process
+        // locator (devin://acp/stdio) and the send step spawns the provider's
+        // own CLI process. The placeholder client keeps the attempt context
+        // shape so classification and streaming treat a local reply exactly
+        // like an HTTP reply.
+        (endpoint, provider_adapters::local_transport_client())
+    } else {
+        match egress::provider_client(
+            endpoint.as_str(),
+            state.config.allow_private_provider_urls,
+            scope.operational_settings.connect_timeout,
+            scope.operational_settings.request_timeout,
+            // Streaming responses must not inherit the total request timeout:
+            // reqwest's timeout spans the whole body and would abort a healthy
+            // stream once `request_timeout` elapses. The SSE reader owns stream
+            // liveness through its idle deadlines instead.
+            scope.canonical_stream || provider_adapters::wants_event_stream(&provider.adapter_id),
+            concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
+            scope.operational_settings.upstream,
+        )
+        .await
+        {
+            Ok(client) => client,
+            Err(error) => {
+                return Err(TargetPreparationError::Skip(format!(
+                    "provider '{}' egress rejected: {error}",
+                    provider.id
+                )));
+            }
         }
     };
     let Some(circuit_probe) =

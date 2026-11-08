@@ -25,6 +25,7 @@ mod cloud_api;
 mod codex;
 mod command_code;
 mod compat;
+mod devin_cli;
 mod dispatch;
 mod freebuff;
 mod generic;
@@ -76,6 +77,7 @@ use command_code::{
 };
 
 pub const GENERIC_ADAPTER_ID: &str = "generic";
+pub const DEVIN_CLI_ADAPTER_ID: &str = "devin_cli";
 pub const CODEX_ADAPTER_ID: &str = "openai_codex";
 pub const KILO_GATEWAY_ADAPTER_ID: &str = "kilo_gateway";
 pub const KILOCODE_ADAPTER_ID: &str = "kilocode";
@@ -749,6 +751,9 @@ pub async fn relay_workspace_inference_stream(
     };
     relay_workspace_inference_stream_impl(adapter, request).await
 }
+
+pub(crate) use registry::local_transport_client;
+pub use registry::{send_local_upstream_request, uses_local_transport};
 
 mod discovery;
 mod sse;

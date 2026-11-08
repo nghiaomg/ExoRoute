@@ -163,10 +163,14 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
                 preset.id
             ));
         }
+        // The one non-HTTPS exception is the Devin CLI process locator: it is
+        // a display identifier that never reaches egress (the local send path
+        // spawns the CLI instead of fetching), so there is nothing to
+        // validate remotely. Every other non-HTTPS URL stays rejected.
         if preset
             .default_base_url
             .as_deref()
-            .is_some_and(|url| !url.starts_with("https://"))
+            .is_some_and(|url| !url.starts_with("https://") && url != "devin://acp/stdio")
             || preset
                 .default_logo_url
                 .as_deref()

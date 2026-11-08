@@ -69,18 +69,74 @@ pub(super) async fn send_request(
 ) -> SendStep {
     let provider = &attempt.provider;
     let provider_id = &provider.id;
-    let request = match build_upstream_request(
-        attempt,
-        credential_secret,
-        oauth_auth,
-        &preparation,
-        &attempt.scope.adapter_session_id,
-    ) {
-        Ok(request) => request,
-        Err(error) => {
-            failures.last_error = error;
-            return SendStep::Failed(DispatchOutcome::TargetFailed);
+    let response = if provider_adapters::uses_local_transport(&provider.adapter_id) {
+        // The local transport spawns the provider's own CLI process and
+        // synthesizes an HTTP-shaped response from it, so the classification
+        // and streaming pipeline below stays transport-agnostic. Rotation is
+        // pointless here: every attempt would spawn the same local binary.
+        match provider_adapters::send_local_upstream_request(
+            &provider.adapter_id,
+            &attempt.upstream_body,
+            attempt.target_model,
+            &attempt.scope.request_id,
+            attempt.scope.canonical_stream,
+            attempt.scope.operational_settings.request_timeout,
+        )
+        .await
+        {
+            Ok(response) => Ok(response),
+            Err(error) => {
+                failures.last_error =
+                    format!("provider '{provider_id}' local transport failed: {error}");
+                return SendStep::Failed(DispatchOutcome::TargetFailed);
+            }
         }
+    } else {
+        let request = match build_upstream_request(
+            attempt,
+            credential_secret,
+            oauth_auth,
+            &preparation,
+            &attempt.scope.adapter_session_id,
+        ) {
+            Ok(request) => request,
+            Err(error) => {
+                failures.last_error = error;
+                return SendStep::Failed(DispatchOutcome::TargetFailed);
+            }
+        };
+        let mut response = request.send().await;
+        let is_auth_rejection = response.as_ref().ok().is_some_and(|r| {
+            let status = r.status();
+            (status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN)
+                && (provider.adapter_id == provider_adapters::OPENCODE_GO_ADAPTER_ID
+                    || provider.adapter_id == provider_adapters::OPENCODE_ZEN_ADAPTER_ID)
+        });
+        if is_auth_rejection {
+            tracing::debug!(
+                provider_id = %provider_id,
+                "OpenCode upstream returned 401/403; retrying once with refreshed session"
+            );
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            let fresh_session_id = uuid::Uuid::new_v4().to_string();
+            if let Ok(retry_request) = build_upstream_request(
+                attempt,
+                credential_secret,
+                oauth_auth,
+                &preparation,
+                &fresh_session_id,
+            ) {
+                let retried = retry_request.send().await;
+                if retried
+                    .as_ref()
+                    .ok()
+                    .is_some_and(|r| r.status().is_success())
+                {
+                    response = retried;
+                }
+            }
+        }
+        response
     };
     if provider_adapters::capabilities(&provider.adapter_id)
         .is_some_and(|capabilities| capabilities.local_quota_tracking)
@@ -90,37 +146,6 @@ pub(super) async fn send_request(
             .state
             .record_local_quota_attempt(provider_id)
             .await;
-    }
-    let mut response = request.send().await;
-    let is_auth_rejection = response.as_ref().ok().is_some_and(|r| {
-        let status = r.status();
-        (status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN)
-            && (provider.adapter_id == provider_adapters::OPENCODE_GO_ADAPTER_ID
-                || provider.adapter_id == provider_adapters::OPENCODE_ZEN_ADAPTER_ID)
-    });
-    if is_auth_rejection {
-        tracing::debug!(
-            provider_id = %provider_id,
-            "OpenCode upstream returned 401/403; retrying once with refreshed session"
-        );
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        let fresh_session_id = uuid::Uuid::new_v4().to_string();
-        if let Ok(retry_request) = build_upstream_request(
-            attempt,
-            credential_secret,
-            oauth_auth,
-            &preparation,
-            &fresh_session_id,
-        ) {
-            let retried = retry_request.send().await;
-            if retried
-                .as_ref()
-                .ok()
-                .is_some_and(|r| r.status().is_success())
-            {
-                response = retried;
-            }
-        }
     }
     let response_status = response.as_ref().ok().map(|response| response.status());
     provider_adapters::finish_upstream_request(
