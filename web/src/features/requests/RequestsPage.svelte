@@ -518,12 +518,12 @@
     margin: 0 0 16px;
     padding: 10px 14px;
     color: var(--accent-deep);
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 12px;
     background: #fffaf5;
     font-size: 12.5px;
     font-weight: 500;
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   :global(:root[data-theme='dark']) .request-live-feedback {

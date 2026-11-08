@@ -1770,7 +1770,7 @@ export const ja: Catalog = {
   "Follow your operating system appearance setting.": "OS の外観設定に合わせます。",
   "Currently dark": "現在はダーク",
   "Currently light": "現在はライト",
-  "Neo-Brutalism": "ネオ・ブルータリズム",
+  "Classic": "クラシック",
   "Glassmorphic": "グラスモーフィズム",
   "IDE Terminal": "IDE ターミナル",
   "Cozy Pastels": "やさしいパステル",

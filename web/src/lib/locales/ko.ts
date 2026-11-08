@@ -1770,7 +1770,7 @@ export const ko: Catalog = {
   "Follow your operating system appearance setting.": "운영 체제의 화면 설정을 따릅니다.",
   "Currently dark": "현재 다크 모드",
   "Currently light": "현재 라이트 모드",
-  "Neo-Brutalism": "네오 브루탈리즘",
+  "Classic": "클래식",
   "Glassmorphic": "글래스모피즘",
   "IDE Terminal": "IDE 터미널",
   "Cozy Pastels": "편안한 파스텔",

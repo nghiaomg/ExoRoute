@@ -18,9 +18,9 @@
     gap: 8px;
     margin: 0 0 16px;
     padding: 10px 12px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 12px;
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
     background: #fff7ed;
     color: var(--ink);
     font-size: 12px;

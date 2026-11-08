@@ -209,10 +209,10 @@
     margin: 0 auto 12px;
     max-width: 1100px;
     padding: 10px 12px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 14px;
     background: var(--paper);
-    box-shadow: 4px 4px 0 var(--ink);
+    box-shadow: var(--nb-shadow-lg);
   }
 
   .compare-header {
@@ -240,14 +240,14 @@
     align-items: center;
     gap: 5px;
     padding: 5px 10px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 9px;
     background: var(--paper);
     color: var(--ink);
     font-size: 11px;
     font-weight: var(--font-semibold);
     cursor: pointer;
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .compare-stop:disabled,
@@ -279,7 +279,7 @@
 
   .compare-option {
     padding: 4px 9px;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 999px;
     background: var(--paper);
     color: var(--ink);
@@ -308,7 +308,7 @@
     flex-direction: column;
     gap: 6px;
     padding: 8px 10px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 10px;
     min-height: 120px;
     max-height: 340px;

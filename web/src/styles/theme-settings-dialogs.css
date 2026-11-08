@@ -59,8 +59,8 @@
 :root[data-theme='dark'] textarea {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.04);
-  border: 2px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow-sm);
 }
 :root[data-theme='dark'] .modal-form input:focus,
 :root[data-theme='dark'] .modal-form select:focus,

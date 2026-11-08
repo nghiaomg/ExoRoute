@@ -130,10 +130,10 @@
     align-items: center;
     gap: 7px;
     padding: 6px 13px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 999px;
     background: var(--surface);
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     color: var(--ink);
     font-size: var(--text-2xs);
     font-weight: 700;
@@ -144,14 +144,14 @@
   @media (hover: hover) {
     .request-mask-trigger:hover {
       transform: translate(-1px, -1px);
-      box-shadow: 3px 3px 0 var(--ink);
+      box-shadow: var(--nb-shadow-md);
     }
   }
 
   .request-mask-trigger:active,
   .request-mask-trigger.open {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .request-mask-trigger.active {

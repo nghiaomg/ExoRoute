@@ -3,7 +3,7 @@
  * Each theme in ExoRoute is a complete, distinct design system and aesthetic,
  * not just a color palette swap:
  *
- * 1. Classic Light (light): Bold Neo-Brutalism Pop (2px ink borders, hard offset shadows, tactile bounce).
+ * 1. Classic Light (light): Clean Classic Light (soft hairline borders, gentle elevation, warm orange accents).
  * 2. Classic Dark (dark): Glassmorphic Obsidian (translucent frosted panels, subtle glass borders, deep ambient depth).
  * 3. Tokyo Night (tokyo-night): Developer IDE & Terminal (JetBrains Mono headers, editor panel dividers, dot matrix grid).
  * 4. Catppuccin Mocha (catppuccin): Cozy Bubbly Pastels (generous pillowy radii, pill buttons, soft pastel halo glow).
@@ -13,13 +13,13 @@
  */
 
 /* ==========================================================================
-   1. CLASSIC LIGHT (NEO-BRUTALISM POP)
+   1. CLASSIC LIGHT (CLEAN CLASSIC LIGHT)
    ========================================================================== */
 :root[data-palette='light'] {
-  --nb-border: 2px solid var(--ink);
-  --nb-shadow-sm: 2px 2px 0 var(--ink);
-  --nb-shadow-md: 3px 3px 0 var(--ink);
-  --nb-shadow-lg: 4px 4px 0 var(--ink);
+  --nb-border: 1px solid #e2e8f0;
+  --nb-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --nb-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  --nb-shadow-lg: 0 10px 25px -4px rgba(0, 0, 0, 0.08);
   --nb-radius: 10px;
 }
 

@@ -1770,7 +1770,7 @@ export const hi: Catalog = {
   "Follow your operating system appearance setting.": "अपने ऑपरेटिंग सिस्टम की दिखावट सेटिंग का पालन करें।",
   "Currently dark": "अभी डार्क",
   "Currently light": "अभी लाइट",
-  "Neo-Brutalism": "नियो-ब्रूटलिज़्म",
+  "Classic": "क्लासिक",
   "Glassmorphic": "ग्लासमॉर्फ़िक",
   "IDE Terminal": "IDE टर्मिनल",
   "Cozy Pastels": "मुलायम पेस्टल",

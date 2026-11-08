@@ -640,9 +640,9 @@
     height: calc(100vh - var(--app-header-height, 56px) - 24px);
     min-height: 480px;
     overflow: hidden;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 16px;
-    box-shadow: 5px 5px 0 var(--ink);
+    box-shadow: var(--nb-shadow-lg);
     background: var(--paper);
   }
 
@@ -653,7 +653,7 @@
     gap: 8px;
     flex: 0 0 auto;
     padding: 8px 10px;
-    border-bottom: 2px solid var(--ink);
+    border-bottom: var(--nb-border);
     background: color-mix(in srgb, var(--accent) 7%, #fff);
   }
 
@@ -677,10 +677,10 @@
     width: 30px;
     height: 30px;
     padding: 0;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 10px;
     background: var(--paper);
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     color: var(--ink);
     cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
@@ -688,12 +688,12 @@
 
   .chat-icon-action:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
   }
 
   .chat-icon-action:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .chat-icon-action:disabled {
@@ -717,7 +717,7 @@
 
   .chat-editing-cancel {
     padding: 2px 8px;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 8px;
     background: var(--paper);
     color: var(--ink);

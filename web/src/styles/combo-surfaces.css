@@ -389,8 +389,8 @@
 .settings-view .secondary-button,
 .settings-view .settings-nav-tab,
 .settings-view .ark-checkbox-control {
-  border: var(--nb-border, 2px solid var(--ink)) !important;
-  box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)) !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
 }
 /* Checkboxes keep the ink border only: a hard shadow at 17px reads as noise. */
 .settings-view .ark-checkbox-control {
@@ -400,13 +400,13 @@
 .settings-view .primary-button:hover:not(:disabled),
 .settings-view .secondary-button:hover:not(:disabled) {
   transform: translate(-1px, -1px);
-  box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)) !important;
+  box-shadow: var(--nb-shadow-md) !important;
 }
 .settings-view .settings-nav-tab:active,
 .settings-view .primary-button:active:not(:disabled),
 .settings-view .secondary-button:active:not(:disabled) {
   transform: translate(1px, 1px);
-  box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
 }
 
 .settings-view {

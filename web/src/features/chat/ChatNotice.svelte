@@ -57,10 +57,10 @@
   .model-retry {
     flex: 0 0 auto;
     padding: 4px 12px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 9px;
     background: var(--paper);
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     color: var(--ink);
     font-size: 11px;
     font-weight: var(--font-semibold);
@@ -70,12 +70,12 @@
 
   .model-retry:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
   }
 
   .model-retry:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   :global(:root[data-theme='dark']) .chat-notice.error {

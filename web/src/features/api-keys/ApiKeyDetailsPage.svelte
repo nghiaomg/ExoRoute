@@ -193,8 +193,8 @@ import { localizedError } from '../../lib/errors';
     border-radius: 14px;
     background: color-mix(in srgb, var(--accent) 10%, #fff);
     color: var(--accent-strong);
-    border: 2px solid var(--ink);
-    box-shadow: 3px 3px 0 var(--ink);
+    border: var(--nb-border);
+    box-shadow: var(--nb-shadow-md);
   }
   .detail-tags-row :global(svg) {
     color: var(--muted);

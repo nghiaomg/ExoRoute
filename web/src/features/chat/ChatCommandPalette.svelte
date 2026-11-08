@@ -162,17 +162,17 @@
     display: flex;
     flex-direction: column;
     width: min(560px, calc(100vw - 32px));
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 14px;
     background: var(--paper);
-    box-shadow: 6px 6px 0 var(--ink);
+    box-shadow: var(--nb-shadow-lg);
     overflow: hidden;
   }
 
   .palette-input {
     padding: 12px 14px;
     border: none;
-    border-bottom: 2px solid var(--ink);
+    border-bottom: var(--nb-border);
     background: var(--paper);
     color: var(--ink);
     font-size: 14px;
@@ -237,7 +237,7 @@
     display: flex;
     gap: 14px;
     padding: 7px 12px;
-    border-top: 1.5px solid var(--ink);
+    border-top: var(--nb-border);
     font-size: 10px;
     color: var(--muted);
   }

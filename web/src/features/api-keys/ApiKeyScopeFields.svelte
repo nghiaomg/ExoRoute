@@ -197,7 +197,7 @@
     gap: 6px;
     max-width: 100%;
     padding: 4px 5px 4px 9px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 999px;
     background: var(--paper);
   }

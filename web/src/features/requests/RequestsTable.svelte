@@ -68,10 +68,10 @@
     flex-shrink: 0;
     overflow-x: auto;
     overscroll-behavior: contain;
-    border: var(--nb-border, 2px solid var(--ink));
+    border: var(--nb-border);
     border-radius: 12px;
     background: var(--surface);
-    box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink));
+    box-shadow: var(--nb-shadow-md);
   }
 
   .request-table-card table {

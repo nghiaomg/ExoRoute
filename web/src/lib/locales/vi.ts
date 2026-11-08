@@ -1399,7 +1399,7 @@ export const vi: Record<TranslationKey, string> = {
   'Follow your operating system appearance setting.': 'Tự động theo cài đặt giao diện của hệ điều hành.',
   'Currently dark': 'Đang dùng giao diện tối',
   'Currently light': 'Đang dùng giao diện sáng',
-  'Neo-Brutalism': 'Neo-Brutalism',
+  'Classic': 'Classic',
   'Glassmorphic': 'Glassmorphic',
   'IDE Terminal': 'Terminal IDE',
   'Cozy Pastels': 'Pastel dịu nhẹ',

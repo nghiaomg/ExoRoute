@@ -273,9 +273,9 @@
     flex-direction: column;
     gap: 8px;
     padding: 8px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 14px;
-    box-shadow: 4px 4px 0 var(--ink);
+    box-shadow: var(--nb-shadow-lg);
     background: var(--paper);
     transition: border-color 0.14s ease, box-shadow 0.14s ease;
   }
@@ -333,7 +333,7 @@
     align-items: center;
     gap: 5px;
     padding: 4px 8px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: var(--radius-full);
     background: color-mix(in srgb, var(--accent) 7%, #fff);
     font-weight: var(--font-semibold);
@@ -376,7 +376,7 @@
     justify-content: space-between;
     gap: 8px;
     padding-top: 6px;
-    border-top: 2px solid var(--ink);
+    border-top: var(--nb-border);
   }
 
   .chat-composer-tools {
@@ -400,10 +400,10 @@
     width: 30px;
     height: 30px;
     padding: 0;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 9px;
     background: var(--paper);
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     color: var(--ink);
     cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
@@ -411,7 +411,7 @@
 
   .chat-tool-button:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
   }
 
   .chat-tool-button.active {
@@ -420,7 +420,7 @@
 
   .chat-tool-button:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .chat-tool-button:disabled {
@@ -436,10 +436,10 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 10px;
     background: var(--accent);
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     color: #fff;
     cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
@@ -447,12 +447,12 @@
 
   .chat-send-button:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
   }
 
   .chat-send-button:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .chat-send-button:disabled {
@@ -469,10 +469,10 @@
     width: 32px;
     height: 32px;
     padding: 0;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 10px;
     background: #fee2e2;
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     color: #b91c1c;
     cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
@@ -480,12 +480,12 @@
 
   .chat-stop-button:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
   }
 
   .chat-stop-button:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .chat-hint {

@@ -532,33 +532,33 @@
 /* Overview Scoped Buttons Dark Mode */
 :root[data-theme='dark'] .overview-view .primary-button {
   background: var(--accent);
-  border: 2px solid var(--ink) !important;
-  box-shadow: 3px 3px 0 var(--ink) !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-md) !important;
 }
 :root[data-theme='dark'] .overview-view .primary-button:hover {
   background: var(--accent-strong) !important;
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--ink) !important;
+  box-shadow: var(--nb-shadow-lg) !important;
 }
 :root[data-theme='dark'] .overview-view .primary-button:active {
   transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--ink) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
 }
 :root[data-theme='dark'] .overview-view .secondary-button {
   background: rgba(255, 255, 255, 0.05) !important;
-  border: 2px solid var(--ink) !important;
-  box-shadow: 2px 2px 0 var(--ink) !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
   color: #c4c8d8;
 }
 :root[data-theme='dark'] .overview-view .secondary-button:hover {
   background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
   color: #ffffff;
   transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 var(--ink) !important;
+  box-shadow: var(--nb-shadow-md) !important;
 }
 :root[data-theme='dark'] .overview-view .secondary-button:active {
   transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--ink) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
 }
 
 /* Tables, route/provider chips, status badges */

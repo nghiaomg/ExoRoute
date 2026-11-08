@@ -195,10 +195,10 @@
     justify-content: space-between;
     gap: 12px;
     padding: 14px 16px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 10px;
     background: var(--surface-sunken);
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .request-drawer-summary-main {

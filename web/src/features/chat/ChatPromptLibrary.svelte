@@ -111,10 +111,10 @@
     margin: 0 auto 12px;
     max-width: 760px;
     padding: 10px 12px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 14px;
     background: var(--paper);
-    box-shadow: 4px 4px 0 var(--ink);
+    box-shadow: var(--nb-shadow-lg);
     max-height: 300px;
     overflow-y: auto;
   }
@@ -131,7 +131,7 @@
     justify-content: center;
     width: 26px;
     height: 26px;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 8px;
     background: var(--paper);
     color: var(--ink);
@@ -147,7 +147,7 @@
     flex: 1 1 auto;
     min-width: 0;
     padding: 6px 9px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 9px;
     background: var(--paper);
     color: var(--ink);
@@ -159,14 +159,14 @@
     align-items: center;
     gap: 5px;
     padding: 5px 10px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 9px;
     background: var(--paper);
     color: var(--ink);
     font-size: 11px;
     font-weight: var(--font-semibold);
     cursor: pointer;
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .library-save-button:disabled {
@@ -201,7 +201,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 9px;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 10px;
   }
 
@@ -234,7 +234,7 @@
 
   .library-apply {
     padding: 4px 9px;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 8px;
     background: color-mix(in srgb, var(--accent) 14%, #fff);
     color: var(--ink);
@@ -249,7 +249,7 @@
     justify-content: center;
     width: 26px;
     height: 26px;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 8px;
     background: var(--paper);
     color: #b91c1c;

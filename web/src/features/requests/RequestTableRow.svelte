@@ -275,14 +275,14 @@
     flex: 0 0 auto;
     width: 24px;
     height: 24px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 7px;
     background: var(--request-accent);
     color: var(--accent-contrast);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.3px;
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   /* Brand marks are drawn in the vendor's own colours, so they sit on a light
@@ -293,10 +293,10 @@
     flex: 0 0 auto;
     width: 24px;
     height: 24px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 7px;
     background: var(--surface-raised);
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     overflow: hidden;
   }
 
@@ -353,7 +353,7 @@
     max-width: 100%;
     overflow: hidden;
     padding: 2px 8px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 7px;
     background: color-mix(in srgb, var(--accent) 10%, var(--surface));
     color: var(--accent-deep);
@@ -514,14 +514,14 @@
     align-items: center;
     gap: 6px;
     padding: 3px 8px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 7px;
     background: color-mix(in srgb, var(--chart-critical) 9%, var(--surface));
     color: var(--chart-critical);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
 
@@ -529,7 +529,7 @@
     background: color-mix(in srgb, var(--chart-critical) 14%, var(--surface));
     color: var(--chart-critical);
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
   }
 
   /* ─── Mobile App Style (<= 650px: 320px - 430px) ─── */
@@ -547,10 +547,10 @@
       gap: 6px 10px;
       width: 100%;
       padding: 14px;
-      border: 2px solid var(--ink);
+      border: var(--nb-border);
       border-radius: 14px;
       background: var(--surface-raised);
-      box-shadow: 3px 3px 0 var(--ink);
+      box-shadow: var(--nb-shadow-md);
       box-sizing: border-box;
       transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.1s ease;
     }
@@ -566,7 +566,7 @@
     /* The pressed card sinks into its own shadow, like every other NB surface. */
     .request-row:active {
       transform: translate(1px, 1px);
-      box-shadow: 1px 1px 0 var(--ink);
+      box-shadow: var(--nb-shadow-sm);
       background: var(--surface-sunken);
     }
 

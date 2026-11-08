@@ -29,10 +29,10 @@
     flex-direction: column;
     gap: 1px;
     padding: 8px 0;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 12px;
     background: var(--surface);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
   }
 
   .request-skeleton-row {
@@ -89,10 +89,10 @@
     .request-skeleton-row {
       height: auto;
       padding: 14px;
-      border: 2px solid var(--ink);
+      border: var(--nb-border);
       border-radius: 14px;
       background: var(--surface);
-      box-shadow: 3px 3px 0 var(--ink);
+      box-shadow: var(--nb-shadow-md);
       grid-template-columns: 1fr auto;
       grid-template-areas:
         'model status'

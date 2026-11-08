@@ -1770,7 +1770,7 @@ export const fr: Catalog = {
   "Follow your operating system appearance setting.": "Suit le réglage d’apparence de votre système d’exploitation.",
   "Currently dark": "Mode sombre actuel",
   "Currently light": "Mode clair actuel",
-  "Neo-Brutalism": "Néo-brutalisme",
+  "Classic": "Classique",
   "Glassmorphic": "Effet de verre",
   "IDE Terminal": "Terminal IDE",
   "Cozy Pastels": "Pastels doux",

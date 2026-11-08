@@ -130,10 +130,10 @@
     display: grid;
     gap: 12px;
     padding: 18px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: var(--nb-radius, 10px);
     background: var(--paper);
-    box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink));
+    box-shadow: var(--nb-shadow-sm);
   }
   .scope-editor.embedded {
     gap: 14px;

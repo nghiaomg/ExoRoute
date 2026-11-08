@@ -232,7 +232,7 @@
 </ChartFrame>
 
 <style>
-  .dimension-switch { display: inline-flex; gap: 2px; margin-bottom: 14px; padding: 3px; border: 2px solid var(--ink); border-radius: 9px; background: var(--paper); }
+  .dimension-switch { display: inline-flex; gap: 2px; margin-bottom: 14px; padding: 3px; border: var(--nb-border); border-radius: 9px; background: var(--paper); }
   .dimension-switch button { padding: 5px 10px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; }
   .dimension-switch button.active { color: var(--accent-contrast); background: var(--violet); }
 </style>

@@ -1352,7 +1352,7 @@ export const zh: Catalog = {
   'Follow your operating system appearance setting.': '跟随操作系统的外观设置。',
   'Currently dark': '当前为深色',
   'Currently light': '当前为浅色',
-  'Neo-Brutalism': '新粗野主义',
+  'Classic': '经典',
   'Glassmorphic': '玻璃拟态',
   'IDE Terminal': 'IDE 终端风格',
   'Cozy Pastels': '柔和粉彩',

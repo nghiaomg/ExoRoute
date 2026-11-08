@@ -151,11 +151,11 @@
   .request-error-box {
     display: flex;
     flex-direction: column;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 10px;
     overflow: hidden;
     background: color-mix(in srgb, var(--chart-critical) 6%, var(--surface));
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
   .request-error-box-header {
     display: flex;

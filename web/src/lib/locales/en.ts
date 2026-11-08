@@ -1397,7 +1397,7 @@ export const en = {
   'Follow your operating system appearance setting.': 'Follow your operating system appearance setting.',
   'Currently dark': 'Currently dark',
   'Currently light': 'Currently light',
-  'Neo-Brutalism': 'Neo-Brutalism',
+  'Classic': 'Classic',
   'Glassmorphic': 'Glassmorphic',
   'IDE Terminal': 'IDE Terminal',
   'Cozy Pastels': 'Cozy Pastels',

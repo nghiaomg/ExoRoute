@@ -43,14 +43,14 @@
   background: color-mix(in srgb, var(--surface-glass-base) 78%, transparent) !important;
   backdrop-filter: blur(28px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
-  border: 2px solid var(--ink) !important;
-  box-shadow: 5px 5px 0 var(--ink) !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-lg) !important;
 }
 :root[data-theme='dark'] .session-check-notice {
   color: var(--accent-soft);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 2px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow-sm);
 }
 :root[data-theme='dark'] .session-check-notice.rate-limited {
   color: #fcd34d;
@@ -80,8 +80,8 @@
 :root[data-theme='dark'] .login-icon {
   color: var(--accent-soft);
   background: color-mix(in srgb, var(--accent) 16%, transparent) !important;
-  border: 2px solid var(--ink) !important;
-  box-shadow: 2px 2px 0 var(--ink) !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
 }
 :root[data-theme='dark'] .login-footnote { color: #8e93a8; border-top: 1px solid rgba(255, 255, 255, 0.06) !important; }
 
@@ -139,28 +139,28 @@
 
 :root[data-theme='dark'] .login-screen .primary-button {
   background: var(--accent);
-  border: 2px solid var(--ink) !important;
-  box-shadow: 3px 3px 0 var(--ink) !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-md) !important;
 }
 :root[data-theme='dark'] .login-screen .primary-button:hover:not(:disabled) {
   background: var(--accent-strong);
-  box-shadow: 4px 4px 0 var(--ink) !important;
+  box-shadow: var(--nb-shadow-lg) !important;
 }
 :root[data-theme='dark'] .login-screen .primary-button:active:not(:disabled) {
-  box-shadow: 1px 1px 0 var(--ink) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
 }
 
 :root[data-theme='dark'] .login-screen .secondary-button {
   background: rgba(255, 255, 255, 0.05);
-  border: 2px solid var(--ink) !important;
-  box-shadow: 2px 2px 0 var(--ink) !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
   color: #c4c8d8;
 }
 :root[data-theme='dark'] .login-screen .secondary-button:hover {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-color: var(--ink) !important;
   color: #ffffff;
-  box-shadow: 3px 3px 0 var(--ink) !important;
+  box-shadow: var(--nb-shadow-md) !important;
 }
 
 :root[data-theme='dark'] .login-screen .form-error {

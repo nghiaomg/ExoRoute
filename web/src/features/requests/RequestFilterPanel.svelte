@@ -226,10 +226,10 @@
   .request-filter-panel {
     margin: 0 0 18px;
     padding: 14px 16px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 12px;
     background: var(--surface-raised);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
     transition: box-shadow 0.16s ease, border-color 0.16s ease;
   }
 

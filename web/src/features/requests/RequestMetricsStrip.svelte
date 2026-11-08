@@ -55,17 +55,17 @@
     align-items: center;
     gap: 3px 12px;
     padding: 14px 16px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 12px;
     background: var(--surface);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
     transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
   }
 
   @media (hover: hover) {
     .request-metric:hover {
       transform: translate(-1px, -1px);
-      box-shadow: 4px 4px 0 var(--ink);
+      box-shadow: var(--nb-shadow-lg);
     }
   }
 
@@ -77,8 +77,8 @@
     width: 34px;
     height: 34px;
     border-radius: 9px;
-    border: 2px solid var(--ink);
-    box-shadow: 2px 2px 0 var(--ink);
+    border: var(--nb-border);
+    box-shadow: var(--nb-shadow-sm);
     transition: transform 0.16s ease;
   }
 

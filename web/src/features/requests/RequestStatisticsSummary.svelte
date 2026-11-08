@@ -107,7 +107,7 @@
 
 <style>
   .statistics-actions { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
-  .range-switch { display: inline-flex; gap: 2px; padding: 3px; border: 2px solid var(--ink); border-radius: 9px; background: var(--paper); box-shadow: 2px 2px 0 var(--ink); }
+  .range-switch { display: inline-flex; gap: 2px; padding: 3px; border: var(--nb-border); border-radius: 9px; background: var(--paper); box-shadow: var(--nb-shadow-sm); }
   .range-switch button { padding: 6px 9px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
   .range-switch button.active { color: var(--accent-contrast); background: var(--violet); }
   .statistics-skeleton { display: grid; gap: 14px; }
@@ -120,13 +120,13 @@
   .statistics-error-banner :global(svg) { flex: 0 0 auto; }
   .statistics-error-banner span { flex: 1; }
   .statistics-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
-  .statistics-kpi { min-width: 0; padding: 17px 18px; border: 2px solid var(--ink); border-radius: 13px; background: var(--paper); box-shadow: 3px 3px 0 var(--ink); }
+  .statistics-kpi { min-width: 0; padding: 17px 18px; border: var(--nb-border); border-radius: 13px; background: var(--paper); box-shadow: var(--nb-shadow-md); }
   .statistics-kpi > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; }
   .statistics-kpi > div :global(svg) { color: var(--violet); }
   .statistics-kpi > strong { display: block; margin: 13px 0 3px; overflow: hidden; color: var(--ink); font: 700 25px/1.15 var(--font-mono); text-overflow: ellipsis; white-space: nowrap; }
   .statistics-kpi > strong em { color: var(--muted); font: 500 12px var(--font-sans); }
   .statistics-kpi small { color: var(--muted); font-size: 12px; }
-  .statistics-warning { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 12px 14px; color: color-mix(in srgb, var(--accent-deep) 70%, var(--ink)); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 2px 2px 0 var(--ink); background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+  .statistics-warning { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 12px 14px; color: color-mix(in srgb, var(--accent-deep) 70%, var(--ink)); border: var(--nb-border); border-radius: 10px; box-shadow: var(--nb-shadow-sm); background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
   .statistics-warning :global(svg) { flex: 0 0 auto; margin-top: 1px; }
   .statistics-warning > div { display: grid; gap: 3px; }
   .statistics-warning strong { font-size: 12px; }

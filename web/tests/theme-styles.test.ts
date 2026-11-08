@@ -41,7 +41,7 @@ test('theme scheme mapping categorizes all light and dark palettes correctly', (
 
 test('each theme has its documented design archetype', () => {
   const archetypes = [
-    'Neo-Brutalism', 'Glassmorphic', 'IDE Terminal', 'Cozy Pastels',
+    'Classic', 'Glassmorphic', 'IDE Terminal', 'Cozy Pastels',
     'Precision SaaS', 'Cyberpunk HUD', 'Swiss Minimal',
   ];
   assert.deepEqual(THEMES.map(({ styleTag }) => styleTag), archetypes);

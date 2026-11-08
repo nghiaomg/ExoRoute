@@ -1770,7 +1770,7 @@ export const ar: Catalog = {
   "Follow your operating system appearance setting.": "اتبع إعداد المظهر في نظام التشغيل.",
   "Currently dark": "المظهر الحالي داكن",
   "Currently light": "المظهر الحالي فاتح",
-  "Neo-Brutalism": "الوحشية الجديدة",
+  "Classic": "كلاسيكي",
   "Glassmorphic": "الزجاجية",
   "IDE Terminal": "طرفية بيئة التطوير",
   "Cozy Pastels": "ألوان باستيل هادئة",

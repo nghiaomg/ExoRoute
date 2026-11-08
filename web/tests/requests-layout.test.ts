@@ -114,10 +114,10 @@ test('the statistics panel follows the theme system outside classic light', () =
   );
   assert.equal(darkCell.background, 'color-mix(in srgb, var(--surface-glass-base) 72%, transparent)');
 
-  // Elevation comes from the per-theme --nb-shadow-md token (classic light
-  // resolves it to the identical ink offset), not a hardcoded light shadow.
+  // Elevation comes from the per-theme --nb-shadow-md token, not a hardcoded
+  // light shadow.
   const panel = declarationsFor(detailsSource, '.statistics-details {');
-  assert.equal(panel['box-shadow'], 'var(--nb-shadow-md, 3px 3px 0 var(--ink))');
+  assert.equal(panel['box-shadow'], 'var(--nb-shadow-md)');
 });
 
 test('the filter panel stays a normal flow sibling of the table card', () => {

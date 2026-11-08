@@ -78,23 +78,23 @@
     width: 24px;
     height: 24px;
     padding: 0;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 8px;
     background: var(--paper);
     color: var(--ink);
     cursor: pointer;
-    box-shadow: 1.5px 1.5px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     transition: transform 0.1s ease, box-shadow 0.1s ease;
   }
 
   .turn-action:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 2.5px 2.5px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .turn-action:active {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   :global(:root[data-theme='dark']) .turn-action {

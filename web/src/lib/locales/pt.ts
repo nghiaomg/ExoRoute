@@ -1770,7 +1770,7 @@ export const pt: Catalog = {
   "Follow your operating system appearance setting.": "Segue a configuração de aparência do seu sistema operacional.",
   "Currently dark": "Atualmente escuro",
   "Currently light": "Atualmente claro",
-  "Neo-Brutalism": "Neobrutalismo",
+  "Classic": "Clássico",
   "Glassmorphic": "Efeito de vidro",
   "IDE Terminal": "Terminal de IDE",
   "Cozy Pastels": "Pastéis suaves",

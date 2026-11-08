@@ -42,7 +42,7 @@ export const THEMES: readonly ThemeDefinition[] = [
     id: 'light',
     scheme: 'light',
     name: 'Classic Light',
-    styleTag: 'Neo-Brutalism',
+    styleTag: 'Classic',
     descriptionKey: 'The default light dashboard with warm orange accents.',
     metaColor: '#f6f7fb',
     swatches: ['#f6f7fb', '#ffffff', '#f97316', '#222538'],

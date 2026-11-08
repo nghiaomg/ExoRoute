@@ -166,7 +166,7 @@ import { localizedError } from '../../lib/errors';
   .api-key-details-tokens > div { min-width: 0; display: grid; gap: 8px; padding: 15px 17px; background: var(--paper); }
   .api-key-details-tokens span { color: var(--muted); font-size: 12px; }
   .api-key-details-tokens strong { overflow: hidden; color: var(--ink); font: 600 12px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
-  .api-key-details-models { display: grid; gap: 12px; padding: 18px 20px; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)); }
+  .api-key-details-models { display: grid; gap: 12px; padding: 18px 20px; border: var(--nb-border); border-radius: 12px; background: var(--paper); box-shadow: var(--nb-shadow-md); }
   .api-key-details-models h3 { margin: 0; color: var(--ink); font: 650 15px/1.35 var(--font-sans); }
   .api-key-statistics-empty { margin: 0; color: var(--muted); font-size: 12px; }
   .api-key-details-warning { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 12px 14px; color: var(--accent-deep); border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); border-radius: 10px; background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }

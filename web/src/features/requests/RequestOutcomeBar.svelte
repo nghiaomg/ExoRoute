@@ -39,10 +39,10 @@
     gap: 16px;
     margin: 0 0 18px;
     padding: 12px 16px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 12px;
     background: var(--surface);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
   }
 
   .request-outcome-bar {

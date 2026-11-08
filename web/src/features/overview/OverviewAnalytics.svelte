@@ -138,7 +138,7 @@
 
 <style>
   .analytics-actions { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
-  .range-switch { display: inline-flex; gap: 2px; padding: 3px; border: 2px solid var(--ink); border-radius: 9px; background: var(--paper); box-shadow: 2px 2px 0 var(--ink); }
+  .range-switch { display: inline-flex; gap: 2px; padding: 3px; border: var(--nb-border); border-radius: 9px; background: var(--paper); box-shadow: var(--nb-shadow-sm); }
   .range-switch button { padding: 6px 9px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
   .range-switch button.active { color: var(--accent-contrast); background: var(--violet); }
   .analytics-skeleton { display: grid; gap: 14px; }
@@ -156,7 +156,7 @@
   .analytics-content :global(.chart-card) { margin-bottom: 14px; }
   .analytics-content { transition: opacity 0.2s ease; }
   .analytics-content.fetching { opacity: 0.62; pointer-events: none; }
-  .analytics-warning { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 12px 14px; color: var(--ink); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 2px 2px 0 var(--ink); background: var(--surface-sunken); }
+  .analytics-warning { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 12px 14px; color: var(--ink); border: var(--nb-border); border-radius: 10px; box-shadow: var(--nb-shadow-sm); background: var(--surface-sunken); }
   .analytics-warning :global(svg) { flex: 0 0 auto; margin-top: 1px; }
   .analytics-warning > div { display: grid; gap: 3px; }
   .analytics-warning strong { font-size: 12px; }

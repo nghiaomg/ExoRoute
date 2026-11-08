@@ -227,11 +227,11 @@
     justify-content: center;
     width: 24px;
     height: 24px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 50%;
     background: var(--paper);
     color: var(--ink);
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .chat-avatar.assistant {
@@ -266,9 +266,9 @@
   .chat-turn-text {
     margin: 0;
     padding: 9px 12px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 12px;
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
     background: var(--paper);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -316,7 +316,7 @@
   .chat-turn-markdown :global(.md-quote) {
     margin: 0 0 8px;
     padding: 6px 10px;
-    border-left: 3px solid var(--ink);
+    border-left: var(--nb-border);
     background: rgba(0, 0, 0, 0.04);
     border-radius: 6px;
   }
@@ -332,7 +332,7 @@
 
   .chat-turn-markdown :global(.md-code-block) {
     margin: 8px 0;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 8px;
     background: #0f172a;
     overflow: hidden;
@@ -393,13 +393,13 @@
 
   .chat-code-copy {
     padding: 3px 8px;
-    border: 1.5px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 8px;
     background: var(--paper);
     color: var(--ink);
     font-size: 10px;
     cursor: pointer;
-    box-shadow: 1.5px 1.5px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .chat-turn-error {

@@ -71,10 +71,10 @@
     flex-direction: column;
     gap: 4px;
     padding: 10px 12px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 12px;
     background: var(--paper);
-    box-shadow: 3px 3px 0 var(--ink);
+    box-shadow: var(--nb-shadow-md);
     text-align: left;
     cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
@@ -82,12 +82,12 @@
 
   .chat-suggestion:hover {
     transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0 var(--ink);
+    box-shadow: var(--nb-shadow-lg);
   }
 
   .chat-suggestion:active {
     transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
   }
 
   .chat-suggestion-title {

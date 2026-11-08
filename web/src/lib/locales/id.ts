@@ -1770,7 +1770,7 @@ export const id: Catalog = {
   "Follow your operating system appearance setting.": "Ikuti pengaturan tampilan sistem operasi Anda.",
   "Currently dark": "Saat ini gelap",
   "Currently light": "Saat ini terang",
-  "Neo-Brutalism": "Neo-Brutalisme",
+  "Classic": "Klasik",
   "Glassmorphic": "Efek kaca",
   "IDE Terminal": "Terminal IDE",
   "Cozy Pastels": "Pastel lembut",

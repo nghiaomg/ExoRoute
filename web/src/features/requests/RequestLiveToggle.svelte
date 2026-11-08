@@ -36,10 +36,10 @@
     align-items: center;
     gap: 8px;
     padding: 6px 14px;
-    border: 2px solid var(--ink);
+    border: var(--nb-border);
     border-radius: 999px;
     background: color-mix(in srgb, var(--chart-good) 10%, var(--surface));
-    box-shadow: 2px 2px 0 var(--ink);
+    box-shadow: var(--nb-shadow-sm);
     color: var(--chart-good);
     font-size: var(--text-2xs);
     font-weight: 700;
@@ -50,7 +50,7 @@
   @media (hover: hover) {
     .request-live-toggle:hover {
       transform: translate(-1px, -1px);
-      box-shadow: 3px 3px 0 var(--ink);
+      box-shadow: var(--nb-shadow-md);
     }
   }
 
