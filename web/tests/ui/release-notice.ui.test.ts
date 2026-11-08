@@ -10,8 +10,18 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import DashboardShell from '../../src/components/DashboardShell.svelte';
 import { t } from '../../src/lib/i18n';
+import { DASHBOARD_VERSION } from '../../src/lib/version';
 
 const tr = (key: string, vars?: Record<string, string | number>) => t('en', key, vars);
+
+/** The patch bump after the running version, used as the "newer release". */
+function nextPatch(version: string): string {
+  const parts = version.split('.').map(Number);
+  parts[parts.length - 1] += 1;
+  return parts.join('.');
+}
+const NEWER_RELEASE = nextPatch(DASHBOARD_VERSION);
+const NEWEST_RELEASE = nextPatch(NEWER_RELEASE);
 
 function renderShell(): void {
   render(DashboardShell, {
@@ -65,24 +75,24 @@ beforeEach(() => {
 
 describe('release update notice', () => {
   test('a newer published release shows the dismissible banner with both versions', async () => {
-    const fetchMock = releaseFetch('0.1.3');
+    const fetchMock = releaseFetch(NEWER_RELEASE);
     vi.stubGlobal('fetch', fetchMock);
     renderShell();
 
     expect(await screen.findByText('Update available')).toBeTruthy();
-    expect(screen.getByText('ExoRoute 0.1.3 is available. You are running 0.1.2.')).toBeTruthy();
+    expect(screen.getByText(`ExoRoute ${NEWER_RELEASE} is available. You are running ${DASHBOARD_VERSION}.`)).toBeTruthy();
     const link = screen.getByRole('link', { name: 'View release' });
-    expect(link.getAttribute('href')).toBe('https://github.com/nghiaomg/ExoRoute/releases/tag/v0.1.3');
+    expect(link.getAttribute('href')).toBe(`https://github.com/nghiaomg/ExoRoute/releases/tag/v${NEWER_RELEASE}`);
     expect(link.getAttribute('rel')).toContain('noopener');
 
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
     await waitFor(() => expect(screen.queryByText('Update available')).toBeNull());
-    expect(localStorage.getItem('exoroute.dismissed-release')).toBe(JSON.stringify('0.1.3'));
+    expect(localStorage.getItem('exoroute.dismissed-release')).toBe(JSON.stringify(NEWER_RELEASE));
   });
 
   test('a dismissed version stays dismissed on the next mount until a newer release appears', async () => {
-    localStorage.setItem('exoroute.dismissed-release', JSON.stringify('0.1.3'));
-    const first = releaseFetch('0.1.3');
+    localStorage.setItem('exoroute.dismissed-release', JSON.stringify(NEWER_RELEASE));
+    const first = releaseFetch(NEWER_RELEASE);
     vi.stubGlobal('fetch', first);
     renderShell();
     await settle(first);
@@ -92,14 +102,14 @@ describe('release update notice', () => {
     // the newer release re-notify past the dismissal.
     vi.unstubAllGlobals();
     localStorage.removeItem('exoroute.release-check');
-    const second = releaseFetch('0.1.4');
+    const second = releaseFetch(NEWEST_RELEASE);
     vi.stubGlobal('fetch', second);
     renderShell();
-    expect(await screen.findByText('ExoRoute 0.1.4 is available. You are running 0.1.2.')).toBeTruthy();
+    expect(await screen.findByText(`ExoRoute ${NEWEST_RELEASE} is available. You are running ${DASHBOARD_VERSION}.`)).toBeTruthy();
   });
 
   test('an up-to-date dashboard shows no banner', async () => {
-    const fetchMock = releaseFetch('0.1.2');
+    const fetchMock = releaseFetch(DASHBOARD_VERSION);
     vi.stubGlobal('fetch', fetchMock);
     renderShell();
 
@@ -119,6 +129,6 @@ describe('release update notice', () => {
   test('the shell reports the build-injected dashboard version', () => {
     vi.stubGlobal('fetch', releaseFetch(null));
     renderShell();
-    expect(screen.getByText('0.1.2')).toBeTruthy();
+    expect(screen.getByText(DASHBOARD_VERSION)).toBeTruthy();
   });
 });
