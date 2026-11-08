@@ -44,11 +44,7 @@ pub(crate) fn bounded_opt(value: Option<&str>) -> Option<String> {
         .map(str::to_owned)
 }
 
-/// Current Unix time in seconds, saturating at `i64::MAX` and falling back to
-/// 0 when the system clock is before the epoch.
+/// Current Unix time in seconds; see [`crate::support::time::unix_seconds`].
 pub(crate) fn unix_now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64)
-        .unwrap_or(0)
+    crate::support::time::unix_seconds()
 }

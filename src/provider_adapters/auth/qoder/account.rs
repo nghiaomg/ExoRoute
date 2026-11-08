@@ -40,10 +40,7 @@ impl QoderAccount {
 
         let expires_at = value.get("expires_at").and_then(Value::as_u64).or_else(|| {
             value.get("expires_in").and_then(Value::as_u64).map(|secs| {
-                let now_ms = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64;
+                let now_ms = crate::support::time::unix_millis() as u64;
                 now_ms.saturating_add(secs.saturating_mul(1000))
             })
         });

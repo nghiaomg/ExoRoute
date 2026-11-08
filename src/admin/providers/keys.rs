@@ -236,11 +236,7 @@ pub(crate) fn usage_budget(row: &Record, field: &str) -> Result<Option<i64>, Sto
 }
 
 pub(crate) fn unix_time_millis() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
-        .min(i64::MAX as u128) as i64
+    crate::support::time::unix_millis()
 }
 
 pub(crate) async fn create_provider_key(

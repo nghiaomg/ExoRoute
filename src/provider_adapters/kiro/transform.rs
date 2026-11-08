@@ -101,30 +101,15 @@ pub(super) fn build_payload(upstream_body: &Value, model: &str) -> Result<Value,
     Ok(payload)
 }
 
-/// RFC 3339 UTC timestamp without a datetime dependency.
+/// RFC 3339 UTC timestamp built on the shared civil-date formatter.
 fn rfc3339_now() -> String {
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|duration| duration.as_secs())
-        .unwrap_or(0);
-    let days = (secs / 86_400) as i64;
-    let secs_of_day = secs % 86_400;
-    let z = days + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let year = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = if month <= 2 { year + 1 } else { year };
-    format!(
-        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
-        secs_of_day / 3600,
-        (secs_of_day % 3600) / 60,
-        secs_of_day % 60
-    )
+    let stamp =
+        crate::infra::db::format_utc_timestamp(crate::support::time::unix_seconds().max(0) as u64);
+    // "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DDTHH:MM:SSZ"
+    let mut iso = stamp;
+    iso.replace_range(10..11, "T");
+    iso.push('Z');
+    iso
 }
 
 /// Deterministic 128-bit id derived from content. AWS only needs a stable id

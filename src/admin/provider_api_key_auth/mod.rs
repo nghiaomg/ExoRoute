@@ -13,7 +13,7 @@ use axum::{
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use rand::{RngCore, rngs::OsRng};
 use serde_json::{Value, json};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 mod listener;
 use listener::ensure_callback_listener_locked;
@@ -269,11 +269,7 @@ pub(super) async fn apply(
 }
 
 fn system_time_millis() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
-        .min(i64::MAX as u128) as i64
+    crate::support::time::unix_millis()
 }
 
 #[cfg(test)]

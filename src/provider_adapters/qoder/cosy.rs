@@ -123,11 +123,7 @@ pub(crate) fn build_cosy_headers(
     }
 
     let (cosy_key, info) = encrypt_user_info(creds)?;
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-        .to_string();
+    let timestamp = crate::support::time::unix_seconds().to_string();
 
     let request_id = uuid::Uuid::new_v4().to_string();
     let payload_json = json!({

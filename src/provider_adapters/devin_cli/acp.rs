@@ -516,12 +516,8 @@ fn estimated_tokens(chars: usize) -> u64 {
 }
 
 pub(super) fn unix_timestamp() -> u64 {
-    // A clock before the Unix epoch is not a real condition on this machine;
-    // 0 keeps the wire format valid if it somehow happens.
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|since| since.as_secs())
-        .unwrap_or(0)
+    // unix_seconds() already maps a pre-epoch clock to 0.
+    crate::support::time::unix_seconds() as u64
 }
 
 fn frame(value: &Value) -> Vec<u8> {

@@ -191,10 +191,7 @@ pub(super) async fn poll_authorization(
     )
     .await;
 
-    let now_ms = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64;
+    let now_ms = crate::support::time::unix_millis() as u64;
 
     let expires_at = value
         .get("expires_at")

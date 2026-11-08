@@ -3,7 +3,6 @@ use crate::config::OperationalSettings;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex as StdMutex},
-    time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::broadcast;
 
@@ -339,13 +338,5 @@ fn bounded_string(value: &str, max_chars: usize) -> String {
 }
 
 fn unix_time_ms() -> i64 {
-    let Ok(duration) = SystemTime::now().duration_since(UNIX_EPOCH) else {
-        return 0;
-    };
-    let millis = duration.as_millis();
-    if millis > i64::MAX as u128 {
-        i64::MAX
-    } else {
-        millis as i64
-    }
+    crate::support::time::unix_millis()
 }

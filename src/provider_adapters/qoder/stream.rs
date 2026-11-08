@@ -111,12 +111,7 @@ pub(crate) async fn read_qoder_event_stream(
 
     let id = last_id.unwrap_or_else(|| format!("chatcmpl-{}", uuid::Uuid::new_v4().simple()));
     let model = last_model.unwrap_or_else(|| "qoder".to_owned());
-    let created = last_created.unwrap_or_else(|| {
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs()
-    });
+    let created = last_created.unwrap_or_else(|| crate::support::time::unix_seconds() as u64);
 
     let completion = json!({
         "id": id,

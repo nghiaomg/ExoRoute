@@ -38,10 +38,7 @@ fn is_key_cooldown_elapsed(record: &Record) -> Result<bool, StorageError> {
     let Some(timestamp_secs) = crate::infra::db::parse_utc_timestamp(timestamp_str) else {
         return Ok(false);
     };
-    let now_secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
+    let now_secs = crate::support::time::unix_seconds() as u64;
     Ok(now_secs.saturating_sub(timestamp_secs) >= KEY_INVALIDATION_COOLDOWN_SECONDS)
 }
 

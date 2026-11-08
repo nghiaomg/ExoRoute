@@ -6,7 +6,6 @@ use super::{
     valid_provider_credential_id, window_key,
 };
 use crate::infra::storage::{Database, Record, StorageError, Table, validate_key};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Reads bounded rolling aggregates for one provider credential. This is
 /// intentionally independent from request-history tables so the dashboard
@@ -174,10 +173,7 @@ pub(crate) fn validate_prefix_for_meter(prefix: &str) -> Result<(), StorageError
 }
 
 pub(crate) fn unix_time_millis() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis().min(i64::MAX as u128) as i64)
-        .unwrap_or(0)
+    crate::support::time::unix_millis()
 }
 
 pub(crate) use super::windows::parse_minute_key;

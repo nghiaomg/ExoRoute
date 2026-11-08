@@ -121,10 +121,7 @@ pub(crate) fn transform_to_qoder_payload(
         || model_key.contains("reasoning")
         || model_key.contains("thinking");
 
-    let now_ms = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64;
+    let now_ms = crate::support::time::unix_millis() as u64;
 
     let req_id = uuid::Uuid::new_v4().to_string();
     let session_id = stable_hash("qoder-session", user_id, model_key);

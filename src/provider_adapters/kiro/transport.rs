@@ -37,10 +37,7 @@ impl StreamState {
     fn new() -> Self {
         Self {
             response_id: format!("chatcmpl-kiro-{}", uuid::Uuid::new_v4()),
-            created: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0),
+            created: crate::support::time::unix_seconds() as u64,
             chunk_index: 0,
             end_detected: false,
             finish_emitted: false,

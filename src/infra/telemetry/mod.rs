@@ -9,7 +9,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering},
     },
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant},
 };
 use tokio::sync::{Mutex as AsyncMutex, mpsc, oneshot};
 
@@ -319,17 +319,11 @@ pub(super) fn increment_saturating(counter: &AtomicU64) -> u64 {
 }
 
 pub(super) fn unix_minute() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64 / 60)
-        .unwrap_or(0)
+    crate::support::time::unix_minutes()
 }
 
 pub(super) fn unix_seconds() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64)
-        .unwrap_or(0)
+    crate::support::time::unix_seconds()
 }
 
 #[cfg(test)]
