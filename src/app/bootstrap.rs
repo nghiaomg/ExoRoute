@@ -25,11 +25,13 @@ pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
     let admin_key_was_set_in_process = std::env::var_os("EXOROUTE_ADMIN_KEY").is_some();
     let master_key_was_set_in_process = std::env::var_os("EXOROUTE_MASTER_KEY").is_some();
     dotenvy::from_path(app_dir.join(".env"))?;
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    // ERROR-level events also land in a size-rotated error-logs.txt next to
+    // the app data, so diagnostics survive a closed console window. The guard
+    // must outlive every log call, so it is held for the whole bootstrap.
+    let _error_log_guard = crate::app::error_log::init_tracing(
+        &app_dir,
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+    );
 
     let mut config = Config::from_env_deferred_operational(app_dir)?;
     if master_key_was_set_in_process && config.master_key.is_none() {
