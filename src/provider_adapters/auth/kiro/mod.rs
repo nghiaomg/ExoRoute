@@ -13,4 +13,4 @@ pub(crate) use store::{account_for_use, save_kiro_account};
 
 pub(crate) const MAX_TOKEN_BYTES: usize = 16 * 1024;
 pub(crate) const MAX_ACCOUNT_BYTES: usize = 32 * 1024;
-const REFRESH_LEAD_SECONDS: i64 = 5 * 60;
+pub(crate) use crate::provider_adapters::auth::REFRESH_LEAD_SECONDS;

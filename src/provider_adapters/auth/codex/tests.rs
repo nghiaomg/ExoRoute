@@ -1,6 +1,6 @@
 use super::*;
 use crate::provider_adapters::auth::codex::usage::usage_core::unix_now;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde_json::json;
 
 #[test]

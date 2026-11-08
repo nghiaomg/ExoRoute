@@ -144,11 +144,4 @@ fn validate_token(token: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn bounded(value: Option<&str>) -> Option<String> {
-    value
-        .map(str::trim)
-        .filter(|value| {
-            !value.is_empty() && value.len() <= 512 && !value.chars().any(char::is_control)
-        })
-        .map(str::to_owned)
-}
+pub(super) use crate::provider_adapters::auth::bounded_opt as bounded;

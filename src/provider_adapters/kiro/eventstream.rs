@@ -78,12 +78,10 @@ fn parse_frame(buffer: &[u8]) -> FrameParse {
     }
     let total_length = u32::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]) as usize;
     let headers_length = u32::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]) as usize;
-    if total_length < PRELUDE_BYTES + CRC_BYTES
-        || total_length > MAX_FRAME_BYTES
-        || headers_length > MAX_HEADERS_BYTES
-        || total_length > buffer.len()
-    {
-        return if total_length > MAX_FRAME_BYTES || total_length < PRELUDE_BYTES + CRC_BYTES {
+    let length_out_of_range =
+        !(PRELUDE_BYTES + CRC_BYTES..=MAX_FRAME_BYTES).contains(&total_length);
+    if length_out_of_range || headers_length > MAX_HEADERS_BYTES || total_length > buffer.len() {
+        return if length_out_of_range {
             FrameParse::Invalid
         } else {
             FrameParse::NeedMore

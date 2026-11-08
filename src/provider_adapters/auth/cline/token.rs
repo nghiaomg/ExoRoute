@@ -107,9 +107,4 @@ pub(super) fn fixed_digits(bytes: &[u8], start: usize, length: usize) -> Option<
         })
 }
 
-pub(super) fn unix_now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64)
-        .unwrap_or(0)
-}
+pub(super) use crate::provider_adapters::auth::unix_now;

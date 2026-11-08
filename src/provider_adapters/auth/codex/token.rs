@@ -50,8 +50,4 @@ pub(super) fn validate_token(token: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn decode_jwt_claims(token: &str) -> Option<Value> {
-    let payload = token.split('.').nth(1)?;
-    let bytes = URL_SAFE_NO_PAD.decode(payload).ok()?;
-    serde_json::from_slice(&bytes).ok()
-}
+pub(super) use crate::provider_adapters::auth::jwt_claims as decode_jwt_claims;

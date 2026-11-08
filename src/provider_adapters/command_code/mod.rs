@@ -677,10 +677,8 @@ pub(super) fn parse_rfc3339_epoch(value: &str) -> Option<i64> {
             return None;
         }
         (clock, sign * (hours * 3600 + minutes * 60))
-    } else if let Some(clock) = time.strip_suffix('Z') {
-        (clock, 0)
     } else {
-        return None;
+        (time.strip_suffix('Z')?, 0)
     };
     let clock = clock.split('.').next()?;
     let mut time_parts = clock.split(':');

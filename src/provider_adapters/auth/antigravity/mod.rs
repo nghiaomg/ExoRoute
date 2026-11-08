@@ -32,7 +32,7 @@ const MAX_OAUTH_BODY_BYTES: usize = 256 * 1024;
 const MAX_OAUTH_REDIRECT_URI_BYTES: usize = 16 * 1024;
 const MAX_QUOTA_ROWS: usize = 256;
 const MAX_WEEKLY_ROWS: usize = 32;
-const REFRESH_LEAD_SECONDS: i64 = 5 * 60;
+pub(crate) use crate::provider_adapters::auth::REFRESH_LEAD_SECONDS;
 const ANTIGRAVITY_ONBOARD_ATTEMPTS: usize = 2;
 const ANTIGRAVITY_ONBOARD_RETRY_DELAY: Duration = Duration::from_secs(12);
 const IDE_TYPE: i64 = 9;
@@ -507,9 +507,4 @@ fn as_bool(value: &Value) -> Option<bool> {
         .or_else(|| value.as_str().and_then(|text| text.parse::<bool>().ok()))
 }
 
-fn unix_now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64)
-        .unwrap_or(0)
-}
+pub(crate) use crate::provider_adapters::auth::unix_now;

@@ -11,6 +11,7 @@ use super::{
     AntigravityAccount, MAX_TOKEN_BYTES, bounded_text, bounded_token, enrich_account, save_account,
     unix_now,
 };
+use crate::provider_adapters::command_code::parse_rfc3339_epoch;
 use crate::state::AppState;
 use serde_json::Value;
 use std::path::PathBuf;
@@ -120,93 +121,6 @@ fn parse_expiry_value(value: &Value) -> Option<i64> {
         });
     }
     parse_rfc3339_epoch(text)
-}
-
-/// Minimal RFC 3339 timestamp parser (`YYYY-MM-DDTHH:MM:SS[.fraction](Z|±HH:MM)`).
-/// Returns Unix seconds; sub-second precision is truncated.
-fn parse_rfc3339_epoch(text: &str) -> Option<i64> {
-    let bytes = text.as_bytes();
-    if bytes.len() < 20 {
-        return None;
-    }
-    let year = parse_digits(bytes, 0, 4)? as i64;
-    if bytes.get(4) != Some(&b'-') {
-        return None;
-    }
-    let month = parse_digits(bytes, 5, 2)? as i64;
-    if bytes.get(7) != Some(&b'-') {
-        return None;
-    }
-    let day = parse_digits(bytes, 8, 2)? as i64;
-    if bytes.get(10) != Some(&b'T') && bytes.get(10) != Some(&b't') {
-        return None;
-    }
-    let hour = parse_digits(bytes, 11, 2)? as i64;
-    if bytes.get(13) != Some(&b':') {
-        return None;
-    }
-    let minute = parse_digits(bytes, 14, 2)? as i64;
-    if bytes.get(16) != Some(&b':') {
-        return None;
-    }
-    let second = parse_digits(bytes, 17, 2)? as i64;
-    if !(1..=12).contains(&month)
-        || !(1..=31).contains(&day)
-        || hour > 23
-        || minute > 59
-        || second > 60
-    {
-        return None;
-    }
-    // Days since epoch via civil calendar conversion (Howard Hinnant's algorithm).
-    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
-    let era = if adjusted_year >= 0 {
-        adjusted_year
-    } else {
-        adjusted_year - 399
-    } / 400;
-    let year_of_era = adjusted_year - era * 400;
-    let month_prime = month + if month > 2 { -3 } else { 9 };
-    let day_of_year = (153 * month_prime + 2) / 5 + day - 1;
-    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
-    let days = era * 146_097 + day_of_era - 719_468;
-    let mut epoch = days * 86_400 + hour * 3_600 + minute * 60 + second;
-
-    let mut index = 19;
-    if bytes.get(index) == Some(&b'.') {
-        index += 1;
-        while bytes.get(index).is_some_and(|byte| byte.is_ascii_digit()) {
-            index += 1;
-        }
-    }
-    let offset_seconds = match bytes.get(index) {
-        Some(b'Z') | Some(b'z') => 0,
-        Some(b'+') | Some(b'-') => {
-            let sign = if bytes[index] == b'-' { -1 } else { 1 };
-            let offset_hour = parse_digits(bytes, index + 1, 2)? as i64;
-            if bytes.get(index + 3) != Some(&b':') {
-                return None;
-            }
-            let offset_minute = parse_digits(bytes, index + 4, 2)? as i64;
-            if offset_hour > 23 || offset_minute > 59 {
-                return None;
-            }
-            sign * (offset_hour * 3_600 + offset_minute * 60)
-        }
-        _ => return None,
-    };
-    epoch -= offset_seconds;
-    Some(epoch)
-}
-
-fn parse_digits(bytes: &[u8], offset: usize, len: usize) -> Option<i64> {
-    let slice = bytes.get(offset..offset + len)?;
-    if !slice.iter().all(u8::is_ascii_digit) {
-        return None;
-    }
-    slice.iter().try_fold(0i64, |acc, byte| {
-        acc.checked_mul(10)?.checked_add(i64::from(byte - b'0'))
-    })
 }
 
 async fn read_cli_file(path: &std::path::Path) -> Option<String> {

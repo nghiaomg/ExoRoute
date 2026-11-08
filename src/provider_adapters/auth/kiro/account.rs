@@ -160,29 +160,14 @@ fn validate_token(token: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn bounded_opt(value: Option<&str>) -> Option<String> {
-    value
-        .map(str::trim)
-        .filter(|value| {
-            !value.is_empty() && value.len() <= 512 && !value.chars().any(char::is_control)
-        })
-        .map(str::to_owned)
-}
+pub(super) use crate::provider_adapters::auth::bounded_opt;
 
-pub(super) fn unix_now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|duration| duration.as_secs().min(i64::MAX as u64) as i64)
-        .unwrap_or(0)
-}
+pub(super) use crate::provider_adapters::auth::unix_now;
 
 /// Decodes the payload section of a JWT without verifying it — used only to
 /// surface the account email for display, never for authorization.
 pub(crate) fn email_from_jwt(access_token: &str) -> Option<String> {
-    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-    let payload = access_token.split('.').nth(1)?;
-    let bytes = URL_SAFE_NO_PAD.decode(payload).ok()?;
-    let value: Value = serde_json::from_slice(&bytes).ok()?;
+    let value = crate::provider_adapters::auth::jwt_claims(access_token)?;
     bounded_opt(
         value
             .get("email")

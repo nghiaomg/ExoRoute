@@ -8,13 +8,7 @@ use serde_json::{Value, json};
 
 pub(crate) const MAX_USAGE_QUOTAS: usize = 128;
 
-pub(in crate::provider_adapters::auth::codex) fn unix_now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-        .min(i64::MAX as u64) as i64
-}
+pub(in crate::provider_adapters::auth::codex) use crate::provider_adapters::auth::unix_now;
 
 fn first_value<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
     keys.iter()

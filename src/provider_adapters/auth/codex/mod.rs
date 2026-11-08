@@ -5,10 +5,8 @@
 
 use crate::infra::storage::{Field, Record, StorageError, Table};
 use crate::security::egress;
-use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 
 mod account;
 mod oauth;
@@ -34,7 +32,7 @@ pub const CODEX_CLI_VERSION: &str = "0.154.0";
 pub const CODEX_USER_AGENT: &str = "codex_cli_rs/0.154.0";
 pub const MAX_TOKEN_BYTES: usize = 32 * 1024;
 const MAX_CREDENTIAL_BYTES: usize = MAX_TOKEN_BYTES * 3 + 4096;
-pub const REFRESH_LEAD_SECONDS: i64 = 5 * 60;
+pub(crate) use crate::provider_adapters::auth::REFRESH_LEAD_SECONDS;
 
 pub(in crate::provider_adapters) use account::CodexAccount;
 pub(in crate::provider_adapters) use oauth::exchange_code;

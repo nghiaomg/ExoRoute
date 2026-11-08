@@ -3,14 +3,10 @@ use super::{
     MAX_OAUTH_REDIRECT_URI_BYTES, SCOPES, TOKEN_URL, enrich_account, oauth_client, oauth_client_id,
     oauth_client_secret, read_json,
 };
-use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use reqwest::Url;
-use sha2::{Digest, Sha256};
 use std::time::Duration;
 
-pub(crate) fn pkce_challenge(verifier: &str) -> String {
-    URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()))
-}
+pub(crate) use crate::provider_adapters::auth::pkce_challenge;
 
 pub(crate) fn authorization_url(
     state: &str,

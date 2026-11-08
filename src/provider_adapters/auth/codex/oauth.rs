@@ -18,9 +18,7 @@ pub fn authorization_url(state: &str, code_challenge: &str) -> Result<String, St
     Ok(url.to_string())
 }
 
-pub fn pkce_challenge(verifier: &str) -> String {
-    URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()))
-}
+pub(crate) use crate::provider_adapters::auth::pkce_challenge;
 
 pub async fn exchange_code(
     code: &str,

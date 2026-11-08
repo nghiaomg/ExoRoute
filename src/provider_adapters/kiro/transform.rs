@@ -347,10 +347,10 @@ fn convert_messages(
                         })
                     })
                     .collect();
-                if let Some(last) = history.last_mut() {
-                    if last.get("assistantResponseMessage").is_some() {
-                        last["assistantResponseMessage"]["toolUses"] = json!(tool_uses);
-                    }
+                if let Some(last) = history.last_mut()
+                    && last.get("assistantResponseMessage").is_some()
+                {
+                    last["assistantResponseMessage"]["toolUses"] = json!(tool_uses);
                 }
             }
         }
@@ -370,13 +370,12 @@ fn convert_messages(
     if pending.role.is_some() {
         flush(&mut pending, &mut history, &mut current);
     }
-    if let Some(specs) = pending_tool_specs.take() {
-        if let Some(first_user) = history
+    if let Some(specs) = pending_tool_specs.take()
+        && let Some(first_user) = history
             .iter_mut()
             .find(|item| item.get("userInputMessage").is_some())
-        {
-            attach_tool_specs(first_user, &specs);
-        }
+    {
+        attach_tool_specs(first_user, &specs);
     }
 
     // The last user turn becomes the current message.
@@ -412,19 +411,16 @@ fn convert_messages(
                 message["modelId"] = json!(model);
             }
             if let Some(context) = message.get_mut("userInputMessageContext") {
-                if context
+                let tools_empty = context
                     .get("tools")
                     .and_then(Value::as_array)
-                    .is_some_and(|list| list.is_empty())
-                {
-                    if let Some(map) = context.as_object_mut() {
-                        map.remove("tools");
-                    }
+                    .is_some_and(|list| list.is_empty());
+                if tools_empty && let Some(map) = context.as_object_mut() {
+                    map.remove("tools");
                 }
-                if context.as_object().is_some_and(|map| map.is_empty()) {
-                    if let Some(map) = message.as_object_mut() {
-                        map.remove("userInputMessageContext");
-                    }
+                let context_empty = context.as_object().is_some_and(|map| map.is_empty());
+                if context_empty && let Some(map) = message.as_object_mut() {
+                    map.remove("userInputMessageContext");
                 }
             }
         }

@@ -12,7 +12,6 @@ use crate::{
 use base64::{Engine, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 use std::time::Duration;
 
 mod account;
@@ -31,7 +30,7 @@ pub const CALLBACK_URL: &str = "http://localhost:1455/auth/callback";
 const MAX_TOKEN_BYTES: usize = 32 * 1024;
 const MAX_ACCOUNT_BYTES: usize = MAX_TOKEN_BYTES * 2 + 4096;
 const MAX_OAUTH_BODY_BYTES: usize = 64 * 1024;
-const REFRESH_LEAD_SECONDS: i64 = 300;
+pub(crate) use crate::provider_adapters::auth::REFRESH_LEAD_SECONDS;
 
 pub(in crate::provider_adapters) use account::ClineAccount;
 pub(in crate::provider_adapters) use oauth::{
