@@ -108,6 +108,30 @@ fn codex_provider_requires_its_fixed_responses_endpoint_without_api_keys() {
 }
 
 #[test]
+fn devin_cli_provider_accepts_the_local_process_endpoint() {
+    let mut input = ProviderInput {
+        id: String::new(),
+        name: "Devin CLI".to_owned(),
+        base_url: "devin://acp/stdio".to_owned(),
+        logo_url: None,
+        model_prefix: Some("devin".to_owned()),
+        adapter_id: Some(provider_adapters::DEVIN_CLI_ADAPTER_ID.to_owned()),
+        enabled: true,
+        auth_type: "none".to_owned(),
+        auth_header: None,
+        custom_headers: None,
+        api_key: None,
+        api_keys: Vec::new(),
+        local_rpm_target: None,
+        preferred_protocol: "chat_completions".to_owned(),
+        supported_protocols: vec!["chat_completions".to_owned()],
+    };
+    assert!(validate_provider(&input, provider_adapters::DEVIN_CLI_ADAPTER_ID, false).is_ok());
+    input.base_url = "https://attacker.example/acp".to_owned();
+    assert!(validate_provider(&input, provider_adapters::DEVIN_CLI_ADAPTER_ID, false).is_err());
+}
+
+#[test]
 fn provider_model_prefixes_are_normalized_and_bounded() {
     assert_eq!(
         normalized_provider_model_prefix(None, "OpenAI Compatible").unwrap(),

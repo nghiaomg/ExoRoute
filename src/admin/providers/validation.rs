@@ -231,8 +231,14 @@ pub(crate) fn validate_provider(
             "supported_protocols cannot contain duplicates",
         ));
     }
-    egress::validate_provider_url(&input.base_url, allow_private_provider_urls)
-        .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
+    // Adapter-owned transports pin their endpoint to a compile-time constant
+    // (devin://acp/stdio or https://server.codeium.com), so the generic
+    // HTTP(S) egress policy does not apply; validate_adapter_config below
+    // enforces the exact endpoint for these adapters.
+    if !provider_adapters::uses_local_transport(adapter_id) {
+        egress::validate_provider_url(&input.base_url, allow_private_provider_urls)
+            .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
+    }
     provider_adapters::validate_adapter_config(
         adapter_id,
         &input.auth_type,

@@ -108,8 +108,13 @@ pub(crate) fn validate_backup_payload(
                         );
                     }
                 }
-                egress::validate_provider_url(base_url, allow_private_provider_urls)
-                    .map_err(|_| "A provider in the backup has a URL that is not allowed by this installation.")?;
+                // Local-transport adapters pin their endpoint to a constant
+                // scheme that the HTTP(S) egress policy would reject; the
+                // send path re-checks the exact endpoint per request.
+                if !provider_adapters::uses_local_transport(adapter_id) {
+                    egress::validate_provider_url(base_url, allow_private_provider_urls)
+                        .map_err(|_| "A provider in the backup has a URL that is not allowed by this installation.")?;
+                }
                 let prefix = super::providers::normalized_provider_model_prefix_for_adapter(
                     record.optional_text("model_prefix").ok().flatten(),
                     id,
