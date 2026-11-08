@@ -32,6 +32,12 @@
   --nb-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
   --nb-shadow-lg: 0 10px 25px -4px rgba(0, 0, 0, 0.08);
   --nb-radius: 8px;
+  --surface-shell: #f1f5f9;
+  --surface-popover: #ffffff;
+  --surface-modal: rgba(255, 255, 255, 0.97);
+  --surface-backdrop: rgba(15, 23, 42, 0.34);
+  --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+  --shadow-popover: 0 16px 36px rgba(15, 23, 42, 0.16);
 
   --radius-xs: 3px;
   --radius-sm: 5px;
@@ -161,6 +167,12 @@
   --nb-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
   --nb-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.55);
   --nb-radius: 12px;
+  --surface-shell: #0e101a;
+  --surface-popover: #161824;
+  --surface-modal: rgba(14, 16, 26, 0.96);
+  --surface-backdrop: rgba(4, 5, 8, 0.78);
+  --shadow-raised: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-popover: 0 16px 40px rgba(0, 0, 0, 0.55);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -258,6 +270,12 @@
   --nb-shadow-md: 0 4px 16px rgba(10, 12, 20, 0.6);
   --nb-shadow-lg: 0 8px 24px rgba(10, 12, 20, 0.7);
   --nb-radius: 6px;
+  --surface-shell: #16161e;
+  --surface-popover: #24283b;
+  --surface-modal: #1e2030;
+  --surface-backdrop: rgba(14, 15, 24, 0.78);
+  --shadow-raised: 0 4px 16px rgba(10, 12, 20, 0.6);
+  --shadow-popover: 0 16px 40px rgba(8, 10, 20, 0.58);
 
   --radius-xs: 2px;
   --radius-sm: 4px;
@@ -373,10 +391,16 @@
    ========================================================================== */
 :root[data-palette='catppuccin'] {
   --nb-border: 1px solid rgba(205, 214, 244, 0.12);
-  --nb-shadow-sm: 0 4px 12px rgba(17, 17, 27, 0.4);
-  --nb-shadow-md: 0 8px 24px rgba(17, 17, 27, 0.5);
-  --nb-shadow-lg: 0 14px 36px rgba(17, 17, 27, 0.6);
+  --nb-shadow-sm: 0 4px 14px rgba(17, 17, 27, 0.45);
+  --nb-shadow-md: 0 8px 24px rgba(17, 17, 27, 0.6);
+  --nb-shadow-lg: 0 14px 34px rgba(17, 17, 27, 0.7);
   --nb-radius: 18px;
+  --surface-shell: #181825;
+  --surface-popover: #313244;
+  --surface-modal: #181825;
+  --surface-backdrop: rgba(12, 12, 20, 0.8);
+  --shadow-raised: 0 8px 24px rgba(17, 17, 27, 0.6);
+  --shadow-popover: 0 16px 40px rgba(8, 8, 16, 0.6);
 
   --radius-xs: 8px;
   --radius-sm: 12px;
@@ -492,6 +516,12 @@
   --nb-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --nb-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
   --nb-radius: 6px;
+  --surface-shell: #111111;
+  --surface-popover: #222226;
+  --surface-modal: #161618;
+  --surface-backdrop: rgba(0, 0, 0, 0.76);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-popover: 0 14px 36px rgba(0, 0, 0, 0.64);
 
   --radius-xs: 2px;
   --radius-sm: 4px;
@@ -606,6 +636,12 @@
   --nb-shadow-md: 0 0 18px rgba(0, 245, 213, 0.35);
   --nb-shadow-lg: 0 0 30px rgba(0, 245, 213, 0.45);
   --nb-radius: 3px;
+  --surface-shell: #08080c;
+  --surface-popover: #12121a;
+  --surface-modal: #0e0e16;
+  --surface-backdrop: rgba(3, 3, 8, 0.84);
+  --shadow-raised: 0 0 26px rgba(0, 245, 213, 0.12);
+  --shadow-popover: 0 0 28px rgba(0, 245, 213, 0.16), 0 16px 40px rgba(0, 0, 0, 0.7);
 
   --radius-xs: 1px;
   --radius-sm: 2px;

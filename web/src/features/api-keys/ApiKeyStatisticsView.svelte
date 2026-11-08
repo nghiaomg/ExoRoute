@@ -127,7 +127,7 @@
      flattens every border and shadow globally (styles/dark-mode.css). */
   .api-key-details-range { display: inline-flex; align-self: flex-start; gap: 2px; padding: 3px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper); box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)); }
   .api-key-details-range button { padding: 6px 9px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
-  .api-key-details-range button.active { color: #fff; background: var(--violet); }
+  .api-key-details-range button.active { color: var(--accent-contrast); background: var(--violet); }
   .api-key-details-loading { display: flex; align-items: center; gap: 10px; padding: 18px 2px; color: var(--muted); font-size: 12px; }
   .api-key-statistics-retry { display: flex; }
   .api-key-details-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -141,12 +141,12 @@
   .api-key-details-tokens > div { min-width: 0; display: grid; gap: 8px; padding: 15px 17px; background: var(--paper); }
   .api-key-details-tokens span { color: var(--muted); font-size: 12px; }
   .api-key-details-tokens strong { overflow: hidden; color: var(--ink); font: 600 12px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
-  .api-key-details-warning { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; color: #9d4827; border: 2px solid var(--ink); border-radius: 10px; background: #fff8f4; box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)); }
+  .api-key-details-warning { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; color: var(--accent-deep); border: 2px solid var(--ink); border-radius: 10px; background: color-mix(in srgb, var(--accent) 9%, var(--surface)); box-shadow: var(--nb-shadow-sm, 2px 2px 0 var(--ink)); }
   .api-key-details-warning :global(svg) { flex: 0 0 auto; margin-top: 1px; }
   .api-key-details-warning > div { display: grid; gap: 3px; }
   .api-key-details-warning strong { font-size: 12px; }
   .api-key-details-warning span { font-size: 12px; line-height: 1.45; }
-  .api-key-details-warning.updating { color: #755621; background: #fffdf5; }
+  .api-key-details-warning.updating { color: var(--accent-deep); background: color-mix(in srgb, var(--accent) 12%, var(--surface-raised)); }
   .api-key-details-models { display: grid; gap: 12px; padding: 18px 20px; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper); box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink)); }
   .api-key-details-models h3 { margin: 0; color: var(--ink); font: 650 15px/1.35 var(--font-sans); }
   .api-key-statistics-empty { margin: 0; color: var(--muted); font-size: 12px; }

@@ -70,14 +70,8 @@
     overscroll-behavior: contain;
     border: var(--nb-border, 2px solid var(--ink));
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--surface);
     box-shadow: var(--nb-shadow-md, 3px 3px 0 var(--ink));
-  }
-
-  :global(:root[data-theme='dark']) .request-table-card {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: #181926;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   }
 
   .request-table-card table {
@@ -94,30 +88,20 @@
     gap: 5px;
   }
   :global(.req-th-masked) {
-    color: #2563eb;
-  }
-  :global(:root[data-theme='dark']) :global(.req-th-masked) {
-    color: #93c5fd;
+    color: var(--info);
   }
   .request-table-card thead th {
     height: 42px;
     padding: 0 14px;
-    color: #626679;
-    background: #f8f9fd;
-    border-bottom: 1px solid #e9eaf0;
+    color: var(--muted);
+    background: var(--surface-sunken);
+    border-bottom: 1px solid var(--line);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.6px;
     text-transform: uppercase;
     white-space: nowrap;
     box-shadow: none;
-  }
-
-  :global(:root[data-theme='dark']) .request-table-card thead th {
-    background: #181926;
-    color: #8e93aa;
-    border-bottom-color: #282a3c;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
   /* ─── Mobile App Style (<= 650px: 320px - 430px) ─── */

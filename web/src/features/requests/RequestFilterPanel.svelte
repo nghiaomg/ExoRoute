@@ -228,7 +228,7 @@
     padding: 14px 16px;
     border: 2px solid var(--ink);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.98);
+    background: var(--surface-raised);
     box-shadow: 3px 3px 0 var(--ink);
     transition: box-shadow 0.16s ease, border-color 0.16s ease;
   }
@@ -256,13 +256,13 @@
     gap: 8px;
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid #e9eaf0;
+    border-top: 1px solid var(--line);
   }
 
   .request-filter-chips-icon {
     display: grid;
     place-items: center;
-    color: #85899b;
+    color: var(--muted);
   }
 
   /* Chips sit inside the framed panel, so they stay flat and keep the light
@@ -273,9 +273,9 @@
     gap: 6px;
     max-width: 100%;
     padding: 3px 6px 3px 10px;
-    border: 1px solid color-mix(in srgb, var(--accent) 30%, #fff);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
     border-radius: 999px;
-    background: color-mix(in srgb, var(--accent) 7%, #fff);
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
     box-shadow: none;
     font-size: 11px;
   }
@@ -289,7 +289,7 @@
   .request-filter-chip-value {
     max-width: 160px;
     overflow: hidden;
-    color: #33374b;
+    color: var(--ink);
     font-family: var(--font-mono);
     font-weight: 600;
     text-overflow: ellipsis;
@@ -311,43 +311,12 @@
   }
 
   .request-filter-chip-remove:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--accent) 30%, #fff);
+    background: color-mix(in srgb, var(--accent) 30%, var(--surface-raised));
   }
 
   .request-filter-chip-remove:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  :global(:root[data-theme='dark']) .request-filter-panel {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(24, 25, 38, 0.95);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-  }
-
-  :global(:root[data-theme='dark']) .request-filter-chips {
-    border-top-color: #282a3c;
-  }
-
-  :global(:root[data-theme='dark']) .request-filter-chip {
-    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-    background: color-mix(in srgb, var(--accent) 13%, #131313);
-  }
-
-  :global(:root[data-theme='dark']) .request-filter-chip-label {
-    color: color-mix(in srgb, var(--accent) 30%, #fff);
-  }
-
-  :global(:root[data-theme='dark']) .request-filter-chip-value {
-    color: #f0edff;
-  }
-
-  :global(:root[data-theme='dark']) .request-filter-chip-remove {
-    color: color-mix(in srgb, var(--accent) 30%, #fff);
-  }
-
-  :global(:root[data-theme='dark']) .request-filter-chip-remove:hover:not(:disabled) {
-    background: #431f12;
   }
 
   /* Tablet (768px – 1050px) */

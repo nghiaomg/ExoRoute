@@ -222,14 +222,13 @@
 </ChartFrame>
 
 <style>
-  .dimension-switch { display: inline-flex; gap: 2px; margin-bottom: 12px; padding: 3px; border: 2px solid var(--ink); border-radius: 9px; background: var(--paper); }
-  .dimension-switch button { padding: 5px 10px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; }
-  .dimension-switch button.active { color: #fff; background: var(--violet); }
+  .dimension-switch { display: inline-flex; gap: 2px; margin-bottom: 12px; padding: 3px; border: 1px solid var(--line); border-radius: var(--nb-radius); background: var(--surface-raised); }
+  .dimension-switch button { padding: 5px 10px; color: var(--muted); border: 0; border-radius: var(--radius-sm); background: transparent; font: 600 12px var(--font-sans); cursor: pointer; }
+  .dimension-switch button.active { color: var(--accent-contrast); background: var(--accent-strong); }
   .plot { position: relative; }
   .plot-svg { display: block; width: 100%; height: 196px; overflow: visible; }
   .plot-svg:focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; border-radius: 6px; }
   .axis-label { fill: var(--muted); font: 500 10px var(--font-mono); font-variant-numeric: tabular-nums; }
   .peak-label { fill: var(--ink); font: 600 11px var(--font-mono); }
-  .plot-tip { position: absolute; z-index: 6; top: 4px; transform: translateX(-50%); display: grid; gap: 2px; padding: 8px 10px; color: #fff; border-radius: 8px; background: var(--ink); box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2); font-size: 11px; line-height: 1.45; white-space: nowrap; pointer-events: none; }
-  :global(:root[data-theme='dark']) .plot-tip { color: #0b0b0b; }
+  .plot-tip { position: absolute; z-index: 6; top: 4px; transform: translateX(-50%); display: grid; gap: 2px; padding: 8px 10px; color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-popover); box-shadow: var(--shadow-popover); font-size: 11px; line-height: 1.45; white-space: nowrap; pointer-events: none; }
 </style>

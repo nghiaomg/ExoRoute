@@ -48,20 +48,18 @@
 
 <style>
   .provider-thinking-settings { gap: 10px; }
-  .provider-thinking-label { display: block; margin-bottom: 6px; color: #4e5267; font-size: var(--text-xs); font-weight: var(--font-semibold); }
+  .provider-thinking-label { display: block; margin-bottom: 6px; color: var(--ink); font-size: var(--text-xs); font-weight: var(--font-semibold); }
   .provider-thinking-textarea {
     box-sizing: border-box;
     width: 100%;
-    border: 1px solid #e5e6ed;
+    border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    background: #fff;
-    color: #44485c;
+    background: var(--surface);
+    color: var(--ink);
     font: inherit;
     font-size: var(--text-sm);
     min-height: 52px;
     padding: 6px 10px;
     resize: vertical;
   }
-  :global(:root[data-theme='dark']) .provider-thinking-label { color: #d0d2df; }
-  :global(:root[data-theme='dark']) .provider-thinking-textarea { border-color: #404252; background: #222330; color: #e3e4ee; }
 </style>

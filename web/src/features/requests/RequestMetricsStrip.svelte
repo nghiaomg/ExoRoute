@@ -57,7 +57,7 @@
     padding: 14px 16px;
     border: 2px solid var(--ink);
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--surface);
     box-shadow: 3px 3px 0 var(--ink);
     transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
   }
@@ -83,30 +83,30 @@
   }
 
   .request-metric.active .request-metric-icon {
-    background: color-mix(in srgb, var(--accent) 7%, #fff);
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
     color: var(--accent-strong);
   }
 
   .request-metric.total .request-metric-icon {
-    background: #eff6ff;
-    color: #3b82f6;
+    background: color-mix(in srgb, var(--info) 10%, var(--surface));
+    color: var(--info);
   }
 
   /* Project mint (--mint), so the "Successful" tile agrees with the outcome
      bar segment and the row accent. */
   .request-metric.success .request-metric-icon {
-    background: #eef9f3;
-    color: #36c59b;
+    background: color-mix(in srgb, var(--chart-good) 10%, var(--surface));
+    color: var(--chart-good);
   }
 
   .request-metric.duration .request-metric-icon {
-    background: #f8f9fd;
-    color: #626679;
+    background: var(--surface-sunken);
+    color: var(--muted);
   }
 
   .request-metric-label {
     grid-area: label;
-    color: #85899b;
+    color: var(--muted);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -118,59 +118,12 @@
 
   .request-metric-value {
     grid-area: value;
-    color: #33374b;
+    color: var(--ink);
     font-family: var(--font-heading);
     font-size: 22px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     line-height: 1.2;
-  }
-
-  :global(:root[data-theme='dark']) .request-metric {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: #181926;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-  }
-
-  :global(:root[data-theme='dark']) .request-metric:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
-  }
-
-  :global(:root[data-theme='dark']) .request-metric-icon {
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  :global(:root[data-theme='dark']) .request-metric.active .request-metric-icon {
-    background: color-mix(in srgb, var(--accent) 16%, transparent);
-    color: var(--accent-soft);
-    border-color: color-mix(in srgb, var(--accent) 28%, transparent);
-  }
-
-  :global(:root[data-theme='dark']) .request-metric.total .request-metric-icon {
-    background: rgba(56, 189, 248, 0.14);
-    color: #7dd3fc;
-    border-color: rgba(56, 189, 248, 0.25);
-  }
-
-  :global(:root[data-theme='dark']) .request-metric.success .request-metric-icon {
-    background: rgba(52, 211, 153, 0.14);
-    color: #6ee7b7;
-    border-color: rgba(52, 211, 153, 0.25);
-  }
-
-  :global(:root[data-theme='dark']) .request-metric.duration .request-metric-icon {
-    background: rgba(148, 163, 184, 0.12);
-    color: #cbd5e1;
-    border-color: rgba(148, 163, 184, 0.22);
-  }
-
-  :global(:root[data-theme='dark']) .request-metric-label {
-    color: #8e93aa;
-  }
-
-  :global(:root[data-theme='dark']) .request-metric-value {
-    color: #f0edff;
   }
 
   @media (max-width: 1050px) {

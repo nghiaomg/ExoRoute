@@ -9,7 +9,7 @@
 
   /* Theme Color Tokens */
   --ink: #222538;
-  --muted: #83879a;
+  --muted: #646b80;
   --line: #e9eaf0;
   --paper: #fff;
 
@@ -21,9 +21,24 @@
   --accent-deep: #c2410c;
   --accent-soft: #fdba74;
   --accent-glow: #fb923c;
+  --accent-contrast: #ffffff;
   --info: #6366f1;
   --info-soft: #a5b4fc;
   --canvas: #f6f7fb;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f1f2f7;
+  --surface-glass-base: #ffffff;
+  --surface-shell: #ffffff;
+  --surface-popover: #ffffff;
+  --surface-modal: rgba(255, 255, 255, 0.96);
+  --surface-backdrop: rgba(24, 27, 40, 0.38);
+  --text-dim: #6b7185;
+  --focus-ring: color-mix(in srgb, var(--accent) 78%, white);
+  --shadow-raised: 0 8px 28px rgba(20, 24, 38, 0.14);
+  --shadow-popover: 0 16px 40px rgba(20, 24, 38, 0.18);
+  --scrollbar-thumb: #cbcfdc;
+  --scrollbar-thumb-hover: #81879b;
   --violet: var(--accent);
   --violet-dark: var(--accent-strong);
   --mint: #36c59b;
@@ -112,6 +127,16 @@
   --surface-raised: #1e2030;
   --surface-sunken: #0f111a;
   --surface-glass-base: #0e101a;
+  --surface-shell: #0c0d14;
+  --surface-popover: #1b1c29;
+  --surface-modal: color-mix(in srgb, var(--surface-glass-base) 96%, transparent);
+  --surface-backdrop: rgba(4, 5, 8, 0.78);
+  --text-dim: #9aa0b6;
+  --focus-ring: var(--accent-soft);
+  --shadow-raised: 0 14px 40px rgba(0, 0, 0, 0.38);
+  --shadow-popover: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --scrollbar-thumb: #353952;
+  --scrollbar-thumb-hover: #60657e;
   --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
   --chart-grid: rgba(255, 255, 255, 0.09);
 }

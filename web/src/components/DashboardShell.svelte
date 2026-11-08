@@ -199,9 +199,11 @@
       </div>
     </header>
 
-    {#if updateNotice}
-      <!-- flex-shrink: 0 keeps the notice intact inside the flex column, the
-           same invariant the page sections rely on (tests/requests-layout). -->
+      {#if updateNotice}
+        <!-- flex-shrink: 0 keeps the notice intact inside the flex column, the
+             same invariant the page sections rely on (tests/requests-layout).
+             Styles live in styles/dashboard-surfaces.css with the other shell
+             surfaces so base.css stays inside its source budget. -->
       <div class="update-notice" role="status">
         <span class="update-notice-icon" aria-hidden="true"><ArrowUpCircle size={15} /></span>
         <p class="update-notice-text">

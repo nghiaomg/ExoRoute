@@ -224,7 +224,7 @@
     font-weight: 600;
     gap: 6px;
     background: #f1f2f8;
-    color: #4a4e63;
+    color: var(--ink);
     border: none !important;
     box-shadow: none !important;
   }
@@ -240,7 +240,7 @@
     width: 100%;
     box-sizing: border-box;
     border: none !important;
-    background: #ffffff;
+    background: var(--surface);
     box-shadow: none !important;
   }
   .detail-hero-main {
@@ -313,7 +313,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #4b5563;
+    color: var(--muted);
   }
   .detail-copy-btn {
     height: 30px;
@@ -322,7 +322,7 @@
     border-radius: 7px;
     font-size: 12px;
     flex-shrink: 0;
-    background: #ffffff;
+    background: var(--surface);
     border: none !important;
     box-shadow: none !important;
     font-weight: 600;
@@ -410,7 +410,7 @@
     box-sizing: border-box;
     border: none !important;
     box-shadow: none !important;
-    background: #ffffff;
+    background: var(--surface);
   }
   .detail-card-header h3 {
     font-size: 15px;

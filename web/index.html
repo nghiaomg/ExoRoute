@@ -5,37 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#f6f7fb" />
     <script>
-      try {
-        // Resolves the stored theme id to its base scheme before any CSS
-        // loads so switching palettes cannot flash the classic light theme.
-        // lib/theme.ts owns the canonical id list; keep both in sync.
+      (() => {
         const themeIds = ['light', 'dark', 'tokyo-night', 'catppuccin', 'linear', 'cyber-neon', 'minimal-light'];
         const darkIds = new Set(['dark', 'tokyo-night', 'catppuccin', 'linear', 'cyber-neon']);
-        const saved = localStorage.getItem('exoroute.theme');
-        const id = themeIds.includes(saved) ? saved
-          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        const scheme = darkIds.has(id) ? 'dark' : 'light';
+        const themeColors = {
+          light: '#f6f7fb', dark: '#11121b', 'tokyo-night': '#1a1b26',
+          catppuccin: '#1e1e2e', linear: '#111111', 'cyber-neon': '#0a0a0f',
+          'minimal-light': '#f8fafc',
+        };
+        let saved = null;
+        try { saved = localStorage.getItem('exoroute.theme'); } catch {}
+        const id = themeIds.includes(saved) ? saved : 'system';
+        const scheme = id === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : (darkIds.has(id) ? 'dark' : 'light');
+        const palette = id === 'system' ? scheme : id;
         const root = document.documentElement;
         root.dataset.theme = scheme;
-        root.dataset.palette = id;
-        root.dataset.themeStyle = id;
+        root.dataset.palette = palette;
+        root.dataset.themeStyle = palette;
         root.style.colorScheme = scheme;
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', scheme === 'dark' ? '#11121b' : '#f6f7fb');
-        const savedLocale = localStorage.getItem('exoroute.locale');
-        if (savedLocale) {
-          document.documentElement.lang = savedLocale;
-          if (savedLocale === 'ar') document.documentElement.dir = 'rtl';
-        }
-      } catch {}
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[palette]);
+        try {
+          const savedLocale = localStorage.getItem('exoroute.locale');
+          if (savedLocale) {
+            root.lang = savedLocale;
+            if (savedLocale === 'ar') root.dir = 'rtl';
+          }
+        } catch {}
+      })();
     </script>
     <meta name="description" content="ExoRoute gateway administration" />
     <title>ExoRoute — Gateway</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="ExoRoute" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

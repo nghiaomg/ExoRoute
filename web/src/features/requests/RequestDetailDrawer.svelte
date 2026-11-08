@@ -197,7 +197,7 @@
     padding: 14px 16px;
     border: 2px solid var(--ink);
     border-radius: 10px;
-    background: #f8f9fd;
+    background: var(--surface-sunken);
     box-shadow: 2px 2px 0 var(--ink);
   }
 
@@ -209,7 +209,7 @@
 
   .request-drawer-model {
     overflow: hidden;
-    color: #33374b;
+    color: var(--ink);
     font-family: var(--font-heading);
     font-size: 16px;
     font-weight: 700;
@@ -219,7 +219,7 @@
 
   .request-drawer-subtitle {
     overflow: hidden;
-    color: #85899b;
+    color: var(--muted);
     font-size: 12px;
     font-weight: 500;
     text-overflow: ellipsis;
@@ -242,11 +242,11 @@
     padding: 8px 10px;
     border: none;
     border-radius: 8px;
-    background: #f8f9fd;
+    background: var(--surface-sunken);
   }
 
   .request-drawer-fields dt {
-    color: #85899b;
+    color: var(--muted);
     font-size: 10.5px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -256,7 +256,7 @@
   .request-drawer-fields dd {
     margin: 0;
     overflow: hidden;
-    color: #33374b;
+    color: var(--ink);
     font-size: 12.5px;
     font-weight: 600;
     text-overflow: ellipsis;
@@ -270,15 +270,15 @@
 
   .request-drawer-error {
     padding: 12px 14px;
-    border: 2px solid #b91c1c;
+    border: 2px solid var(--chart-critical);
     border-radius: 10px;
-    background: #fef2f2;
-    box-shadow: 2px 2px 0 #b91c1c;
+    background: color-mix(in srgb, var(--chart-critical) 9%, var(--surface));
+    box-shadow: 2px 2px 0 var(--chart-critical);
   }
 
   .request-drawer-error h3 {
     margin: 0 0 6px;
-    color: #dc2626;
+    color: var(--chart-critical);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -287,7 +287,7 @@
 
   .request-drawer-error p {
     margin: 0;
-    color: #991b1b;
+    color: var(--chart-critical);
     font-family: var(--font-mono);
     font-size: 11.5px;
     line-height: var(--leading-normal);
@@ -311,7 +311,7 @@
   }
 
   .request-drawer-id-label {
-    color: #85899b;
+    color: var(--muted);
     font-size: 10.5px;
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -322,62 +322,16 @@
   .request-drawer-id code {
     display: inline-block;
     overflow: hidden;
-    color: #ea580c;
+    color: var(--accent-strong);
     font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background: #fff7ed;
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
     border: none;
     border-radius: 6px;
     padding: 2px 6px;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-summary {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: #2b1d18;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-model {
-    color: #f0edff;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-subtitle {
-    color: #fed7aa;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-fields > div {
-    border-color: rgba(255, 255, 255, 0.05);
-    background: rgba(255, 255, 255, 0.03);
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-fields dt {
-    color: #8e93aa;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-fields dd {
-    color: #d9dbe9;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-id code {
-    background: #222436;
-    border-color: #282a3c;
-    color: #d9dbe9;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-error {
-    border-color: #4c1d1d;
-    background: #2a1515;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-error h3,
-  :global(:root[data-theme='dark']) .request-drawer-error p {
-    color: #fca5a5;
-  }
-
-  :global(:root[data-theme='dark']) .request-drawer-footer {
-    border-top-color: #282a3c;
   }
 
   @media (max-width: 650px) {

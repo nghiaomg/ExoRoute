@@ -155,7 +155,7 @@
     align-items: flex-start;
     justify-content: center;
     padding-top: 12vh;
-    background: rgba(15, 23, 42, 0.4);
+    background: var(--surface-backdrop);
   }
 
   .palette {
@@ -211,7 +211,7 @@
   }
 
   .palette-entry.active {
-    background: color-mix(in srgb, var(--accent) 14%, #fff);
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
   }
 
   .palette-entry-kind {
@@ -242,10 +242,10 @@
     color: var(--muted);
   }
 
-  :global(:root[data-theme='dark']) .palette { background: color-mix(in srgb, var(--surface-glass-base) 97%, transparent); color: #e2e8f0; }
+  :global(:root[data-theme='dark']) .palette { background: var(--surface-modal); color: var(--ink); }
   :global(:root[data-theme='dark']) .palette-entry.active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
   :global(:root[data-theme='dark']) .palette-input {
     background: transparent;
-    color: #e2e8f0;
+    color: var(--ink);
   }
 </style>

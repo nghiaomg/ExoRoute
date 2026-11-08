@@ -1,7 +1,7 @@
 /* Resource & Operational Limits Overrides */
 .settings-view .resource-limits-panel {
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--surface);
 }
 .settings-view .resource-limits-content {
   padding: 0 24px 24px;
@@ -9,22 +9,22 @@
 .settings-view .resource-limits-active {
   padding: 14px 18px;
   border-radius: 12px;
-  background: #f4f5fc;
-  color: #4b4f65;
+  background: var(--surface-sunken);
+  color: var(--muted);
   margin-bottom: 18px;
 }
 .settings-view .resource-limits-active strong {
-  color: #2b2e40;
+  color: var(--ink);
 }
 .settings-view .resource-limit-field {
   padding: 14px 16px;
   border-radius: 12px;
-  background: #f7f8fd;
+  background: var(--surface-sunken);
 }
 .settings-view .resource-limit-input input,
 .settings-view .resource-limit-input select {
-  background: #ffffff;
-  color: #2b2e40;
+  background: var(--surface);
+  color: var(--ink);
   border-radius: 8px;
   font-size: 13px;
 }
@@ -35,7 +35,7 @@
 }
 .settings-view .resource-limit-input input:focus,
 .settings-view .resource-limit-input select:focus {
-  background: #ffffff;
+  background: var(--surface);
   outline: none;
 }
 .settings-view .resource-continuity-control strong {
@@ -45,7 +45,7 @@
 /* Output styles panel */
 .settings-view .output-styles-panel .panel-icon {
   color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
 }
 .settings-view .output-styles-content {
   display: flex;
@@ -70,16 +70,16 @@
   gap: 14px;
   padding: 14px 16px;
   border-radius: 12px;
-  background: #f7f8fd;
+  background: var(--surface-sunken);
   cursor: pointer;
-  border: 1px solid #edf0f8;
+  border: 1px solid var(--line);
   transition: background 0.15s ease;
 }
 .output-style-row:hover {
-  background: #eff2fa;
+  background: var(--surface-sunken);
 }
 .output-style-row .ark-checkbox-control {
-  border: 1.5px solid #cbceda !important;
+  border: 1.5px solid var(--line) !important;
 }
 .output-style-row .ark-checkbox-root[data-state="checked"] .ark-checkbox-control {
   background: var(--accent) !important;
@@ -92,7 +92,7 @@
   gap: 4px;
 }
 .output-style-copy strong {
-  color: #2b2e40;
+  color: var(--ink);
   font-size: 13px;
 }
 .output-style-copy small {
@@ -137,7 +137,7 @@
 /* Database Backup Panel Overrides */
 .settings-view .database-panel {
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--surface);
 }
 .settings-view .database-content {
   padding: 0 24px 24px;
@@ -146,19 +146,19 @@
 .settings-view .database-log-option {
   padding: 14px 18px;
   border-radius: 12px;
-  background: #f7f8fd;
+  background: var(--surface-sunken);
   width: 100%;
 }
 .settings-view .database-file-label {
-  background: #edeef6;
-  color: #4b4f65;
+  background: var(--surface-sunken);
+  color: var(--muted);
   border-radius: 8px;
 }
 .settings-view .database-file-label:hover {
-  background: #e2e4f0;
+  background: var(--line);
 }
 .settings-view .database-file-label.has-file {
-  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
   color: var(--accent-strong);
 }
 
@@ -180,8 +180,8 @@
   padding: 0;
   border-radius: var(--radius-full, 9999px);
   border: none;
-  background: rgba(0, 0, 0, 0.04);
-  color: #64748b;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  color: var(--muted);
   cursor: pointer;
   flex-shrink: 0;
   box-shadow: none;
@@ -204,7 +204,7 @@
 .config-help-desc-box {
   padding: 10px 13px;
   border-radius: var(--radius-md, 8px);
-  background: rgba(0, 0, 0, 0.03);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
   border: none;
   box-shadow: none;
 }
@@ -213,7 +213,7 @@
   margin: 0;
   font-size: var(--text-xs);
   line-height: 1.55;
-  color: #334155;
+  color: var(--ink);
   font-weight: var(--font-medium, 500);
 }
 
@@ -223,7 +223,7 @@
   gap: 7px;
   padding: 10px 13px;
   border-radius: var(--radius-md, 8px);
-  background: rgba(244, 63, 94, 0.07);
+  background: color-mix(in srgb, var(--chart-critical) 7%, transparent);
   border: none;
   box-shadow: none;
 }
@@ -240,8 +240,8 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: var(--radius-sm, 6px);
-  background: rgba(225, 29, 72, 0.14);
-  color: #be123c;
+  background: color-mix(in srgb, var(--chart-critical) 14%, transparent);
+  color: var(--chart-critical);
   font-size: 11px;
   font-weight: var(--font-semibold, 600);
   letter-spacing: 0.01em;
@@ -253,8 +253,8 @@
   display: inline-block;
   padding: 2px 6px;
   border-radius: var(--radius-sm, 4px);
-  background: rgba(0, 0, 0, 0.06);
-  color: #0f172a;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
   font-family: var(--font-mono, monospace);
   font-size: 11px;
   font-weight: var(--font-semibold, 600);
@@ -271,14 +271,14 @@
 }
 
 .config-help-violation-box .violation-label {
-  color: #be123c;
+  color: var(--chart-critical);
   font-weight: var(--font-semibold, 600);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .config-help-violation-box .violation-text {
-  color: #475569;
+  color: var(--muted);
   font-weight: var(--font-medium, 500);
 }
 
@@ -297,12 +297,12 @@
 
 .config-help-meta-row .meta-label {
   font-size: 11px;
-  color: #64748b;
+  color: var(--muted);
   font-weight: var(--font-medium, 500);
 }
 
 .config-help-meta-row .meta-val {
   font-size: var(--text-xs);
-  color: #1e293b;
+  color: var(--ink);
   font-weight: var(--font-semibold, 600);
 }

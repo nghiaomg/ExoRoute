@@ -21,8 +21,8 @@
 .devin-key-input { flex: 1 1 260px; min-width: 220px; }
 
 .devin-verify-result { margin: 0; font-size: 12.5px; line-height: 1.5; }
-.devin-verify-result.ok { color: #15803d; }
-.devin-verify-result.failed { color: #b91c1c; }
+.devin-verify-result.ok { color: var(--chart-good); }
+.devin-verify-result.failed { color: var(--chart-critical); }
 
 .devin-form { display: grid; gap: 12px; }
 .devin-form-row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }

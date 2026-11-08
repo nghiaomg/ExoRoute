@@ -171,18 +171,11 @@
   .request-table-card td.req-time { text-align: right; }
 
   .request-table-card tr.live-request {
-    background: #fffaf2;
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
   }
   .request-table-card .status-badge.live {
-    color: #9a3412;
-    background: color-mix(in srgb, var(--accent) 14%, #fff);
-  }
-  :global(:root[data-theme='dark']) .request-table-card tr.live-request {
-    background: #261f1d;
-  }
-  :global(:root[data-theme='dark']) .request-table-card .status-badge.live {
-    color: color-mix(in srgb, var(--accent) 30%, #fff);
-    background: #431f12;
+    color: var(--accent-deep);
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
   }
   .req-model-title {
     display: block;
@@ -191,10 +184,7 @@
     white-space: nowrap;
     font-size: 13px;
     font-weight: 600;
-    color: #242738;
-  }
-  :global(:root[data-theme='dark']) .req-model-title {
-    color: #f1f2f9;
+    color: var(--ink);
   }
   .req-model-meta {
     display: flex;
@@ -202,20 +192,17 @@
     gap: 5px;
     margin-top: 2px;
     font-size: 11.5px;
-    color: #84889c;
+    color: var(--text-dim);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .req-provider-chip {
-    color: #61657c;
+    color: var(--muted);
     font-weight: 500;
   }
-  :global(:root[data-theme='dark']) .req-provider-chip {
-    color: #a4a8bd;
-  }
   .req-alias-chip {
-    color: #9296aa;
+    color: var(--text-dim);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -245,7 +232,7 @@
     margin-top: 4px;
   }
   .req-error-expand summary {
-    color: #dc2626;
+    color: var(--chart-critical);
     cursor: pointer;
     font-size: 11px;
     font-weight: 600;
@@ -260,28 +247,17 @@
     overflow: auto;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    color: #7f1d1d;
-    background: #fff5f5;
-    border: 1px solid #fed7d7;
+    color: var(--chart-critical);
+    background: color-mix(in srgb, var(--chart-critical) 8%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--chart-critical) 32%, var(--line));
     border-radius: 6px;
     padding: 6px 8px;
     font: 500 11px/1.4 var(--font-mono);
   }
-  :global(:root[data-theme='dark']) .req-error-expand summary {
-    color: #f87171;
-  }
-  :global(:root[data-theme='dark']) .req-error-expand pre {
-    color: #fecaca;
-    background: #271618;
-    border-color: #4c1d22;
-  }
   .request-error-credential {
     margin-top: 4px;
-    color: #7c2d12;
+    color: var(--accent-deep);
     font-size: 11px;
-  }
-  :global(:root[data-theme='dark']) .request-error-credential {
-    color: color-mix(in srgb, var(--accent) 30%, #fff);
   }
   .request-table-card td.req-time {
     font-size: 12px;
@@ -320,9 +296,9 @@
       grid-template-rows: auto auto auto !important;
       gap: 6px 10px !important;
       padding: 14px !important;
-      background: #ffffff !important;
+      background: var(--surface) !important;
       border-radius: 14px !important;
-      border: 1px solid #eeeff4 !important;
+      border: 1px solid var(--line) !important;
       box-shadow: none !important;
       box-sizing: border-box;
       width: 100% !important;
@@ -330,7 +306,7 @@
     }
     .request-table-card tr.request-row:active {
       transform: scale(0.99);
-      background: #fafafc !important;
+      background: var(--surface-sunken) !important;
     }
     .request-table-card td.req-model {
       grid-column: 1 !important;
@@ -362,7 +338,7 @@
       display: flex !important;
       align-items: center !important;
       font-size: 12px !important;
-      color: #8e92a4 !important;
+      color: var(--text-dim) !important;
       padding: 0 !important;
       border: none !important;
       min-width: 0 !important;
@@ -384,28 +360,11 @@
       align-items: center !important;
       justify-content: flex-end !important;
       font-size: 11.5px !important;
-      color: #9fa3b5 !important;
+      color: var(--text-dim) !important;
       padding: 2px 0 0 !important;
       border: none !important;
       text-align: right !important;
     }
   }
 
-  /* Dark mode overrides for mobile card items */
-  :global(:root[data-theme='dark']) .request-table-card tr.request-row {
-    background: #181926 !important;
-    border-color: #202131 !important;
-  }
-  :global(:root[data-theme='dark']) .request-table-card tr.request-row:active {
-    background: #1f2032 !important;
-  }
-  :global(:root[data-theme='dark']) .request-table-card tr.live-request {
-    background: #261f1d !important;
-  }
-  :global(:root[data-theme='dark']) .request-table-card td.req-key {
-    color: #8c8fa4 !important;
-  }
-  :global(:root[data-theme='dark']) .request-table-card td.req-time {
-    color: #7b7f94 !important;
-  }
 </style>

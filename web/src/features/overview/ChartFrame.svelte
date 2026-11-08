@@ -56,16 +56,15 @@
 </section>
 
 <style>
-  .chart-card { min-width: 0; padding: 18px 20px 20px; border: 2px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 3px 3px 0 var(--ink); }
+  .chart-card { min-width: 0; padding: 18px 20px 20px; border: var(--nb-border); border-radius: var(--nb-radius); background: var(--paper); color: var(--ink); box-shadow: var(--nb-shadow-md); }
   .chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
   .chart-titles { min-width: 0; }
   .chart-titles h2 { margin: 0; color: var(--ink); font: 650 15px/1.35 var(--font-sans); }
   .chart-titles p { margin: 3px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
   .chart-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 7px; }
-  .chart-badge { padding: 2px 7px; color: #755621; border: 1px solid #ebd9a9; border-radius: 999px; background: #fffdf5; font: 600 11px var(--font-sans); white-space: nowrap; }
-  .chart-badge.partial { color: #9a3412; border-color: #f3cdb3; background: color-mix(in srgb, var(--accent) 7%, #fff); }
-  :global(:root[data-theme='dark']) .chart-badge { color: #f5d9a8; border-color: #5a4a24; background: #2a2314; }
-  :global(:root[data-theme='dark']) .chart-badge.partial { color: #f7c9a8; border-color: #5c3a24; background: #2b1e14; }
+  /* Accent-token mixes: one rule covers light, dark and every palette. */
+  .chart-badge { padding: 2px 7px; color: color-mix(in srgb, var(--accent-deep) 80%, var(--ink)); border: 1px solid color-mix(in srgb, var(--accent-soft) 45%, var(--line)); border-radius: var(--radius-full); background: color-mix(in srgb, var(--accent) 9%, var(--surface-raised)); font: 600 11px var(--font-sans); white-space: nowrap; }
+  .chart-badge.partial { color: color-mix(in srgb, var(--accent-deep) 70%, var(--ink)); border-color: color-mix(in srgb, var(--accent-glow) 38%, var(--line)); background: color-mix(in srgb, var(--accent) 13%, var(--surface-raised)); }
   .chart-empty { margin: 0; padding: 26px 0; color: var(--muted); font-size: 12px; text-align: center; }
   .chart-note { margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 </style>

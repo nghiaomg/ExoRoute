@@ -17,7 +17,13 @@
 :root[data-theme='dark'] .ark-select-indicators { color: #8e91a4; }
 :root[data-theme='dark'] .ark-select-clear-trigger { color: #8e91a4; }
 :root[data-theme='dark'] .ark-select-clear-trigger:hover { color: #e3e4ee; }
-:root[data-theme='dark'] .ark-select-content { background: #1b1c29; border-color: #3a3c4b; box-shadow: 0 16px 40px #0008; }
+:root[data-theme='dark'] .ark-select-content,
+:root[data-theme='dark'] .ark-combobox-content {
+  color: var(--ink);
+  background: var(--surface-popover);
+  border-color: var(--line);
+  box-shadow: var(--shadow-popover);
+}
 :root[data-theme='dark'] .ark-select-item-group-label { color: #8e91a4; }
 :root[data-theme='dark'] .ark-select-item { color: #d0d2df; }
 :root[data-theme='dark'] .ark-select-item[data-highlighted],
@@ -35,7 +41,6 @@
 :root[data-theme='dark'] .ark-combobox-indicators { color: #8e91a4; }
 :root[data-theme='dark'] .ark-combobox-clear { color: #8e91a4; }
 :root[data-theme='dark'] .ark-combobox-clear:hover { color: #e3e4ee; }
-:root[data-theme='dark'] .ark-combobox-content { background: #1b1c29; border-color: #3a3c4b; box-shadow: 0 16px 40px #0008; }
 :root[data-theme='dark'] .ark-combobox-item { color: #d0d2df; }
 :root[data-theme='dark'] .ark-combobox-item[data-highlighted],
 :root[data-theme='dark'] .ark-combobox-item:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
@@ -46,7 +51,14 @@
 :root[data-theme='dark'] .ark-combobox-pill .ark-combobox-input { color: #e3e4ee; background: color-mix(in srgb, var(--accent) 8%, transparent); }
 :root[data-theme='dark'] .ark-combobox-pill .ark-combobox-input:focus { background: #222330; }
 
-:root[data-theme='dark'] .ark-tooltip-content { background: #28253f; color: #f0edff; border: 1px solid #464064; box-shadow: 0 6px 18px #0009; }
+:root[data-theme='dark'] .ark-select-content,
+:root[data-theme='dark'] .ark-combobox-content,
+:root[data-theme='dark'] .ark-tooltip-content {
+  color: var(--ink);
+  background: var(--surface-popover);
+  border-color: var(--line);
+  box-shadow: var(--shadow-popover);
+}
 
 :root[data-theme='dark'] .ark-field-label { color: #d0d2df; }
 :root[data-theme='dark'] .provider-preset-value { color: #c1c3d2; background: #20212f; border-color: #3a3c4d; }

@@ -132,9 +132,9 @@
     padding: 6px 13px;
     border: 2px solid var(--ink);
     border-radius: 999px;
-    background: #ffffff;
+    background: var(--surface);
     box-shadow: 2px 2px 0 var(--ink);
-    color: #484c60;
+    color: var(--ink);
     font-size: var(--text-2xs);
     font-weight: 700;
     cursor: pointer;
@@ -155,66 +155,8 @@
   }
 
   .request-mask-trigger.active {
-    background: #eff6ff;
-    color: #1d4ed8;
-  }
-
-  :global(:root[data-theme='dark']) .request-mask-trigger {
-    background: #181926;
-    color: #cbd5e1;
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
-  }
-
-  :global(:root[data-theme='dark']) .request-mask-trigger.active {
-    background: #1e293b;
-    color: #93c5fd;
-    border-color: #3b82f6;
-  }
-
-  .request-mask-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 17px;
-    height: 17px;
-    padding: 0 4px;
-    border-radius: 999px;
-    background: #2563eb;
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1;
-  }
-
-  :global(:root[data-theme='dark']) .request-mask-badge {
-    background: #3b82f6;
-  }
-
-  .request-mask-dropdown {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    z-index: 50;
-    width: 270px;
-    padding: 12px;
-    border: 2px solid var(--ink);
-    border-radius: 12px;
-    background: #ffffff;
-    box-shadow: 3px 3px 0 var(--ink);
-    box-sizing: border-box;
-    animation: request-mask-dropdown-in 0.12s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  @keyframes request-mask-dropdown-in {
-    from {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    background: color-mix(in srgb, var(--info) 10%, var(--surface));
+    color: var(--info);
   }
 
   :global(:root[data-theme='dark']) .request-mask-dropdown {
@@ -305,7 +247,7 @@
     font-weight: 700;
     letter-spacing: 1px;
     color: #2563eb;
-    background: #eff6ff;
+    background: color-mix(in srgb, var(--info) 10%, var(--surface));
     padding: 1px 5px;
     border-radius: 4px;
   }
@@ -333,7 +275,7 @@
     border: 1px solid #d4d6e0;
     border-radius: 6px;
     background: #fafafa;
-    color: #484c60;
+    color: var(--ink);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;

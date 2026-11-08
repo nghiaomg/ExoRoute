@@ -99,6 +99,38 @@ test('newly introduced token usage and state keys exist and are translated', asy
   }
 });
 
+test('appearance and theme strings have localized translations in every non-English locale', async () => {
+  const { catalogs, en } = await import('../src/lib/i18n');
+  const translatedKeys = [
+    'Appearance',
+    'Theme',
+    'Pick the dashboard color theme. The choice is saved in this browser only.',
+    'The default light dashboard with warm orange accents.',
+    'Glassy dark surfaces with the signature orange accent.',
+    'Cool Tokyo-night blues for long developer sessions.',
+    'Soft dark pastels that stay easy on the eyes.',
+    'Quiet greys with a single indigo accent.',
+    'High-energy neon glow on deep space black.',
+    'A clean light theme for bright rooms and screenshots.',
+    'System theme',
+    'Follow your operating system appearance setting.',
+    'Currently dark',
+    'Currently light',
+    // Release update notice.
+    'Update available',
+    'ExoRoute {latest} is available. You are running {current}.',
+    'View release',
+  ];
+
+  for (const [localeName, catalog] of Object.entries(catalogs)) {
+    if (localeName === 'en') continue;
+    for (const key of translatedKeys) {
+      const value = catalog[key as keyof typeof catalog];
+      assert.ok(typeof value === 'string' && value.trim().length > 0, `${localeName} is missing ${key}`);
+      assert.notEqual(value.trim(), en[key as keyof typeof en].trim(), `${localeName} has untranslated English for ${key}`);
+    }
+  }
+});
 test('default locale is English and only changes when explicitly stored', async () => {
   const { getStoredLocale, saveLocale } = await import('../src/lib/i18n');
 

@@ -137,29 +137,29 @@
     width: 26px;
     height: 26px;
     border-radius: 6px;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    color: #64748b;
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    color: var(--muted);
     cursor: pointer;
     transition: all 0.12s ease;
   }
   .preset-action-icon:hover:not(:disabled) {
-    background: #f1f5f9;
-    color: #0f172a;
-    border-color: #cbd5e1;
+    background: var(--surface-sunken);
+    color: var(--ink);
+    border-color: var(--line);
   }
   .preset-action-icon.danger:hover:not(:disabled) {
-    background: #fef2f2;
-    color: #ef4444;
-    border-color: #fecaca;
+    background: color-mix(in srgb, var(--chart-critical) 9%, var(--surface));
+    color: var(--chart-critical);
+    border-color: color-mix(in srgb, var(--chart-critical) 32%, var(--line));
   }
   .preset-action-icon:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }
   .preset-label-badge.warning-label {
-    background: #fef2f2;
-    color: #dc2626;
+    background: color-mix(in srgb, var(--chart-critical) 9%, var(--surface));
+    color: var(--chart-critical);
   }
   .preset-label-badge.protocol-badge {
     font-size: 11px;
@@ -167,22 +167,22 @@
   }
 
   :global(:root[data-theme='dark']) .preset-action-icon {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
-    color: #94a3b8;
+    background: color-mix(in srgb, var(--surface-raised) 4%, transparent);
+    border-color: var(--line);
+    color: var(--muted);
   }
   :global(:root[data-theme='dark']) .preset-action-icon:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    color: #f1f5f9;
-    border-color: rgba(255, 255, 255, 0.15);
+    background: color-mix(in srgb, var(--surface-raised) 10%, transparent);
+    color: var(--ink);
+    border-color: color-mix(in srgb, var(--ink) 15%, transparent);
   }
   :global(:root[data-theme='dark']) .preset-action-icon.danger:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.18);
-    color: #f87171;
-    border-color: rgba(239, 68, 68, 0.3);
+    background: color-mix(in srgb, var(--chart-critical) 18%, transparent);
+    color: var(--chart-critical);
+    border-color: color-mix(in srgb, var(--chart-critical) 30%, transparent);
   }
   :global(:root[data-theme='dark']) .preset-label-badge.warning-label {
-    background: rgba(239, 68, 68, 0.16);
-    color: #f87171;
+    background: color-mix(in srgb, var(--chart-critical) 16%, transparent);
+    color: var(--chart-critical);
   }
 </style>

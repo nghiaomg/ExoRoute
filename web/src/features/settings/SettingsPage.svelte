@@ -12,7 +12,7 @@
   import { formatUptime, type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
   import type { Overview, PublicSettings, UpdateCheckResult } from '../../lib/types';
-  import type { ThemeId } from '../../lib/theme';
+  import type { ThemeId, ThemePreference } from '../../lib/theme';
   import AdminPasswordChangeDialog from './AdminPasswordChangeDialog.svelte';
   import AppearancePanel from './AppearancePanel.svelte';
   import DatabaseBackupPanel from './DatabaseBackupPanel.svelte';
@@ -24,7 +24,9 @@ import { localizedError } from '../../lib/errors';
   export let tr: Translate;
   export let locale: Locale;
   export let theme: ThemeId = 'light';
+  export let themePreference: ThemePreference = 'system';
   export let onThemeChange: (id: ThemeId) => void = () => {};
+  export let onThemePreferenceChange: (preference: ThemePreference) => void = () => {};
   export let onNavigate: (page: DashboardPage) => void;
   export let onConnectionChange: (state: 'idle' | 'loading' | 'loaded' | 'error') => void;
   export let onAuthenticationReset: () => void;
@@ -392,7 +394,7 @@ import { localizedError } from '../../lib/errors';
 
       <!-- Appearance -->
       <Tabs.Content class="settings-tab-pane {activeTab === 'appearance' ? 'active' : ''}" value="appearance">
-        <AppearancePanel {tr} {theme} onThemeChange={onThemeChange} />
+        <AppearancePanel {tr} {theme} {themePreference} onThemeChange={onThemeChange} onThemePreferenceChange={onThemePreferenceChange} />
       </Tabs.Content>
 
       <!-- Tab 2: Operational Settings -->

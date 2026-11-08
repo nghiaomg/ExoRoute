@@ -31,7 +31,7 @@
     padding: 8px 0;
     border: 2px solid var(--ink);
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--surface);
     box-shadow: 3px 3px 0 var(--ink);
   }
 
@@ -44,13 +44,13 @@
     gap: 12px;
     height: 50px;
     padding: 0 14px;
-    border-bottom: 1px solid #f1f2f6;
+    border-bottom: 1px solid var(--line);
   }
 
   .request-skeleton-block {
     height: 10px;
     border-radius: 999px;
-    background: linear-gradient(90deg, #f1f2f6 25%, #e4e5ee 37%, #f1f2f6 63%);
+    background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--surface-raised) 37%, var(--surface-sunken) 63%);
     background-size: 400% 100%;
     animation: request-skeleton-shimmer 1.4s ease infinite;
   }
@@ -78,22 +78,6 @@
     }
   }
 
-  :global(:root[data-theme='dark']) .request-skeleton {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: #181926;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-  }
-
-  :global(:root[data-theme='dark']) .request-skeleton-row {
-    border-bottom-color: #222436;
-  }
-
-  :global(:root[data-theme='dark']) .request-skeleton-block {
-    background: linear-gradient(90deg, #20223240 25%, #282a3c80 37%, #20223240 63%);
-    background-color: #222436;
-    background-size: 400% 100%;
-  }
-
   @media (max-width: 650px) {
     .request-skeleton {
       background: transparent;
@@ -107,7 +91,7 @@
       padding: 14px;
       border: 2px solid var(--ink);
       border-radius: 14px;
-      background: #ffffff;
+      background: var(--surface);
       box-shadow: 3px 3px 0 var(--ink);
       grid-template-columns: 1fr auto;
       grid-template-areas:

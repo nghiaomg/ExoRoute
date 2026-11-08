@@ -88,7 +88,7 @@
           <span class="request-error-box-title">{tr('Error message')}</span>
           <button type="button" class="secondary-button compact copy-error-button" onclick={copyErrorText} title={tr('Copy error')}>
             {#if errorCopied}
-              <Check size={13} color="#278e6d" />
+              <Check size={13} color="var(--chart-good)" />
               <span>{tr('Copied!')}</span>
             {:else}
               <Copy size={13} />
@@ -118,13 +118,9 @@
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 10px;
     padding: 12px;
-    background: #f8f9fd;
+    background: var(--surface-sunken);
     border: none;
     border-radius: 10px;
-  }
-  :global(:root[data-theme='dark']) .request-error-meta-grid {
-    background: #1c1d2c;
-    border-color: #292b3f;
   }
   .error-meta-card {
     display: flex;
@@ -136,21 +132,20 @@
   .error-meta-label {
     font-size: 10.5px;
     font-weight: 700;
-    color: #85899b;
+    color: var(--muted);
     letter-spacing: 0.5px;
   }
   .error-meta-val {
     font-size: 12.5px;
-    color: #33374b;
+    color: var(--ink);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  :global(:root[data-theme='dark']) .error-meta-val { color: #e2e4ef; }
   .error-meta-code {
     font-family: var(--font-mono);
     font-size: 11.5px;
-    color: #c2410c;
+    color: var(--accent-strong);
     word-break: break-all;
   }
   .request-error-box {
@@ -159,31 +154,22 @@
     border: 2px solid var(--ink);
     border-radius: 10px;
     overflow: hidden;
-    background: #fffaf5;
+    background: color-mix(in srgb, var(--chart-critical) 6%, var(--surface));
     box-shadow: 2px 2px 0 var(--ink);
-  }
-  :global(:root[data-theme='dark']) .request-error-box {
-    border-color: #6c2e17;
-    background: #1f1816;
   }
   .request-error-box-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
-    background: #ffedd5;
-    border-bottom: 1px solid #fed7aa;
-  }
-  :global(:root[data-theme='dark']) .request-error-box-header {
-    background: #2e1d18;
-    border-bottom-color: #552414;
+    background: color-mix(in srgb, var(--chart-critical) 11%, var(--surface-raised));
+    border-bottom: 1px solid color-mix(in srgb, var(--chart-critical) 28%, var(--line));
   }
   .request-error-box-title {
     font-size: 12px;
     font-weight: 700;
-    color: #9a3412;
+    color: var(--chart-critical);
   }
-  :global(:root[data-theme='dark']) .request-error-box-title { color: #fdba74; }
   /* Inherits `.secondary-button`'s ink frame and radius; only the compact size
      is local. */
   .copy-error-button {
@@ -205,8 +191,7 @@
     font-family: var(--font-mono);
     font-size: 12px;
     line-height: 1.5;
-    color: #7f1d1d;
+    color: var(--chart-critical);
     user-select: text;
   }
-  :global(:root[data-theme='dark']) .request-error-pre { color: #fecaca; }
 </style>

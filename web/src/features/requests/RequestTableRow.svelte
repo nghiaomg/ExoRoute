@@ -31,9 +31,9 @@
   export let onSelect: (request: RequestLog | RequestLiveRow) => void = () => {};
   export let onViewError: (request: RequestLog | RequestLiveRow) => void = () => {};
 
-  // Provider colours come from a fixed palette; the monogram and dot pick the
-  // same bucket for one provider so rows stay recognisable.
-  const accents = ['#f97316', '#36c59b', '#56a5dc', '#db6683', '#a5a9bb', '#f0a347'];
+  /* Per-row identity accents keep their outcome meaning while mapping to the
+     active Appearance palette's semantic color roles. */
+  const accents = ['var(--accent)', 'var(--chart-good)', 'var(--info)', 'var(--chart-critical)', 'var(--text-dim)', 'var(--accent-soft)'];
 
   $: live = isLiveRequest(request);
   $: status = request.status ?? null;
@@ -102,7 +102,7 @@
         <img src={modelLogo} alt="" loading="lazy" referrerpolicy="no-referrer" />
       </span>
     {:else}
-      <span class="req-model-monogram" style="--request-accent: {isModelMasked ? '#8e93aa' : accent}" aria-hidden="true">{isModelMasked ? '***' : monogram}</span>
+      <span class="req-model-monogram" style="--request-accent: {isModelMasked ? 'var(--text-dim)' : accent}" aria-hidden="true">{isModelMasked ? '***' : monogram}</span>
     {/if}
     <span class="req-model-name strong-cell">{displayModel}</span>
   </td>
@@ -115,7 +115,7 @@
   </td>
   <td class="req-provider" title={titleProvider}>
     {#if request.provider_id}
-      <span class="req-provider-dot" style="--request-accent: {isProviderMasked ? '#8e93aa' : accent}" aria-hidden="true"></span>
+      <span class="req-provider-dot" style="--request-accent: {isProviderMasked ? 'var(--text-dim)' : accent}" aria-hidden="true"></span>
       <span class="req-provider-name">{displayProvider}</span>
     {:else}
       <span class="muted-cell">{live ? tr('Routing…') : '—'}</span>
@@ -170,30 +170,30 @@
      responsive card feed derived from the same markup. Splitting them would
      duplicate every cell, so the responsive block stays here. */
   .request-row {
-    --request-row-accent: #a5a9bb;
+    --request-row-accent: var(--text-dim);
     cursor: pointer;
   }
 
   .request-row.outcome-success {
-    --request-row-accent: #36c59b;
+    --request-row-accent: var(--chart-good);
   }
 
   .request-row.outcome-failure {
-    --request-row-accent: #db6683;
+    --request-row-accent: var(--chart-critical);
   }
 
   .request-row.outcome-active {
-    --request-row-accent: #f97316;
+    --request-row-accent: var(--accent);
   }
 
   .request-row td {
     position: relative;
     height: 50px;
     padding: 0 14px;
-    border-bottom: 1px solid #f1f2f6;
+    border-bottom: 1px solid var(--line);
     font-size: var(--text-xs);
     vertical-align: middle;
-    color: #484c60;
+    color: var(--ink);
   }
 
   .request-row td:first-child::before {
@@ -208,7 +208,7 @@
 
   @media (hover: hover) {
     .request-row:hover td {
-      background: #f8f9fd;
+      background: var(--surface-sunken);
     }
     .request-row:hover td:first-child::before {
       width: 5px;
@@ -224,28 +224,28 @@
   }
 
   .request-row.selected td {
-    background: #eff6ff;
+    background: color-mix(in srgb, var(--info) 10%, var(--surface));
   }
 
   .request-row.selected td:first-child::before {
     width: 5px;
-    background: #3b82f6;
+    background: var(--info);
   }
 
   /* An in-flight row uses the same orange as the table shell's live row and as
      the `active` outcome accent, so the two never disagree. */
   .request-row.live-request td {
-    background: #fffaf2;
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
   }
 
   .request-row.live-request td:first-child::before {
-    background: #f97316;
+    background: var(--accent);
   }
 
   .request-row td.req-time {
     white-space: nowrap;
     font-size: 11.5px;
-    color: #85899b;
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
 
@@ -254,7 +254,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #626679;
+    color: var(--muted);
     font-weight: 600;
   }
 
@@ -278,7 +278,7 @@
     border: 2px solid var(--ink);
     border-radius: 7px;
     background: var(--request-accent);
-    color: #ffffff;
+    color: var(--accent-contrast);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.3px;
@@ -295,7 +295,7 @@
     height: 24px;
     border: 2px solid var(--ink);
     border-radius: 7px;
-    background: #ffffff;
+    background: var(--surface-raised);
     box-shadow: 2px 2px 0 var(--ink);
     overflow: hidden;
   }
@@ -311,7 +311,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #33374b;
+    color: var(--ink);
     font-weight: 600;
     font-size: 13px;
   }
@@ -336,14 +336,14 @@
     height: 7px;
     border-radius: 50%;
     background: var(--request-accent);
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 4%, transparent);
   }
 
   .req-provider-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #626679;
+    color: var(--muted);
     font-weight: 500;
   }
 
@@ -355,8 +355,8 @@
     padding: 2px 8px;
     border: 2px solid var(--ink);
     border-radius: 7px;
-    background: #fff7ed;
-    color: #92600f;
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    color: var(--accent-deep);
     font-size: 11px;
     font-weight: 600;
     text-overflow: ellipsis;
@@ -373,16 +373,16 @@
 
   .req-duration-value {
     font-variant-numeric: tabular-nums;
-    color: #484c60;
+    color: var(--ink);
   }
 
   .req-duration-value.slow {
-    color: #d97706;
+    color: var(--accent-strong);
     font-weight: 700;
   }
 
   .req-duration-value.verySlow {
-    color: #dc2626;
+    color: var(--chart-critical);
     font-weight: 700;
   }
 
@@ -394,7 +394,7 @@
     margin-top: 4px;
     overflow: hidden;
     border-radius: 999px;
-    background: #eceef4;
+    background: var(--surface-sunken);
   }
 
   /* The fill's healthy colour is the row's own success accent, so the bar and
@@ -403,15 +403,15 @@
     display: block;
     height: 100%;
     border-radius: 999px;
-    background: #36c59b;
+    background: var(--chart-good);
   }
 
   .req-duration-fill.slow {
-    background: #d97706;
+    background: var(--accent-strong);
   }
 
   .req-duration-fill.verySlow {
-    background: #dc2626;
+    background: var(--chart-critical);
   }
 
   .request-row td.req-tokens {
@@ -427,7 +427,7 @@
   }
 
   .req-token-value {
-    color: #484c60;
+    color: var(--ink);
     font-family: var(--font-mono);
     font-size: 11.5px;
     font-variant-numeric: tabular-nums;
@@ -435,16 +435,16 @@
   }
 
   .req-token-separator {
-    color: #a7a9b6;
+    color: var(--text-dim);
     font-size: 11px;
   }
 
   .req-token-input {
-    color: #ea580c;
+    color: var(--accent-strong);
   }
 
   .req-token-output {
-    color: #7c3aed;
+    color: var(--info);
   }
 
   /* Flat chip, like the other in-row status chips; the ink frame is reserved
@@ -453,8 +453,8 @@
     padding: 1px 6px;
     border: none;
     border-radius: 5px;
-    background: #eff9f4;
-    color: #32876d;
+    background: color-mix(in srgb, var(--chart-good) 10%, var(--surface));
+    color: var(--chart-good);
     font-size: 10px;
     font-weight: 600;
   }
@@ -467,15 +467,15 @@
     margin-top: 5px;
     overflow: hidden;
     border-radius: 999px;
-    background: #eceef4;
+    background: var(--surface-sunken);
   }
 
   .req-token-ratio-input {
-    background: #ea580c;
+    background: var(--accent-strong);
   }
 
   .req-token-ratio-output {
-    background: #7c3aed;
+    background: var(--info);
   }
 
   .request-row td.req-status,
@@ -516,8 +516,8 @@
     padding: 3px 8px;
     border: 2px solid var(--ink);
     border-radius: 7px;
-    background: #fef2f2;
-    color: #b91c1c;
+    background: color-mix(in srgb, var(--chart-critical) 9%, var(--surface));
+    color: var(--chart-critical);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -526,90 +526,10 @@
   }
 
   .req-error-trigger-btn:hover {
-    background: #fee2e2;
-    color: #b91c1c;
+    background: color-mix(in srgb, var(--chart-critical) 14%, var(--surface));
+    color: var(--chart-critical);
     transform: translate(-1px, -1px);
     box-shadow: 3px 3px 0 var(--ink);
-  }
-
-  :global(:root[data-theme='dark']) .request-row td {
-    border-bottom-color: #222436;
-  }
-
-  @media (hover: hover) {
-    :global(:root[data-theme='dark']) .request-row:hover td {
-      background: #1f2032;
-    }
-  }
-
-  :global(:root[data-theme='dark']) .request-row:focus-visible td {
-    box-shadow: inset 0 2px 0 #f0f2f8, inset 0 -2px 0 #f0f2f8;
-  }
-
-  :global(:root[data-theme='dark']) .request-row.selected td {
-    background: #2b1d18;
-  }
-
-  :global(:root[data-theme='dark']) .request-row.live-request td {
-    background: #261f1d;
-  }
-
-  :global(:root[data-theme='dark']) .req-model-monogram,
-  :global(:root[data-theme='dark']) .req-model-logo,
-  :global(:root[data-theme='dark']) .req-provider-dot {
-    border-color: #f0f2f8;
-  }
-
-  :global(:root[data-theme='dark']) .req-alias-pill {
-    border-color: #7c2d12;
-    background: #2b1d18;
-    color: #fed7aa;
-  }
-
-  :global(:root[data-theme='dark']) .req-duration-value.slow {
-    color: #fdba74;
-  }
-
-  :global(:root[data-theme='dark']) .req-duration-value.verySlow {
-    color: #fca5a5;
-  }
-
-  :global(:root[data-theme='dark']) .req-duration-track,
-  :global(:root[data-theme='dark']) .req-token-ratio {
-    background: #222436;
-  }
-
-  :global(:root[data-theme='dark']) .req-token-value {
-    color: #e7e4f8;
-  }
-
-  :global(:root[data-theme='dark']) .req-token-separator {
-    color: #8c8fa4;
-  }
-
-  :global(:root[data-theme='dark']) .req-token-input {
-    color: #fdba74;
-  }
-
-  :global(:root[data-theme='dark']) .req-token-output {
-    color: #c4b5fd;
-  }
-
-  :global(:root[data-theme='dark']) .req-token-cached {
-    background: #1b2f29;
-    color: #34d399;
-  }
-
-  :global(:root[data-theme='dark']) .req-error-trigger-btn {
-    border-color: #4c1d1d;
-    background: #2a1515;
-    color: #fca5a5;
-  }
-
-  :global(:root[data-theme='dark']) .req-error-trigger-btn:hover {
-    border-color: #7f1d1d;
-    background: #381a1a;
-    color: #fecaca;
   }
 
   /* ─── Mobile App Style (<= 650px: 320px - 430px) ─── */
@@ -629,25 +549,25 @@
       padding: 14px;
       border: 2px solid var(--ink);
       border-radius: 14px;
-      background: #ffffff;
+      background: var(--surface-raised);
       box-shadow: 3px 3px 0 var(--ink);
       box-sizing: border-box;
       transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.1s ease;
     }
 
     .request-row.selected {
-      background: #eff6ff;
+      background: color-mix(in srgb, var(--info) 10%, var(--surface));
     }
 
     .request-row.live-request {
-      background: #fffaf2;
+      background: color-mix(in srgb, var(--accent) 7%, var(--surface));
     }
 
     /* The pressed card sinks into its own shadow, like every other NB surface. */
     .request-row:active {
       transform: translate(1px, 1px);
       box-shadow: 1px 1px 0 var(--ink);
-      background: #f8f9fd;
+      background: var(--surface-sunken);
     }
 
     .request-row td {
@@ -670,7 +590,7 @@
       grid-area: model;
       font-size: 14px;
       font-weight: 700;
-      color: #33374b;
+      color: var(--ink);
       word-break: break-all;
     }
 
@@ -700,7 +620,7 @@
 
     .request-row td.req-provider {
       grid-area: provider;
-      color: #626679;
+      color: var(--muted);
       font-size: 12px;
     }
 
@@ -711,7 +631,7 @@
       align-items: flex-end;
       justify-self: end;
       min-width: 0;
-      color: #ea580c;
+      color: var(--accent-strong);
       font-weight: 600;
       font-family: var(--font-mono);
     }
@@ -723,14 +643,14 @@
     .request-row td.req-key {
       grid-area: key;
       max-width: none;
-      color: #85899b;
+      color: var(--muted);
       font-size: 12px;
     }
 
     .request-row td.req-time {
       grid-area: time;
       justify-self: end;
-      color: #a7a9b6;
+      color: var(--text-dim);
       font-size: 12px;
     }
 
@@ -754,29 +674,6 @@
       padding-top: 4px;
     }
 
-    :global(:root[data-theme='dark']) .request-row {
-      background: #181926;
-      border-color: #202131;
-      border-left-color: var(--request-row-accent);
-    }
-
-    :global(:root[data-theme='dark']) .request-row.selected,
-    :global(:root[data-theme='dark']) .request-row.live-request {
-      background: #261f1d;
-    }
-
-    :global(:root[data-theme='dark']) .request-row:active {
-      background: #1f2032;
-    }
-
-    :global(:root[data-theme='dark']) .request-row td.req-model {
-      color: #f0edff;
-    }
-
-    :global(:root[data-theme='dark']) .request-row td.req-provider,
-    :global(:root[data-theme='dark']) .request-row td.req-key {
-      color: #a4a7be;
-    }
   }
 
   /* ─── Ultra-compact Displays (320px - 360px) ─── */

@@ -35,17 +35,17 @@
 
 /* Dialogs and form fields */
 :root[data-theme='dark'] .modal-backdrop {
-  background: rgba(4, 5, 8, 0.78);
+  background: var(--surface-backdrop);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 :root[data-theme='dark'] .modal-card {
-  color: #e2e4f0;
-  background: color-mix(in srgb, var(--surface-glass-base) 88%, transparent) !important;
+  background: var(--surface-modal) !important;
+  color: var(--ink);
   backdrop-filter: blur(28px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
-  border: 2px solid var(--ink) !important;
-  box-shadow: 5px 5px 0 var(--ink) !important;
+  border: var(--nb-border) !important;
+  box-shadow: var(--shadow-raised) !important;
 }
 :root[data-theme='dark'] .modal-header h2 { color: var(--ink); }
 :root[data-theme='dark'] .modal-kicker { color: var(--info); }
@@ -383,11 +383,11 @@
 :root[data-theme='dark'] button:disabled { opacity: .55; }
 
 @media (max-width: 900px) {
-  :root[data-theme='dark'] .sidebar { background: #171823; }
+  :root[data-theme='dark'] .sidebar { background: var(--surface-shell); }
 }
 
 @media (max-width: 650px) {
-  :root[data-theme='dark'] .topbar { background: #171823f2; }
+  :root[data-theme='dark'] .topbar { background: color-mix(in srgb, var(--surface-raised) 94%, transparent); }
   :root[data-theme='dark'] .modal-backdrop { padding: 12px; }
 }
 

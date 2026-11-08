@@ -26,6 +26,8 @@ export interface ThemeDefinition {
   swatches: readonly [string, string, string, string];
 }
 
+export type ThemePreference = ThemeId | 'system';
+
 export type ThemeId =
   | 'light'
   | 'dark'
@@ -115,17 +117,58 @@ export function themeScheme(id: ThemeId): ThemeScheme {
   return themeById(id).scheme;
 }
 
-export function getStoredTheme(): ThemeId {
+export const THEME_STORAGE_KEY = 'exoroute.theme';
+
+export function isThemeId(value: string | null): value is ThemeId {
+  return value !== null && THEME_BY_ID.has(value as ThemeId);
+}
+
+export function isThemePreference(value: string | null): value is ThemePreference {
+  return value === 'system' || isThemeId(value);
+}
+
+function systemThemeId(systemScheme: ThemeScheme): ThemeId {
+  return systemScheme === 'dark' ? 'dark' : 'light';
+}
+
+export function currentSystemScheme(): ThemeScheme {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
+}
+
+export function getStoredThemePreference(): ThemePreference {
   try {
-    const saved = localStorage.getItem('exoroute.theme');
-    if (saved && THEME_BY_ID.has(saved as ThemeId)) return saved as ThemeId;
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (isThemePreference(saved)) return saved;
   } catch {
-    // Fall through to the system preference.
+    // Storage may be unavailable; use the live system preference instead.
   }
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
+  return 'system';
+}
+
+export function resolveTheme(
+  preference: ThemePreference,
+  systemScheme: ThemeScheme = currentSystemScheme(),
+): ThemeId {
+  return preference === 'system' ? systemThemeId(systemScheme) : preference;
+}
+
+/**
+ * Compatibility helper for callers that only need the effective visual theme.
+ * Unlike applyTheme(), this never persists the system-derived resolution.
+ */
+export function getStoredTheme(): ThemeId {
+  return resolveTheme(getStoredThemePreference());
+}
+
+export function setStoredThemePreference(preference: ThemePreference): void {
+  try {
+    if (preference === 'system') localStorage.removeItem(THEME_STORAGE_KEY);
+    else localStorage.setItem(THEME_STORAGE_KEY, preference);
+  } catch {
+    // The selected theme still applies for this page if storage is unavailable.
   }
-  return 'light';
 }
 
 export function applyTheme(id: ThemeId): void {
@@ -141,9 +184,10 @@ export function applyTheme(id: ThemeId): void {
       metaThemeColor.setAttribute('content', theme.metaColor);
     }
   }
-  try {
-    localStorage.setItem('exoroute.theme', id);
-  } catch {
-    // The selected theme remains active for this page if storage is unavailable.
-  }
+}
+
+export function applyThemePreference(preference: ThemePreference, systemScheme?: ThemeScheme): ThemeId {
+  const resolved = resolveTheme(preference, systemScheme);
+  applyTheme(resolved);
+  return resolved;
 }

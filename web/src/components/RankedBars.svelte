@@ -65,7 +65,6 @@
   /* 4px rounded data-end anchored at the baseline on the left. */
   .bar-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--chart-series); }
   .bar-value { flex: 0 0 auto; min-width: 3.4rem; color: var(--ink); font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
-  .bar-tip { position: absolute; z-index: 6; left: 0; bottom: calc(100% + 6px); display: grid; gap: 2px; padding: 7px 9px; color: #fff; border-radius: 7px; background: var(--ink); box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.18); font-size: 11px; line-height: 1.4; max-width: 260px; }
-  :global(:root[data-theme='dark']) .bar-tip { color: #0b0b0b; }
+  .bar-tip { position: absolute; z-index: 6; left: 0; bottom: calc(100% + 6px); display: grid; gap: 2px; padding: 7px 9px; color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-popover); box-shadow: var(--shadow-popover); font-size: 11px; line-height: 1.4; max-width: 260px; }
   .bars-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
 </style>

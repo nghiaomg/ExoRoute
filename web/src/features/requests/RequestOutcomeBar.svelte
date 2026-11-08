@@ -41,7 +41,7 @@
     padding: 12px 16px;
     border: 2px solid var(--ink);
     border-radius: 12px;
-    background: #ffffff;
+    background: var(--surface);
     box-shadow: 3px 3px 0 var(--ink);
   }
 
@@ -53,7 +53,7 @@
     overflow: hidden;
     border: none;
     border-radius: 999px;
-    background: #eceef4;
+    background: var(--surface-sunken);
   }
 
   .request-outcome-segment {
@@ -64,15 +64,15 @@
   /* The three segment colours are the row stripe accents, so the legend and
      the rows always agree. */
   .request-outcome-segment.active {
-    background: #f97316;
+    background: var(--accent);
   }
 
   .request-outcome-segment.success {
-    background: #36c59b;
+    background: var(--chart-good);
   }
 
   .request-outcome-segment.failure {
-    background: #db6683;
+    background: var(--chart-critical);
   }
 
   .request-outcome-legend {
@@ -89,7 +89,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    color: #85899b;
+    color: var(--muted);
     font-size: 12px;
     font-weight: 500;
   }
@@ -99,45 +99,27 @@
     height: 8px;
     border-radius: 50%;
     border: none;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 6%, transparent);
   }
 
   .request-outcome-entry.active .request-outcome-dot {
-    background: #f97316;
+    background: var(--accent);
   }
 
   .request-outcome-entry.success .request-outcome-dot {
-    background: #36c59b;
+    background: var(--chart-good);
   }
 
   .request-outcome-entry.failure .request-outcome-dot {
-    background: #db6683;
+    background: var(--chart-critical);
   }
 
   .request-outcome-count {
-    color: #33374b;
+    color: var(--ink);
     font-family: var(--font-mono);
     font-size: 12.5px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-  }
-
-  :global(:root[data-theme='dark']) .request-outcome {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: #181926;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-  }
-
-  :global(:root[data-theme='dark']) .request-outcome-bar {
-    background: #101120;
-  }
-
-  :global(:root[data-theme='dark']) .request-outcome-entry {
-    color: #8e93aa;
-  }
-
-  :global(:root[data-theme='dark']) .request-outcome-count {
-    color: #f0edff;
   }
 
   @media (max-width: 650px) {

@@ -38,9 +38,9 @@
     padding: 6px 14px;
     border: 2px solid var(--ink);
     border-radius: 999px;
-    background: #eff9f4;
+    background: color-mix(in srgb, var(--chart-good) 10%, var(--surface));
     box-shadow: 2px 2px 0 var(--ink);
-    color: #278e6d;
+    color: var(--chart-good);
     font-size: var(--text-2xs);
     font-weight: 700;
     cursor: pointer;
@@ -55,21 +55,21 @@
   }
 
   .request-live-toggle.paused {
-    background: #fff7ed;
-    color: #c2410c;
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    color: var(--accent-deep);
   }
 
   .request-live-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #36c59b;
-    box-shadow: 0 0 0 0 rgba(54, 197, 155, 0.6);
+    background: var(--mint);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--mint) 60%, transparent);
     animation: request-live-pulse 1.8s ease-out infinite;
   }
 
   .request-live-toggle.paused .request-live-dot {
-    background: #ea580c;
+    background: var(--accent);
     box-shadow: none;
     animation: none;
   }
@@ -80,12 +80,12 @@
   }
 
   .request-live-age {
-    color: #32876d;
+    color: var(--chart-good);
     font-weight: 500;
   }
 
   .request-live-toggle.paused .request-live-age {
-    color: #9a3412;
+    color: var(--accent-deep);
   }
 
   .request-live-icon {
@@ -97,13 +97,13 @@
 
   @keyframes request-live-pulse {
     0% {
-      box-shadow: 0 0 0 0 rgba(54, 197, 155, 0.55);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--mint) 55%, transparent);
     }
     70% {
-      box-shadow: 0 0 0 6px rgba(54, 197, 155, 0);
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--mint) 0%, transparent);
     }
     100% {
-      box-shadow: 0 0 0 0 rgba(54, 197, 155, 0);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--mint) 0%, transparent);
     }
   }
 
@@ -116,24 +116,4 @@
     }
   }
 
-  :global(:root[data-theme='dark']) .request-live-toggle {
-    border-color: rgba(34, 197, 94, 0.3);
-    background: rgba(34, 197, 94, 0.12);
-    color: #86efac;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  }
-
-  :global(:root[data-theme='dark']) .request-live-toggle .request-live-age {
-    color: #6ee7b7;
-  }
-
-  :global(:root[data-theme='dark']) .request-live-toggle.paused {
-    border-color: rgba(249, 115, 22, 0.3);
-    background: rgba(249, 115, 22, 0.12);
-    color: #fed7aa;
-  }
-
-  :global(:root[data-theme='dark']) .request-live-toggle.paused .request-live-age {
-    color: #fdba74;
-  }
 </style>

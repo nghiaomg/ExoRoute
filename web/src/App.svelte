@@ -16,7 +16,16 @@
   import { isDocsPage, pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type DocsPage, type FeatureActionRequest, type Page } from './lib/navigation';
   import type { Translate } from './lib/format';
   import { getStoredSidebarCollapsed, saveSidebarCollapsed } from './lib/sidebar';
-  import { applyTheme, getStoredTheme, themeScheme, type ThemeId } from './lib/theme';
+  import {
+    applyThemePreference,
+    getStoredThemePreference,
+    isThemePreference,
+    resolveTheme,
+    setStoredThemePreference,
+    themeScheme,
+    type ThemeId,
+    type ThemePreference,
+  } from './lib/theme';
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
 
   function handleConnectionChange(state: ConnectionState): void {
@@ -45,7 +54,8 @@
   };
 
   let locale: Locale = 'en';
-  let theme: ThemeId = typeof window !== 'undefined' ? getStoredTheme() : 'light';
+  let themePreference: ThemePreference = typeof window !== 'undefined' ? getStoredThemePreference() : 'system';
+  let theme: ThemeId = typeof window !== 'undefined' ? resolveTheme(themePreference) : 'light';
   let sidebarCollapsed = typeof window !== 'undefined' ? getStoredSidebarCollapsed() : false;
   let tr: Translate;
   let currentPage: Page = 'login';
@@ -72,7 +82,7 @@
   let providerOAuthNoticeTone: 'info' | 'success' | 'error' = 'info';
 
   $: tr = (key, vars) => t(locale, key, vars);
-  $: preferences = { locale, theme, scheme: themeScheme(theme), setLocale: changeLocale, toggleTheme, setTheme: changeTheme };
+  $: preferences = { locale, theme, themePreference, scheme: themeScheme(theme), setLocale: changeLocale, toggleTheme, setTheme: changeTheme, setThemePreference: changeThemePreference };
   $: gateway = { state: connectionState, address: gatewayAddress };
   $: pageTitle = tr(mustChangePassword && currentPage === 'login' ? 'Set a new admin password' : pageTitles[currentPage]);
   $: if (authBootstrap !== 'checking' && dashboardPage(currentPage) && (activeFeaturePage !== currentPage || activeFeatureRefreshKey !== refreshKey)) {
@@ -104,15 +114,20 @@
   }
 
   function toggleTheme(): void {
-    // The quick toggle flips the scheme of the classic themes; palette
-    // themes are chosen from Settings → Appearance.
-    theme = themeScheme(theme) === 'light' ? 'dark' : 'light';
-    applyTheme(theme);
+    // The quick toggle always makes the opposite effective classic scheme an
+    // explicit choice, including when the current preference follows the OS.
+    const next: ThemeId = themeScheme(theme) === 'light' ? 'dark' : 'light';
+    changeTheme(next);
   }
 
   function changeTheme(next: ThemeId): void {
-    theme = next;
-    applyTheme(next);
+    changeThemePreference(next);
+  }
+
+  function changeThemePreference(next: ThemePreference): void {
+    themePreference = next;
+    setStoredThemePreference(next);
+    theme = applyThemePreference(next);
   }
 
   function toggleSidebar(): void {
@@ -256,20 +271,23 @@
     locale = getStoredLocale();
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
-    theme = getStoredTheme();
-    applyTheme(theme);
+    themePreference = getStoredThemePreference();
+    theme = applyThemePreference(themePreference);
     sidebarCollapsed = getStoredSidebarCollapsed();
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemThemeChange = (e: MediaQueryListEvent): void => {
-      try {
-        if (!localStorage.getItem('exoroute.theme')) {
-          theme = e.matches ? 'dark' : 'light';
-          applyTheme(theme);
-        }
-      } catch {}
+      if (themePreference === 'system') {
+        theme = applyThemePreference('system', e.matches ? 'dark' : 'light');
+      }
+    };
+    const handleThemeStorage = (e: StorageEvent): void => {
+      if (e.key !== 'exoroute.theme' && e.key !== null) return;
+      themePreference = isThemePreference(e.newValue) ? e.newValue : 'system';
+      theme = applyThemePreference(themePreference);
     };
     mediaQuery.addEventListener('change', handleSystemThemeChange);
+    window.addEventListener('storage', handleThemeStorage);
 
     const syncWithLocation = (): void => {
       if (authBootstrap === 'checking') return;
@@ -361,6 +379,7 @@
       disposed = true;
       sessionRetryCountdown.stop();
       mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      window.removeEventListener('storage', handleThemeStorage);
       window.removeEventListener('popstate', syncWithLocation);
       window.removeEventListener('exoroute:auth-required', handleAuthRequired);
       window.removeEventListener('exoroute:password-change-required', handlePasswordChangeRequired);
@@ -424,7 +443,7 @@
         {:else if currentPage === 'devin'}
           <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {:else if currentPage === 'settings'}
-          <svelte:component this={activeFeature} {tr} {locale} {theme} onThemeChange={changeTheme} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
+          <svelte:component this={activeFeature} {tr} {locale} {theme} {themePreference} onThemeChange={changeTheme} onThemePreferenceChange={changeThemePreference} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
         {:else if currentPage === 'chat'}
           <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {/if}
