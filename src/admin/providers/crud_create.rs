@@ -7,8 +7,8 @@ use super::{
     provider_name_index_key, provider_prefix_index_key, provider_record,
     provider_view::ProviderInput,
     validation::{
-        DEFAULT_KEY_STRATEGY, create_local_rpm_target, effective_adapter_id,
-        normalized_provider_auth_header, normalized_provider_logo_url,
+        DEFAULT_KEY_STRATEGY, adapter_is_auth_none_only, create_local_rpm_target,
+        effective_adapter_id, normalized_provider_auth_header, normalized_provider_logo_url,
         normalized_provider_model_prefix_for_adapter, provider_keys, validate_provider,
     },
 };
@@ -63,7 +63,11 @@ pub(crate) async fn create_provider(
     {
         return Err(fail(StatusCode::CONFLICT, "provider id already exists"));
     }
-    let effective_auth_type = if provider_adapters::is_oauth_only_adapter(&adapter_id) {
+    let effective_auth_type = if adapter_is_auth_none_only(&adapter_id) {
+        // Auth-none-only transports (local CLI, env-var credentials) keep
+        // auth_type "none" even if stray keys were supplied.
+        "none".to_owned()
+    } else if provider_adapters::is_oauth_only_adapter(&adapter_id) {
         provider_adapters::default_auth_type(&adapter_id)
             .expect("registered OAuth adapter has a default auth type")
             .to_owned()

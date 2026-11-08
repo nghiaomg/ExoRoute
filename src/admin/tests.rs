@@ -129,6 +129,9 @@ fn devin_cli_provider_accepts_the_local_process_endpoint() {
     assert!(validate_provider(&input, provider_adapters::DEVIN_CLI_ADAPTER_ID, false).is_ok());
     input.base_url = "https://attacker.example/acp".to_owned();
     assert!(validate_provider(&input, provider_adapters::DEVIN_CLI_ADAPTER_ID, false).is_err());
+    input.base_url = "devin://acp/stdio".to_owned();
+    input.api_keys.push("not-a-credential".to_owned());
+    assert!(validate_provider(&input, provider_adapters::DEVIN_CLI_ADAPTER_ID, false).is_err());
 }
 
 #[test]

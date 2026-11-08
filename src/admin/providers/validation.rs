@@ -89,6 +89,15 @@ pub(crate) fn yes() -> bool {
 /// request omits `auth_header`; matches the dashboard's default.
 pub(crate) const DEFAULT_PROVIDER_AUTH_HEADER: &str = "x-api-key";
 
+/// Whether the adapter's preset accepts only the `none` auth type, meaning
+/// credentials live outside ExoRoute (local CLI login, env-var key) and a
+/// stored key must never flip the provider to bearer/header auth.
+pub(crate) fn adapter_is_auth_none_only(adapter_id: &str) -> bool {
+    provider_adapters::preset_for_adapter(adapter_id).is_some_and(|preset| {
+        preset.supported_auth_types.len() == 1 && preset.supported_auth_types[0] == "none"
+    })
+}
+
 /// Resolves the header name used for `header` authentication: the trimmed
 /// supplied value, or the default when omitted. Non-header auth types keep
 /// whatever was supplied (usually nothing).
@@ -234,6 +243,15 @@ pub(crate) fn validate_provider(
         return Err(fail(
             StatusCode::BAD_REQUEST,
             "provider API keys may contain at most 4096 bytes",
+        ));
+    }
+    if !keys.is_empty()
+        && provider_adapters::preset_for_adapter(adapter_id)
+            .is_some_and(|preset| !preset.capabilities.api_keys)
+    {
+        return Err(fail(
+            StatusCode::BAD_REQUEST,
+            "this provider does not accept API keys",
         ));
     }
     if input.supported_protocols.is_empty() || input.supported_protocols.len() > 4 {

@@ -8,8 +8,8 @@ use super::{
     provider_record,
     provider_view::{ProviderInput, ProviderKeyStrategyInput, ProviderThinkingSettingsInput},
     validation::{
-        DEFAULT_KEY_STRATEGY, KEY_STRATEGY_ROUND_ROBIN, effective_adapter_id,
-        normalized_provider_auth_header, normalized_provider_logo_url,
+        DEFAULT_KEY_STRATEGY, KEY_STRATEGY_ROUND_ROBIN, adapter_is_auth_none_only,
+        effective_adapter_id, normalized_provider_auth_header, normalized_provider_logo_url,
         normalized_provider_model_prefix_for_adapter, provider_keys, stored_key_strategy,
         stored_thinking_settings, updated_local_rpm_target, validate_provider,
     },
@@ -81,7 +81,11 @@ pub(crate) async fn update_provider(
         updated_local_rpm_target(&input, &provider_state, &adapter_id).map_err(internal)?;
     let supported = serde_json::to_string(&input.supported_protocols).map_err(internal)?;
     let keys = provider_keys(&input);
-    let effective_auth_type = if provider_adapters::is_oauth_only_adapter(&adapter_id) {
+    let effective_auth_type = if adapter_is_auth_none_only(&adapter_id) {
+        // Auth-none-only transports (local CLI, env-var credentials) keep
+        // auth_type "none" even if stray keys were supplied.
+        "none"
+    } else if provider_adapters::is_oauth_only_adapter(&adapter_id) {
         provider_adapters::default_auth_type(&adapter_id)
             .expect("registered OAuth adapter has a default auth type")
     } else if input.auth_type != "none" {

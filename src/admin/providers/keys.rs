@@ -1,3 +1,4 @@
+use super::validation::adapter_is_auth_none_only;
 use super::{
     DEFAULT_PROVIDER_KEY_PAGE_SIZE, MAX_PROVIDER_ID_BYTES, MAX_PROVIDER_KEY_BYTES,
     MAX_PROVIDER_KEY_PAGE_SIZE, MAX_PROVIDER_NAME_BYTES, ProviderApiKeyRecordData,
@@ -403,7 +404,10 @@ pub(crate) async fn add_provider_key_with_id(
                 }
                 return Ok(false);
             }
-            if stored_auth_type == "none" {
+            // Auth-none-only transports (local CLI, env-var credentials) take
+            // keys as credentials, not as an auth switch — keep auth_type
+            // "none" so model import and request auth stay consistent.
+            if stored_auth_type == "none" && !adapter_is_auth_none_only(&adapter_id) {
                 provider.insert("auth_type", Field::Text("bearer".to_owned()));
                 provider.insert("updated_at", Field::Text(timestamp.clone()));
             }
