@@ -1797,4 +1797,10 @@ export const ar: Catalog = {
   "Auto-detect local login": "اكتشاف تسجيل الدخول المحلي تلقائيًا",
   "Paste the agy token file contents first.": "الصق محتوى ملف رمز agy أولاً.",
   "Could not import the Antigravity CLI login.": "تعذر استيراد تسجيل دخول Antigravity CLI.",
+  "Import Kiro login": "استيراد تسجيل دخول Kiro",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "الصق رمز تحديث Kiro IDE أو تسجيل الدخول الاجتماعي للاتصال دون تدفق الجهاز.",
+  "Import token": "استيراد الرمز",
+  "Paste the Kiro refresh token first.": "الصق رمز تحديث Kiro أولاً.",
+  "Kiro login imported; the account is connected.": "تم استيراد تسجيل دخول Kiro؛ الحساب متصل.",
+  "Could not import the Kiro login.": "تعذر استيراد تسجيل دخول Kiro.",
 };

@@ -1797,4 +1797,10 @@ export const id: Catalog = {
   "Auto-detect local login": "Deteksi otomatis login lokal",
   "Paste the agy token file contents first.": "Tempel dulu isi file token agy.",
   "Could not import the Antigravity CLI login.": "Tidak dapat mengimpor login Antigravity CLI.",
+  "Import Kiro login": "Impor login Kiro",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "Tempel token penyegaran Kiro IDE atau sosial untuk terhubung tanpa alur perangkat.",
+  "Import token": "Impor token",
+  "Paste the Kiro refresh token first.": "Tempel token penyegaran Kiro terlebih dahulu.",
+  "Kiro login imported; the account is connected.": "Login Kiro diimpor; akun terhubung.",
+  "Could not import the Kiro login.": "Tidak dapat mengimpor login Kiro.",
 };

@@ -16,6 +16,7 @@ export const KNOWN_AUTH_PANELS = [
   'kilocode',
   'muse',
   'qoder',
+  'kiro',
 ] as const;
 export type KnownAuthPanel = (typeof KNOWN_AUTH_PANELS)[number];
 
@@ -53,6 +54,11 @@ export const providerAuthPanelRegistry: Record<KnownAuthPanel, ProviderAuthPanel
     apiKey: null,
   },
   qoder: {
+    oauth: DeviceCodeOAuthPanel,
+    accounts: CodexAccountsPanel,
+    apiKey: null,
+  },
+  kiro: {
     oauth: DeviceCodeOAuthPanel,
     accounts: CodexAccountsPanel,
     apiKey: null,

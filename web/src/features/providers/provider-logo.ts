@@ -8,6 +8,7 @@ import clineLogo from '../../../../assets/providers/cline.webp';
 import freebuffLogo from '../../../../assets/providers/freebuff.webp';
 import antigravityLogo from '../../../../assets/providers/antigravity.webp';
 import devinLogo from '../../../../assets/providers/devinai.webp';
+import kiroLogo from '../../../../assets/providers/kiro.webp';
 import minimaxLogo from '../../../../assets/providers/minimax.webp';
 import openaiLogo from '../../../../assets/models/openai.svg';
 import claudeLogo from '../../../../assets/models/claude.svg';
@@ -53,6 +54,7 @@ const adapterLogos: Record<string, string> = {
   minimax: minimaxLogo,
   devin_cli: devinLogo,
   devin_desktop: devinLogo,
+  kiro: kiroLogo,
 };
 
 export function providerLogoSrc(value?: string | null): string | null {
@@ -104,6 +106,7 @@ export function providerDefaultLogo(
   if (identities.some((value) => value.includes('cline'))) return clineLogo;
   if (identities.some((value) => value.includes('antigravity'))) return antigravityLogo;
   if (identities.some((value) => value.includes('devin'))) return devinLogo;
+  if (identities.some((value) => value.includes('kiro'))) return kiroLogo;
   if (identities.some((value) => value.includes('openai'))) return openaiLogo;
   if (identities.some((value) => value.includes('anthropic') || value.includes('claude'))) return claudeLogo;
   if (identities.some((value) => value.includes('gemini'))) return geminiLogo;

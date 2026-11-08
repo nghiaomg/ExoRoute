@@ -1797,4 +1797,10 @@ export const de: Catalog = {
   "Auto-detect local login": "Lokale Anmeldung automatisch erkennen",
   "Paste the agy token file contents first.": "Fügen Sie zuerst den Inhalt der agy-Token-Datei ein.",
   "Could not import the Antigravity CLI login.": "Der Antigravity-CLI-Login konnte nicht importiert werden.",
+  "Import Kiro login": "Kiro-Anmeldung importieren",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "Fügen Sie ein Kiro-IDE- oder Social-Refresh-Token ein, um ohne Geräteflow eine Verbindung herzustellen.",
+  "Import token": "Token importieren",
+  "Paste the Kiro refresh token first.": "Fügen Sie zuerst das Kiro-Refresh-Token ein.",
+  "Kiro login imported; the account is connected.": "Kiro-Anmeldung importiert; das Konto ist verbunden.",
+  "Could not import the Kiro login.": "Kiro-Anmeldung konnte nicht importiert werden.",
 };

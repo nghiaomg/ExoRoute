@@ -597,6 +597,40 @@ providers:
       event_stream_response: false
       auth_panel: qoder
 
+  - id: kiro
+    adapter_id: kiro
+    name: Kiro AI
+    description: Sign in with a Kiro account using AWS Builder ID device authorization or a pasted refresh token. Free tier available.
+    category: oauth
+    labels: []
+    default_base_url: https://codewhisperer.us-east-1.amazonaws.com
+    default_logo_url: null
+    default_model_prefix: kr
+    default_models:
+      - claude-sonnet-4.5
+      - claude-haiku-4.5
+    default_auth_type: kiro_oauth
+    supported_auth_types:
+      - kiro_oauth
+    default_preferred_protocol: chat_completions
+    default_supported_protocols:
+      - chat_completions
+    protocol_selectable: false
+    capabilities:
+      api_keys: false
+      oauth_accounts: true
+      local_usage_meter: false
+      model_discovery: true
+      usage_limits: false
+      api_key_usage: false
+      api_key_usage_status: unsupported
+      model_protocol_routing: false
+      supported_upstream_protocols: [chat_completions]
+      api_key_auth_assist: false
+      model_catalog_authoritative: true
+      event_stream_response: false
+      auth_panel: kiro
+
   - id: openai_codex
     adapter_id: openai_codex
     name: OpenAI Codex

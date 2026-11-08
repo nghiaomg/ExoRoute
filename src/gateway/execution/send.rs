@@ -84,6 +84,7 @@ pub(super) async fn send_request(
             attempt.scope.canonical_stream,
             attempt.scope.operational_settings.request_timeout,
             credential_secret,
+            oauth_auth,
         )
         .await
         {

@@ -30,6 +30,8 @@
   let wasOpen = false;
   let activeProviderId = '';
   let pollDeadline = 0;
+  let kiroToken = '';
+  let kiroImporting = false;
 
   $: isPending = state === 'pending';
 
@@ -43,6 +45,8 @@
     userCode = '';
     notice = '';
     noticeTone = 'info';
+    kiroToken = '';
+    kiroImporting = false;
   } else if (!open) {
     wasOpen = false;
     stopPolling();
@@ -175,6 +179,25 @@
     schedulePoll(currentGeneration, intervalSeconds);
   }
 
+  async function importKiroToken(): Promise<void> {
+    const token = kiroToken.trim();
+    if (!token || kiroImporting || !providerId) return;
+    kiroImporting = true;
+    try {
+      await api.importKiroLogin(providerId, token);
+      kiroToken = '';
+      state = 'connected';
+      notice = tr('Kiro login imported; the account is connected.');
+      noticeTone = 'success';
+      onConnected();
+    } catch (error) {
+      notice = localizedError(error, 'Could not import the Kiro login.', tr);
+      noticeTone = 'error';
+    } finally {
+      kiroImporting = false;
+    }
+  }
+
   function expireSignIn(): void {
     clearTimer();
     state = 'expired';
@@ -239,6 +262,32 @@
         <ExternalLink size={13} />
         {tr('Open authorization page')}
       </a>
+    {/if}
+    {#if providerAdapterId === 'kiro'}
+      <div class="agy-cli-import">
+        <p class="agy-cli-hint">
+          {tr('Paste a Kiro IDE or social refresh token to connect without the device flow.')}
+        </p>
+        <textarea
+          class="agy-cli-textarea"
+          bind:value={kiroToken}
+          rows="3"
+          placeholder="Kiro refresh token"
+        ></textarea>
+        <div class="agy-cli-actions">
+          <button
+            class="secondary-button compact"
+            type="button"
+            disabled={!kiroToken.trim() || kiroImporting || !providerId}
+            onclick={() => void importKiroToken()}
+          >
+            {#if kiroImporting}
+              <LoaderCircle size={13} class="spin" />
+            {/if}
+            {tr('Import token')}
+          </button>
+        </div>
+      </div>
     {/if}
     {#if notice}
       <div

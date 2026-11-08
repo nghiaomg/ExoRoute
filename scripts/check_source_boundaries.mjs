@@ -71,6 +71,7 @@ const providerModules = [
   'generic',
   'kilo',
   'kilocode',
+  'kiro',
   'muse',
   'nvidia_nim',
   'opencode',

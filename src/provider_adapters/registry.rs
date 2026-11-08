@@ -1,7 +1,8 @@
 use super::{
     CLINE_ADAPTER_ID, CLINEPASS_ADAPTER_ID, DEVIN_CLI_ADAPTER_ID, DEVIN_DESKTOP_ADAPTER_ID,
-    ProviderAdapter, antigravity, azure, cloud_api, command_code, compat, devin_cli, devin_desktop,
-    freebuff, generic, kilo, kilocode, muse, nvidia_nim, opencode, openrouter, qoder, vertex,
+    KIRO_ADAPTER_ID, OAuthRequestAuth, ProviderAdapter, antigravity, azure, cloud_api,
+    command_code, compat, devin_cli, devin_desktop, freebuff, generic, kilo, kilocode, kiro, muse,
+    nvidia_nim, opencode, openrouter, qoder, vertex,
 };
 use serde_json::Value;
 
@@ -17,7 +18,7 @@ static CLINEPASS_ADAPTER: ClineAdapter = ClineAdapter {
     adapter_id: CLINEPASS_ADAPTER_ID,
 };
 
-static ADAPTERS: [&'static dyn ProviderAdapter; 43] = [
+static ADAPTERS: [&'static dyn ProviderAdapter; 44] = [
     &generic::GENERIC_ADAPTER,
     &devin_cli::DEVIN_CLI_ADAPTER,
     &devin_desktop::DEVIN_DESKTOP_ADAPTER,
@@ -48,6 +49,7 @@ static ADAPTERS: [&'static dyn ProviderAdapter; 43] = [
     &antigravity::ANTIGRAVITY_ADAPTER,
     &qoder::QODER_ADAPTER,
     &qoder::QODER_CN_ADAPTER,
+    &kiro::KIRO_ADAPTER,
     &compat::MOONSHOT_ADAPTER,
     &compat::ZHIPU_ADAPTER,
     &compat::MINIMAX_ADAPTER,
@@ -76,11 +78,13 @@ pub(super) fn adapters() -> &'static [&'static dyn ProviderAdapter] {
 
 /// Whether an adapter owns its whole transport instead of going through the
 /// gateway's shared HTTP send path. Adapter-owned transports build their own
-/// egress-validated clients where they use HTTP (Devin Desktop) or spawn a
-/// local process (Devin CLI); the send step only consumes the synthesized
-/// response these adapters return.
+/// egress-validated clients where they use HTTP (Devin Desktop, Kiro's binary
+/// EventStream upstream) or spawn a local process (Devin CLI); the send step
+/// only consumes the synthesized response these adapters return.
 pub fn uses_local_transport(adapter_id: &str) -> bool {
-    adapter_id == DEVIN_CLI_ADAPTER_ID || adapter_id == DEVIN_DESKTOP_ADAPTER_ID
+    adapter_id == DEVIN_CLI_ADAPTER_ID
+        || adapter_id == DEVIN_DESKTOP_ADAPTER_ID
+        || adapter_id == KIRO_ADAPTER_ID
 }
 
 /// Placeholder HTTP client for local-transport attempts. It is never used for
@@ -106,9 +110,11 @@ pub async fn send_local_upstream_request(
     streaming: bool,
     request_timeout: std::time::Duration,
     credential_secret: Option<&str>,
+    oauth_auth: Option<&OAuthRequestAuth>,
 ) -> Result<reqwest::Response, String> {
     match adapter_id {
         DEVIN_CLI_ADAPTER_ID => {
+            let _ = oauth_auth;
             devin_cli::send_local_upstream(
                 state,
                 upstream_body,
@@ -121,6 +127,7 @@ pub async fn send_local_upstream_request(
             .await
         }
         DEVIN_DESKTOP_ADAPTER_ID => {
+            let _ = oauth_auth;
             devin_desktop::send_local_upstream(
                 state,
                 upstream_body,
@@ -129,6 +136,18 @@ pub async fn send_local_upstream_request(
                 streaming,
                 request_timeout,
                 credential_secret,
+            )
+            .await
+        }
+        KIRO_ADAPTER_ID => {
+            kiro::transport::send_local_upstream(
+                state,
+                upstream_body,
+                model,
+                request_id,
+                streaming,
+                request_timeout,
+                oauth_auth,
             )
             .await
         }

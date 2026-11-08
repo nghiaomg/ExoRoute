@@ -1794,4 +1794,10 @@ export const vi: Record<TranslationKey, string> = {
   "Auto-detect local login": "Tự phát hiện đăng nhập cục bộ",
   "Paste the agy token file contents first.": "Hãy dán nội dung tệp token agy trước.",
   "Could not import the Antigravity CLI login.": "Không thể nhập đăng nhập Antigravity CLI.",
+  "Import Kiro login": "Nhập đăng nhập Kiro",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "Dán refresh token của Kiro IDE hoặc đăng nhập mạng xã hội để kết nối mà không cần luồng thiết bị.",
+  "Import token": "Nhập token",
+  "Paste the Kiro refresh token first.": "Hãy dán refresh token Kiro trước.",
+  "Kiro login imported; the account is connected.": "Đã nhập đăng nhập Kiro; tài khoản đã kết nối.",
+  "Could not import the Kiro login.": "Không thể nhập đăng nhập Kiro.",
 };

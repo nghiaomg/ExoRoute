@@ -1797,4 +1797,10 @@ export const hi: Catalog = {
   "Auto-detect local login": "स्थानीय लॉगिन अपने आप पहचानें",
   "Paste the agy token file contents first.": "पहले agy टोकन फ़ाइल की सामग्री पेस्ट करें.",
   "Could not import the Antigravity CLI login.": "Antigravity CLI लॉगिन आयात नहीं हो सका.",
+  "Import Kiro login": "Kiro लॉगिन आयात करें",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "डिवाइस फ़्लो के बिना कनेक्ट करने के लिए Kiro IDE या सोशल रीफ़्रेश टोकन पेस्ट करें।",
+  "Import token": "टोकन आयात करें",
+  "Paste the Kiro refresh token first.": "पहले Kiro रीफ़्रेश टोकन पेस्ट करें।",
+  "Kiro login imported; the account is connected.": "Kiro लॉगिन आयात किया गया; खाता कनेक्ट है।",
+  "Could not import the Kiro login.": "Kiro लॉगिन आयात नहीं किया जा सका।",
 };

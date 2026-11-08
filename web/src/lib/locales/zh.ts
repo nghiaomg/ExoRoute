@@ -1796,4 +1796,10 @@ export const zh: Catalog = {
   "Auto-detect local login": "自动检测本地登录",
   "Paste the agy token file contents first.": "请先粘贴 agy 令牌文件的内容。",
   "Could not import the Antigravity CLI login.": "无法导入 Antigravity CLI 登录。",
+  "Import Kiro login": "导入 Kiro 登录",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "粘贴 Kiro IDE 或社交登录的刷新令牌，无需设备流程即可连接。",
+  "Import token": "导入令牌",
+  "Paste the Kiro refresh token first.": "请先粘贴 Kiro 刷新令牌。",
+  "Kiro login imported; the account is connected.": "已导入 Kiro 登录；账户已连接。",
+  "Could not import the Kiro login.": "无法导入 Kiro 登录。",
 };

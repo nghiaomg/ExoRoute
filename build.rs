@@ -99,6 +99,7 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
         "antigravity_oauth",
         "kilocode_oauth",
         "qoder_oauth",
+        "kiro_oauth",
         "azure_api_key",
         "vertex_service_account",
     ];
@@ -251,7 +252,7 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
         if let Some(panel) = capabilities.auth_panel.as_deref()
             && !matches!(
                 panel,
-                "openai_codex" | "command_code" | "cline" | "kilocode" | "muse" | "qoder"
+                "openai_codex" | "command_code" | "cline" | "kilocode" | "muse" | "qoder" | "kiro"
             )
         {
             return Err(format!(

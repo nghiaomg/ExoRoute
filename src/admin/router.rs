@@ -113,6 +113,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/providers/{id}/antigravity-cli/import",
             post(import_antigravity_cli_login),
         )
+        .route(
+            "/api/v1/admin/providers/{id}/kiro/import",
+            post(import_kiro_login),
+        )
         // Kept as aliases so existing dashboard builds and API clients keep working.
         .route(
             "/api/v1/admin/providers/{id}/codex/oauth/start",

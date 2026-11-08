@@ -1797,4 +1797,10 @@ export const fr: Catalog = {
   "Auto-detect local login": "Détecter la connexion locale automatiquement",
   "Paste the agy token file contents first.": "Collez d’abord le contenu du fichier de jeton agy.",
   "Could not import the Antigravity CLI login.": "Impossible d’importer la connexion Antigravity CLI.",
+  "Import Kiro login": "Importer la connexion Kiro",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "Collez un jeton d'actualisation Kiro IDE ou social pour vous connecter sans le flux d'appareil.",
+  "Import token": "Importer le jeton",
+  "Paste the Kiro refresh token first.": "Collez d'abord le jeton d'actualisation Kiro.",
+  "Kiro login imported; the account is connected.": "Connexion Kiro importée ; le compte est connecté.",
+  "Could not import the Kiro login.": "Impossible d'importer la connexion Kiro.",
 };

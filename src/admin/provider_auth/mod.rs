@@ -7,6 +7,7 @@ use super::*;
 mod antigravity_cli;
 mod callback;
 mod device;
+mod kiro_import;
 
 pub(crate) use antigravity_cli::import_antigravity_cli_login;
 pub(crate) use callback::{
@@ -20,6 +21,7 @@ pub(crate) use callback::{
     has_active_provider_auth_flow, localhost_loopback_addresses, parse_provider_auth_callback_url,
 };
 pub(crate) use device::{provider_auth_poll, start_provider_device_auth};
+pub(crate) use kiro_import::import_kiro_login;
 
 pub(crate) const PROVIDER_AUTH_FLOW_TTL: Duration = Duration::from_secs(5 * 60);
 pub(crate) const PROVIDER_AUTH_CALLBACK_METHOD: &str = "authorization_code";

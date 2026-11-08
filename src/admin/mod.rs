@@ -68,7 +68,7 @@ pub(crate) use provider_auth::{
     complete_provider_auth_callback_for_flow,
 };
 pub(crate) use provider_auth::{
-    import_antigravity_cli_login, list_provider_presets, start_provider_auth,
+    import_antigravity_cli_login, import_kiro_login, list_provider_presets, start_provider_auth,
 };
 pub(crate) use router::router;
 

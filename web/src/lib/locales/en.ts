@@ -1792,4 +1792,10 @@ export const en = {
   "Auto-detect local login": "Auto-detect local login",
   "Paste the agy token file contents first.": "Paste the agy token file contents first.",
   "Could not import the Antigravity CLI login.": "Could not import the Antigravity CLI login.",
+  "Import Kiro login": "Import Kiro login",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "Paste a Kiro IDE or social refresh token to connect without the device flow.",
+  "Import token": "Import token",
+  "Paste the Kiro refresh token first.": "Paste the Kiro refresh token first.",
+  "Kiro login imported; the account is connected.": "Kiro login imported; the account is connected.",
+  "Could not import the Kiro login.": "Could not import the Kiro login.",
 } as const;

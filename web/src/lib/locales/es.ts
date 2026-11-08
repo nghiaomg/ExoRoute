@@ -1797,4 +1797,10 @@ export const es: Catalog = {
   "Auto-detect local login": "Detectar inicio de sesión local automáticamente",
   "Paste the agy token file contents first.": "Pega primero el contenido del archivo de token de agy.",
   "Could not import the Antigravity CLI login.": "No se pudo importar el inicio de sesión de Antigravity CLI.",
+  "Import Kiro login": "Importar inicio de sesión de Kiro",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "Pega un token de actualización del IDE de Kiro o de inicio social para conectarte sin el flujo de dispositivo.",
+  "Import token": "Importar token",
+  "Paste the Kiro refresh token first.": "Pega primero el token de actualización de Kiro.",
+  "Kiro login imported; the account is connected.": "Inicio de sesión de Kiro importado; la cuenta está conectada.",
+  "Could not import the Kiro login.": "No se pudo importar el inicio de sesión de Kiro.",
 };

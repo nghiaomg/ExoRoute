@@ -1797,4 +1797,10 @@ export const ko: Catalog = {
   "Auto-detect local login": "로컬 로그인 자동 감지",
   "Paste the agy token file contents first.": "먼저 agy 토큰 파일 내용을 붙여넣으세요.",
   "Could not import the Antigravity CLI login.": "Antigravity CLI 로그인을 가져올 수 없습니다.",
+  "Import Kiro login": "Kiro 로그인 가져오기",
+  "Paste a Kiro IDE or social refresh token to connect without the device flow.": "디바이스 흐름 없이 연결하려면 Kiro IDE 또는 소셜 리프레시 토큰을 붙여넣으세요.",
+  "Import token": "토큰 가져오기",
+  "Paste the Kiro refresh token first.": "먼저 Kiro 리프레시 토큰을 붙여넣으세요.",
+  "Kiro login imported; the account is connected.": "Kiro 로그인을 가져왔습니다. 계정이 연결되었습니다.",
+  "Could not import the Kiro login.": "Kiro 로그인을 가져올 수 없습니다.",
 };
