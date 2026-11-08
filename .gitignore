@@ -11,6 +11,8 @@
 
 # Local tooling metadata
 /.freebuff/
+/.vite/
+/.zcode/
 
 # Local application data and databases
 /.exoroute/
