@@ -972,6 +972,7 @@ export const en = {
   'Header / Key': 'Header / Key',
   'API Key': 'API Key',
   'OAuth + API key': 'OAuth + API key',
+  'Local CLI': 'Local CLI',
   'Cline': 'Cline',
   'ClinePass': 'ClinePass',
   'Connect a Cline account with OAuth or a Cline API key.': 'Connect a Cline account with OAuth or a Cline API key.',

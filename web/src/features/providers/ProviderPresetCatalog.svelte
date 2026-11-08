@@ -105,8 +105,10 @@
                     {tr('OAuth 2.0')}
                   {:else if preset.supported_auth_types.includes('header')}
                     {tr('Header / Key')}
-                  {:else}
+                  {:else if preset.capabilities.api_keys}
                     {tr('API Key')}
+                  {:else}
+                    {tr('Local CLI')}
                   {/if}
                 </span>
               </div>

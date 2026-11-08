@@ -29,7 +29,14 @@ fn registry_has_unique_ids_and_valid_metadata() {
             let parsed: Result<UpstreamProtocol, _> = protocol.parse();
             crate::protocol::UpstreamProtocol::as_str_list().contains(protocol) && parsed.is_ok()
         }));
-        assert!(preset.capabilities.api_keys || preset.capabilities.oauth_accounts);
+        // Presets must expose a credential mechanism — stored API keys,
+        // managed OAuth accounts, or an explicit auth-none transport whose
+        // credentials live outside ExoRoute (e.g. the local `devin` CLI login).
+        let auth_none_only = preset.supported_auth_types == ["none"];
+        assert!(
+            preset.capabilities.api_keys || preset.capabilities.oauth_accounts || auth_none_only,
+            "preset exposes no credential mechanism"
+        );
         assert_eq!(
             preset.capabilities.oauth_accounts || preset.capabilities.api_key_auth_assist,
             preset.capabilities.auth_panel.is_some()

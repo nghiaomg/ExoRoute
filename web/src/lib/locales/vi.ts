@@ -1041,6 +1041,7 @@ export const vi: Record<TranslationKey, string> = {
   'Header / Key': 'Header / Key',
   'API Key': 'API key',
   'OAuth + API key': 'OAuth + API key',
+  'Local CLI': 'CLI cục bộ',
   'Cline': 'Cline',
   'ClinePass': 'ClinePass',
   'Connect a Cline account with OAuth or a Cline API key.': 'Kết nối tài khoản Cline bằng OAuth hoặc API key Cline.',

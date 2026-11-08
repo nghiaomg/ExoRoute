@@ -230,7 +230,11 @@ fn validate_provider_presets(presets: &[YamlProviderPreset]) -> Result<(), Strin
                 preset.id
             ));
         }
-        if !capabilities.api_keys && !capabilities.oauth_accounts {
+        // A preset must expose a credential mechanism: stored API keys,
+        // managed OAuth accounts, or an explicit auth-none transport whose
+        // credentials live outside ExoRoute (e.g. the local `devin` CLI login).
+        let auth_none_only = preset.supported_auth_types == ["none"];
+        if !capabilities.api_keys && !capabilities.oauth_accounts && !auth_none_only {
             return Err(format!(
                 "provider preset {} must support API keys or OAuth accounts",
                 preset.id

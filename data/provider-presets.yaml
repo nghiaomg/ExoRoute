@@ -1433,7 +1433,7 @@ providers:
       - chat_completions
     protocol_selectable: false
     capabilities:
-      api_keys: true
+      api_keys: false
       oauth_accounts: false
       local_usage_meter: false
       local_quota_tracking: false
