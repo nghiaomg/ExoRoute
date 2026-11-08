@@ -3,6 +3,7 @@
 //! Keeping metadata validation apart from protocol payload/content encoding
 //! prevents new request options from expanding the transport codec.
 
+use super::UpstreamProtocol;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
@@ -384,7 +385,12 @@ pub(crate) fn supports_native_reasoning_effort(model: &str, effort: &str) -> boo
     .unwrap_or(model);
     let codex_tier = matches!(
         base_model,
-        "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gpt-6-astra"
+        "gpt-5.6-sol"
+            | "gpt-5.6-terra"
+            | "gpt-5.6-luna"
+            | "gpt-6-astra"
+            | "gpt-6-sol"
+            | "gpt-6-luna"
     );
     match effort {
         "max" => codex_tier,
@@ -500,6 +506,108 @@ pub(crate) fn normalize_responses_thinking_intent(
             "request option '{option}' must be a boolean or object"
         )),
     }
+}
+
+/// Effort levels that may appear as a `-{effort}` suffix on a provider-prefixed
+/// model name such as `cx/gpt-6-luna-max`. The set mirrors the values
+/// [`normalize_responses_effort`] accepts, so a suffix can never name a level
+/// the request options would reject.
+const MODEL_EFFORT_SUFFIXES: &[&str] = &[
+    "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra",
+];
+
+/// Splits a trailing `-{effort}` model suffix, returning the base model name
+/// and the suffix as written. The match is ASCII case-insensitive; callers
+/// normalize the level before use. A model with no dash or an unrecognized
+/// suffix returns `None`.
+pub(crate) fn split_model_effort_suffix(model: &str) -> Option<(&str, &str)> {
+    let (base, suffix) = model.rsplit_once('-')?;
+    if base.is_empty() {
+        return None;
+    }
+    MODEL_EFFORT_SUFFIXES
+        .iter()
+        .any(|level| suffix.eq_ignore_ascii_case(level))
+        .then_some((base, suffix))
+}
+
+/// Applies a `-{effort}` model-name suffix to an encoded upstream request body.
+///
+/// The suffix is a routing hint rather than a client option, so an effort the
+/// client already expressed through request metadata keeps precedence: this
+/// only fills the fields the encoder left unset. Each upstream protocol
+/// receives the level in its own shape — `reasoning.effort` for Responses,
+/// `reasoning_effort` for Chat Completions, `output_config.effort` for
+/// Messages, and `generationConfig.thinkingConfig` for Google — with levels
+/// the protocol cannot express degraded to the closest supported tier.
+pub(crate) fn apply_model_effort(
+    protocol: UpstreamProtocol,
+    body: &mut Value,
+    effort: &str,
+    model: &str,
+) -> Result<(), String> {
+    let effort = normalize_responses_effort(&Value::String(effort.to_owned()), "model", model)?;
+    let Some(object) = body.as_object_mut() else {
+        return Err("upstream request body is not an object".to_owned());
+    };
+    match protocol {
+        UpstreamProtocol::Responses => match object.get_mut("reasoning") {
+            Some(Value::Object(reasoning)) => {
+                reasoning
+                    .entry("effort".to_owned())
+                    .or_insert_with(|| json!(effort));
+            }
+            Some(_) => {}
+            None => {
+                object.insert("reasoning".to_owned(), json!({"effort": effort}));
+            }
+        },
+        UpstreamProtocol::ChatCompletions => {
+            if !object.contains_key("reasoning_effort") && !object.contains_key("reasoning") {
+                object.insert("reasoning_effort".to_owned(), json!(effort));
+            }
+        }
+        UpstreamProtocol::Messages => {
+            // Anthropic effort has five levels; "none" and "minimal" have no
+            // representation and degrade to the lowest tier.
+            let effort = match effort.as_str() {
+                "none" | "minimal" => "low",
+                level => level,
+            };
+            let config = object
+                .entry("output_config".to_owned())
+                .or_insert_with(|| json!({}));
+            if let Some(config) = config.as_object_mut() {
+                config
+                    .entry("effort".to_owned())
+                    .or_insert_with(|| json!(effort));
+            }
+        }
+        UpstreamProtocol::GoogleGenerateContent => {
+            // thinkingLevel only knows low|medium|high; stronger levels clamp
+            // to high and "none" disables thinking through the budget.
+            if object
+                .get("generationConfig")
+                .and_then(|config| config.get("thinkingConfig"))
+                .is_some()
+            {
+                return Ok(());
+            }
+            let thinking_config = match effort.as_str() {
+                "none" => json!({"thinkingBudget": 0}),
+                "minimal" | "low" => json!({"thinkingLevel": "low"}),
+                "medium" => json!({"thinkingLevel": "medium"}),
+                _ => json!({"thinkingLevel": "high"}),
+            };
+            let generation_config = object
+                .entry("generationConfig".to_owned())
+                .or_insert_with(|| json!({}));
+            if let Some(config) = generation_config.as_object_mut() {
+                config.insert("thinkingConfig".to_owned(), thinking_config);
+            }
+        }
+    }
+    Ok(())
 }
 
 pub(crate) fn bound_option_name(name: &str) -> String {

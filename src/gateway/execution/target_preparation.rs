@@ -156,6 +156,24 @@ pub(super) async fn prepare_target<'a>(
             )));
         }
     };
+    // A `-{effort}` model-name suffix resolved during alias lookup lands here,
+    // after protocol encoding but before the adapter sees the body, so
+    // adapter-level normalizers (for example Command Code's reasoning_effort
+    // clamp or Codex's encrypted-reasoning include) observe the final value.
+    if let Some(effort) = target.effort.as_deref()
+        && let Err(error) = protocol::apply_model_effort(
+            upstream_protocol,
+            &mut upstream_body,
+            effort,
+            &target.model,
+        )
+    {
+        return Err(TargetPreparationError::SkipUnencodable(format!(
+            "provider '{}' cannot apply the '{effort}' model effort through {}: {error}",
+            provider.id,
+            upstream_protocol.as_str()
+        )));
+    }
     if let Err(error) = provider_adapters::prepare_request_body(
         &provider.adapter_id,
         &mut upstream_body,

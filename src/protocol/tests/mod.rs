@@ -6,6 +6,7 @@ mod empty_content;
 mod encoding;
 mod history;
 mod media;
+mod model_effort;
 mod responses_output;
 mod thinking_blocks;
 mod thinking_options;

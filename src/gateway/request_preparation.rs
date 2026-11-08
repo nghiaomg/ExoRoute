@@ -26,6 +26,10 @@ pub(super) struct Target {
     pub(super) protocol: Option<UpstreamProtocol>,
     pub(super) model_protocol: Option<UpstreamProtocol>,
     pub(super) enabled: bool,
+    /// Reasoning effort parsed from a `-{effort}` suffix on a
+    /// provider-prefixed model alias (`cx/gpt-6-luna-max`). `None` for route
+    /// targets and for aliases that matched a saved model exactly.
+    pub(super) effort: Option<String>,
 }
 
 pub(super) struct StoredRoute {
@@ -518,6 +522,7 @@ fn build_target(transaction: &ReadTxn<'_, '_>, target: &Record) -> Result<Target
         protocol,
         model_protocol,
         enabled: target.boolean("enabled")?,
+        effort: None,
     })
 }
 
@@ -563,41 +568,64 @@ pub(super) async fn resolve_provider_model_alias(
         if !provider.boolean("enabled")? {
             return Ok(ProviderModelAliasResolution::NotFound);
         }
-        let model_key = crate::infra::db::provider_model_index_key(&provider_id, &model_name)?;
-        let Some(saved_model) = transaction.get::<String>(Table::ProviderModelIndex, &model_key)?
-        else {
-            return Ok(ProviderModelAliasResolution::NotFound);
-        };
-        if saved_model != model_name {
-            return Ok(ProviderModelAliasResolution::NotFound);
+        // An exact saved-model match wins over the effort-suffix reading, so a
+        // provider that genuinely names a model `...-max` keeps resolving to
+        // it. Only when nothing matches does `cx/gpt-6-luna-max` fall back to
+        // the base model `gpt-6-luna` plus a `max` effort hint.
+        if let Some(target) = provider_model_alias_target(transaction, &provider_id, &model_name)? {
+            return Ok(ProviderModelAliasResolution::Found(target));
         }
-        let model_primary_key = crate::infra::db::provider_model_key(&provider_id, &model_name)?;
-        let model_record = transaction
-            .get::<Record>(Table::ProviderModels, &model_primary_key)?
-            .ok_or_else(|| {
-                StorageError::Invalid(
-                    "provider model index points to a missing model record".to_owned(),
-                )
-            })?;
-        let model_protocol = model_record
-            .optional_text("upstream_protocol")?
-            .map(|value| {
-                value.parse::<UpstreamProtocol>().map_err(|error| {
-                    StorageError::Invalid(format!(
-                        "saved provider model protocol is invalid: {error}"
-                    ))
-                })
-            })
-            .transpose()?;
-        Ok(ProviderModelAliasResolution::Found(Target {
-            provider_id,
-            model: saved_model,
-            protocol: None,
-            model_protocol,
-            enabled: true,
-        }))
+        if let Some((base_model, effort)) = protocol::split_model_effort_suffix(&model_name)
+            && let Some(mut target) =
+                provider_model_alias_target(transaction, &provider_id, base_model)?
+        {
+            target.effort = Some(effort.to_ascii_lowercase());
+            return Ok(ProviderModelAliasResolution::Found(target));
+        }
+        Ok(ProviderModelAliasResolution::NotFound)
     })
     .await
+}
+
+/// Resolves one saved provider model name to its dispatch target, or `None`
+/// when the provider has no such model.
+fn provider_model_alias_target(
+    transaction: &ReadTxn<'_, '_>,
+    provider_id: &str,
+    model_name: &str,
+) -> Result<Option<Target>, StorageError> {
+    let model_key = crate::infra::db::provider_model_index_key(provider_id, model_name)?;
+    let Some(saved_model) = transaction.get::<String>(Table::ProviderModelIndex, &model_key)?
+    else {
+        return Ok(None);
+    };
+    if saved_model != model_name {
+        return Ok(None);
+    }
+    let model_primary_key = crate::infra::db::provider_model_key(provider_id, model_name)?;
+    let model_record = transaction
+        .get::<Record>(Table::ProviderModels, &model_primary_key)?
+        .ok_or_else(|| {
+            StorageError::Invalid(
+                "provider model index points to a missing model record".to_owned(),
+            )
+        })?;
+    let model_protocol = model_record
+        .optional_text("upstream_protocol")?
+        .map(|value| {
+            value.parse::<UpstreamProtocol>().map_err(|error| {
+                StorageError::Invalid(format!("saved provider model protocol is invalid: {error}"))
+            })
+        })
+        .transpose()?;
+    Ok(Some(Target {
+        provider_id: provider_id.to_owned(),
+        model: saved_model,
+        protocol: None,
+        model_protocol,
+        enabled: true,
+        effort: None,
+    }))
 }
 
 #[cfg(test)]
@@ -611,6 +639,7 @@ mod tests {
             protocol: None,
             model_protocol: None,
             enabled: true,
+            effort: None,
         }
     }
 
@@ -664,6 +693,7 @@ mod tests {
             protocol: None,
             model_protocol: None,
             enabled: true,
+            effort: None,
         }
     }
 
