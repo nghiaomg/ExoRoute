@@ -6,11 +6,82 @@
 
 use crate::protocol::{ContentBlock, Message};
 
+const PER_MESSAGE_LIMIT: usize = 8 * 1024;
+const TOTAL_LIMIT: usize = 24 * 1024;
+const TAIL_MESSAGE_COUNT: usize = 3;
+const SEQUENCE_LOOKAHEAD_BYTES: usize = 240;
+
+const SECURITY_TERMS: &[&str] = &[
+    "security",
+    "vulnerability",
+    "exploit",
+    "credential leak",
+    "secret leak",
+    "malware",
+    "phishing",
+];
+
+const IRREVERSIBLE_TERMS: &[&str] = &[
+    "delete",
+    "drop table",
+    "truncate",
+    "destroy",
+    "wipe",
+    "irreversible",
+    "permanently remove",
+];
+
+const CLARIFICATION_TERMS: &[&str] = &[
+    "clarify",
+    "explain in detail",
+    "more detail",
+    "step by step",
+    "why exactly",
+    "what do you mean",
+];
+
+const SEQUENCE_ORDERS: &[&str] = &[
+    "first",
+    "then",
+    "after that",
+    "before",
+    "rollback",
+    "backup",
+];
+
+const SEQUENCE_TERMS: &[&str] = &["delete", "drop", "migrate", "deploy", "release"];
+
 pub fn should_bypass(messages: &[Message]) -> Option<&'static str> {
-    const PER_MESSAGE_LIMIT: usize = 8 * 1024;
-    const TOTAL_LIMIT: usize = 24 * 1024;
+    let text = collect_bypass_text(messages).to_ascii_lowercase();
+    if text.trim().is_empty() {
+        return None;
+    }
+    if SECURITY_TERMS.iter().any(|term| contains_word(&text, term)) {
+        return Some("security_warning");
+    }
+    if IRREVERSIBLE_TERMS
+        .iter()
+        .any(|term| contains_word(&text, term))
+    {
+        return Some("irreversible_action");
+    }
+    if CLARIFICATION_TERMS
+        .iter()
+        .any(|term| contains_word(&text, term))
+    {
+        return Some("clarification_requested");
+    }
+    if has_order_sensitive_sequence(&text) {
+        return Some("order_sensitive_sequence");
+    }
+    None
+}
+
+/// Collects text from the bounded tail of the conversation. Tool results are
+/// walked recursively so their nested content participates in detection.
+fn collect_bypass_text(messages: &[Message]) -> String {
     let mut text = String::new();
-    for message in messages.iter().rev().take(3).rev() {
+    for message in messages.iter().rev().take(TAIL_MESSAGE_COUNT).rev() {
         let mut message_bytes = 0usize;
         if text.len() >= TOTAL_LIMIT {
             break;
@@ -56,65 +127,17 @@ pub fn should_bypass(messages: &[Message]) -> Option<&'static str> {
             }
         }
     }
-    // Detection terms are ASCII. Keep the bounded scan bounded in bytes even
-    // for Unicode input instead of allowing case folding to expand text.
-    let text = text.to_ascii_lowercase();
-    if text.trim().is_empty() {
-        return None;
-    }
-    if [
-        "security",
-        "vulnerability",
-        "exploit",
-        "credential leak",
-        "secret leak",
-        "malware",
-        "phishing",
-    ]
-    .iter()
-    .any(|term| contains_word(&text, term))
-    {
-        return Some("security_warning");
-    }
-    if [
-        "delete",
-        "drop table",
-        "truncate",
-        "destroy",
-        "wipe",
-        "irreversible",
-        "permanently remove",
-    ]
-    .iter()
-    .any(|term| contains_word(&text, term))
-    {
-        return Some("irreversible_action");
-    }
-    if [
-        "clarify",
-        "explain in detail",
-        "more detail",
-        "step by step",
-        "why exactly",
-        "what do you mean",
-    ]
-    .iter()
-    .any(|term| contains_word(&text, term))
-    {
-        return Some("clarification_requested");
-    }
-    for order in [
-        "first",
-        "then",
-        "after that",
-        "before",
-        "rollback",
-        "backup",
-    ] {
+    text
+}
+
+/// Detects an ordering word followed within a bounded window by an
+/// action word, which indicates step-sensitive instructions.
+fn has_order_sensitive_sequence(text: &str) -> bool {
+    for order in SEQUENCE_ORDERS {
         let mut start = 0;
         while let Some(relative) = text[start..].find(order) {
             let position = start + relative;
-            if !is_word_boundary(&text, position, order.len()) {
+            if !is_word_boundary(text, position, order.len()) {
                 start = position.saturating_add(order.len());
                 if start >= text.len() {
                     break;
@@ -123,16 +146,16 @@ pub fn should_bypass(messages: &[Message]) -> Option<&'static str> {
             }
             let mut end = position
                 .saturating_add(order.len())
-                .saturating_add(240)
+                .saturating_add(SEQUENCE_LOOKAHEAD_BYTES)
                 .min(text.len());
             while end > position && !text.is_char_boundary(end) {
                 end -= 1;
             }
-            if ["delete", "drop", "migrate", "deploy", "release"]
+            if SEQUENCE_TERMS
                 .iter()
                 .any(|term| contains_word(&text[position..end], term))
             {
-                return Some("order_sensitive_sequence");
+                return true;
             }
             start = position.saturating_add(order.len());
             if start >= text.len() {
@@ -140,7 +163,7 @@ pub fn should_bypass(messages: &[Message]) -> Option<&'static str> {
             }
         }
     }
-    None
+    false
 }
 
 fn is_word_byte(byte: u8) -> bool {
