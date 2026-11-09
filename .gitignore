@@ -87,3 +87,7 @@ docs/*
 # Official releases and changelogs
 !docs/releases/
 !docs/releases/**
+
+# Generated page mockups (rebuilt by sketch/build-pages.mjs)
+/sketch/*.html
+!/sketch/main.html
