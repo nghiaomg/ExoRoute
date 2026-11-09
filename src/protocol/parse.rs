@@ -22,6 +22,162 @@ pub(crate) fn parse_content(value: Option<&Value>) -> Result<Vec<ContentBlock>, 
     }
 }
 
+/// Copies every field of `part` except the listed keys; used to preserve
+/// provider-specific extras on thinking blocks.
+fn extra_fields(part: &Value, excluded: &[&str]) -> std::collections::BTreeMap<String, Value> {
+    part.as_object()
+        .into_iter()
+        .flat_map(|object| object.iter())
+        .filter(|(key, _)| !excluded.contains(&key.as_str()))
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect()
+}
+
+fn parse_thinking_part(part: &Value) -> Result<ContentBlock, String> {
+    let thinking = part
+        .get("thinking")
+        .and_then(Value::as_str)
+        .ok_or("thinking block is missing its thinking text")?
+        .to_owned();
+    let signature = match part.get("signature") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(signature)) => Some(signature.clone()),
+        Some(_) => return Err("thinking block signature must be a string".to_owned()),
+    };
+    Ok(ContentBlock::Thinking {
+        thinking,
+        signature,
+        extra: extra_fields(part, &["type", "thinking", "signature"]),
+    })
+}
+
+fn parse_redacted_thinking_part(part: &Value) -> Result<ContentBlock, String> {
+    let data = part
+        .get("data")
+        .and_then(Value::as_str)
+        .ok_or("redacted thinking block is missing its data")?
+        .to_owned();
+    Ok(ContentBlock::RedactedThinking {
+        data,
+        extra: extra_fields(part, &["type", "data"]),
+    })
+}
+
+fn reject_image_file_id(image: &Value) -> Result<(), String> {
+    if image.get("file_id").is_some() {
+        return Err(
+            "provider-scoped image file_id references are unsupported; use a URL or data URI"
+                .to_owned(),
+        );
+    }
+    Ok(())
+}
+
+fn parse_image_url_part(part: &Value) -> Result<ContentBlock, String> {
+    let image = part
+        .get("image_url")
+        .ok_or("image_url block is missing image_url")?;
+    if part.get("file_id").is_some() {
+        return Err(
+            "provider-scoped image file_id references are unsupported; use a URL or data URI"
+                .to_owned(),
+        );
+    }
+    reject_image_file_id(image)?;
+    let url = image
+        .get("url")
+        .or_else(|| image.as_str().map(|_| image))
+        .and_then(Value::as_str)
+        .ok_or("image_url must contain a URL or data URI")?;
+    Ok(ContentBlock::Image {
+        url: validate_image_url(url)?,
+        detail: image
+            .get("detail")
+            .or_else(|| part.get("detail"))
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+    })
+}
+
+fn parse_input_image_part(part: &Value) -> Result<ContentBlock, String> {
+    if part.get("file_id").is_some() {
+        return Err(
+            "provider-scoped image file_id references are unsupported; use a URL or data URI"
+                .to_owned(),
+        );
+    }
+    let image = part
+        .get("image_url")
+        .ok_or("input_image is missing image_url")?;
+    reject_image_file_id(image)?;
+    let url = image
+        .as_str()
+        .or_else(|| image.get("url").and_then(Value::as_str))
+        .ok_or("input_image image_url must be a URL or data URI")?;
+    Ok(ContentBlock::Image {
+        url: validate_image_url(url)?,
+        detail: part
+            .get("detail")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+    })
+}
+
+fn parse_anthropic_image_part(part: &Value) -> Result<ContentBlock, String> {
+    let source = part.get("source").ok_or("image block is missing source")?;
+    match source.get("type").and_then(Value::as_str).unwrap_or("") {
+        "url" => Ok(ContentBlock::Image {
+            url: validate_image_url(source.get("url").and_then(Value::as_str).ok_or("image URL source is missing url")?)?,
+            detail: None,
+        }),
+        "base64" => {
+            let media_type = source.get("media_type").and_then(Value::as_str).ok_or("base64 image source is missing media_type")?;
+            let data = source.get("data").and_then(Value::as_str).ok_or("base64 image source is missing data")?;
+            Ok(ContentBlock::Image { url: validate_image_url(&format!("data:{media_type};base64,{data}"))?, detail: None })
+        }
+        "file" => Err("Anthropic provider-scoped image source.type=file is unsupported; use a URL or base64 source".to_owned()),
+        other => Err(format!("unsupported image source type: {other}")),
+    }
+}
+
+fn parse_tool_call_part(part: &Value) -> Result<ContentBlock, String> {
+    let args = part
+        .get("input")
+        .or_else(|| part.get("arguments"))
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let arguments = match args {
+        Value::String(value) => serde_json::from_str(&value).unwrap_or(Value::String(value)),
+        other => other,
+    };
+    Ok(ContentBlock::ToolCall {
+        id: part
+            .get("id")
+            .or_else(|| part.get("call_id"))
+            .and_then(Value::as_str)
+            .unwrap_or("call")
+            .to_owned(),
+        name: part
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_owned(),
+        arguments,
+    })
+}
+
+fn parse_tool_result_part(part: &Value) -> Result<ContentBlock, String> {
+    Ok(ContentBlock::ToolResult {
+        tool_call_id: part
+            .get("tool_use_id")
+            .or_else(|| part.get("call_id"))
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_owned(),
+        content: parse_content(part.get("content").or_else(|| part.get("output")))?,
+    })
+}
+
 pub(crate) fn parse_content_part(part: &Value) -> Result<ContentBlock, String> {
     let kind = part.get("type").and_then(Value::as_str).unwrap_or("");
     match kind {
@@ -32,142 +188,15 @@ pub(crate) fn parse_content_part(part: &Value) -> Result<ContentBlock, String> {
                 .unwrap_or_default()
                 .to_owned(),
         }),
-        "thinking" => {
-            let thinking = part
-                .get("thinking")
-                .and_then(Value::as_str)
-                .ok_or("thinking block is missing its thinking text")?
-                .to_owned();
-            let signature = match part.get("signature") {
-                None | Some(Value::Null) => None,
-                Some(Value::String(signature)) => Some(signature.clone()),
-                Some(_) => return Err("thinking block signature must be a string".to_owned()),
-            };
-            let extra = part
-                .as_object()
-                .into_iter()
-                .flat_map(|object| object.iter())
-                .filter(|(key, _)| !matches!(key.as_str(), "type" | "thinking" | "signature"))
-                .map(|(key, value)| (key.clone(), value.clone()))
-                .collect();
-            Ok(ContentBlock::Thinking {
-                thinking,
-                signature,
-                extra,
-            })
-        }
-        "redacted_thinking" => {
-            let data = part
-                .get("data")
-                .and_then(Value::as_str)
-                .ok_or("redacted thinking block is missing its data")?
-                .to_owned();
-            let extra = part
-                .as_object()
-                .into_iter()
-                .flat_map(|object| object.iter())
-                .filter(|(key, _)| !matches!(key.as_str(), "type" | "data"))
-                .map(|(key, value)| (key.clone(), value.clone()))
-                .collect();
-            Ok(ContentBlock::RedactedThinking { data, extra })
-        }
-        "image_url" => {
-            let image = part
-                .get("image_url")
-                .ok_or("image_url block is missing image_url")?;
-            if part.get("file_id").is_some() || image.get("file_id").is_some() {
-                return Err("provider-scoped image file_id references are unsupported; use a URL or data URI".to_owned());
-            }
-            let url = image
-                .get("url")
-                .or_else(|| image.as_str().map(|_| image))
-                .and_then(Value::as_str)
-                .ok_or("image_url must contain a URL or data URI")?;
-            Ok(ContentBlock::Image {
-                url: validate_image_url(url)?,
-                detail: image
-                    .get("detail")
-                    .or_else(|| part.get("detail"))
-                    .and_then(Value::as_str)
-                    .map(str::to_owned),
-            })
-        }
-        "input_image" => {
-            if part.get("file_id").is_some() {
-                return Err("provider-scoped image file_id references are unsupported; use a URL or data URI".to_owned());
-            }
-            let image = part
-                .get("image_url")
-                .ok_or("input_image is missing image_url")?;
-            if image.get("file_id").is_some() {
-                return Err("provider-scoped image file_id references are unsupported; use a URL or data URI".to_owned());
-            }
-            let url = image
-                .as_str()
-                .or_else(|| image.get("url").and_then(Value::as_str))
-                .ok_or("input_image image_url must be a URL or data URI")?;
-            Ok(ContentBlock::Image {
-                url: validate_image_url(url)?,
-                detail: part
-                    .get("detail")
-                    .and_then(Value::as_str)
-                    .map(str::to_owned),
-            })
-        }
-        "image" => {
-            let source = part.get("source").ok_or("image block is missing source")?;
-            match source.get("type").and_then(Value::as_str).unwrap_or("") {
-                "url" => Ok(ContentBlock::Image {
-                    url: validate_image_url(source.get("url").and_then(Value::as_str).ok_or("image URL source is missing url")?)?,
-                    detail: None,
-                }),
-                "base64" => {
-                    let media_type = source.get("media_type").and_then(Value::as_str).ok_or("base64 image source is missing media_type")?;
-                    let data = source.get("data").and_then(Value::as_str).ok_or("base64 image source is missing data")?;
-                    Ok(ContentBlock::Image { url: validate_image_url(&format!("data:{media_type};base64,{data}"))?, detail: None })
-                }
-                "file" => Err("Anthropic provider-scoped image source.type=file is unsupported; use a URL or base64 source".to_owned()),
-                other => Err(format!("unsupported image source type: {other}")),
-            }
-        }
+        "thinking" => parse_thinking_part(part),
+        "redacted_thinking" => parse_redacted_thinking_part(part),
+        "image_url" => parse_image_url_part(part),
+        "input_image" => parse_input_image_part(part),
+        "image" => parse_anthropic_image_part(part),
         "input_file" => parse_responses_file(part),
         "document" => parse_anthropic_document(part),
-        "tool_use" | "function_call" => {
-            let args = part
-                .get("input")
-                .or_else(|| part.get("arguments"))
-                .cloned()
-                .unwrap_or_else(|| json!({}));
-            let arguments = match args {
-                Value::String(value) => {
-                    serde_json::from_str(&value).unwrap_or(Value::String(value))
-                }
-                other => other,
-            };
-            Ok(ContentBlock::ToolCall {
-                id: part
-                    .get("id")
-                    .or_else(|| part.get("call_id"))
-                    .and_then(Value::as_str)
-                    .unwrap_or("call")
-                    .to_owned(),
-                name: part
-                    .get("name")
-                    .and_then(Value::as_str)
-                    .unwrap_or("")
-                    .to_owned(),
-                arguments,
-            })
-        }
-        "tool_result" | "function_call_output" => Ok(ContentBlock::ToolResult {
-            tool_call_id: part
-                .get("tool_use_id")
-                .or_else(|| part.get("call_id"))
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_owned(),
-            content: parse_content(part.get("content").or_else(|| part.get("output")))?,
-        }),
+        "tool_use" | "function_call" => parse_tool_call_part(part),
+        "tool_result" | "function_call_output" => parse_tool_result_part(part),
         _ => Err(format!("unsupported content block type: {kind}")),
     }
 }
