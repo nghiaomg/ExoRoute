@@ -27,13 +27,13 @@ use std::time::{Duration, Instant};
 async fn read_callback_payload(
     request: Request<Body>,
     origin: &str,
-) -> Result<(axum::body::Bytes, String), Response> {
+) -> Result<(axum::body::Bytes, String), Box<Response>> {
     let invalid = || {
-        callback_response(
+        Box::new(callback_response(
             StatusCode::BAD_REQUEST,
             json!({"success":false,"error":"Invalid callback payload"}),
             Some(origin.to_owned()),
-        )
+        ))
     };
     let body = match tokio::time::timeout(
         Duration::from_secs(10),
@@ -43,26 +43,26 @@ async fn read_callback_payload(
     {
         Ok(Ok(body)) => body,
         Ok(Err(_)) => {
-            return Err(callback_response(
+            return Err(Box::new(callback_response(
                 StatusCode::PAYLOAD_TOO_LARGE,
                 json!({"success":false,"error":"Request body too large"}),
                 Some(origin.to_owned()),
-            ));
+            )));
         }
         Err(_) => {
-            return Err(callback_response(
+            return Err(Box::new(callback_response(
                 StatusCode::REQUEST_TIMEOUT,
                 json!({"success":false,"error":"Request body timed out"}),
                 Some(origin.to_owned()),
-            ));
+            )));
         }
     };
     if body.len() > CALLBACK_BODY_LIMIT {
-        return Err(callback_response(
+        return Err(Box::new(callback_response(
             StatusCode::PAYLOAD_TOO_LARGE,
             json!({"success":false,"error":"Request body too large"}),
             Some(origin.to_owned()),
-        ));
+        )));
     }
     let callback_value: Value = serde_json::from_slice(&body).map_err(|_| invalid())?;
     let callback_state = callback_value
@@ -80,13 +80,13 @@ async fn resolve_callback_flow(
     state: &AppState,
     callback_state: &str,
     origin: &str,
-) -> Result<(String, Vec<u8>), Response> {
+) -> Result<(String, Vec<u8>), Box<Response>> {
     let invalid_state = || {
-        callback_response(
+        Box::new(callback_response(
             StatusCode::BAD_REQUEST,
             json!({"success":false,"error":"Invalid or expired state"}),
             Some(origin.to_owned()),
-        )
+        ))
     };
     let submitted_state_hash = token_hash(callback_state);
     let adapter_id = {
@@ -97,11 +97,11 @@ async fn resolve_callback_flow(
         return Err(invalid_state());
     };
     if !provider_adapters::api_key_auth_assist_origin_allowed(&adapter_id, origin) {
-        return Err(callback_response(
+        return Err(Box::new(callback_response(
             StatusCode::FORBIDDEN,
             json!({"success":false,"error":"Origin not allowed for this provider"}),
             Some(origin.to_owned()),
-        ));
+        )));
     }
     Ok((adapter_id, submitted_state_hash))
 }
@@ -112,13 +112,13 @@ fn parse_callback_payload(
     adapter_id: &str,
     body: &[u8],
     origin: &str,
-) -> Result<provider_adapters::ApiKeyAuthCallback, Response> {
+) -> Result<provider_adapters::ApiKeyAuthCallback, Box<Response>> {
     let invalid = || {
-        callback_response(
+        Box::new(callback_response(
             StatusCode::BAD_REQUEST,
             json!({"success":false,"error":"Invalid callback payload"}),
             Some(origin.to_owned()),
-        )
+        ))
     };
     let payload =
         provider_adapters::parse_api_key_auth_callback(adapter_id, body).map_err(|_| invalid())?;
@@ -140,19 +140,19 @@ fn encrypt_callback_key(
     state: &AppState,
     api_key: &str,
     origin: &str,
-) -> Result<Vec<u8>, Response> {
+) -> Result<Vec<u8>, Box<Response>> {
     match encrypt_secret(state.config.master_key.as_ref(), api_key) {
         Ok(Some(secret)) => Ok(secret),
-        Ok(None) => Err(callback_response(
+        Ok(None) => Err(Box::new(callback_response(
             StatusCode::BAD_REQUEST,
             json!({"success":false,"error":"Invalid callback payload"}),
             Some(origin.to_owned()),
-        )),
-        Err(_) => Err(callback_response(
+        ))),
+        Err(_) => Err(Box::new(callback_response(
             StatusCode::SERVICE_UNAVAILABLE,
             json!({"success":false,"error":"Provider key encryption is unavailable"}),
             Some(origin.to_owned()),
-        )),
+        ))),
     }
 }
 
@@ -168,21 +168,21 @@ pub(crate) async fn callback(State(state): State<AppState>, request: Request<Bod
     let origin = origin.as_str();
     let (body, callback_state) = match read_callback_payload(request, origin).await {
         Ok(parsed) => parsed,
-        Err(response) => return response,
+        Err(response) => return *response,
     };
     let (adapter_id, submitted_state_hash) =
         match resolve_callback_flow(&state, &callback_state, origin).await {
             Ok(resolved) => resolved,
-            Err(response) => return response,
+            Err(response) => return *response,
         };
     let payload = match parse_callback_payload(&adapter_id, &body, origin) {
         Ok(payload) => payload,
-        Err(response) => return response,
+        Err(response) => return *response,
     };
     let api_key = payload.api_key.trim();
     let encrypted_api_key = match encrypt_callback_key(&state, api_key, origin) {
         Ok(secret) => secret,
-        Err(response) => return response,
+        Err(response) => return *response,
     };
     let now = Instant::now();
     let metadata = {

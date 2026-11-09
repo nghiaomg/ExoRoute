@@ -738,7 +738,20 @@ async fn request_logs_survive_telemetry_and_database_restart() {
     drop(telemetry);
     drop(database);
 
-    let reopened = db::connect(&path).await.expect("reopen LMDB environment");
+    // The writer task releases its Database clone only after it observes the
+    // closed channel, which can lag under parallel test load; retry briefly
+    // instead of racing the writer's exit.
+    let mut reopened = None;
+    for _ in 0..40 {
+        match db::connect(&path).await {
+            Ok(database) => {
+                reopened = Some(database);
+                break;
+            }
+            Err(_) => tokio::time::sleep(Duration::from_millis(25)).await,
+        }
+    }
+    let reopened = reopened.expect("reopen LMDB environment");
     let log = reopened
         .read(|transaction| {
             let record = transaction.get::<Record>(Table::RequestLogs, "log-restart")?;
