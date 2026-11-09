@@ -1,7 +1,7 @@
 use super::*;
 
-pub(crate) fn router(state: AppState) -> Router<AppState> {
-    let provider_auth_callback_routes = Router::new()
+fn provider_auth_callback_routes() -> Router<AppState> {
+    Router::new()
         .route(
             "/api/v1/admin/providers/auth/callback",
             post(complete_provider_auth_callback),
@@ -10,8 +10,11 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/providers/{id}/auth/{flow_id}/complete",
             post(complete_provider_auth_callback_for_flow),
         )
-        .layer(DefaultBodyLimit::max(MAX_PROVIDER_AUTH_CALLBACK_BODY_BYTES));
-    let protected = Router::new()
+        .layer(DefaultBodyLimit::max(MAX_PROVIDER_AUTH_CALLBACK_BODY_BYTES))
+}
+
+fn provider_routes() -> Router<AppState> {
+    Router::new()
         .route("/api/v1/admin/overview", get(overview))
         .route(
             "/api/v1/admin/overview/upstream-events",
@@ -96,7 +99,7 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/providers/{id}/auth/{flow_id}/poll",
             post(provider_auth::provider_auth_poll),
         )
-        .merge(provider_auth_callback_routes)
+        .merge(provider_auth_callback_routes())
         .route(
             "/api/v1/admin/providers/{id}/api-key-auth/start",
             post(provider_api_key_auth::start),
@@ -126,6 +129,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/providers/{id}/codex/oauth/{flow_id}",
             get(provider_auth_status),
         )
+}
+
+fn combo_routes() -> Router<AppState> {
+    Router::new()
         .route(
             "/api/v1/admin/combos",
             get(combos::list_combos).post(combos::create_combo),
@@ -149,6 +156,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
         )
         .route("/api/v1/admin/models", get(combos::list_models))
         .route("/api/v1/admin/models/test", post(model_probes::test_models))
+}
+
+fn workspace_routes() -> Router<AppState> {
+    Router::new()
         .route(
             "/api/v1/admin/workspace/chat",
             post(workspace::send_workspace_chat),
@@ -161,9 +172,10 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/workspace/chat/models",
             get(workspace::workspace_chat_models),
         )
-        .layer(DefaultBodyLimit::max(
-            workspace::MAX_WORKSPACE_CHAT_BODY_BYTES,
-        ))
+}
+
+fn operations_routes(state: &AppState) -> Router<AppState> {
+    Router::new()
         .route("/api/v1/admin/requests", get(request_logs::list_requests))
         .route(
             "/api/v1/admin/requests/events",
@@ -231,6 +243,17 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
             "/api/v1/admin/api-keys/{id}",
             delete(api_keys::delete_api_key).put(api_keys::update_api_key),
         )
+}
+
+pub(crate) fn router(state: AppState) -> Router<AppState> {
+    let protected = Router::new()
+        .merge(provider_routes())
+        .merge(combo_routes())
+        .merge(workspace_routes())
+        .layer(DefaultBodyLimit::max(
+            workspace::MAX_WORKSPACE_CHAT_BODY_BYTES,
+        ))
+        .merge(operations_routes(&state))
         .route_layer(middleware::from_fn_with_state(state.clone(), require_admin));
 
     Router::new()
