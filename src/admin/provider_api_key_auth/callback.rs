@@ -22,14 +22,18 @@ use axum::{
 use serde_json::{Value, json};
 use std::time::{Duration, Instant};
 
-pub(crate) async fn callback(State(state): State<AppState>, request: Request<Body>) -> Response {
-    let headers = request.headers().clone();
-    let Some(origin) = callback_origin(&headers) else {
-        return callback_response(
-            StatusCode::FORBIDDEN,
-            json!({"success":false,"error":"Origin not allowed"}),
-            None,
-        );
+/// Reads and bounds the callback body, then extracts a syntactically valid
+/// `state` string. Returns the raw body for the adapter-specific parser.
+async fn read_callback_payload(
+    request: Request<Body>,
+    origin: &str,
+) -> Result<(axum::body::Bytes, String), Response> {
+    let invalid = || {
+        callback_response(
+            StatusCode::BAD_REQUEST,
+            json!({"success":false,"error":"Invalid callback payload"}),
+            Some(origin.to_owned()),
+        )
     };
     let body = match tokio::time::timeout(
         Duration::from_secs(10),
@@ -39,119 +43,146 @@ pub(crate) async fn callback(State(state): State<AppState>, request: Request<Bod
     {
         Ok(Ok(body)) => body,
         Ok(Err(_)) => {
-            return callback_response(
+            return Err(callback_response(
                 StatusCode::PAYLOAD_TOO_LARGE,
                 json!({"success":false,"error":"Request body too large"}),
-                Some(origin.clone()),
-            );
+                Some(origin.to_owned()),
+            ));
         }
         Err(_) => {
-            return callback_response(
+            return Err(callback_response(
                 StatusCode::REQUEST_TIMEOUT,
                 json!({"success":false,"error":"Request body timed out"}),
-                Some(origin.clone()),
-            );
+                Some(origin.to_owned()),
+            ));
         }
     };
     if body.len() > CALLBACK_BODY_LIMIT {
-        return callback_response(
+        return Err(callback_response(
             StatusCode::PAYLOAD_TOO_LARGE,
             json!({"success":false,"error":"Request body too large"}),
-            Some(origin.clone()),
-        );
+            Some(origin.to_owned()),
+        ));
     }
-    let callback_value: Value = match serde_json::from_slice(&body) {
-        Ok(payload) => payload,
-        Err(_) => {
-            return callback_response(
-                StatusCode::BAD_REQUEST,
-                json!({"success":false,"error":"Invalid callback payload"}),
-                Some(origin.clone()),
-            );
-        }
-    };
-    let Some(callback_state) = callback_value.get("state").and_then(Value::as_str) else {
-        return callback_response(
+    let callback_value: Value = serde_json::from_slice(&body).map_err(|_| invalid())?;
+    let callback_state = callback_value
+        .get("state")
+        .and_then(Value::as_str)
+        .filter(|state| (32..=512).contains(&state.len()))
+        .ok_or_else(invalid)?
+        .to_owned();
+    Ok((body, callback_state))
+}
+
+/// Resolves the pending flow for the submitted state and checks that the
+/// callback origin is registered for that provider's assist flow.
+async fn resolve_callback_flow(
+    state: &AppState,
+    callback_state: &str,
+    origin: &str,
+) -> Result<(String, Vec<u8>), Response> {
+    let invalid_state = || {
+        callback_response(
             StatusCode::BAD_REQUEST,
-            json!({"success":false,"error":"Invalid callback payload"}),
-            Some(origin.clone()),
-        );
+            json!({"success":false,"error":"Invalid or expired state"}),
+            Some(origin.to_owned()),
+        )
     };
-    if !(32..=512).contains(&callback_state.len()) {
-        return callback_response(
-            StatusCode::BAD_REQUEST,
-            json!({"success":false,"error":"Invalid callback payload"}),
-            Some(origin.clone()),
-        );
-    }
     let submitted_state_hash = token_hash(callback_state);
     let adapter_id = {
         let mut flows = state.admin.provider_api_key_auth_flows.lock().await;
         pending_callback_adapter_id(&mut flows, &submitted_state_hash, Instant::now())
     };
     let Some(adapter_id) = adapter_id else {
-        return callback_response(
-            StatusCode::BAD_REQUEST,
-            json!({"success":false,"error":"Invalid or expired state"}),
-            Some(origin.clone()),
-        );
+        return Err(invalid_state());
     };
-    if !provider_adapters::api_key_auth_assist_origin_allowed(&adapter_id, &origin) {
-        return callback_response(
+    if !provider_adapters::api_key_auth_assist_origin_allowed(&adapter_id, origin) {
+        return Err(callback_response(
             StatusCode::FORBIDDEN,
             json!({"success":false,"error":"Origin not allowed for this provider"}),
-            Some(origin),
-        );
+            Some(origin.to_owned()),
+        ));
     }
-    let payload = match provider_adapters::parse_api_key_auth_callback(&adapter_id, &body) {
-        Ok(payload) => payload,
-        Err(_) => {
-            return callback_response(
-                StatusCode::BAD_REQUEST,
-                json!({"success":false,"error":"Invalid callback payload"}),
-                Some(origin),
-            );
-        }
+    Ok((adapter_id, submitted_state_hash))
+}
+
+/// Parses the adapter-specific callback payload and enforces the shared
+/// field bounds before the key is encrypted and the flow is consumed.
+fn parse_callback_payload(
+    adapter_id: &str,
+    body: &[u8],
+    origin: &str,
+) -> Result<provider_adapters::ApiKeyAuthCallback, Response> {
+    let invalid = || {
+        callback_response(
+            StatusCode::BAD_REQUEST,
+            json!({"success":false,"error":"Invalid callback payload"}),
+            Some(origin.to_owned()),
+        )
     };
+    let payload =
+        provider_adapters::parse_api_key_auth_callback(adapter_id, body).map_err(|_| invalid())?;
     let api_key = payload.api_key.trim();
+    let bounded = |value: &Option<String>| value.as_ref().is_none_or(|value| value.len() <= 256);
     if api_key.is_empty()
         || api_key.len() > CALLBACK_KEY_LIMIT
         || !(32..=512).contains(&payload.state.len())
-        || payload
-            .user_id
-            .as_ref()
-            .is_some_and(|value| value.len() > 256)
-        || payload
-            .user_name
-            .as_ref()
-            .is_some_and(|value| value.len() > 256)
-        || payload
-            .key_name
-            .as_ref()
-            .is_some_and(|value| value.len() > 256)
+        || !bounded(&payload.user_id)
+        || !bounded(&payload.user_name)
+        || !bounded(&payload.key_name)
     {
-        return callback_response(
+        return Err(invalid());
+    }
+    Ok(payload)
+}
+
+fn encrypt_callback_key(
+    state: &AppState,
+    api_key: &str,
+    origin: &str,
+) -> Result<Vec<u8>, Response> {
+    match encrypt_secret(state.config.master_key.as_ref(), api_key) {
+        Ok(Some(secret)) => Ok(secret),
+        Ok(None) => Err(callback_response(
             StatusCode::BAD_REQUEST,
             json!({"success":false,"error":"Invalid callback payload"}),
-            Some(origin.clone()),
-        );
+            Some(origin.to_owned()),
+        )),
+        Err(_) => Err(callback_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            json!({"success":false,"error":"Provider key encryption is unavailable"}),
+            Some(origin.to_owned()),
+        )),
     }
-    let encrypted_api_key = match encrypt_secret(state.config.master_key.as_ref(), api_key) {
-        Ok(Some(secret)) => secret,
-        Ok(None) => {
-            return callback_response(
-                StatusCode::BAD_REQUEST,
-                json!({"success":false,"error":"Invalid callback payload"}),
-                Some(origin.clone()),
-            );
-        }
-        Err(_) => {
-            return callback_response(
-                StatusCode::SERVICE_UNAVAILABLE,
-                json!({"success":false,"error":"Provider key encryption is unavailable"}),
-                Some(origin.clone()),
-            );
-        }
+}
+
+pub(crate) async fn callback(State(state): State<AppState>, request: Request<Body>) -> Response {
+    let headers = request.headers().clone();
+    let Some(origin) = callback_origin(&headers) else {
+        return callback_response(
+            StatusCode::FORBIDDEN,
+            json!({"success":false,"error":"Origin not allowed"}),
+            None,
+        );
+    };
+    let origin = origin.as_str();
+    let (body, callback_state) = match read_callback_payload(request, origin).await {
+        Ok(parsed) => parsed,
+        Err(response) => return response,
+    };
+    let (adapter_id, submitted_state_hash) =
+        match resolve_callback_flow(&state, &callback_state, origin).await {
+            Ok(resolved) => resolved,
+            Err(response) => return response,
+        };
+    let payload = match parse_callback_payload(&adapter_id, &body, origin) {
+        Ok(payload) => payload,
+        Err(response) => return response,
+    };
+    let api_key = payload.api_key.trim();
+    let encrypted_api_key = match encrypt_callback_key(&state, api_key, origin) {
+        Ok(secret) => secret,
+        Err(response) => return response,
     };
     let now = Instant::now();
     let metadata = {
@@ -171,7 +202,7 @@ pub(crate) async fn callback(State(state): State<AppState>, request: Request<Bod
             return callback_response(
                 StatusCode::BAD_REQUEST,
                 json!({"success":false,"error":"Invalid or expired state"}),
-                Some(origin.clone()),
+                Some(origin.to_owned()),
             );
         };
         metadata
@@ -179,7 +210,7 @@ pub(crate) async fn callback(State(state): State<AppState>, request: Request<Bod
     callback_response(
         StatusCode::OK,
         json!({"success":true,"ok":true,"status":"received","metadata":metadata}),
-        Some(origin),
+        Some(origin.to_owned()),
     )
 }
 
