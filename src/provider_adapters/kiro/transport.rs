@@ -164,137 +164,23 @@ fn json_response(completion: &Value) -> Result<reqwest::Response, String> {
         .map_err(|error| format!("could not build the Kiro completion: {error}"))
 }
 
+fn push_chunk(out: &mut Vec<Vec<u8>>, value: Value) {
+    out.push(format!("data: {value}\n\n").into_bytes());
+}
+
 fn frame_to_chunks(frame: &EventFrame, state: &mut StreamState, model: &str) -> Vec<Vec<u8>> {
     let mut out = Vec::new();
-    let push = |out: &mut Vec<Vec<u8>>, value: Value| {
-        out.push(format!("data: {value}\n\n").into_bytes());
-    };
     match frame.event_type.as_str() {
         "assistantResponseEvent" => {
-            let content = frame
-                .payload
-                .as_ref()
-                .and_then(|p| p.get("content"))
-                .and_then(Value::as_str)
-                .unwrap_or("");
-            if content.is_empty() {
+            // An empty assistant event historically returned before the
+            // deferred finish-chunk check below; preserve that ordering.
+            if !assistant_response_chunks(frame, state, model, &mut out) {
                 return out;
             }
-            state.total_content_length += content.len() as u64;
-            let delta = if state.chunk_index == 0 {
-                json!({ "role": "assistant", "content": content })
-            } else {
-                json!({ "content": content })
-            };
-            state.chunk_index += 1;
-            push(&mut out, chunk_json(state, model, delta, None));
         }
-        "codeEvent" => {
-            if let Some(content) = frame
-                .payload
-                .as_ref()
-                .and_then(|p| p.get("content"))
-                .and_then(Value::as_str)
-                .filter(|c| !c.is_empty())
-            {
-                state.total_content_length += content.len() as u64;
-                state.chunk_index += 1;
-                push(
-                    &mut out,
-                    chunk_json(state, model, json!({ "content": content }), None),
-                );
-            }
-        }
-        "toolUseEvent" => {
-            let tools = frame.payload.as_ref().map(|payload| {
-                if let Some(list) = payload.as_array() {
-                    list.clone()
-                } else if payload.get("toolUses").is_some() {
-                    payload
-                        .get("toolUses")
-                        .and_then(Value::as_array)
-                        .cloned()
-                        .unwrap_or_default()
-                } else {
-                    vec![payload.clone()]
-                }
-            });
-            if let Some(tools) = tools {
-                state.has_tool_calls = true;
-                for tool in tools {
-                    let tool_use_id = tool
-                        .get("toolUseId")
-                        .or_else(|| tool.get("tool_use_id"))
-                        .or_else(|| tool.get("id"))
-                        .and_then(Value::as_str)
-                        .map(str::to_owned)
-                        .unwrap_or_else(|| format!("call_{}", uuid::Uuid::new_v4()));
-                    let name = tool
-                        .get("name")
-                        .and_then(Value::as_str)
-                        .unwrap_or("")
-                        .to_owned();
-                    let is_new = !state.seen_tool_ids.contains_key(&tool_use_id);
-                    let tool_index = if is_new {
-                        let index = state.tool_call_index;
-                        state.tool_call_index += 1;
-                        state.seen_tool_ids.insert(tool_use_id.clone(), index);
-                        let mut delta = json!({
-                            "tool_calls": [{
-                                "index": index,
-                                "id": tool_use_id,
-                                "type": "function",
-                                "function": { "name": name, "arguments": "" },
-                            }]
-                        });
-                        if state.chunk_index == 0 {
-                            delta["tool_calls"][0]["role"] = json!("assistant");
-                        }
-                        state.chunk_index += 1;
-                        push(&mut out, chunk_json(state, model, delta, None));
-                        index
-                    } else {
-                        *state.seen_tool_ids.get(&tool_use_id).unwrap_or(&0)
-                    };
-                    let _ = tool_index;
-                    if let Some(input) = tool.get("input") {
-                        let arguments = match input {
-                            Value::String(text) => text.clone(),
-                            other => serde_json::to_string(other).unwrap_or_default(),
-                        };
-                        if !arguments.is_empty() {
-                            state.chunk_index += 1;
-                            push(
-                                &mut out,
-                                chunk_json(
-                                    state,
-                                    model,
-                                    json!({
-                                        "tool_calls": [{
-                                            "index": *state.seen_tool_ids.get(&tool_use_id).unwrap_or(&0),
-                                            "function": { "arguments": arguments },
-                                        }]
-                                    }),
-                                    None,
-                                ),
-                            );
-                        }
-                    }
-                }
-            }
-        }
-        "messageStopEvent" => {
-            state.end_detected = true;
-            if !state.finish_emitted {
-                state.finish_emitted = true;
-                let reason = if state.has_tool_calls {
-                    "tool_calls"
-                } else {
-                    "stop"
-                };
-                push(&mut out, chunk_json(state, model, json!({}), Some(reason)));
-            }
-        }
+        "codeEvent" => code_event_chunks(frame, state, model, &mut out),
+        "toolUseEvent" => tool_use_chunks(frame, state, model, &mut out),
+        "messageStopEvent" => message_stop_chunks(state, model, &mut out),
         "contextUsageEvent" => {
             if let Some(percent) = frame
                 .payload
@@ -311,33 +197,14 @@ fn frame_to_chunks(frame: &EventFrame, state: &mut StreamState, model: &str) -> 
             state.has_metering_event = true;
         }
         "metricsEvent" => {
-            let metrics = frame
-                .payload
-                .as_ref()
-                .map(|p| p.get("metricsEvent").cloned().unwrap_or_else(|| p.clone()))
-                .unwrap_or(Value::Null);
-            let input = metrics
-                .get("inputTokens")
-                .and_then(Value::as_u64)
-                .unwrap_or(0);
-            let output = metrics
-                .get("outputTokens")
-                .and_then(Value::as_u64)
-                .unwrap_or(0);
-            if input > 0 || output > 0 {
+            if let Some((input, output, cache_read, cache_write)) =
+                metrics_token_counts(frame.payload.as_ref())
+            {
                 let mut usage = json!({
                     "prompt_tokens": input,
                     "completion_tokens": output,
                     "total_tokens": input + output,
                 });
-                let cache_read = metrics
-                    .get("cacheReadTokens")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0);
-                let cache_write = metrics
-                    .get("cacheCreationTokens")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0);
                 if cache_read > 0 {
                     usage["cache_read_input_tokens"] = json!(cache_read);
                 }
@@ -365,9 +232,181 @@ fn frame_to_chunks(frame: &EventFrame, state: &mut StreamState, model: &str) -> 
         if let Some(usage) = state.usage.clone() {
             chunk["usage"] = usage;
         }
-        push(&mut out, chunk);
+        push_chunk(&mut out, chunk);
     }
     out
+}
+
+/// Returns `false` when the event carried no content, matching the original
+/// early return that skipped the deferred finish-chunk emission.
+fn assistant_response_chunks(
+    frame: &EventFrame,
+    state: &mut StreamState,
+    model: &str,
+    out: &mut Vec<Vec<u8>>,
+) -> bool {
+    let content = frame
+        .payload
+        .as_ref()
+        .and_then(|p| p.get("content"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    if content.is_empty() {
+        return false;
+    }
+    state.total_content_length += content.len() as u64;
+    let delta = if state.chunk_index == 0 {
+        json!({ "role": "assistant", "content": content })
+    } else {
+        json!({ "content": content })
+    };
+    state.chunk_index += 1;
+    push_chunk(out, chunk_json(state, model, delta, None));
+    true
+}
+
+fn code_event_chunks(
+    frame: &EventFrame,
+    state: &mut StreamState,
+    model: &str,
+    out: &mut Vec<Vec<u8>>,
+) {
+    if let Some(content) = frame
+        .payload
+        .as_ref()
+        .and_then(|p| p.get("content"))
+        .and_then(Value::as_str)
+        .filter(|c| !c.is_empty())
+    {
+        state.total_content_length += content.len() as u64;
+        state.chunk_index += 1;
+        push_chunk(
+            out,
+            chunk_json(state, model, json!({ "content": content }), None),
+        );
+    }
+}
+
+fn tool_use_chunks(
+    frame: &EventFrame,
+    state: &mut StreamState,
+    model: &str,
+    out: &mut Vec<Vec<u8>>,
+) {
+    let tools = frame.payload.as_ref().map(|payload| {
+        if let Some(list) = payload.as_array() {
+            list.clone()
+        } else if payload.get("toolUses").is_some() {
+            payload
+                .get("toolUses")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default()
+        } else {
+            vec![payload.clone()]
+        }
+    });
+    let Some(tools) = tools else { return };
+    state.has_tool_calls = true;
+    for tool in tools {
+        let tool_use_id = tool
+            .get("toolUseId")
+            .or_else(|| tool.get("tool_use_id"))
+            .or_else(|| tool.get("id"))
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .unwrap_or_else(|| format!("call_{}", uuid::Uuid::new_v4()));
+        let name = tool
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_owned();
+        let is_new = !state.seen_tool_ids.contains_key(&tool_use_id);
+        if is_new {
+            let index = state.tool_call_index;
+            state.tool_call_index += 1;
+            state.seen_tool_ids.insert(tool_use_id.clone(), index);
+            let mut delta = json!({
+                "tool_calls": [{
+                    "index": index,
+                    "id": tool_use_id,
+                    "type": "function",
+                    "function": { "name": name, "arguments": "" },
+                }]
+            });
+            if state.chunk_index == 0 {
+                delta["tool_calls"][0]["role"] = json!("assistant");
+            }
+            state.chunk_index += 1;
+            push_chunk(out, chunk_json(state, model, delta, None));
+        }
+        if let Some(input) = tool.get("input") {
+            let arguments = match input {
+                Value::String(text) => text.clone(),
+                other => serde_json::to_string(other).unwrap_or_default(),
+            };
+            if !arguments.is_empty() {
+                state.chunk_index += 1;
+                let tool_index = *state.seen_tool_ids.get(&tool_use_id).unwrap_or(&0);
+                push_chunk(
+                    out,
+                    chunk_json(
+                        state,
+                        model,
+                        json!({
+                            "tool_calls": [{
+                                "index": tool_index,
+                                "function": { "arguments": arguments },
+                            }]
+                        }),
+                        None,
+                    ),
+                );
+            }
+        }
+    }
+}
+
+fn message_stop_chunks(state: &mut StreamState, model: &str, out: &mut Vec<Vec<u8>>) {
+    state.end_detected = true;
+    if !state.finish_emitted {
+        state.finish_emitted = true;
+        let reason = if state.has_tool_calls {
+            "tool_calls"
+        } else {
+            "stop"
+        };
+        push_chunk(out, chunk_json(state, model, json!({}), Some(reason)));
+    }
+}
+
+/// Extracts `(input, output, cache_read, cache_write)` token counts from a
+/// `metricsEvent` payload, returning `None` when both primary counts are
+/// zero so callers can skip emitting empty usage blocks.
+fn metrics_token_counts(payload: Option<&Value>) -> Option<(u64, u64, u64, u64)> {
+    let metrics = payload
+        .map(|p| p.get("metricsEvent").cloned().unwrap_or_else(|| p.clone()))
+        .unwrap_or(Value::Null);
+    let input = metrics
+        .get("inputTokens")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let output = metrics
+        .get("outputTokens")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    if input == 0 && output == 0 {
+        return None;
+    }
+    let cache_read = metrics
+        .get("cacheReadTokens")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    let cache_write = metrics
+        .get("cacheCreationTokens")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    Some((input, output, cache_read, cache_write))
 }
 
 fn chunk_json(
@@ -452,20 +491,7 @@ async fn aggregate_response(
                 collect_tool_calls(frame.payload.as_ref(), &mut tool_calls);
             }
             "metricsEvent" => {
-                let metrics = frame
-                    .payload
-                    .as_ref()
-                    .map(|p| p.get("metricsEvent").cloned().unwrap_or_else(|| p.clone()))
-                    .unwrap_or(Value::Null);
-                let input = metrics
-                    .get("inputTokens")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0);
-                let output = metrics
-                    .get("outputTokens")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0);
-                if input > 0 || output > 0 {
+                if let Some((input, output, _, _)) = metrics_token_counts(frame.payload.as_ref()) {
                     state.usage = Some(json!({
                         "prompt_tokens": input,
                         "completion_tokens": output,
