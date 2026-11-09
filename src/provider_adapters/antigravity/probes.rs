@@ -204,16 +204,160 @@ pub(super) async fn test_antigravity_model(
     }
 }
 
+const EVENT_STREAM_TEXT_LIMIT: usize = 16 * 1024 * 1024;
+
+/// Accumulates the fields of a Gemini-style event stream into the canonical
+/// response shape. Events arrive as `{response: {...}}` envelopes or bare
+/// payloads; both are normalized here.
+#[derive(Default)]
+struct EventStreamParts {
+    text_output: String,
+    tool_calls: Vec<Value>,
+    finish_reason: Option<String>,
+    usage: Option<Value>,
+    response_id: Option<String>,
+    model_version: Option<String>,
+    saw_event: bool,
+}
+
+impl EventStreamParts {
+    fn observe(&mut self, value: &Value) -> Result<(), AdapterSseError> {
+        if value.get("error").is_some() {
+            return Err(AdapterSseError::new(
+                "Antigravity reported a failed response",
+                true,
+            ));
+        }
+        self.saw_event = true;
+        let value = value.get("response").unwrap_or(value);
+        if self.response_id.is_none() {
+            self.response_id = value
+                .get("responseId")
+                .or_else(|| value.get("response_id"))
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned);
+        }
+        if self.model_version.is_none() {
+            self.model_version = value
+                .get("modelVersion")
+                .or_else(|| value.get("model_version"))
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned);
+        }
+        if let Some(value_usage) = value.get("usageMetadata") {
+            self.usage = Some(value_usage.clone());
+        }
+        let Some(candidate) = value
+            .get("candidates")
+            .and_then(Value::as_array)
+            .and_then(|candidates| candidates.first())
+        else {
+            return Ok(());
+        };
+        if let Some(reason) = candidate
+            .get("finishReason")
+            .or_else(|| candidate.get("finish_reason"))
+            .and_then(Value::as_str)
+            .filter(|reason| !reason.is_empty())
+        {
+            self.finish_reason = Some(reason.to_owned());
+        }
+        let Some(parts) = candidate
+            .get("content")
+            .and_then(|content| content.get("parts"))
+            .and_then(Value::as_array)
+        else {
+            return Ok(());
+        };
+        for part in parts {
+            self.observe_part(part)?;
+        }
+        Ok(())
+    }
+
+    fn observe_part(&mut self, part: &Value) -> Result<(), AdapterSseError> {
+        if part.get("thought").and_then(Value::as_bool) == Some(true) {
+            return Ok(());
+        }
+        if let Some(text) = part.get("text").and_then(Value::as_str) {
+            if self.text_output.len().saturating_add(text.len()) > EVENT_STREAM_TEXT_LIMIT {
+                return Err(AdapterSseError::new(
+                    "Antigravity response exceeded its size limit",
+                    false,
+                ));
+            }
+            self.text_output.push_str(text);
+        }
+        if let Some(call) = part.get("functionCall") {
+            self.merge_tool_call(call);
+        }
+        Ok(())
+    }
+
+    /// Merges repeated `functionCall` parts for the same name/id instead of
+    /// duplicating the tool call.
+    fn merge_tool_call(&mut self, call: &Value) {
+        if let Some(existing) = self.tool_calls.iter_mut().find(|existing| {
+            existing.get("name") == call.get("name") && existing.get("id") == call.get("id")
+        }) {
+            if let (Some(existing_args), Some(new_args)) =
+                (existing.get_mut("args"), call.get("args"))
+                && let (Some(existing_args), Some(new_args)) =
+                    (existing_args.as_object_mut(), new_args.as_object())
+            {
+                for (key, value) in new_args {
+                    existing_args.insert(key.clone(), value.clone());
+                }
+            }
+        } else {
+            self.tool_calls.push(call.clone());
+        }
+    }
+
+    fn into_response(self) -> Result<Value, AdapterSseError> {
+        if !self.saw_event {
+            return Err(AdapterSseError::new(
+                "Antigravity event stream was empty",
+                true,
+            ));
+        }
+        let finish_reason = self.finish_reason.ok_or_else(|| {
+            AdapterSseError::new(
+                "Antigravity event stream ended without a completed response",
+                true,
+            )
+        })?;
+        let mut parts = Vec::new();
+        if !self.text_output.is_empty() {
+            parts.push(json!({"text": self.text_output}));
+        }
+        parts.extend(
+            self.tool_calls
+                .into_iter()
+                .map(|call| json!({"functionCall": call})),
+        );
+        if parts.is_empty() {
+            return Err(AdapterSseError::new(
+                "Antigravity completed response has no visible text or tool call",
+                true,
+            ));
+        }
+        Ok(json!({
+            "responseId": self.response_id.unwrap_or_else(|| "antigravity-response".to_owned()),
+            "modelVersion": self.model_version.unwrap_or_else(|| "antigravity".to_owned()),
+            "candidates": [{
+                "content": {"role":"model", "parts": parts},
+                "finishReason": finish_reason
+            }],
+            "usageMetadata": self.usage.unwrap_or_else(|| json!({}))
+        }))
+    }
+}
+
 pub(super) fn parse_antigravity_event_stream(bytes: &[u8]) -> Result<Value, AdapterSseError> {
     let text = std::str::from_utf8(bytes)
         .map_err(|_| AdapterSseError::new("Antigravity returned an invalid event stream", true))?;
-    let mut text_output = String::new();
-    let mut tool_calls: Vec<Value> = Vec::new();
-    let mut finish_reason = None;
-    let mut usage = None;
-    let mut response_id = None;
-    let mut model_version = None;
-    let mut saw_event = false;
+    let mut parts = EventStreamParts::default();
     let normalized = text.replace("\r\n", "\n");
     for block in normalized.split("\n\n").chain(std::iter::once("")) {
         let data = block
@@ -226,119 +370,7 @@ pub(super) fn parse_antigravity_event_stream(bytes: &[u8]) -> Result<Value, Adap
         }
         let value: Value = serde_json::from_str(&data)
             .map_err(|_| AdapterSseError::new("Antigravity returned an invalid event", true))?;
-        saw_event = true;
-        if value.get("error").is_some() {
-            return Err(AdapterSseError::new(
-                "Antigravity reported a failed response",
-                true,
-            ));
-        }
-        let value = value.get("response").unwrap_or(&value);
-        if response_id.is_none() {
-            response_id = value
-                .get("responseId")
-                .or_else(|| value.get("response_id"))
-                .and_then(Value::as_str)
-                .map(ToOwned::to_owned);
-        }
-        if model_version.is_none() {
-            model_version = value
-                .get("modelVersion")
-                .or_else(|| value.get("model_version"))
-                .and_then(Value::as_str)
-                .map(ToOwned::to_owned);
-        }
-        if let Some(value_usage) = value.get("usageMetadata") {
-            usage = Some(value_usage.clone());
-        }
-        let Some(candidate) = value
-            .get("candidates")
-            .and_then(Value::as_array)
-            .and_then(|candidates| candidates.first())
-        else {
-            continue;
-        };
-        if let Some(reason) = candidate
-            .get("finishReason")
-            .or_else(|| candidate.get("finish_reason"))
-            .and_then(Value::as_str)
-            .filter(|reason| !reason.is_empty())
-        {
-            finish_reason = Some(reason.to_owned());
-        }
-        if let Some(parts) = candidate
-            .get("content")
-            .and_then(|content| content.get("parts"))
-            .and_then(Value::as_array)
-        {
-            for part in parts {
-                if part.get("thought").and_then(Value::as_bool) == Some(true) {
-                    continue;
-                }
-                if let Some(text) = part.get("text").and_then(Value::as_str) {
-                    if text_output.len().saturating_add(text.len()) > 16 * 1024 * 1024 {
-                        return Err(AdapterSseError::new(
-                            "Antigravity response exceeded its size limit",
-                            false,
-                        ));
-                    }
-                    text_output.push_str(text);
-                }
-                if let Some(call) = part.get("functionCall") {
-                    if let Some(existing) = tool_calls.iter_mut().find(|existing| {
-                        existing.get("name") == call.get("name")
-                            && existing.get("id") == call.get("id")
-                    }) {
-                        if let (Some(existing_args), Some(new_args)) =
-                            (existing.get_mut("args"), call.get("args"))
-                            && let (Some(existing_args), Some(new_args)) =
-                                (existing_args.as_object_mut(), new_args.as_object())
-                        {
-                            for (key, value) in new_args {
-                                existing_args.insert(key.clone(), value.clone());
-                            }
-                        }
-                    } else {
-                        tool_calls.push(call.clone());
-                    }
-                }
-            }
-        }
+        parts.observe(&value)?;
     }
-    if !saw_event {
-        return Err(AdapterSseError::new(
-            "Antigravity event stream was empty",
-            true,
-        ));
-    }
-    let finish_reason = finish_reason.ok_or_else(|| {
-        AdapterSseError::new(
-            "Antigravity event stream ended without a completed response",
-            true,
-        )
-    })?;
-    let mut parts = Vec::new();
-    if !text_output.is_empty() {
-        parts.push(json!({"text": text_output}));
-    }
-    parts.extend(
-        tool_calls
-            .into_iter()
-            .map(|call| json!({"functionCall": call})),
-    );
-    if parts.is_empty() {
-        return Err(AdapterSseError::new(
-            "Antigravity completed response has no visible text or tool call",
-            true,
-        ));
-    }
-    Ok(json!({
-        "responseId": response_id.unwrap_or_else(|| "antigravity-response".to_owned()),
-        "modelVersion": model_version.unwrap_or_else(|| "antigravity".to_owned()),
-        "candidates": [{
-            "content": {"role":"model", "parts": parts},
-            "finishReason": finish_reason
-        }],
-        "usageMetadata": usage.unwrap_or_else(|| json!({}))
-    }))
+    parts.into_response()
 }
