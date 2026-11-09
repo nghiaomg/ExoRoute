@@ -102,7 +102,7 @@ pub(super) async fn test_models(
     ))
 }
 
-async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
+fn parse_probe_target(entry: &Value) -> Result<(String, String), ModelTestResult> {
     let provider_id = entry
         .get("provider_id")
         .and_then(Value::as_str)
@@ -116,38 +116,54 @@ async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
         .trim()
         .to_owned();
     if provider_id.is_empty() || model.is_empty() {
-        return ModelTestResult::invalid(
+        return Err(ModelTestResult::invalid(
             provider_id,
             model,
             "provider_id and model must be non-empty strings",
-        );
+        ));
     }
     if provider_id.len() > 256 || model.len() > 512 {
-        return ModelTestResult::invalid(provider_id, model, "provider_id or model is too long");
+        return Err(ModelTestResult::invalid(
+            provider_id,
+            model,
+            "provider_id or model is too long",
+        ));
     }
-    let _probe_permit = match state
+    Ok((provider_id, model))
+}
+
+async fn acquire_probe_permit(
+    state: &AppState,
+    provider_id: String,
+    model: String,
+) -> Result<tokio::sync::OwnedSemaphorePermit, ModelTestResult> {
+    state
         .admin
         .admin_provider_probe_in_flight
         .clone()
         .try_acquire_owned()
-    {
-        Ok(permit) => permit,
-        Err(_) => {
-            return ModelTestResult {
-                provider_id,
-                model,
-                test_passed: false,
-                status: Some(StatusCode::SERVICE_UNAVAILABLE.as_u16()),
-                latency_ms: 0,
-                message: "Provider probe capacity is busy; retry shortly".to_owned(),
-                provider_response_body: None,
-            };
-        }
-    };
+        .map_err(|_| ModelTestResult {
+            provider_id,
+            model,
+            test_passed: false,
+            status: Some(StatusCode::SERVICE_UNAVAILABLE.as_u16()),
+            latency_ms: 0,
+            message: "Provider probe capacity is busy; retry shortly".to_owned(),
+            provider_response_body: None,
+        })
+}
 
-    let lookup_provider_id = provider_id.clone();
-    let lookup_model = model.clone();
-    let (provider, is_saved) = match state
+/// Loads the provider record and confirms the model is saved for it. The
+/// `is_saved` flag comes from the provider-model secondary index so a probe
+/// cannot be pointed at an arbitrary upstream model name.
+async fn load_probe_target(
+    state: &AppState,
+    provider_id: &str,
+    model: &str,
+) -> Result<(Option<crate::infra::storage::Record>, bool), ModelTestResult> {
+    let lookup_provider_id = provider_id.to_owned();
+    let lookup_model = model.to_owned();
+    state
         .db
         .read(move |transaction| {
             let provider = transaction.get::<crate::infra::storage::Record>(
@@ -166,9 +182,83 @@ async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
             Ok((provider, is_saved))
         })
         .await
+        .map_err(|error| model_test_database_error(provider_id.to_owned(), model.to_owned(), error))
+}
+
+struct ProbeConnectionConfig {
+    adapter_id: String,
+    base_url: String,
+    auth_type: String,
+    auth_header: Option<String>,
+    custom_headers: std::collections::BTreeMap<String, String>,
+    protocol: UpstreamProtocol,
+}
+
+fn probe_connection_config(
+    state: &AppState,
+    provider: &crate::infra::storage::Record,
+    provider_id: &str,
+    model: &str,
+) -> Result<ProbeConnectionConfig, ModelTestResult> {
+    let db_error = |error: crate::infra::storage::StorageError| {
+        model_test_database_error(provider_id.to_owned(), model.to_owned(), error)
+    };
+    let base_url = provider.text("base_url").map_err(db_error)?.to_owned();
+    let adapter_id = provider.text("adapter_id").map_err(db_error)?.to_owned();
+    // Auth-none-only transports ignore stored auth headers; normalize stale
+    // records so the probe takes the credential-less path.
+    let auth_type = if super::providers::validation::adapter_is_auth_none_only(&adapter_id) {
+        "none".to_owned()
+    } else {
+        provider.text("auth_type").map_err(db_error)?.to_owned()
+    };
+    let auth_header = provider
+        .optional_text("auth_header")
+        .map_err(db_error)?
+        .map(str::to_owned);
+    let custom_headers =
+        crate::admin::providers::stored_custom_headers(provider, state.config.master_key.as_ref())
+            .map_err(|error| {
+                model_test_database_error(provider_id.to_owned(), model.to_owned(), error)
+            })?;
+    let protocol_name = provider
+        .text("preferred_protocol")
+        .map_err(db_error)?
+        .to_owned();
+    let protocol = parse_model_test_protocol(&protocol_name).map_err(|_| ModelTestResult {
+        provider_id: provider_id.to_owned(),
+        model: model.to_owned(),
+        test_passed: false,
+        status: Some(StatusCode::BAD_REQUEST.as_u16()),
+        latency_ms: 0,
+        message: format!("Provider has unsupported preferred protocol '{protocol_name}'"),
+        provider_response_body: None,
+    })?;
+    let protocol = probe_protocol(&adapter_id, model, protocol);
+    Ok(ProbeConnectionConfig {
+        adapter_id,
+        base_url,
+        auth_type,
+        auth_header,
+        custom_headers,
+        protocol,
+    })
+}
+
+async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
+    let (provider_id, model) = match parse_probe_target(entry) {
+        Ok(target) => target,
+        Err(result) => return result,
+    };
+    let _probe_permit = match acquire_probe_permit(state, provider_id.clone(), model.clone()).await
     {
+        Ok(permit) => permit,
+        Err(result) => return result,
+    };
+
+    let (provider, is_saved) = match load_probe_target(state, &provider_id, &model).await {
         Ok(result) => result,
-        Err(error) => return model_test_database_error(provider_id, model, error),
+        Err(result) => return result,
     };
     let Some(provider) = provider else {
         return ModelTestResult {
@@ -194,119 +284,109 @@ async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
         };
     }
 
-    let base_url = match provider.text("base_url") {
-        Ok(value) => value.to_owned(),
-        Err(error) => return model_test_database_error(provider_id, model, error),
-    };
-    let adapter_id = match provider.text("adapter_id") {
-        Ok(value) => value.to_owned(),
-        Err(error) => return model_test_database_error(provider_id, model, error),
-    };
-    // Auth-none-only transports ignore stored auth headers; normalize stale
-    // records so the probe takes the credential-less path.
-    let auth_type = if super::providers::validation::adapter_is_auth_none_only(&adapter_id) {
-        "none".to_owned()
-    } else {
-        match provider.text("auth_type") {
-            Ok(value) => value.to_owned(),
-            Err(error) => return model_test_database_error(provider_id, model, error),
-        }
-    };
-    let auth_header: Option<String> = match provider.optional_text("auth_header") {
-        Ok(value) => value.map(str::to_owned),
-        Err(error) => return model_test_database_error(provider_id, model, error),
-    };
-    let custom_headers = match crate::admin::providers::stored_custom_headers(
-        &provider,
-        state.config.master_key.as_ref(),
-    ) {
-        Ok(headers) => headers,
-        Err(error) => return model_test_database_error(provider_id, model, error),
-    };
-    let protocol_name = match provider.text("preferred_protocol") {
-        Ok(value) => value.to_owned(),
-        Err(error) => return model_test_database_error(provider_id, model, error),
-    };
-    let protocol = match parse_model_test_protocol(&protocol_name) {
-        Ok(protocol) => protocol,
-        Err(_) => {
-            return ModelTestResult {
-                provider_id,
-                model,
-                test_passed: false,
-                status: Some(StatusCode::BAD_REQUEST.as_u16()),
-                latency_ms: 0,
-                message: format!("Provider has unsupported preferred protocol '{protocol_name}'"),
-                provider_response_body: None,
-            };
-        }
-    };
-    let test_config = SavedModelTestConfig {
-        adapter_id: &adapter_id,
-        base_url: &base_url,
-        provider_id: &provider_id,
-        model: &model,
-        auth_type: &auth_type,
-        auth_header: auth_header.as_deref(),
-        custom_headers: &custom_headers,
-        protocol: probe_protocol(&adapter_id, &model, protocol),
+    let connection = match probe_connection_config(state, &provider, &provider_id, &model) {
+        Ok(config) => config,
+        Err(result) => return result,
     };
     let started = std::time::Instant::now();
-    let capabilities = provider_adapters::capabilities(&adapter_id);
+    let test_config = SavedModelTestConfig {
+        adapter_id: &connection.adapter_id,
+        base_url: &connection.base_url,
+        provider_id: &provider_id,
+        model: &model,
+        auth_type: &connection.auth_type,
+        auth_header: connection.auth_header.as_deref(),
+        custom_headers: &connection.custom_headers,
+        protocol: connection.protocol,
+    };
+    let capabilities = provider_adapters::capabilities(&connection.adapter_id);
     if capabilities.is_some_and(|capabilities| capabilities.api_keys && capabilities.oauth_accounts)
     {
         return test_mixed_credentials(state, test_config, started).await;
     }
 
-    if provider_adapters::is_oauth_only_adapter(&adapter_id) {
-        let (mut cursor, first_account) =
-            match ProviderApiKeyCursor::start(&state.db, &provider_id).await {
-                Ok(Some(result)) => result,
-                Ok(None) => {
-                    return ModelTestResult {
-                        provider_id,
-                        model,
-                        test_passed: false,
-                        status: Some(StatusCode::SERVICE_UNAVAILABLE.as_u16()),
-                        latency_ms: 0,
-                        message: "Connect a provider account before testing models".to_owned(),
-                        provider_response_body: None,
-                    };
-                }
-                Err(error) => return model_test_database_error(provider_id, model, error),
-            };
-        let mut current_account = Some(first_account);
-        let mut last = provider_adapters::AdapterModelTestOutcome {
-            test_passed: false,
-            status: Some(StatusCode::SERVICE_UNAVAILABLE.as_u16()),
-            message: "No provider account was available".to_owned(),
-            provider_response_body: None,
-        };
-        while let Some(account) = current_account.take() {
-            last = provider_adapters::test_oauth_model(
-                &adapter_id,
-                state,
-                &base_url,
-                &model,
-                &account.id,
-            )
-            .await;
-            if last.test_passed {
-                break;
-            }
-            current_account = match cursor.next(&state.db).await {
-                Ok(account) => account,
-                Err(error) => return model_test_database_error(provider_id, model, error),
-            };
-        }
-        return model_test_outcome_result(provider_id, model, started, last);
+    if provider_adapters::is_oauth_only_adapter(&connection.adapter_id) {
+        return test_oauth_accounts(state, &provider_id, &model, &connection, started).await;
     }
 
-    if auth_type == "none" {
+    if connection.auth_type == "none" {
         let outcome = test_saved_model_credential(state, test_config, None).await;
         return model_test_outcome_result(provider_id, model, started, outcome);
     }
 
+    test_api_key_credentials(
+        state,
+        &provider,
+        test_config,
+        provider_id.clone(),
+        model.clone(),
+        started,
+    )
+    .await
+}
+
+async fn test_oauth_accounts(
+    state: &AppState,
+    provider_id: &str,
+    model: &str,
+    connection: &ProbeConnectionConfig,
+    started: std::time::Instant,
+) -> ModelTestResult {
+    let (mut cursor, first_account) =
+        match ProviderApiKeyCursor::start(&state.db, provider_id).await {
+            Ok(Some(result)) => result,
+            Ok(None) => {
+                return ModelTestResult {
+                    provider_id: provider_id.to_owned(),
+                    model: model.to_owned(),
+                    test_passed: false,
+                    status: Some(StatusCode::SERVICE_UNAVAILABLE.as_u16()),
+                    latency_ms: 0,
+                    message: "Connect a provider account before testing models".to_owned(),
+                    provider_response_body: None,
+                };
+            }
+            Err(error) => {
+                return model_test_database_error(provider_id.to_owned(), model.to_owned(), error);
+            }
+        };
+    let mut current_account = Some(first_account);
+    let mut last = provider_adapters::AdapterModelTestOutcome {
+        test_passed: false,
+        status: Some(StatusCode::SERVICE_UNAVAILABLE.as_u16()),
+        message: "No provider account was available".to_owned(),
+        provider_response_body: None,
+    };
+    while let Some(account) = current_account.take() {
+        last = provider_adapters::test_oauth_model(
+            &connection.adapter_id,
+            state,
+            &connection.base_url,
+            model,
+            &account.id,
+        )
+        .await;
+        if last.test_passed {
+            break;
+        }
+        current_account = match cursor.next(&state.db).await {
+            Ok(account) => account,
+            Err(error) => {
+                return model_test_database_error(provider_id.to_owned(), model.to_owned(), error);
+            }
+        };
+    }
+    model_test_outcome_result(provider_id.to_owned(), model.to_owned(), started, last)
+}
+
+async fn test_api_key_credentials(
+    state: &AppState,
+    provider: &crate::infra::storage::Record,
+    test_config: SavedModelTestConfig<'_>,
+    provider_id: String,
+    model: String,
+    started: std::time::Instant,
+) -> ModelTestResult {
     let (mut cursor, first_key) =
         match ProviderApiKeyCursor::start(&state.db, &provider_id).await {
             Ok(result) => result,
