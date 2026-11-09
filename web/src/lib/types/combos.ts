@@ -26,6 +26,8 @@ export interface GatewayCombo {
   accepted_protocols: Protocol[];
   /** Present on API responses; optional so older fixtures stay valid. */
   enabled?: boolean;
+  /** Restarts an exhausted combo until it succeeds, except for HTTP 400/413. */
+  retry_until_success?: boolean;
   targets: ComboTarget[];
 }
 

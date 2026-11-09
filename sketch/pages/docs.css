@@ -50,6 +50,20 @@
   font-size: 11px;
 }
 
+/* Embed the public docs content inside the dashboard shell. */
+.docs-layout > .docs-content {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+.docs-shell.docs-embedded-content {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  background: transparent;
+}
+
 .docs-content {
   display: flex;
   flex-direction: column;
@@ -228,5 +242,16 @@
   }
   .docs-steps {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .docs-route-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .docs-route-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 }

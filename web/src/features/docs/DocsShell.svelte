@@ -1,11 +1,14 @@
 <script lang="ts">
-  import { BookOpen, Braces, ChevronRight, Code2, Menu, Moon, Network, Sun, X } from '@lucide/svelte';
-  import FlyingFishLogo from '../../components/FlyingFishLogo.svelte';
+  import { Copy, Moon, Sun, Terminal } from '@lucide/svelte';
+  import type { Locale } from '../../lib/i18n';
+  import { t } from '../../lib/i18n';
+  import type { DocsPage, Page } from '../../lib/navigation';
   import LanguageSelect from '../../components/LanguageSelect.svelte';
-  import { t, type Locale } from '../../lib/i18n';
-  import type { DocsPage } from '../../lib/navigation';
+  import DashboardAppShell from '../../components/dashboard/DashboardAppShell.svelte';
+  import { showDashboardToast } from '../../lib/dashboard-ui';
   import { docsCopy } from './docsCopy';
   import type { ThemeId, ThemeScheme } from '../../lib/theme';
+  import '../../styles/dashboard/pages/docs.css';
 
   interface Preferences {
     locale: Locale;
@@ -18,43 +21,45 @@
   export let page: DocsPage;
   export let locale: Locale;
   export let preferences: Preferences;
-  export let onNavigate: (page: DocsPage) => void;
-  // Leaves the docs for the app: the dashboard when a session is active, the
-  // login route otherwise. The shell does not know which, so it only reports.
+  export let onNavigate: (page: Page) => void;
   export let onExitDocs: () => void;
+  export let onSignOut: (() => void) | undefined = undefined;
+  export let providerCount = 0;
+  export let gatewayAddress = '127.0.0.1:8686';
 
-  let menuOpen = false;
   $: copy = docsCopy(locale);
   $: activeNav = copy.nav[page];
+  $: heading = page === 'docs' ? t(locale, 'Docs') : activeNav.label;
 
   const navigation = [
-    { page: 'docs', icon: BookOpen },
-    { page: 'docs-quickstart', icon: Code2 },
-    { page: 'docs-integrations', icon: Network },
-    { page: 'docs-reference', icon: Braces },
+    { page: 'docs' },
+    { page: 'docs-quickstart' },
+    { page: 'docs-integrations' },
+    { page: 'docs-reference' },
   ] as const;
 
   function navigate(event: MouseEvent, nextPage: DocsPage): void {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    menuOpen = false;
     onNavigate(nextPage);
+  }
+
+  function navigateFromShell(target: string): void {
+    onNavigate(target as Page);
   }
 
   function pathFor(nextPage: DocsPage): string {
     return nextPage === 'docs' ? '/docs' : `/${nextPage.replace('docs-', 'docs/')}`;
   }
 
-  /**
-   * Every link that leaves the docs for the app goes through here, including the
-   * navbar logo. It targets the login route so a plain link or a new tab lands
-   * somewhere that resolves the session itself; the app then sends an
-   * authenticated reader on to the dashboard.
-   */
-  function exitDocs(event: MouseEvent): void {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    onExitDocs();
+  async function copyBaseUrl(): Promise<void> {
+    const baseUrl = `${window.location.origin}/v1`;
+    try {
+      await navigator.clipboard.writeText(baseUrl);
+      showDashboardToast(`${copy.shell.copied}: ${baseUrl}`);
+    } catch {
+      showDashboardToast(copy.shell.copyFailed);
+    }
   }
 </script>
 
@@ -64,75 +69,58 @@
   <meta name="referrer" content="no-referrer" />
 </svelte:head>
 
-<div class="docs-shell">
-  <header class="docs-topbar">
-    <a class="docs-brand" href="/login" onclick={exitDocs} aria-label={t(locale, 'ExoRoute overview')}>
-      <span class="docs-brand-mark"><FlyingFishLogo size={24} variant="mark" /></span>
-      <span class="brand-word">exo<span>route</span></span>
-      <span class="docs-brand-divider"></span>
-      <span class="docs-brand-section">{copy.shell.documentation}</span>
-    </a>
-
-    <div class="docs-topbar-actions">
-      <span class="docs-local-badge"><span class="docs-status-dot"></span>{copy.shell.localFirst}</span>
-      <div class="preference-controls" aria-label="Language and appearance">
-        <LanguageSelect locale={preferences.locale} tr={(key) => t(locale, key)} onLocaleChange={preferences.setLocale} />
-        <button class="preference-button theme-button" aria-label={preferences.scheme === 'light' ? copy.shell.themeDark : copy.shell.themeLight} title={preferences.scheme === 'light' ? copy.shell.themeDark : copy.shell.themeLight} aria-pressed={preferences.scheme === 'dark'} onclick={preferences.toggleTheme}>
-          {#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}
-        </button>
-      </div>
-      <a class="docs-sign-in" href="/login" onclick={exitDocs}>{copy.shell.signIn}<ChevronRight size={15} /></a>
-      <button class="docs-menu-button" type="button" aria-label={copy.shell.menu} aria-expanded={menuOpen} onclick={() => menuOpen = true}><Menu size={20} /></button>
+<DashboardAppShell page="docs" activePage="docs" {providerCount} {gatewayAddress} onNavigate={navigateFromShell} {onSignOut}>
+  <div class="page-heading docs-route-heading">
+    <div class="heading-copy">
+      <h1>{heading}</h1>
+      <p>{activeNav.description}</p>
     </div>
-  </header>
+    <div class="heading-actions docs-route-actions">
+      <LanguageSelect locale={preferences.locale} tr={(key) => t(locale, key)} onLocaleChange={preferences.setLocale} />
+      <button
+        class="icon-button"
+        type="button"
+        aria-label={preferences.scheme === 'light' ? copy.shell.themeDark : copy.shell.themeLight}
+        title={preferences.scheme === 'light' ? copy.shell.themeDark : copy.shell.themeLight}
+        aria-pressed={preferences.scheme === 'dark'}
+        onclick={preferences.toggleTheme}
+      >
+        {#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}
+      </button>
+      <button class="action-button" type="button" onclick={copyBaseUrl}>
+        <span class="button-icon"><Copy size={15} /></span>
+        <span class="button-label">{t(locale, 'Copy base URL')}</span>
+      </button>
+      <button class="action-button primary" type="button" onclick={() => navigateFromShell('chat')}>
+        <span class="button-icon"><Terminal size={15} /></span>
+        <span class="button-label">{t(locale, 'Try in Chat')}</span>
+      </button>
+    </div>
+  </div>
 
-  <div class="docs-body">
-    <aside class="docs-sidebar" aria-label={copy.shell.menu}>
-      <div class="docs-sidebar-label">{copy.shell.publicDocs}</div>
-      <nav class="docs-nav">
-        {#each navigation as item}
-          <a class:active={page === item.page} class="docs-nav-item" href={pathFor(item.page)} onclick={(event) => navigate(event, item.page)}>
-            <svelte:component this={item.icon} size={17} strokeWidth={1.8} />
-            <span><strong>{copy.nav[item.page].label}</strong><small>{copy.nav[item.page].description}</small></span>
+  <div class="docs-layout">
+    <aside class="course-card surface docs-side" aria-label={copy.shell.menu}>
+      <p class="eyebrow">{copy.shell.documentation}</p>
+      <nav class="docs-nav" aria-label={copy.shell.menu}>
+        {#each navigation as item (item.page)}
+          <a class="docs-link" class:active={page === item.page} href={pathFor(item.page)} onclick={(event) => navigate(event, item.page)}>
+            {copy.nav[item.page].label}
           </a>
         {/each}
       </nav>
-      <div class="docs-sidebar-note">
-        <span class="docs-note-icon"><BookOpen size={15} /></span>
-        <div><strong>{copy.shell.localFirst}</strong><small>{copy.home.securityBody}</small></div>
+      <div class="docs-side-foot">
+        <span class="status complete">{copy.shell.localFirst}</span>
+        <button class="mini-add" type="button" onclick={onExitDocs}>
+          <span>{onSignOut ? copy.shell.backToDashboard : copy.shell.signIn}</span>
+          <svg class="icon"><use href="#i-arrow-right" /></svg>
+        </button>
       </div>
     </aside>
 
-    <main class="docs-main">
-      <div class="docs-mobile-heading">
-        <div><span class="docs-kicker">{copy.shell.publicDocs}</span><strong>{activeNav.label}</strong></div>
-        <button class="docs-mobile-menu-toggle" type="button" aria-label={copy.shell.menu} aria-expanded={menuOpen} onclick={() => menuOpen = true}><Menu size={18} /></button>
+    <div class="docs-content">
+      <div class="docs-shell docs-embedded-content">
+        <slot />
       </div>
-      <div class="docs-content"><slot /></div>
-      <footer class="docs-footer">
-        <span><FlyingFishLogo size={14} variant="monochrome" /> ExoRoute · {copy.shell.localFirst}</span>
-        <a href="/login" onclick={exitDocs}>{copy.shell.backToDashboard} <ChevronRight size={14} /></a>
-      </footer>
-    </main>
-  </div>
-
-  {#if menuOpen}
-    <div class="docs-mobile-backdrop" role="presentation" onclick={() => menuOpen = false}></div>
-    <div class="docs-mobile-sheet" role="dialog" aria-modal="true" aria-label={copy.shell.menu}>
-      <div class="docs-mobile-sheet-header">
-        <div><span class="docs-kicker">{copy.shell.publicDocs}</span><strong>{copy.shell.documentation}</strong></div>
-        <button class="icon-button" type="button" aria-label={copy.shell.closeMenu} onclick={() => menuOpen = false}><X size={19} /></button>
-      </div>
-      <nav class="docs-mobile-nav">
-        {#each navigation as item}
-          <a class:active={page === item.page} href={pathFor(item.page)} onclick={(event) => navigate(event, item.page)}>
-            <svelte:component this={item.icon} size={18} strokeWidth={1.8} />
-            <span><strong>{copy.nav[item.page].label}</strong><small>{copy.nav[item.page].description}</small></span>
-            <ChevronRight size={16} />
-          </a>
-        {/each}
-      </nav>
-      <a class="docs-mobile-login" href="/login" onclick={exitDocs}>{copy.shell.signIn}<ChevronRight size={15} /></a>
     </div>
-  {/if}
-</div>
+  </div>
+</DashboardAppShell>

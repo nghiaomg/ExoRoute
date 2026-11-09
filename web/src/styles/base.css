@@ -414,7 +414,7 @@ a { color: inherit; text-decoration: none; }
 .sidebar.collapsed .sidebar-footer { justify-content: center; width: 100%; padding-top: 12px; }
 .app-shell.sidebar-collapsed .main-area { width: calc(100% - 68px); margin-left: 68px; }
 
-.main-area {
+.app-shell .main-area {
   height: 100%;
   height: 100dvh;
   width: calc(100% - 244px);

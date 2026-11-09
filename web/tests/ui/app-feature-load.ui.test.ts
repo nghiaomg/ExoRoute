@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import App from '../../src/App.svelte';
+import ApiKeysPage from '../../src/features/api-keys/DashboardApiKeysPage.svelte';
 import ChatPage from '../../src/features/chat/ChatPage.svelte';
+import HelpPage from '../../src/features/help/DashboardHelpPage.svelte';
+import SettingsPage from '../../src/features/settings/DashboardSettingsPage.svelte';
 import { api, setAdminAccessToken } from '../../src/lib/api';
 import type { WorkspaceChatModelsResult } from '../../src/lib/types';
 
@@ -33,6 +36,33 @@ afterEach(() => {
 });
 
 describe('dashboard feature loading', () => {
+  test.each([
+    ['api-keys', '/api-keys', ApiKeysPage, 'API keys'],
+    ['settings', '/settings', SettingsPage, 'Settings'],
+    ['help', '/help', HelpPage, 'Help Center'],
+  ] as const)('%s renders its page content inside the dashboard shell', async (page, path, component, heading) => {
+    loadFeature.mockResolvedValue({ default: component });
+
+    if (page === 'api-keys') {
+      vi.spyOn(api, 'apiKeys').mockRejectedValue(new Error('offline'));
+      vi.spyOn(api, 'statistics').mockRejectedValue(new Error('offline'));
+      vi.spyOn(api, 'providers').mockRejectedValue(new Error('offline'));
+    } else if (page === 'settings') {
+      vi.spyOn(api, 'settings').mockRejectedValue(new Error('offline'));
+      vi.spyOn(api, 'operationalSettings').mockRejectedValue(new Error('offline'));
+      vi.spyOn(api, 'gatewayResourceLimits').mockRejectedValue(new Error('offline'));
+    } else {
+      vi.spyOn(api, 'overview').mockRejectedValue(new Error('offline'));
+      vi.spyOn(api, 'statistics').mockRejectedValue(new Error('offline'));
+    }
+
+    setAdminAccessToken('test-token');
+    window.history.pushState(null, '', path);
+    render(App, {});
+
+    expect(await screen.findByRole('heading', { name: heading })).toBeTruthy();
+  });
+
   test('a failed feature import offers Retry instead of a permanent loading screen', async () => {
     chunkAvailable = false;
     loadFeature.mockImplementation(() =>

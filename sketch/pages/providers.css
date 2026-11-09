@@ -5,6 +5,30 @@
 .provider-row { cursor: pointer; }
 .mini-add:disabled { opacity: 0.55; cursor: default; }
 
+.provider-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  align-content: start;
+  gap: 12px;
+}
+.provider-row {
+  min-height: 88px;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid #edf1f3;
+  background: #fff;
+}
+.provider-row:hover { background: #f8fafb; }
+.provider-logo {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #eef1f2;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.provider-logo img { display: block; width: 100%; height: 100%; padding: 5px; object-fit: contain; }
+.provider-row .course-copy { flex: 1 1 150px; }
+.provider-row .course-actions { flex: 0 0 auto; }
+
 .prov-search,
 .prov-select {
   min-height: 34px;
@@ -107,7 +131,7 @@
 
 @media (max-width: 680px) {
   .provider-row { flex-wrap: wrap; }
-  .provider-row .course-copy { flex: 1 1 calc(100% - 50px); }
+  .provider-row .course-copy { flex: 1 1 calc(100% - 60px); }
   .provider-row .status { order: 3; }
   .provider-row .course-actions { order: 4; margin-left: auto; }
 }

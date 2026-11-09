@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import DashboardShell from './components/DashboardShell.svelte';
-  import SketchShell from './components/sketch/SketchShell.svelte';
+  import DashboardAppShell from './components/dashboard/DashboardAppShell.svelte';
   import LoginPage from './components/LoginPage.svelte';
   import ProviderOAuthCallbackFlow from './features/providers/ProviderOAuthCallbackFlow.svelte';
   import DocsShell from './features/docs/DocsShell.svelte';
@@ -29,10 +29,10 @@
   } from './lib/theme';
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
 
-  // Pages whose feature component renders the sketch design system. Each of
-  // these is wrapped in SketchShell instead of the legacy DashboardShell.
-  const sketchPages = new Set<DashboardPage>(['overview', 'providers', 'combos', 'quota', 'requests', 'chat', 'api-keys', 'settings', 'help']);
-  $: useSketchShell = dashboardPage(currentPage) && sketchPages.has(currentPage);
+  // Pages rendered in the current dashboard shell. Keep the set explicit so a
+  // future route can opt into the legacy shell while its feature is migrated.
+  const dashboardShellPages = new Set<DashboardPage>(['overview', 'providers', 'combos', 'quota', 'requests', 'chat', 'api-keys', 'settings', 'help']);
+  $: useDashboardShell = dashboardPage(currentPage) && dashboardShellPages.has(currentPage);
 
   function handleConnectionChange(state: ConnectionState): void {
     connectionState = state;
@@ -412,7 +412,19 @@
 {#if authBootstrap === 'checking'}
   <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Checking admin session…')}</p></section></main>
 {:else if isDocsPage(currentPage)}
-  <DocsShell page={currentPage} {locale} {preferences} onNavigate={navigateToDocs} onExitDocs={leaveDocs}>
+  <DocsShell
+    page={currentPage}
+    {locale}
+    {preferences}
+    providerCount={providerCount}
+    gatewayAddress={gateway.address}
+    onNavigate={(target) => {
+      if (isDocsPage(target)) navigateToDocs(target);
+      else if (dashboardPage(target)) navigateTo(target);
+    }}
+    onExitDocs={leaveDocs}
+    onSignOut={getAdminAccessToken() ? signOut : undefined}
+  >
     {#if currentPage === 'docs'}
       <DocsHomePage {locale} onNavigate={navigateToDocs} />
     {:else if currentPage === 'docs-quickstart'}
@@ -425,8 +437,8 @@
   </DocsShell>
 {:else if currentPage === 'login'}
   <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
-{:else if useSketchShell}
-  <SketchShell page={currentPage as DashboardPage} {providerCount} gatewayAddress={gateway.address} onNavigate={(target) => navigateTo(target as DashboardPage)} onSignOut={signOut}>
+{:else if useDashboardShell}
+  <DashboardAppShell page={currentPage as DashboardPage} {providerCount} gatewayAddress={gateway.address} onNavigate={(target) => navigateTo(target as DashboardPage)} onSignOut={signOut}>
     {#if providerOAuthNotice}
       <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
         <span>{providerOAuthNotice}</span>
@@ -444,6 +456,8 @@
         <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
       {:else if currentPage === 'requests'}
         <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
+      {:else if currentPage === 'api-keys' || currentPage === 'settings' || currentPage === 'help'}
+        <svelte:component this={activeFeature} {tr} onNavigate={navigateTo} />
       {:else if currentPage === 'chat'}
         <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
       {/if}
@@ -461,7 +475,7 @@
         {#each [0, 1, 2, 3] as i (i)}<article class="stat-card surface" style="min-height:132px"></article>{/each}
       </section>
     {/if}
-  </SketchShell>
+  </DashboardAppShell>
 {:else}
   <DashboardShell currentPage={currentPage} title={pageTitle} {tr} {preferences} {gateway} {providerCount} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} onNavigate={navigateTo} onRefresh={refreshCurrentPage} onSignOut={signOut}>
     {#if providerOAuthNotice}

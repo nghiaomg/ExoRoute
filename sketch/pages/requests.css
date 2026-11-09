@@ -58,6 +58,14 @@
 .req-row:hover { background: #f7fafb; }
 .req-row:hover .req-model { color: #ed674d; }
 .req-model { color: #303b48; font-weight: var(--weight-medium); transition: color 0.13s ease, transform 0.2s ease; }
+.req-model-cell { display: inline-flex; min-width: 0; align-items: center; gap: 8px; }
+.req-model-logo {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  object-fit: contain;
+}
 .req-time { color: var(--muted); font-variant-numeric: tabular-nums; }
 .live-dot {
   display: inline-block;

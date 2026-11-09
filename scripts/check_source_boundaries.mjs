@@ -14,7 +14,7 @@ const budget = 800;
 // than an accident. Prefer restructuring; use this only when the file really does
 // own the responsibility.
 const oversizedAllowlist = new Map([
-  // ['src/feature/example.rs', 'Owns the whole example lifecycle because …'],
+  ['web/src/styles/dashboard/base.css', 'Generated shared shell and design-system stylesheet sourced from one reference style block; keeping it cohesive preserves cascade order.'],
 ]);
 
 const sourceRoots = [path.join(root, 'src'), path.join(root, 'web', 'src')];
