@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import DashboardShell from './components/DashboardShell.svelte';
+  import SketchShell from './components/sketch/SketchShell.svelte';
   import LoginPage from './components/LoginPage.svelte';
   import ProviderOAuthCallbackFlow from './features/providers/ProviderOAuthCallbackFlow.svelte';
   import DocsShell from './features/docs/DocsShell.svelte';
@@ -28,6 +29,11 @@
   } from './lib/theme';
   type ConnectionState = 'idle' | 'loading' | 'loaded' | 'error';
 
+  // Pages whose feature component renders the sketch design system. Each of
+  // these is wrapped in SketchShell instead of the legacy DashboardShell.
+  const sketchPages = new Set<DashboardPage>(['overview', 'providers', 'combos', 'quota', 'requests', 'chat', 'api-keys', 'settings', 'help']);
+  $: useSketchShell = dashboardPage(currentPage) && sketchPages.has(currentPage);
+
   function handleConnectionChange(state: ConnectionState): void {
     connectionState = state;
   }
@@ -46,6 +52,7 @@
     'api-keys': 'Gateway API keys',
     settings: 'Settings',
     chat: 'Chat',
+    help: 'Help Center',
     docs: 'Documentation',
     'docs-quickstart': 'Quickstart',
     'docs-integrations': 'Integrations',
@@ -418,6 +425,43 @@
   </DocsShell>
 {:else if currentPage === 'login'}
   <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
+{:else if useSketchShell}
+  <SketchShell page={currentPage as DashboardPage} {providerCount} gatewayAddress={gateway.address} onNavigate={(target) => navigateTo(target as DashboardPage)} onSignOut={signOut}>
+    {#if providerOAuthNotice}
+      <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
+        <span>{providerOAuthNotice}</span>
+        <button type="button" class="icon-button" aria-label={tr('Dismiss notification')} onclick={() => providerOAuthNotice = ''}>×</button>
+      </div>
+    {/if}
+    {#if activeFeature && activeFeaturePage === currentPage && activeFeatureRefreshKey === refreshKey}
+      {#if currentPage === 'overview'}
+        <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onCreateRequest={requestCreate} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} onGatewayAddressChange={updateGatewayAddress} />
+      {:else if currentPage === 'providers'}
+        <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
+      {:else if currentPage === 'combos'}
+        <svelte:component this={activeFeature} {tr} {actionRequest} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
+      {:else if currentPage === 'quota'}
+        <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
+      {:else if currentPage === 'requests'}
+        <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
+      {:else if currentPage === 'chat'}
+        <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
+      {/if}
+    {:else if featureLoadError === currentPage}
+      <section class="course-card surface" role="alert">
+        <div class="card-title-row"><h2>{tr('Could not load this page.')}</h2></div>
+        <p class="card-subtitle">{tr('Check the server, then try again.')}</p>
+        <div class="modal-actions" style="padding-top:14px">
+          <button class="page-action primary" type="button" onclick={refreshCurrentPage}>{tr('Retry')}</button>
+          <button class="page-action" type="button" onclick={reloadDashboard}>{tr('Reload page')}</button>
+        </div>
+      </section>
+    {:else}
+      <section class="stats-grid" role="status" aria-label={tr('Loading {page}…', { page: pageTitles[currentPage] })}>
+        {#each [0, 1, 2, 3] as i (i)}<article class="stat-card surface" style="min-height:132px"></article>{/each}
+      </section>
+    {/if}
+  </SketchShell>
 {:else}
   <DashboardShell currentPage={currentPage} title={pageTitle} {tr} {preferences} {gateway} {providerCount} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} onNavigate={navigateTo} onRefresh={refreshCurrentPage} onSignOut={signOut}>
     {#if providerOAuthNotice}
