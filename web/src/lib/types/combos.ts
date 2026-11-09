@@ -24,6 +24,8 @@ export interface GatewayCombo {
   name: string;
   strategy: string;
   accepted_protocols: Protocol[];
+  /** Present on API responses; optional so older fixtures stay valid. */
+  enabled?: boolean;
   targets: ComboTarget[];
 }
 
