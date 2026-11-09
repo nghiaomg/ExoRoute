@@ -214,6 +214,15 @@ pub fn is_key_rejection_status(adapter_id: &str, status: StatusCode) -> bool {
     adapter(adapter_id).is_some_and(|adapter| adapter.is_key_rejection_status(status))
 }
 
+pub fn should_mark_api_key_invalid(
+    adapter_id: &str,
+    status: StatusCode,
+    error_message: &str,
+) -> bool {
+    adapter(adapter_id)
+        .is_some_and(|adapter| adapter.should_mark_api_key_invalid(status, error_message))
+}
+
 pub fn accepts_embedded_oauth_callback_without_state(adapter_id: &str, code: &str) -> bool {
     adapter(adapter_id)
         .is_some_and(|adapter| adapter.accepts_embedded_oauth_callback_without_state(code))
@@ -402,8 +411,4 @@ pub async fn save_oauth_account(
     adapter
         .save_oauth_account(state, provider_id, account)
         .await
-}
-
-pub fn is_permanent_antigravity_ban(message: &str) -> bool {
-    super::antigravity::is_permanent_antigravity_ban(message)
 }

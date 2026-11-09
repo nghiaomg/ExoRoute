@@ -136,6 +136,11 @@ impl ProviderAdapter for AntigravityAdapter {
         )
     }
 
+    fn should_mark_api_key_invalid(&self, status: StatusCode, error_message: &str) -> bool {
+        status == StatusCode::UNAUTHORIZED
+            || (status == StatusCode::FORBIDDEN && is_permanent_antigravity_ban(error_message))
+    }
+
     fn prepare_upstream_request<'a>(
         &'a self,
         context: AdapterRequestContext<'a>,

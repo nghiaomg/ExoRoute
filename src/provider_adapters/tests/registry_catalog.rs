@@ -402,3 +402,37 @@ fn devin_desktop_declares_the_reverse_engineered_http_transport() {
     assert!(adapter(DEVIN_DESKTOP_ADAPTER_ID).is_some());
     assert!(uses_local_transport(DEVIN_DESKTOP_ADAPTER_ID));
 }
+
+#[test]
+fn only_credential_level_rejections_mark_provider_keys_invalid() {
+    assert!(should_mark_api_key_invalid(
+        GENERIC_ADAPTER_ID,
+        http::StatusCode::UNAUTHORIZED,
+        "invalid API key"
+    ));
+    assert!(!should_mark_api_key_invalid(
+        GENERIC_ADAPTER_ID,
+        http::StatusCode::FORBIDDEN,
+        "model access denied"
+    ));
+    assert!(!should_mark_api_key_invalid(
+        GENERIC_ADAPTER_ID,
+        http::StatusCode::TOO_MANY_REQUESTS,
+        "rate limited"
+    ));
+    assert!(should_mark_api_key_invalid(
+        super::super::azure::AZURE_ADAPTER_ID,
+        http::StatusCode::FORBIDDEN,
+        "provider key rejected"
+    ));
+    assert!(should_mark_api_key_invalid(
+        ANTIGRAVITY_ADAPTER_ID,
+        http::StatusCode::FORBIDDEN,
+        "Your account has been suspended"
+    ));
+    assert!(!should_mark_api_key_invalid(
+        ANTIGRAVITY_ADAPTER_ID,
+        http::StatusCode::FORBIDDEN,
+        "Verify your account to continue"
+    ));
+}

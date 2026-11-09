@@ -1,6 +1,110 @@
 use super::support::*;
 use super::*;
 
+async fn forbidden_once_then_success_upstream(
+    State(calls): State<Arc<AtomicUsize>>,
+    Json(body): Json<Value>,
+) -> axum::response::Response {
+    if calls.fetch_add(1, Ordering::Relaxed) == 0 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"error":{"message":"model access denied"}})),
+        )
+            .into_response();
+    }
+    Json(json!({
+        "id":"forbidden-retry-success",
+        "model":body["model"],
+        "choices":[{"message":{"role":"assistant","content":"served after forbidden response"},"finish_reason":"stop"}],
+        "usage":{"prompt_tokens":1,"completion_tokens":2}
+    }))
+    .into_response()
+}
+
+#[tokio::test]
+async fn forbidden_response_does_not_disable_a_provider_key() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let address = spawn_upstream(
+        Router::new()
+            .route(
+                "/v1/chat/completions",
+                post(forbidden_once_then_success_upstream),
+            )
+            .with_state(calls.clone()),
+    )
+    .await;
+
+    let database = TestDatabase::open().await;
+    let mut config = database.config();
+    config.master_key = Some([53_u8; 32]);
+    config.allow_private_provider_urls = true;
+    let state = AppState::new(config, database.db.clone());
+    crate::support::test_support::seed_provider(
+        &database.db,
+        crate::support::test_support::ProviderSeed {
+            id: "provider-forbidden",
+            name: "Mock provider",
+            base_url: &format!("http://{address}/v1"),
+            adapter_id: "generic",
+            auth_type: "bearer",
+            model_prefix: "mock",
+            preferred_protocol: "chat_completions",
+            supported_protocols: &["chat_completions"],
+        },
+    )
+    .await
+    .expect("seed provider");
+    crate::support::test_support::seed_provider_key(
+        &database.db,
+        "provider-forbidden",
+        "01-key",
+        b"valid-key",
+        false,
+    )
+    .await
+    .expect("seed key");
+    crate::support::test_support::seed_route(
+        &database.db,
+        "coding",
+        "Coding",
+        &["chat_completions"],
+        &[("provider-forbidden", "mock-model", "chat_completions", 0)],
+    )
+    .await
+    .expect("seed route");
+
+    let first = handle_request_inner_with_adapter_base_url_override(
+        state.clone(),
+        HeaderMap::new(),
+        json!({"model":"coding","messages":[{"role":"user","content":"hello"}]}),
+        Protocol::ChatCompletions,
+        None,
+    )
+    .await;
+    assert_eq!(first.status(), StatusCode::BAD_GATEWAY);
+    let key = database
+        .db
+        .read(|transaction| {
+            transaction
+                .get::<Record>(Table::ProviderApiKeys, "01-key")
+                .map(|record| record.expect("key exists"))
+        })
+        .await
+        .expect("read key after forbidden response");
+    assert!(!key.boolean("invalid").expect("invalid flag"));
+
+    let second = handle_request_inner_with_adapter_base_url_override(
+        state,
+        HeaderMap::new(),
+        json!({"model":"coding","messages":[{"role":"user","content":"hello"}]}),
+        Protocol::ChatCompletions,
+        None,
+    )
+    .await;
+    assert_eq!(second.status(), StatusCode::OK);
+    assert_eq!(calls.load(Ordering::Relaxed), 2);
+}
+
 #[tokio::test]
 async fn rejected_provider_key_is_removed_and_next_key_serves_the_request() {
     let auth_calls = Arc::new(AtomicUsize::new(0));

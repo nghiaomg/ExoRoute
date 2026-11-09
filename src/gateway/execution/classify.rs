@@ -44,16 +44,11 @@ pub(super) async fn classify_response(
             )
             .await;
             let logged_error = provider_http_error_message(provider_id, status, &provider_error);
-            let is_antigravity_forbidden = attempt.provider.adapter_id
-                == provider_adapters::ANTIGRAVITY_ADAPTER_ID
-                && status == StatusCode::FORBIDDEN;
-            let is_auth_rejection =
-                status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN;
-            let should_mark_invalid = if is_antigravity_forbidden {
-                provider_adapters::is_permanent_antigravity_ban(&provider_error)
-            } else {
-                is_auth_rejection
-            };
+            let should_mark_invalid = provider_adapters::should_mark_api_key_invalid(
+                &attempt.provider.adapter_id,
+                status,
+                &provider_error,
+            );
             if should_mark_invalid
                 && let Some(key_id) = credential.id.as_deref()
                 // An adapter may be able to replace the rejected secret in

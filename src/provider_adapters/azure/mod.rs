@@ -177,6 +177,10 @@ impl ProviderAdapter for AzureOpenAiAdapter {
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN | StatusCode::TOO_MANY_REQUESTS
         )
     }
+
+    fn should_mark_api_key_invalid(&self, status: StatusCode, _error_message: &str) -> bool {
+        matches!(status, StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN)
+    }
 }
 
 #[cfg(test)]

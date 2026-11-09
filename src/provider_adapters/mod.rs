@@ -509,6 +509,14 @@ pub trait ProviderAdapter: Sync {
         )
     }
 
+    /// Whether this response proves the saved API credential itself is unusable.
+    /// A forbidden response can be model-, project-, or policy-specific, so it
+    /// must not disable a key by default. Adapters may opt in when they can
+    /// identify a permanent credential-level rejection.
+    fn should_mark_api_key_invalid(&self, status: StatusCode, _error_message: &str) -> bool {
+        status == StatusCode::UNAUTHORIZED
+    }
+
     /// Gives the adapter a chance to repair a credential the upstream rejected
     /// instead of letting the gateway mark it invalid and drop it from rotation.
     ///
