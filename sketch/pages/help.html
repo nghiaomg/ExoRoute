@@ -1,0 +1,170 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">Help Center</h1>
+                  <p id="page-description">Guides, troubleshooting, and system status for your ExoRoute gateway.</p>
+                </div>
+                <div class="heading-actions">
+                  <button class="action-button" type="button" id="help-contact">
+                    <span class="button-icon"><svg class="icon"><use href="#i-mail" /></svg></span>
+                    <span class="button-label">Contact support</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="page-surface">
+                <!-- Status banner -->
+                <section class="status-banner surface" aria-label="System status">
+                  <span class="status-pulse"></span>
+                  <div class="status-banner-copy">
+                    <strong>All systems operational</strong>
+                    <span>Gateway healthy · Last incident: none in 30 days</span>
+                  </div>
+                  <button class="mini-add" type="button" id="status-refresh">Refresh</button>
+                </section>
+
+                <section class="stats-grid" aria-label="Help overview">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-book" /></svg></span>
+                      <span class="stat-number">14</span>
+                    </div>
+                    <h2>Guides</h2>
+                    <div class="stat-trend">Setup to advanced routing</div>
+                    <button class="details-link" type="button" data-nav="docs">Open docs <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-help" /></svg></span>
+                      <span class="stat-number">6</span>
+                    </div>
+                    <h2>Open Issues</h2>
+                    <div class="stat-trend">Known limitations tracked</div>
+                    <button class="details-link" type="button" id="stat-issues">View issues <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-server" /></svg></span>
+                      <span class="stat-number">v0.9.4</span>
+                    </div>
+                    <h2>Gateway Version</h2>
+                    <div class="stat-trend">Up 3d 7h · commit a1b2c3d</div>
+                    <button class="details-link" type="button" id="stat-version">Version details <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-database" /></svg></span>
+                      <span class="stat-number">99.98%</span>
+                    </div>
+                    <h2>30d Uptime</h2>
+                    <div class="stat-trend">Request success rate</div>
+                    <button class="details-link" type="button" data-nav="requests">View requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <div class="help-grid">
+                  <!-- FAQ -->
+                  <section class="course-card surface help-faq" aria-labelledby="faq-heading">
+                    <div class="card-title-row">
+                      <h2 id="faq-heading">Frequently asked</h2>
+                    </div>
+                    <p class="card-subtitle">Common questions about providers, combos, and routing.</p>
+                    <div class="faq-list" id="faq-list">
+                      <details class="faq-item">
+                        <summary>How does failover between providers work?</summary>
+                        <p>When a combo has multiple targets, ExoRoute tries them in priority order. On retryable errors (429, 5xx, timeouts) it moves to the next target. Non-retryable errors like 400 stop immediately. See <a href="docs.html#errors">Errors &amp; retries</a>.</p>
+                      </details>
+                      <details class="faq-item">
+                        <summary>Are my provider API keys stored securely?</summary>
+                        <p>Keys are stored in the local LMDB environment under <code>~/.exoroute</code>, never sent to the browser after creation, and masked everywhere in the UI. The database file is owned by a single ExoRoute process — keep it on local disk only.</p>
+                      </details>
+                      <details class="faq-item">
+                        <summary>What happens when a provider quota runs out?</summary>
+                        <p>The circuit breaker trips for that provider, combos reroute to healthy targets automatically, and you'll see the provider marked on the <a href="quota.html">Quota</a> page. Once quota resets or you top up, the breaker half-opens and traffic resumes.</p>
+                      </details>
+                      <details class="faq-item">
+                        <summary>Can I use a different protocol upstream?</summary>
+                        <p>Yes — ExoRoute translates between OpenAI and Anthropic formats. Set the provider type to Anthropic or OpenAI-compatible, and clients can keep using whichever format they prefer.</p>
+                      </details>
+                      <details class="faq-item">
+                        <summary>Why did a request return 429?</summary>
+                        <p>Either the client API key hit its rate limit, or all combo targets are quota-limited/circuit-broken. Check the <a href="requests.html">Requests</a> page — each row shows which provider and target were tried.</p>
+                      </details>
+                      <details class="faq-item">
+                        <summary>How do I back up my configuration?</summary>
+                        <p>Use <strong>Backup now</strong> under <a href="settings.html#sec-data">Settings → Data &amp; backup</a> for a snapshot, or <strong>Export data</strong> for a portable JSON of providers and combos.</p>
+                      </details>
+                    </div>
+                  </section>
+
+                  <!-- Guides + contact -->
+                  <div class="help-side">
+                    <section class="course-card surface help-card">
+                      <div class="card-title-row"><h2>Guides</h2></div>
+                      <div class="help-links">
+                        <a class="help-link" href="docs.html#quickstart"><span class="help-link-icon"><svg class="icon"><use href="#i-play" /></svg></span><span><strong>Quickstart</strong><small>First request in 5 minutes</small></span><svg class="icon help-arrow"><use href="#i-arrow-right" /></svg></a>
+                        <a class="help-link" href="docs.html#authentication"><span class="help-link-icon"><svg class="icon"><use href="#i-key" /></svg></span><span><strong>Authentication</strong><small>API keys &amp; headers</small></span><svg class="icon help-arrow"><use href="#i-arrow-right" /></svg></a>
+                        <a class="help-link" href="docs.html#streaming"><span class="help-link-icon"><svg class="icon"><use href="#i-zap" /></svg></span><span><strong>Streaming</strong><small>SSE behavior &amp; retries</small></span><svg class="icon help-arrow"><use href="#i-arrow-right" /></svg></a>
+                        <a class="help-link" href="docs.html#errors"><span class="icon help-link-icon warn"><svg class="icon"><use href="#i-alert" /></svg></span><span><strong>Error codes</strong><small>What each status means</small></span><svg class="icon help-arrow"><use href="#i-arrow-right" /></svg></a>
+                      </div>
+                    </section>
+
+                    <section class="course-card surface help-card">
+                      <div class="card-title-row"><h2>Still stuck?</h2></div>
+                      <p class="card-subtitle">Include your request ID from the Requests page — it lets us trace the exact upstream attempt.</p>
+                      <div class="help-contact">
+                        <button class="page-action" type="button" id="help-email">
+                          <svg class="icon"><use href="#i-mail" /></svg> Email support
+                        </button>
+                        <button class="page-action" type="button" id="help-copy-logs">
+                          <svg class="icon"><use href="#i-clipboard" /></svg> Copy diagnostics
+                        </button>
+                      </div>
+                    </section>
+
+                    <section class="course-card surface help-card help-sysinfo">
+                      <div class="card-title-row"><h2>System info</h2></div>
+                      <dl class="sysinfo">
+                        <div><dt>Version</dt><dd>exoroute 0.9.4 (a1b2c3d)</dd></div>
+                        <div><dt>Uptime</dt><dd>3d 7h 22m</dd></div>
+                        <div><dt>Environment</dt><dd>LMDB · %USERPROFILE%\.exoroute</dd></div>
+                        <div><dt>Frontend</dt><dd>Svelte 5 · embedded</dd></div>
+                        <div><dt>Protocols</dt><dd>OpenAI · Anthropic</dd></div>
+                      </dl>
+                    </section>
+                  </div>
+                </div>
+              </div>
+
+              <script>
+                (() => {
+                  document.querySelectorAll('[data-nav]').forEach((el) => {
+                    el.addEventListener('click', () => { location.href = `${el.dataset.nav}.html`; });
+                  });
+                  document.getElementById('help-contact').addEventListener('click', () => {
+                    showToast('Support: support@exoroute.local — include a request ID');
+                  });
+                  document.getElementById('help-email').addEventListener('click', () => {
+                    showToast('Opening mail client… (mock)');
+                  });
+                  document.getElementById('help-copy-logs').addEventListener('click', async () => {
+                    const info = 'ExoRoute 0.9.4 · uptime 3d7h · providers:6 combos:4 · env: LMDB';
+                    try { await navigator.clipboard.writeText(info); } catch (_) {}
+                    showToast('Diagnostics copied — paste into your support message');
+                  });
+                  document.getElementById('status-refresh').addEventListener('click', (e) => {
+                    const btn = e.currentTarget;
+                    btn.disabled = true;
+                    setTimeout(() => {
+                      btn.disabled = false;
+                      showToast('Status refreshed — all systems operational');
+                    }, 800);
+                  });
+                  document.getElementById('stat-issues').addEventListener('click', () => {
+                    document.querySelector('.help-faq').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    showToast('Known issues are tracked in the project changelog');
+                  });
+                  document.getElementById('stat-version').addEventListener('click', () => {
+                    showToast('exoroute 0.9.4 · built 2025-01-18 · commit a1b2c3d');
+                  });
+                })();
+              </script>

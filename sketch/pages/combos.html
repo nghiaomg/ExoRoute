@@ -1,0 +1,504 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">Combos</h1>
+                  <p id="page-description">Route models across providers with fallback chains and strategies.</p>
+                </div>
+                <div class="heading-actions">
+                  <button class="action-button" type="button" id="combo-import">
+                    <span class="button-icon"><svg class="icon"><use href="#i-import" /></svg></span>
+                    <span class="button-label">Import</span>
+                  </button>
+                  <button class="action-button primary" type="button" data-open-modal="combo-dialog">
+                    <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
+                    <span class="button-label">New combo</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="page-surface">
+                <section class="stats-grid" aria-label="Combo overview">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                      <span class="stat-number">4</span>
+                    </div>
+                    <h2>Combos</h2>
+                    <div class="stat-trend">3 enabled, 1 disabled</div>
+                    <button class="details-link" type="button" id="stat-goto-combos">View all <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-layers" /></svg></span>
+                      <span class="stat-number">14</span>
+                    </div>
+                    <h2>Targets</h2>
+                    <div class="stat-trend">Across 6 providers</div>
+                    <button class="details-link" type="button" data-nav="providers">View providers <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
+                      <span class="stat-number">12.8k</span>
+                    </div>
+                    <h2>Requests Routed</h2>
+                    <div class="stat-trend">Last 24 hours</div>
+                    <button class="details-link" type="button" data-nav="requests">View requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-alert" /></svg></span>
+                      <span class="stat-number">312</span>
+                    </div>
+                    <h2>Failovers</h2>
+                    <div class="stat-trend">2.4% of routed requests</div>
+                    <button class="details-link" type="button" id="stat-failovers">Inspect failures <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <section class="course-card surface combo-board" id="combo-board" aria-labelledby="combos-heading">
+                  <div class="card-title-row">
+                    <h2 id="combos-heading">Combos</h2>
+                  </div>
+                  <p class="card-subtitle" id="combo-summary">4 combos · 14 targets · 3 strategies</p>
+                  <div class="page-toolbar combo-toolbar">
+                    <input id="combo-search" class="combo-search" type="search" placeholder="Search combos..." aria-label="Search combos" />
+                    <select id="combo-filter" class="combo-select" aria-label="Filter by strategy">
+                      <option value="all">All strategies</option>
+                      <option value="priority">Priority</option>
+                      <option value="round-robin">Round robin</option>
+                      <option value="least-latency">Least latency</option>
+                    </select>
+                  </div>
+                  <div class="combo-list" id="combo-list" aria-live="polite">
+                  <article class="combo-card" data-status="enabled" data-strategy="priority" data-name="smart-default">
+                    <div class="combo-head">
+                      <span class="course-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                      <div class="course-copy">
+                        <strong>smart-default <span class="prov-type">priority</span></strong>
+                        <span>Serves <code>auto</code> · 8.2k requests · 99.1% success</span>
+                      </div>
+                      <label class="switch" title="Enable combo">
+                        <input type="checkbox" class="combo-toggle" checked />
+                        <span class="switch-track"><span class="switch-thumb"></span></span>
+                      </label>
+                    </div>
+                    <div class="combo-targets">
+                      <span class="combo-target">openai · gpt-4o-mini</span>
+                      <span class="combo-target">gemini · gemini-2.5-flash</span>
+                      <span class="combo-target">deepseek · deepseek-chat</span>
+                      <span class="combo-target fallback">lmstudio · llama-3.3-70b</span>
+                    </div>
+                    <div class="combo-meter">
+                      <div class="progress-track"><div class="progress-fill" style="width:99%"></div></div>
+                      <span class="combo-meter-label">99.1% success</span>
+                    </div>
+                    <div class="combo-foot">
+                      <span class="combo-foot-meta">
+                        <span class="combo-meta"><svg class="icon"><use href="#i-clock" /></svg> p50 420 ms</span>
+                        <span class="combo-meta"><svg class="icon"><use href="#i-alert" /></svg> 18 failovers</span>
+                      </span>
+                      <div class="course-actions">
+                        <button class="icon-action" type="button" title="Edit combo" data-edit="smart-default"><svg class="icon"><use href="#i-edit" /></svg></button>
+                        <button class="icon-action" type="button" title="Duplicate" data-duplicate="smart-default"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action danger" type="button" title="Delete combo" data-delete="smart-default"><svg class="icon"><use href="#i-trash" /></svg></button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="combo-card" data-status="enabled" data-strategy="round-robin" data-name="balanced-pool">
+                    <div class="combo-head">
+                      <span class="course-icon"><svg class="icon"><use href="#i-layers" /></svg></span>
+                      <div class="course-copy">
+                        <strong>balanced-pool <span class="prov-type">round-robin</span></strong>
+                        <span>Serves <code>balanced/*</code> · 3.1k requests · 97.8% success</span>
+                      </div>
+                      <label class="switch" title="Enable combo">
+                        <input type="checkbox" class="combo-toggle" checked />
+                        <span class="switch-track"><span class="switch-thumb"></span></span>
+                      </label>
+                    </div>
+                    <div class="combo-targets">
+                      <span class="combo-target">openai · gpt-4o</span>
+                      <span class="combo-target">anthropic · claude-sonnet-4</span>
+                      <span class="combo-target">gemini · gemini-2.5-pro</span>
+                    </div>
+                    <div class="combo-meter">
+                      <div class="progress-track"><div class="progress-fill blue" style="width:98%"></div></div>
+                      <span class="combo-meter-label">97.8% success</span>
+                    </div>
+                    <div class="combo-foot">
+                      <span class="combo-foot-meta">
+                        <span class="combo-meta"><svg class="icon"><use href="#i-clock" /></svg> p50 780 ms</span>
+                        <span class="combo-meta"><svg class="icon"><use href="#i-alert" /></svg> 44 failovers</span>
+                      </span>
+                      <div class="course-actions">
+                        <button class="icon-action" type="button" title="Edit combo" data-edit="balanced-pool"><svg class="icon"><use href="#i-edit" /></svg></button>
+                        <button class="icon-action" type="button" title="Duplicate" data-duplicate="balanced-pool"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action danger" type="button" title="Delete combo" data-delete="balanced-pool"><svg class="icon"><use href="#i-trash" /></svg></button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="combo-card" data-status="enabled" data-strategy="least-latency" data-name="fast-lane">
+                    <div class="combo-head">
+                      <span class="course-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
+                      <div class="course-copy">
+                        <strong>fast-lane <span class="prov-type">least-latency</span></strong>
+                        <span>Serves <code>fast/*</code> · 1.4k requests · 98.6% success</span>
+                      </div>
+                      <label class="switch" title="Enable combo">
+                        <input type="checkbox" class="combo-toggle" checked />
+                        <span class="switch-track"><span class="switch-thumb"></span></span>
+                      </label>
+                    </div>
+                    <div class="combo-targets">
+                      <span class="combo-target">gemini · gemini-2.5-flash</span>
+                      <span class="combo-target">openai · gpt-4o-mini</span>
+                      <span class="combo-target fallback">deepseek · deepseek-chat</span>
+                    </div>
+                    <div class="combo-meter">
+                      <div class="progress-track"><div class="progress-fill green" style="width:99%"></div></div>
+                      <span class="combo-meter-label">98.6% success</span>
+                    </div>
+                    <div class="combo-foot">
+                      <span class="combo-foot-meta">
+                        <span class="combo-meta"><svg class="icon"><use href="#i-clock" /></svg> p50 190 ms</span>
+                        <span class="combo-meta"><svg class="icon"><use href="#i-alert" /></svg> 9 failovers</span>
+                      </span>
+                      <div class="course-actions">
+                        <button class="icon-action" type="button" title="Edit combo" data-edit="fast-lane"><svg class="icon"><use href="#i-edit" /></svg></button>
+                        <button class="icon-action" type="button" title="Duplicate" data-duplicate="fast-lane"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action danger" type="button" title="Delete combo" data-delete="fast-lane"><svg class="icon"><use href="#i-trash" /></svg></button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="combo-card" data-status="disabled" data-strategy="priority" data-name="legacy-route">
+                    <div class="combo-head">
+                      <span class="course-icon"><svg class="icon"><use href="#i-clock" /></svg></span>
+                      <div class="course-copy">
+                        <strong>legacy-route <span class="prov-type">priority</span></strong>
+                        <span>Serves <code>legacy/*</code> · disabled · 0 requests</span>
+                      </div>
+                      <label class="switch" title="Enable combo">
+                        <input type="checkbox" class="combo-toggle" />
+                        <span class="switch-track"><span class="switch-thumb"></span></span>
+                      </label>
+                    </div>
+                    <div class="combo-targets">
+                      <span class="combo-target">lmstudio · llama-3.3-70b</span>
+                      <span class="combo-target fallback">openrouter · auto</span>
+                    </div>
+                    <div class="combo-meter">
+                      <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
+                      <span class="combo-meter-label">no traffic</span>
+                    </div>
+                    <div class="combo-foot">
+                      <span class="combo-foot-meta">
+                        <span class="combo-meta"><svg class="icon"><use href="#i-clock" /></svg> p50 —</span>
+                        <span class="combo-meta"><svg class="icon"><use href="#i-alert" /></svg> 0 failovers</span>
+                      </span>
+                      <div class="course-actions">
+                        <button class="icon-action" type="button" title="Edit combo" data-edit="legacy-route"><svg class="icon"><use href="#i-edit" /></svg></button>
+                        <button class="icon-action" type="button" title="Duplicate" data-duplicate="legacy-route"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action danger" type="button" title="Delete combo" data-delete="legacy-route"><svg class="icon"><use href="#i-trash" /></svg></button>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                  <div class="empty-state" id="combo-empty" hidden>No combos match the current filters.</div>
+                </section>
+              </div>
+
+              <!-- Create / edit combo -->
+              <dialog class="modal modal-wide" id="combo-dialog" aria-labelledby="combo-dialog-title">
+                <form class="modal-card" id="combo-form">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="combo-dialog-title">New combo</h2>
+                      <p>Chain provider targets with a routing strategy.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-fields combo-fields">
+                    <label class="field prov-field-wide">
+                      Combo name
+                      <input id="cf-name" name="name" maxlength="60" required placeholder="e.g. smart-default" />
+                    </label>
+                    <label class="field">
+                      Strategy
+                      <select id="cf-strategy" name="strategy">
+                        <option value="priority">Priority (first healthy wins)</option>
+                        <option value="round-robin">Round robin</option>
+                        <option value="least-latency">Least latency</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      Served model alias
+                      <input id="cf-alias" name="alias" maxlength="120" placeholder="e.g. auto or fast/*" />
+                    </label>
+                  </div>
+
+                  <div class="targets-editor">
+                    <div class="targets-head">
+                      <strong>Targets</strong>
+                      <span class="targets-hint">Tries each target in order on failure.</span>
+                    </div>
+                    <div id="target-rows" class="target-rows"></div>
+                    <button class="page-action" id="target-add" type="button">
+                      <svg class="icon"><use href="#i-plus" /></svg>
+                      Add target
+                    </button>
+                  </div>
+
+                  <p class="form-error" id="combo-form-error" role="alert" hidden></p>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action primary" type="submit">Save combo</button>
+                  </div>
+                </form>
+              </dialog>
+
+              <!-- Delete confirm -->
+              <dialog class="modal" id="combo-delete-dialog" aria-labelledby="combo-delete-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="combo-delete-title">Delete combo?</h2>
+                      <p id="combo-delete-desc">Requests routed through this combo will fail until a replacement exists.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action danger" id="combo-delete-confirm" type="button">Delete combo</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <script>
+                (() => {
+                  const list = document.getElementById('combo-list');
+                  const empty = document.getElementById('combo-empty');
+                  const search = document.getElementById('combo-search');
+                  const filter = document.getElementById('combo-filter');
+                  const summary = document.getElementById('combo-summary');
+                  const PROVIDERS = ['openai', 'anthropic', 'gemini', 'openrouter', 'deepseek', 'lmstudio'];
+                  let deleteTarget = null;
+                  let editTarget = null;
+
+                  const cards = () => [...list.querySelectorAll('.combo-card')];
+
+                  function applyFilters() {
+                    const q = search.value.trim().toLowerCase();
+                    const f = filter.value;
+                    let visible = 0;
+                    cards().forEach((card) => {
+                      const okQ = !q || card.dataset.name.includes(q) || card.textContent.toLowerCase().includes(q);
+                      const okF = f === 'all' || card.dataset.strategy === f;
+                      card.style.display = okQ && okF ? '' : 'none';
+                      if (okQ && okF) visible += 1;
+                    });
+                    empty.hidden = visible !== 0;
+                  }
+                  search.addEventListener('input', applyFilters);
+                  filter.addEventListener('change', applyFilters);
+
+                  function refreshSummary() {
+                    const all = cards();
+                    const enabled = all.filter((c) => c.dataset.status === 'enabled').length;
+                    const targets = all.reduce((n, c) => n + c.querySelectorAll('.combo-target').length, 0);
+                    const strategies = new Set(all.map((c) => c.dataset.strategy)).size;
+                    summary.textContent = `${all.length} combos · ${targets} targets · ${strategies} strategies`;
+                  }
+
+                  // Enable toggle
+                  list.addEventListener('change', (e) => {
+                    if (!e.target.classList.contains('combo-toggle')) return;
+                    const card = e.target.closest('.combo-card');
+                    card.dataset.status = e.target.checked ? 'enabled' : 'disabled';
+                    refreshSummary();
+                    applyFilters();
+                    showToast(`${card.dataset.name} ${e.target.checked ? 'enabled' : 'disabled'}`);
+                  });
+
+                  // Row actions
+                  list.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-edit],button[data-delete],button[data-duplicate]');
+                    if (!btn) return;
+                    const card = btn.closest('.combo-card');
+                    const name = card.dataset.name;
+                    if (btn.dataset.edit !== undefined) openComboDialog(name);
+                    if (btn.dataset.duplicate !== undefined) duplicateCombo(card);
+                    if (btn.dataset.delete !== undefined) openDeleteDialog(name);
+                  });
+
+                  function duplicateCombo(card) {
+                    const clone = card.cloneNode(true);
+                    clone.dataset.name = `${card.dataset.name}-copy`;
+                    clone.dataset.status = 'disabled';
+                    clone.querySelector('.combo-toggle').checked = false;
+                    clone.querySelector('.course-copy strong').childNodes[0].textContent = `${clone.dataset.name} `;
+                    clone.querySelector('.course-copy span').textContent = 'Duplicated combo · disabled';
+                    list.insertBefore(clone, card.nextSibling);
+                    refreshSummary();
+                    showToast(`${clone.dataset.name} created (disabled)`);
+                  }
+
+                  // ── Combo dialog with target editor ──
+                  const dialog = document.getElementById('combo-dialog');
+                  const form = document.getElementById('combo-form');
+                  const formError = document.getElementById('combo-form-error');
+                  const title = document.getElementById('combo-dialog-title');
+                  const rowsWrap = document.getElementById('target-rows');
+
+                  const PROVIDER_OPTIONS = PROVIDERS.map((p) => `<option value="${p}">${p}</option>`).join('');
+
+                  function targetRow(provider = 'openai', model = '') {
+                    const row = document.createElement('div');
+                    row.className = 'target-row';
+                    row.innerHTML = `
+                      <select class="target-provider" aria-label="Provider">${PROVIDER_OPTIONS}</select>
+                      <input class="target-model" placeholder="model name" value="${model}" />
+                      <button class="icon-action danger" type="button" title="Remove target"><svg class="icon"><use href="#i-close" /></svg></button>`;
+                    row.querySelector('.target-provider').value = provider;
+                    return row;
+                  }
+
+                  function openComboDialog(name) {
+                    editTarget = name || null;
+                    title.textContent = name ? `Edit ${name}` : 'New combo';
+                    document.getElementById('cf-name').value = name || '';
+                    document.getElementById('cf-strategy').value = name ? (cards().find((c) => c.dataset.name === name)?.dataset.strategy || 'priority') : 'priority';
+                    document.getElementById('cf-alias').value = name ? name : '';
+                    rowsWrap.innerHTML = '';
+                    if (name) {
+                      const card = cards().find((c) => c.dataset.name === name);
+                      card?.querySelectorAll('.combo-target').forEach((t) => {
+                        const [provider, model] = t.textContent.trim().split(' · ');
+                        const isFallback = t.classList.contains('fallback');
+                        const row = targetRow(provider || 'openai', model || '');
+                        if (isFallback) row.classList.add('is-fallback');
+                        rowsWrap.appendChild(row);
+                      });
+                    }
+                    if (!rowsWrap.children.length) rowsWrap.appendChild(targetRow());
+                    formError.hidden = true;
+                    dialog.showModal();
+                  }
+
+                  document.getElementById('target-add').addEventListener('click', () => {
+                    rowsWrap.appendChild(targetRow());
+                  });
+                  rowsWrap.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button');
+                    if (btn && rowsWrap.children.length > 1) btn.closest('.target-row').remove();
+                  });
+
+                  form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('cf-name').value.trim().toLowerCase().replace(/\s+/g, '-');
+                    const strategy = document.getElementById('cf-strategy').value;
+                    const alias = document.getElementById('cf-alias').value.trim() || name;
+                    const targets = [...rowsWrap.querySelectorAll('.target-row')]
+                      .map((r) => ({ provider: r.querySelector('.target-provider').value, model: r.querySelector('.target-model').value.trim() }))
+                      .filter((t) => t.model);
+                    if (!name) {
+                      formError.textContent = 'Combo name is required.';
+                      formError.hidden = false;
+                      return;
+                    }
+                    if (!targets.length) {
+                      formError.textContent = 'Add at least one target with a model name.';
+                      formError.hidden = false;
+                      return;
+                    }
+                    formError.hidden = true;
+
+                    const chips = targets.map((t, i) =>
+                      `<span class="combo-target${i === targets.length - 1 && targets.length > 1 ? ' fallback' : ''}">${t.provider} · ${t.model}</span>`).join('');
+
+                    if (editTarget) {
+                      const card = cards().find((c) => c.dataset.name === editTarget);
+                      if (card) {
+                        card.dataset.strategy = strategy;
+                        card.querySelector('.prov-type').textContent = strategy;
+                        card.querySelector('.course-copy span').textContent = `Serves \`${alias}\` · updated just now`;
+                        card.querySelector('.combo-targets').innerHTML = chips;
+                      }
+                      showToast(`${name} updated`);
+                    } else {
+                      const card = document.createElement('article');
+                      card.className = 'combo-card';
+                      card.dataset.status = 'enabled';
+                      card.dataset.strategy = strategy;
+                      card.dataset.name = name;
+                      card.innerHTML = `
+                        <div class="combo-head">
+                          <span class="course-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                          <div class="course-copy">
+                            <strong>${name} <span class="prov-type">${strategy}</span></strong>
+                            <span>Serves <code>${alias}</code> · new combo</span>
+                          </div>
+                          <label class="switch" title="Enable combo">
+                            <input type="checkbox" class="combo-toggle" checked />
+                            <span class="switch-track"><span class="switch-thumb"></span></span>
+                          </label>
+                        </div>
+                        <div class="combo-targets">${chips}</div>
+                        <div class="combo-foot">
+                          <span class="combo-meta"><svg class="icon"><use href="#i-clock" /></svg> no traffic yet</span>
+                          <div class="course-actions">
+                            <button class="icon-action" type="button" title="Edit combo" data-edit="${name}"><svg class="icon"><use href="#i-edit" /></svg></button>
+                            <button class="icon-action" type="button" title="Duplicate" data-duplicate="${name}"><svg class="icon"><use href="#i-copy" /></svg></button>
+                            <button class="icon-action danger" type="button" title="Delete combo" data-delete="${name}"><svg class="icon"><use href="#i-trash" /></svg></button>
+                          </div>
+                        </div>`;
+                      list.prepend(card);
+                      showToast(`${name} created`);
+                    }
+                    refreshSummary();
+                    applyFilters();
+                    dialog.close();
+                    form.reset();
+                  });
+
+                  // Delete
+                  const deleteDialog = document.getElementById('combo-delete-dialog');
+                  function openDeleteDialog(name) {
+                    deleteTarget = name;
+                    document.getElementById('combo-delete-desc').textContent =
+                      `Delete "${name}"? Requests routed through this combo will fail until a replacement exists.`;
+                    deleteDialog.showModal();
+                  }
+                  document.getElementById('combo-delete-confirm').addEventListener('click', () => {
+                    const card = cards().find((c) => c.dataset.name === deleteTarget);
+                    if (card) {
+                      card.remove();
+                      refreshSummary();
+                      applyFilters();
+                      showToast(`${deleteTarget} deleted`);
+                    }
+                    deleteDialog.close();
+                  });
+
+                  // Import mock
+                  document.getElementById('combo-import').addEventListener('click', () => {
+                    showToast('Import combo JSON — paste support coming in the full app');
+                  });
+
+                  // Stat-card actions + cross-page links
+                  document.querySelectorAll('[data-nav]').forEach((el) => {
+                    el.addEventListener('click', () => { location.href = `${el.dataset.nav}.html`; });
+                  });
+                  document.getElementById('stat-goto-combos').addEventListener('click', () => {
+                    document.getElementById('combo-board').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  });
+                  document.getElementById('stat-failovers').addEventListener('click', () => {
+                    location.href = 'requests.html?q=fail';
+                  });
+
+                  refreshSummary();
+                })();
+              </script>

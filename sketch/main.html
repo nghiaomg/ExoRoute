@@ -1,0 +1,3241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f8f9" />
+    <title>Shiko — Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          "Inter", "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        color: #293341;
+        background: #f6f8f9;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        --ink: #293341;
+        --muted: #74808a;
+        --line: #edf1f2;
+        --orange: #ed674d;
+        --soft: #f5f8f9;
+        --type-page-title: clamp(1.35rem, 1.9vw, 1.8rem);
+        --type-section-title: clamp(1rem, 1.35vw, 1.25rem);
+        --type-kpi: clamp(1.75rem, 2.35vw, 2.15rem);
+        --type-label: clamp(0.75rem, 0.88vw, 0.875rem);
+        --type-body: clamp(0.75rem, 0.82vw, 0.875rem);
+        --type-meta: clamp(0.6875rem, 0.72vw, 0.75rem);
+        --type-caption: clamp(0.625rem, 0.66vw, 0.6875rem);
+        --weight-regular: 400;
+        --weight-medium: 500;
+        --weight-semibold: 600;
+        --weight-bold: 700;
+        --leading-tight: 1.18;
+        --leading-body: 1.45;
+        --tracking-tight: -0.035em;
+        --tracking-label: -0.01em;
+        --tracking-caps: 0.04em;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 320px;
+        min-height: 100vh;
+        margin: 0;
+        background: #f6f8f9;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      .poster {
+        position: relative;
+        min-height: 100svh;
+        background: #f6f8f9;
+      }
+
+      .dashboard-card {
+        position: relative;
+        width: 100%;
+        min-height: 100svh;
+        padding: 24px;
+        background: #f6f8f9;
+        container-type: inline-size;
+      }
+
+      .app-layout {
+        display: grid;
+        width: 100%;
+        height: calc(100svh - 48px);
+        min-height: max(700px, calc(100svh - 48px));
+        min-width: 0;
+        grid-template-columns: 20.4% minmax(0, 1fr);
+        gap: 1.5%;
+      }
+
+      .icon-library {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+
+      .icon {
+        display: block;
+        width: 1.15em;
+        height: 1.15em;
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+      }
+
+      .sidebar {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        grid-template-rows: 8.4% minmax(0, 1fr);
+        gap: clamp(10px, 1.32vw, 18px);
+      }
+
+      .brand-card,
+      .side-panel,
+      .topbar,
+      .surface {
+        border: 0;
+        background: #fff;
+        box-shadow: none;
+      }
+
+      .brand-card {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 8%;
+        border-radius: 15px;
+      }
+
+      .brand {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 7px;
+        color: #293341;
+        font-size: var(--type-section-title);
+        font-weight: var(--weight-bold);
+        letter-spacing: var(--tracking-tight);
+      }
+
+      .brand-mark {
+        width: clamp(25px, 2.05vw, 29px);
+        height: clamp(23px, 1.9vw, 27px);
+        flex: 0 0 auto;
+      }
+
+      .collapse-button,
+      .icon-button {
+        display: inline-grid;
+        width: clamp(29px, 2.8vw, 38px);
+        height: clamp(29px, 2.8vw, 38px);
+        flex: 0 0 auto;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        background: #f5f7f8;
+        color: #67717d;
+      }
+
+      .collapse-button {
+        width: 25px;
+        height: 25px;
+        color: #b0b7bc;
+      }
+
+      .collapse-button .icon {
+        width: 13px;
+        height: 13px;
+      }
+
+      .side-panel {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        padding: 5.8% 6.5%;
+        border-radius: 17px;
+      }
+
+      .nav-section + .nav-section {
+        margin-top: 5.5%;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px 7px;
+        color: var(--muted);
+        font-size: var(--type-caption);
+        font-weight: var(--weight-semibold);
+        letter-spacing: var(--tracking-caps);
+      }
+
+      .nav-list {
+        display: grid;
+        gap: 2px;
+      }
+
+      .nav-button {
+        position: relative;
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        min-height: clamp(32px, 3.45vw, 46px);
+        align-items: center;
+        gap: 9px;
+        padding: 0 7px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #26313d;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .nav-button:hover {
+        background: #f7f8f9;
+      }
+
+      .nav-button.active {
+        background: linear-gradient(90deg, #fff3ef, #fffaf9);
+        color: #d85840;
+      }
+
+      .nav-icon {
+        display: grid;
+        width: clamp(27px, 2.55vw, 35px);
+        height: clamp(27px, 2.55vw, 35px);
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 50%;
+        background: #eef1f3;
+        color: #65707b;
+      }
+
+      .nav-button.active .nav-icon {
+        background: #ed6248;
+        color: #fff;
+      }
+
+      .nav-icon .icon {
+        width: 53%;
+        height: 53%;
+      }
+
+      .nav-label {
+        overflow: hidden;
+        font-size: var(--type-body);
+        font-weight: var(--weight-medium);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nav-count {
+        display: grid;
+        width: 19px;
+        height: 19px;
+        flex: 0 0 auto;
+        margin-left: auto;
+        place-items: center;
+        border-radius: 50%;
+        background: #354150;
+        color: #fff;
+        font-size: var(--type-caption);
+        font-weight: var(--weight-semibold);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .nav-button.active .nav-count {
+        background: #ed6248;
+      }
+
+      .logout {
+        margin-top: 3.5%;
+        color: #df5b42;
+      }
+
+      .logout .nav-icon {
+        background: #ed6248;
+        color: #fff;
+      }
+
+      .mobile-ad {
+        position: relative;
+        display: flex;
+        min-height: 68px;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+        margin-top: auto;
+        padding: 9px 11px;
+        border-radius: 12px;
+        background:
+          linear-gradient(132deg, transparent 57%, #2b1715 57.5%, #50201a 100%),
+          linear-gradient(110deg, #612317, #a43b22 58%, #762a1b);
+        color: #fff;
+      }
+
+      .mobile-ad::after {
+        position: absolute;
+        right: -23px;
+        bottom: -48px;
+        width: 120px;
+        height: 105px;
+        transform: rotate(-32deg);
+        border: 1px solid #ffb09222;
+        border-radius: 50%;
+        content: "";
+      }
+
+      .mobile-ad strong {
+        max-width: 160px;
+        font-size: var(--type-section-title);
+        font-weight: var(--weight-medium);
+        line-height: 1.1;
+      }
+
+      .mobile-ad button {
+        z-index: 1;
+        width: fit-content;
+        padding: 5px 13px;
+        border: 0;
+        border-radius: 999px;
+        background: #f36d50;
+        color: white;
+        font-size: var(--type-caption);
+        font-weight: var(--weight-semibold);
+      }
+
+      .main-area {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        grid-template-rows: 8.4% minmax(0, 1fr);
+        gap: 1.8%;
+      }
+
+      .topbar {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 0 2.3%;
+        border-radius: 16px;
+      }
+
+      .search-box {
+        display: flex;
+        width: min(43%, 370px);
+        height: 58%;
+        min-width: 120px;
+        align-items: center;
+        gap: 9px;
+        padding: 0 13px;
+        border-radius: 999px;
+        background: #f4f7f8;
+        color: #a2aab0;
+      }
+
+      .search-box .icon {
+        width: 16px;
+        height: 16px;
+      }
+
+      .search-box input {
+        width: 100%;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: #394452;
+        font-size: var(--type-body);
+      }
+
+      .search-box input::placeholder {
+        color: #74808a;
+      }
+
+      .top-actions {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: clamp(8px, 1.2vw, 17px);
+      }
+
+      .top-actions .icon-button {
+        position: relative;
+        width: clamp(30px, 3vw, 42px);
+        height: clamp(30px, 3vw, 42px);
+      }
+
+      .top-actions .icon {
+        width: 46%;
+        height: 46%;
+      }
+
+      .notification-dot {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 6px;
+        height: 6px;
+        border: 1px solid white;
+        border-radius: 50%;
+        background: #ed674d;
+      }
+
+      .top-divider {
+        width: 1px;
+        height: 24px;
+        background: #eff1f2;
+      }
+
+      .profile {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .avatar {
+        width: clamp(32px, 3.1vw, 43px);
+        height: clamp(32px, 3.1vw, 43px);
+        flex: 0 0 auto;
+        overflow: hidden;
+        border: 2px solid #f1f2f3;
+        border-radius: 50%;
+        background: linear-gradient(140deg, #d7e2e5, #a0adb2);
+      }
+
+      .profile-copy {
+        display: grid;
+        gap: 3px;
+        line-height: 1.15;
+        white-space: nowrap;
+      }
+
+      .profile-copy strong {
+        overflow: hidden;
+        font-size: var(--type-label);
+        font-weight: var(--weight-semibold);
+        text-overflow: ellipsis;
+      }
+
+      .profile-copy span {
+        color: var(--muted);
+        font-size: var(--type-meta);
+      }
+
+      .content {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        grid-template-rows: 7.4% minmax(0, 1fr);
+        gap: 1.8%;
+      }
+
+      .page-heading {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .heading-copy {
+        min-width: 0;
+      }
+
+      .heading-copy h1 {
+        overflow: hidden;
+        margin: 0 0 2px;
+        color: #2d3744;
+        font-size: var(--type-page-title);
+        font-weight: var(--weight-bold);
+        letter-spacing: var(--tracking-tight);
+        line-height: 1.04;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .heading-copy p {
+        overflow: hidden;
+        margin: 0;
+        color: var(--muted);
+        font-size: var(--type-body);
+        line-height: var(--leading-body);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .heading-actions {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .action-button {
+        display: flex;
+        min-height: clamp(31px, 2.95vw, 41px);
+        align-items: center;
+        gap: 8px;
+        padding: 0 clamp(9px, 1.05vw, 15px);
+        border: 0;
+        border-radius: 999px;
+        background: #fff;
+        color: #414b58;
+        font-size: var(--type-body);
+        font-weight: var(--weight-medium);
+        white-space: nowrap;
+      }
+
+      .action-button.primary {
+        background: #293341;
+        color: #fff;
+      }
+
+      .action-button .button-icon {
+        display: grid;
+        width: clamp(21px, 2vw, 28px);
+        height: clamp(21px, 2vw, 28px);
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 50%;
+        background: #fff;
+        color: #293341;
+      }
+
+      .action-button:not(.primary) .button-icon {
+        background: #293341;
+        color: #fff;
+      }
+
+      .action-button .icon {
+        width: 54%;
+        height: 54%;
+      }
+
+      .dashboard-content {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        grid-template-rows: 0.76fr 1.45fr 1fr;
+        gap: 2.2%;
+      }
+
+      .stats-grid {
+        display: grid;
+        min-height: 0;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 2%;
+      }
+
+      .stat-card {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        justify-content: center;
+        padding: 24px;
+        border-radius: 17px;
+      }
+
+      .stat-top {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .stat-icon {
+        display: grid;
+        width: clamp(29px, 3vw, 41px);
+        height: clamp(29px, 3vw, 41px);
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 50%;
+        background: #f4f7f8;
+        color: #566270;
+      }
+
+      .stat-icon .icon {
+        width: 47%;
+        height: 47%;
+      }
+
+      .stat-number {
+        overflow: hidden;
+        color: #2d3744;
+        font-size: var(--type-kpi);
+        font-weight: var(--weight-bold);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: var(--tracking-tight);
+        line-height: 1;
+        text-overflow: ellipsis;
+      }
+
+      .stat-card h2 {
+        overflow: hidden;
+        margin: 8px 0 4px;
+        color: #101820;
+        font-size: var(--type-label);
+        font-weight: var(--weight-semibold);
+        letter-spacing: var(--tracking-label);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .stat-trend {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: var(--type-meta);
+        line-height: var(--leading-body);
+        white-space: nowrap;
+      }
+
+      .stat-trend .icon {
+        width: 12px;
+        height: 12px;
+      }
+
+      .details-link {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 4px;
+        margin-top: 6px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #3b4652;
+        font-size: var(--type-meta);
+        font-weight: var(--weight-medium);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .details-link .icon {
+        width: 11px;
+        height: 11px;
+      }
+
+      .middle-grid {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        grid-template-columns: 1fr 1.02fr;
+        gap: 2%;
+      }
+
+      .surface {
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        border-radius: 17px;
+      }
+
+      .chart-card,
+      .course-card,
+      .assignment-card,
+      .community-card {
+        padding: 24px;
+      }
+
+      .card-title-row {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .card-title-row h2 {
+        overflow: hidden;
+        margin: 0;
+        color: #303b48;
+        font-size: var(--type-section-title);
+        font-weight: var(--weight-semibold);
+        letter-spacing: var(--tracking-tight);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .card-subtitle {
+        overflow: hidden;
+        margin: 2px 0 10px;
+        color: var(--muted);
+        font-size: var(--type-meta);
+        line-height: var(--leading-body);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .chart-plot {
+        display: grid;
+        min-height: 0;
+        height: calc(100% - 48px);
+        grid-template-columns: 35px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) 17px;
+        column-gap: 7px;
+      }
+
+      .y-axis {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 2px 0 1px;
+        color: var(--muted);
+        font-size: var(--type-caption);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .bar-chart {
+        position: relative;
+        display: flex;
+        min-height: 0;
+        align-items: end;
+        justify-content: space-around;
+        gap: 14px;
+        padding: 8px 12px 0;
+        background: repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent calc(25% - 1px),
+          #edf1f2 calc(25% - 1px),
+          #edf1f2 25%
+        );
+      }
+
+      .bar {
+        position: relative;
+        display: flex;
+        width: 22%;
+        height: 100%;
+        align-items: end;
+        justify-content: center;
+      }
+
+      .bar span {
+        width: 100%;
+        height: var(--bar);
+        border-radius: 5px 5px 0 0;
+        background: #38a86b;
+      }
+
+      .bar:nth-child(2) span {
+        background: #ed765e;
+      }
+
+      .bar:nth-child(3) span {
+        background: #4d91df;
+      }
+
+      .bar-value {
+        position: absolute;
+        bottom: calc(var(--bar) + 4px);
+        color: #44505b;
+        font-size: var(--type-caption);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .bar-labels {
+        display: flex;
+        grid-column: 2;
+        align-items: end;
+        justify-content: space-around;
+        color: #66737e;
+        font-size: var(--type-caption);
+        line-height: var(--leading-tight);
+        text-align: center;
+      }
+
+      .course-card {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .mini-add {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 9px;
+        border: 0;
+        border-radius: 999px;
+        background: #f7f9fa;
+        color: #6f7b84;
+        font-size: var(--type-caption);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .mini-add .icon {
+        width: 12px;
+        height: 12px;
+      }
+
+      .course-list {
+        display: grid;
+        min-height: 0;
+        flex: 1;
+        gap: 7px;
+        margin-top: 10px;
+      }
+
+      .course-row {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 9px;
+        padding: 7px 9px;
+        border-radius: 11px;
+        background: #f5f8f9;
+      }
+
+      .course-icon {
+        display: grid;
+        width: 35px;
+        height: 35px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 9px;
+        background: #fff;
+        color: #ed765e;
+      }
+
+      .course-icon .icon {
+        width: 48%;
+        height: 48%;
+      }
+
+      .course-copy {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .course-copy strong {
+        display: block;
+        overflow: hidden;
+        color: #414b57;
+        font-size: var(--type-label);
+        font-weight: var(--weight-semibold);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .course-copy span {
+        display: block;
+        overflow: hidden;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: var(--type-meta);
+        line-height: var(--leading-body);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status {
+        flex: 0 0 auto;
+        padding: 5px 8px;
+        border-radius: 999px;
+        font-size: var(--type-caption);
+        font-weight: var(--weight-semibold);
+        line-height: var(--leading-tight);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .status.complete {
+        background: #fff0eb;
+        color: #a94e3a;
+      }
+
+      .status.progress {
+        background: #e2f6e7;
+        color: #347d46;
+      }
+
+      .status.pending {
+        background: #e8ecef;
+        color: #596570;
+      }
+
+      .bottom-grid {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        grid-template-columns: 3fr 1fr;
+        gap: 2%;
+      }
+
+      .assignment-card {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .assignment-card h2,
+      .community-card h2 {
+        overflow: hidden;
+        margin: 0;
+        color: #303b48;
+        font-size: var(--type-section-title);
+        font-weight: var(--weight-semibold);
+        letter-spacing: var(--tracking-tight);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .assignment-content {
+        display: grid;
+        min-height: 0;
+        flex: 1;
+        grid-template-columns: 1fr 1.22fr;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .legend-list {
+        display: grid;
+        gap: 8px;
+        padding-top: 5px;
+      }
+
+      .legend-row {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: var(--type-meta);
+        white-space: nowrap;
+      }
+
+      .legend-row strong {
+        color: #3c4652;
+        font-size: var(--type-label);
+        font-weight: var(--weight-semibold);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 1px;
+      }
+
+      .legend-dot.orange {
+        background: #ec654d;
+      }
+
+      .legend-dot.ink {
+        background: #293341;
+      }
+
+      .legend-dot.green {
+        background: #07bd31;
+      }
+
+      .legend-dot.blue {
+        background: #287ee8;
+      }
+
+      .gauge {
+        display: block;
+        width: 100%;
+        max-width: 310px;
+        max-height: 100%;
+        justify-self: center;
+      }
+
+      .community-card {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+      }
+
+      .community-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
+
+      .community-heading .icon-button {
+        width: 26px;
+        height: 26px;
+        color: #89929a;
+      }
+
+      .community-heading .icon {
+        width: 13px;
+        height: 13px;
+      }
+
+      .community-link {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        align-items: center;
+        gap: 9px;
+        padding: 7px;
+        border-radius: 10px;
+        background: #f5f8f9;
+      }
+
+      .community-logo {
+        display: grid;
+        width: 35px;
+        height: 35px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 9px;
+        background: #fff;
+        color: #18aa89;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .community-logo.discord {
+        color: #7289da;
+        font-size: 16px;
+      }
+
+      .community-copy {
+        display: grid;
+        min-width: 0;
+        gap: 3px;
+      }
+
+      .community-copy strong {
+        overflow: hidden;
+        color: #45515c;
+        font-size: var(--type-meta);
+        font-weight: var(--weight-semibold);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .community-copy span {
+        overflow: hidden;
+        color: var(--muted);
+        font-size: var(--type-caption);
+        line-height: var(--leading-body);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      @container (max-width: 920px) {
+        .app-layout {
+          gap: 12px;
+        }
+
+        .sidebar {
+          grid-template-rows: 8.4% minmax(0, 1fr);
+        }
+
+        .side-panel {
+          padding: 9px;
+        }
+
+        .brand {
+          font-size: var(--type-section-title);
+        }
+
+        .nav-section + .nav-section {
+          margin-top: 9px;
+        }
+
+        .nav-button {
+          min-height: 30px;
+          gap: 6px;
+          padding: 0 4px;
+        }
+
+        .nav-icon {
+          width: 26px;
+          height: 26px;
+        }
+
+        .nav-label {
+          font-size: var(--type-body);
+        }
+
+        .nav-count {
+          width: 16px;
+          height: 16px;
+          font-size: var(--type-caption);
+        }
+
+        .mobile-ad {
+          min-height: 62px;
+        }
+
+        .stat-card {
+          padding: 24px;
+        }
+
+        .stat-top {
+          gap: 7px;
+        }
+
+        .stat-icon {
+          width: 28px;
+          height: 28px;
+        }
+
+        .stat-number {
+          font-size: var(--type-kpi);
+        }
+
+        .stat-card h2 {
+          margin-top: 8px;
+          font-size: var(--type-label);
+        }
+
+        .stat-trend,
+        .details-link {
+          font-size: var(--type-meta);
+        }
+
+        .course-row {
+          gap: 6px;
+          padding: 5px 6px;
+        }
+
+        .course-icon,
+        .community-logo {
+          width: 27px;
+          height: 27px;
+        }
+
+        .course-copy strong {
+          font-size: var(--type-label);
+        }
+
+        .course-copy span {
+          font-size: var(--type-meta);
+        }
+
+        .status {
+          padding: 4px 6px;
+          font-size: var(--type-caption);
+        }
+
+        .chart-card,
+        .course-card,
+        .assignment-card,
+        .community-card {
+          padding: 24px;
+        }
+
+        .card-title-row h2,
+        .assignment-card h2,
+        .community-card h2 {
+          font-size: var(--type-section-title);
+        }
+
+        .card-subtitle {
+          margin-bottom: 7px;
+          font-size: var(--type-meta);
+        }
+
+        .legend-list {
+          gap: 5px;
+        }
+
+        .legend-row {
+          gap: 5px;
+          font-size: var(--type-meta);
+        }
+
+        .legend-row strong {
+          font-size: var(--type-label);
+        }
+
+        .legend-dot {
+          width: 7px;
+          height: 7px;
+        }
+
+        .community-card {
+          gap: 6px;
+        }
+
+        .community-link {
+          gap: 5px;
+          padding: 5px;
+        }
+
+        .community-copy strong {
+          font-size: var(--type-meta);
+        }
+
+        .community-copy span {
+          font-size: var(--type-caption);
+        }
+      }
+
+      @media (max-width: 680px) {
+        .poster {
+          display: block;
+          min-height: 100svh;
+          overflow: visible;
+          padding: 0;
+        }
+
+        .dashboard-card {
+          position: relative;
+          top: auto;
+          left: auto;
+          width: 100%;
+          height: auto;
+          min-height: 100svh;
+          aspect-ratio: auto;
+          margin: 0;
+          padding: 12px;
+          transform: none;
+        }
+
+        .app-layout {
+          height: auto;
+          min-height: 100svh;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 10px;
+        }
+
+        .sidebar {
+          grid-template-rows: 54px auto;
+          gap: 9px;
+        }
+
+        .brand-card {
+          padding: 0 14px;
+        }
+
+        .brand {
+          font-size: var(--type-section-title);
+        }
+
+        .brand-mark {
+          width: 27px;
+          height: 26px;
+        }
+
+        .side-panel {
+          display: block;
+          padding: 10px;
+        }
+
+        .nav-section + .nav-section {
+          margin-top: 10px;
+        }
+
+        .nav-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 3px;
+        }
+
+        .nav-button {
+          min-height: 38px;
+          gap: 7px;
+          padding: 0 6px;
+        }
+
+        .nav-icon {
+          width: 29px;
+          height: 29px;
+        }
+
+        .nav-label {
+          font-size: var(--type-body);
+        }
+
+        .nav-count {
+          width: 18px;
+          height: 18px;
+          font-size: var(--type-caption);
+        }
+
+        .mobile-ad {
+          display: none;
+        }
+
+        .main-area {
+          grid-template-rows: 56px auto;
+          gap: 10px;
+        }
+
+        .topbar {
+          gap: 8px;
+          padding: 0 9px;
+          border-radius: 13px;
+        }
+
+        .search-box {
+          width: 43%;
+          min-width: 0;
+          padding: 0 9px;
+        }
+
+        .search-box input {
+          font-size: var(--type-body);
+        }
+
+        .top-actions {
+          gap: 6px;
+        }
+
+        .top-actions .icon-button {
+          width: 30px;
+          height: 30px;
+        }
+
+        .top-divider {
+          height: 20px;
+        }
+
+        .profile {
+          gap: 6px;
+        }
+
+        .avatar {
+          width: 31px;
+          height: 31px;
+        }
+
+        .profile-copy strong {
+          max-width: 78px;
+          font-size: var(--type-label);
+        }
+
+        .profile-copy span {
+          font-size: var(--type-meta);
+        }
+
+        .content {
+          grid-template-rows: auto auto;
+          gap: 12px;
+        }
+
+        .page-heading {
+          align-items: flex-start;
+        }
+
+        .heading-copy h1 {
+          font-size: var(--type-page-title);
+        }
+
+        .heading-copy p {
+          max-width: 185px;
+          font-size: var(--type-body);
+          line-height: var(--leading-body);
+          white-space: normal;
+        }
+
+        .heading-actions {
+          gap: 5px;
+        }
+
+        .action-button {
+          min-height: 31px;
+          gap: 5px;
+          padding: 0 7px;
+          font-size: var(--type-body);
+        }
+
+        .action-button .button-icon {
+          width: 20px;
+          height: 20px;
+        }
+
+        .action-button.import-button .button-label {
+          display: none;
+        }
+
+        .dashboard-content {
+          grid-template-rows: auto auto auto;
+          gap: 10px;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+
+        .stat-card {
+          min-height: 116px;
+          padding: 16px;
+          border-radius: 13px;
+        }
+
+        .stat-top {
+          gap: 9px;
+        }
+
+        .stat-icon {
+          width: 34px;
+          height: 34px;
+        }
+
+        .stat-number {
+          font-size: var(--type-kpi);
+        }
+
+        .stat-card h2 {
+          margin: 8px 0 4px;
+          font-size: var(--type-label);
+          overflow: visible;
+          white-space: normal;
+        }
+
+        .stat-trend {
+          font-size: var(--type-meta);
+        }
+
+        .details-link {
+          margin-top: 6px;
+          font-size: var(--type-meta);
+        }
+
+        .middle-grid,
+        .bottom-grid {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 10px;
+        }
+
+        .chart-card,
+        .course-card,
+        .assignment-card,
+        .community-card {
+          min-height: 250px;
+          padding: 16px;
+          border-radius: 13px;
+        }
+
+        .card-title-row h2,
+        .assignment-card h2,
+        .community-card h2 {
+          font-size: var(--type-section-title);
+        }
+
+        .card-subtitle {
+          margin-bottom: 10px;
+          font-size: var(--type-meta);
+        }
+
+        .chart-plot {
+          height: 180px;
+          grid-template-columns: 40px minmax(0, 1fr);
+          grid-template-rows: minmax(0, 1fr) 18px;
+        }
+
+        .y-axis,
+        .bar-labels {
+          font-size: var(--type-caption);
+        }
+
+        .course-card {
+          min-height: 235px;
+        }
+
+        .mini-add {
+          font-size: var(--type-caption);
+        }
+
+        .course-list {
+          gap: 8px;
+          margin-top: 13px;
+        }
+
+        .course-row {
+          gap: 9px;
+          padding: 8px;
+        }
+
+        .course-icon {
+          width: 36px;
+          height: 36px;
+        }
+
+        .course-copy strong {
+          font-size: var(--type-label);
+        }
+
+        .course-copy span {
+          font-size: var(--type-meta);
+        }
+
+        .status {
+          padding: 5px 8px;
+          font-size: var(--type-caption);
+        }
+
+        .assignment-card {
+          min-height: 225px;
+        }
+
+        .assignment-content {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .legend-list {
+          gap: 9px;
+        }
+
+        .legend-row {
+          gap: 7px;
+          font-size: var(--type-meta);
+        }
+
+        .legend-row strong {
+          font-size: var(--type-label);
+        }
+
+        .legend-dot {
+          width: 8px;
+          height: 8px;
+        }
+
+        .community-card {
+          min-height: 180px;
+        }
+
+        .community-link {
+          gap: 9px;
+          padding: 8px;
+        }
+
+        .community-logo {
+          width: 36px;
+          height: 36px;
+        }
+
+        .community-copy strong {
+          font-size: var(--type-meta);
+        }
+
+        .community-copy span {
+          font-size: var(--type-caption);
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .nav-button {
+          transition:
+            background-color 140ms ease,
+            color 140ms ease;
+        }
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .status-action {
+        border: 0;
+        cursor: pointer;
+      }
+
+      .status-action:hover {
+        filter: saturate(1.2);
+        outline: 2px solid #ffffff;
+        outline-offset: 1px;
+      }
+
+      .page-surface {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        align-content: start;
+        gap: 13px;
+        overflow: auto;
+        padding: 2px 1px 4px;
+      }
+
+      .page-intro {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .page-intro p {
+        margin: 0;
+        color: var(--muted);
+        font-size: var(--type-body);
+        line-height: var(--leading-body);
+      }
+
+      .page-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .page-action {
+        display: inline-flex;
+        min-height: 34px;
+        align-items: center;
+        gap: 7px;
+        padding: 0 12px;
+        border: 1px solid #e9eef0;
+        border-radius: 10px;
+        background: #fff;
+        color: #46515c;
+        font-size: var(--type-body);
+        font-weight: var(--weight-semibold);
+        cursor: pointer;
+      }
+
+      .page-action.primary {
+        border-color: #293341;
+        background: #293341;
+        color: #fff;
+      }
+
+      .page-action .icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      .manager-list,
+      .calendar-list,
+      .live-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .manager-row,
+      .calendar-item,
+      .live-item,
+      .resource-item,
+      .settings-item,
+      .profile-form {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid #eef1f2;
+        border-radius: 13px;
+        background: #fff;
+      }
+
+      .manager-row .course-copy,
+      .calendar-copy,
+      .live-copy,
+      .resource-copy,
+      .settings-copy {
+        flex: 1;
+      }
+
+      .manager-row .course-icon,
+      .calendar-date,
+      .live-date,
+      .resource-icon,
+      .settings-icon {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 11px;
+        background: #f5f8f9;
+        color: #e56c52;
+      }
+
+      .calendar-date,
+      .live-date {
+        width: 48px;
+        height: 48px;
+        align-content: center;
+        gap: 1px;
+        color: #4b5661;
+      }
+
+      .calendar-date strong,
+      .live-date strong {
+        font-size: var(--type-section-title);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+
+      .calendar-date span,
+      .live-date span {
+        color: var(--muted);
+        font-size: var(--type-caption);
+        text-transform: uppercase;
+      }
+
+      .calendar-copy strong,
+      .live-copy strong,
+      .resource-copy strong,
+      .settings-copy strong {
+        display: block;
+        color: #37424e;
+        font-size: var(--type-label);
+        font-weight: var(--weight-semibold);
+      }
+
+      .calendar-copy span,
+      .live-copy span,
+      .resource-copy span,
+      .settings-copy span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: var(--type-meta);
+        line-height: var(--leading-body);
+      }
+
+      .course-actions {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .icon-action {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border: 1px solid #eceff1;
+        border-radius: 9px;
+        background: #fff;
+        color: #8b959d;
+        cursor: pointer;
+      }
+
+      .icon-action:hover {
+        border-color: #f0c4b9;
+        color: #d75f46;
+      }
+
+      .icon-action .icon {
+        width: 14px;
+        height: 14px;
+      }
+
+      .empty-state {
+        padding: 28px 18px;
+        border: 1px dashed #dce3e6;
+        border-radius: 13px;
+        color: var(--muted);
+        font-size: var(--type-body);
+        line-height: var(--leading-body);
+        text-align: center;
+      }
+
+      .page-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .page-stat {
+        padding: 14px;
+        border: 1px solid #eef1f2;
+        border-radius: 13px;
+        background: #fff;
+      }
+
+      .page-stat span {
+        display: block;
+        color: var(--muted);
+        font-size: var(--type-meta);
+      }
+
+      .page-stat strong {
+        display: block;
+        margin-top: 5px;
+        color: #303b48;
+        font-size: var(--type-kpi);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .progress-list {
+        display: grid;
+        gap: 13px;
+        padding: 15px;
+        border: 1px solid #eef1f2;
+        border-radius: 13px;
+        background: #fff;
+      }
+
+      .progress-row {
+        display: grid;
+        grid-template-columns: 115px minmax(0, 1fr) 36px;
+        align-items: center;
+        gap: 10px;
+        color: #69747e;
+        font-size: var(--type-meta);
+      }
+
+      .progress-row strong {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .progress-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 99px;
+        background: #edf1f2;
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #ed765e, #f4ae96);
+      }
+
+      .progress-fill.green {
+        background: linear-gradient(90deg, #38b86c, #8bd59d);
+      }
+
+      .progress-fill.blue {
+        background: linear-gradient(90deg, #468ce8, #95c3f7);
+      }
+
+      .resource-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+      }
+
+      .resource-item {
+        align-items: flex-start;
+      }
+
+      .resource-icon .icon,
+      .settings-icon .icon {
+        width: 19px;
+        height: 19px;
+      }
+
+      .settings-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .settings-icon {
+        color: #687581;
+      }
+
+      .profile-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        align-items: end;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+        color: #59646e;
+        font-size: var(--type-caption);
+        font-weight: var(--weight-semibold);
+      }
+
+      .field input,
+      .field select {
+        width: 100%;
+        min-height: 38px;
+        padding: 0 10px;
+        border: 1px solid #e5eaec;
+        border-radius: 9px;
+        outline: 0;
+        background: #fbfcfc;
+        color: #35404b;
+        font-size: var(--type-body);
+      }
+
+      .field input:focus,
+      .field select:focus {
+        border-color: #ea8a75;
+        box-shadow: 0 0 0 3px #ed765e1a;
+      }
+
+      .profile-form .page-action {
+        width: fit-content;
+      }
+
+      .help-copy {
+        padding: 16px;
+        border: 1px solid #eef1f2;
+        border-radius: 13px;
+        background: #fff;
+        color: #77828b;
+        font-size: var(--type-body);
+        line-height: var(--leading-body);
+      }
+
+      .help-copy h2 {
+        margin: 0 0 8px;
+        color: #35404b;
+        font-size: var(--type-section-title);
+      }
+
+      .help-copy ul {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+
+      .modal {
+        width: min(92vw, 440px);
+        max-width: none;
+        padding: 0;
+        border: 0;
+        border-radius: 18px;
+        background: transparent;
+        box-shadow: 0 24px 80px #0004;
+      }
+
+      .modal::backdrop {
+        background: #12182080;
+        backdrop-filter: blur(3px);
+      }
+
+      .modal-card {
+        display: grid;
+        gap: 15px;
+        padding: 22px;
+        border: 1px solid #edf0f1;
+        border-radius: 18px;
+        background: #fff;
+      }
+
+      .modal-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .modal-heading h2 {
+        margin: 0;
+        color: #303b48;
+        font-size: var(--type-section-title);
+        letter-spacing: var(--tracking-tight);
+      }
+
+      .modal-heading p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: var(--type-meta);
+      }
+
+      .modal-close {
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 9px;
+        background: #f3f6f7;
+        color: #77828a;
+        font-size: var(--type-section-title);
+        cursor: pointer;
+      }
+
+      .modal-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .modal-fields .field:first-child {
+        grid-column: 1 / -1;
+      }
+
+      .form-error {
+        margin: 0;
+        color: #b84935;
+        font-size: var(--type-meta);
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding-top: 3px;
+      }
+
+      .toast {
+        position: fixed;
+        z-index: 20;
+        right: 20px;
+        bottom: 20px;
+        max-width: min(380px, calc(100vw - 40px));
+        padding: 12px 16px;
+        border: 1px solid #3d4855;
+        border-radius: 12px;
+        background: #293341;
+        box-shadow: 0 10px 30px #0003;
+        color: #fff;
+        font-size: var(--type-body);
+        line-height: 1.4;
+      }
+
+      @media (max-width: 680px) {
+        .page-surface {
+          max-height: 65vh;
+        }
+
+        .page-intro {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .page-toolbar {
+          width: 100%;
+        }
+
+        .page-stat-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .resource-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .manager-row,
+        .calendar-item,
+        .live-item {
+          gap: 8px;
+          padding: 9px;
+        }
+
+        .manager-row .course-icon,
+        .calendar-date,
+        .live-date {
+          width: 34px;
+          height: 38px;
+        }
+
+        .manager-row .status-action {
+          max-width: 75px;
+          overflow: hidden;
+          padding: 5px 6px;
+          text-overflow: ellipsis;
+        }
+
+        .course-actions {
+          gap: 4px;
+        }
+
+        .icon-action {
+          width: 27px;
+          height: 27px;
+        }
+
+        .profile-form {
+          grid-template-columns: 1fr;
+        }
+
+        .progress-row {
+          grid-template-columns: 90px minmax(0, 1fr) 30px;
+        }
+
+        .modal-card {
+          padding: 17px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="i-chevron" viewBox="0 0 24 24">
+        <path d="m9 18 6-6-6-6" />
+      </symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24">
+        <rect x="4" y="4" width="6" height="6" rx="1.5" />
+        <rect x="14" y="4" width="6" height="6" rx="1.5" />
+        <rect x="4" y="14" width="6" height="6" rx="1.5" />
+        <rect x="14" y="14" width="6" height="6" rx="1.5" />
+      </symbol>
+      <symbol id="i-cap" viewBox="0 0 24 24">
+        <path d="m2.5 9 9.5-5 9.5 5-9.5 5-9.5-5Z" />
+        <path d="M6 11v5.2c3.6 2.7 8.4 2.7 12 0V11M21.5 9v6" />
+      </symbol>
+      <symbol id="i-link" viewBox="0 0 24 24">
+        <path d="m10 13.5 4-4" />
+        <path d="M7.7 15.7 5.5 18a4 4 0 0 1-5.7-5.7l5-5a4 4 0 0 1 5.7 0" transform="translate(2 0)" />
+        <path d="m16.3 8.3 2.2-2.2a4 4 0 1 1 5.7 5.7l-5 5a4 4 0 0 1-5.7 0" transform="translate(-2 0)" />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3.5" y="5" width="17" height="16" rx="2.5" />
+        <path d="M7.5 3v4M16.5 3v4M4 9h16M8 13h2m4 0h2m-8 4h2m4 0h2" />
+      </symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+        <path d="M7.5 16v-4m4 4V8m4 8v-6m-10 8h12" />
+      </symbol>
+      <symbol id="i-video" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="13" height="12" rx="3" />
+        <path d="m16 10 5-3v10l-5-3zM8 10l4 2-4 2z" />
+      </symbol>
+      <symbol id="i-user" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+      </symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24">
+        <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" />
+        <path d="m19.4 15 .1.1a1.8 1.8 0 1 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .8v.2a1.8 1.8 0 1 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.8l-.1.1a1.8 1.8 0 1 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.8-3h-.2a1.8 1.8 0 1 1 0-3.6h.2a1.8 1.8 0 0 0 .8-3l-.1-.1a1.8 1.8 0 1 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.8v-.2a1.8 1.8 0 1 1 3.6 0v.2a1.8 1.8 0 0 0 3 .8l.1-.1a1.8 1.8 0 1 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .8 3h.2a1.8 1.8 0 1 1 0 3.6h-.2a1.8 1.8 0 0 0-.8 3Z" transform="translate(1 1) scale(.92)" />
+      </symbol>
+      <symbol id="i-help" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.7 9a2.4 2.4 0 1 1 4.4 1.3c-.8 1.1-2.1 1.3-2.1 3m0 3h.01" />
+      </symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24">
+        <path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M14 8l4 4-4 4m4-4H8" />
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle cx="10.8" cy="10.8" r="6.8" />
+        <path d="m16 16 4.5 4.5M8.5 10.8h4.6m-2.3-2.3v4.6" />
+      </symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="14" rx="3" />
+        <path d="m4.5 7 7.5 6 7.5-6" />
+      </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24">
+        <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" />
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="i-import" viewBox="0 0 24 24">
+        <path d="M12 3v11m-4-4 4 4 4-4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24">
+        <path d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" />
+      </symbol>
+      <symbol id="i-book" viewBox="0 0 24 24">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 0 4 22zM4 5.5v14A2.5 2.5 0 0 1 6.5 17H20M8 7h8m-8 4h7" />
+      </symbol>
+      <symbol id="i-code" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="3" />
+        <path d="m9 9-3 3 3 3m6-6 3 3-3 3m-1-8-4 10" />
+      </symbol>
+      <symbol id="i-home" viewBox="0 0 24 24">
+        <path d="m3.5 10 8.5-7 8.5 7v10a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z" />
+        <path d="M9 21v-7h6v7m-3-13v2" />
+      </symbol>
+      <symbol id="i-clipboard" viewBox="0 0 24 24">
+        <rect x="5" y="4.5" width="14" height="17" rx="2" />
+        <path d="M9 4V3h6v1m-6 6h6m-6 4h6m-6 4h3" />
+      </symbol>
+      <symbol id="i-play" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="4" />
+        <path d="m10 8 6 4-6 4z" />
+      </symbol>
+      <symbol id="i-trend-up" viewBox="0 0 24 24">
+        <path d="m3 17 6-6 4 4 8-9M15 6h6v6" />
+      </symbol>
+      <symbol id="i-trend-down" viewBox="0 0 24 24">
+        <path d="m3 7 6 6 4-4 8 9m-6 0h6v-6" />
+      </symbol>
+      <symbol id="i-arrow-right" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+    </svg>
+
+    <main class="poster">
+      <section class="dashboard-card" aria-label="Shiko learning dashboard">
+        <div class="app-layout">
+          <aside class="sidebar">
+            <div class="brand-card">
+              <div class="brand">
+                <svg class="brand-mark" viewBox="0 0 36 32" aria-hidden="true">
+                  <path d="M5 7.5 11 4h21l-6 5H7a3 3 0 0 0-2 5.3v6.2L1 18V11a4 4 0 0 1 4-3.5Z" fill="#283442" />
+                  <path d="M31 24.5 25 28H4l6-5h19a3 3 0 0 0 2-5.3v-6.2l4 2.5v7a4 4 0 0 1-4 3.5Z" fill="#283442" />
+                  <path d="M23 9h7l-5 4H10l5-4h8Z" fill="#f16b50" />
+                  <path d="M7 19h8l-5 4H3z" fill="#e9edf0" />
+                </svg>
+                <span>Shiko</span>
+              </div>
+              <button class="collapse-button" type="button" aria-label="Collapse sidebar">
+                <svg class="icon"><use href="#i-chevron" /></svg>
+              </button>
+            </div>
+
+            <nav class="side-panel" aria-label="Main navigation">
+              <div class="nav-section">
+                <p class="eyebrow">MENU</p>
+                <div class="nav-list">
+                  <button class="nav-button active" type="button" data-page="dashboard" aria-current="page">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-grid" /></svg></span>
+                    <span class="nav-label">Dashboard</span>
+                    <span class="nav-count">3</span>
+                  </button>
+                  <button class="nav-button" type="button" data-page="courses">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-cap" /></svg></span>
+                    <span class="nav-label">Courses</span>
+                    <span class="nav-count" id="course-count">3</span>
+                  </button>
+                  <button class="nav-button" type="button" data-page="resources">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-link" /></svg></span>
+                    <span class="nav-label">Resources</span>
+                  </button>
+                  <button class="nav-button" type="button" data-page="calendar">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+                    <span class="nav-label">Calendar</span>
+                  </button>
+                  <button class="nav-button" type="button" data-page="analytics">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-chart" /></svg></span>
+                    <span class="nav-label">Analytics</span>
+                  </button>
+                  <button class="nav-button" type="button" data-page="live">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-video" /></svg></span>
+                    <span class="nav-label">Live Sessions</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="nav-section">
+                <p class="eyebrow">GENERAL</p>
+                <div class="nav-list">
+                  <button class="nav-button" type="button" data-page="profile">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-user" /></svg></span>
+                    <span class="nav-label">Profile</span>
+                  </button>
+                  <button class="nav-button" type="button" data-page="settings">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-settings" /></svg></span>
+                    <span class="nav-label">Settings</span>
+                  </button>
+                  <button class="nav-button" type="button" data-page="help">
+                    <span class="nav-icon"><svg class="icon"><use href="#i-help" /></svg></span>
+                    <span class="nav-label">Help Center</span>
+                  </button>
+                </div>
+              </div>
+
+              <button class="nav-button logout" type="button" data-action="demo-info">
+                <span class="nav-icon"><svg class="icon"><use href="#i-logout" /></svg></span>
+                <span class="nav-label">Log Out</span>
+              </button>
+
+              <div class="mobile-ad">
+                <strong>Download Our<br />Mobile App</strong>
+                <button type="button">Download App</button>
+              </div>
+            </nav>
+          </aside>
+
+          <section class="main-area" aria-labelledby="page-title">
+            <header class="topbar">
+              <label class="search-box">
+                <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+                <input id="course-search" type="search" placeholder="Search courses..." aria-label="Search courses" />
+              </label>
+              <div class="top-actions">
+                <button class="icon-button" type="button" aria-label="Messages">
+                  <svg class="icon"><use href="#i-mail" /></svg>
+                </button>
+                <button class="icon-button" type="button" aria-label="Notifications">
+                  <svg class="icon"><use href="#i-bell" /></svg>
+                  <span class="notification-dot"></span>
+                </button>
+                <span class="top-divider" aria-hidden="true"></span>
+                <div class="profile">
+                  <svg class="avatar" id="profile-avatar" viewBox="0 0 44 44" role="img" aria-label="Hasan Mahmud">
+                    <defs>
+                      <linearGradient id="avatar-bg" x1="0" y1="0" x2="1" y2="1">
+                        <stop stop-color="#d6e1e3" />
+                        <stop offset="1" stop-color="#9aa7ad" />
+                      </linearGradient>
+                    </defs>
+                    <circle cx="22" cy="22" r="22" fill="url(#avatar-bg)" />
+                    <path d="M9 43c1.6-8 6.2-12 13-12s11.4 4 13 12" fill="#293746" />
+                    <path d="M15 16c0-6 3.2-9 7.4-9 5.1 0 8.5 3.6 8.5 9v5.2c0 5.3-3.9 8.8-8.4 8.8S15 26.5 15 21.2z" fill="#bd8a6a" />
+                    <path d="M14.5 17c-.6-7.1 3.3-11 8.6-11 5.8 0 9.2 4.5 8.2 11-1.5-1.1-3.1-2.5-4.4-4.6-2.4 2.7-6.8 4-12.4 4.6Z" fill="#29323a" />
+                    <path d="M19 22h.2m7.4 0h.2" stroke="#29323a" stroke-width="1.4" stroke-linecap="round" />
+                    <path d="M20 26c1.5 1.1 3.4 1.1 4.9 0" fill="none" stroke="#855c4d" stroke-width="1.2" stroke-linecap="round" />
+                  </svg>
+                  <div class="profile-copy">
+                    <strong id="profile-name">Hasan Mahmud</strong>
+                    <span id="profile-email">hellohasan@gmail.com</span>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <div class="content">
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">Dashboard</h1>
+                  <p id="page-description">Track your courses, progress, and learning activity.</p>
+                </div>
+                <div class="heading-actions">
+                  <button class="action-button primary" type="button" data-action="new-course">
+                    <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
+                    <span class="button-label">Add Course</span>
+                  </button>
+                  <button class="action-button import-button" type="button" data-action="import">
+                    <span class="button-icon"><svg class="icon"><use href="#i-import" /></svg></span>
+                    <span class="button-label">Import data</span>
+                  </button>
+                  <input id="import-file" type="file" accept="application/json,.json" hidden />
+                </div>
+              </div>
+
+              <div class="dashboard-content" id="dashboard-content">
+                <section class="stats-grid" aria-label="Course overview">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-book" /></svg></span>
+                      <span class="stat-number" data-stat="totalCourses">3</span>
+                    </div>
+                    <h2>Total Courses</h2>
+                <div class="stat-trend">Saved courses</div>
+                    <button class="details-link" type="button" data-page="courses">View Courses <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-home" /></svg></span>
+                      <span class="stat-number" data-stat="inProgress">1</span>
+                    </div>
+                    <h2>In Progress</h2>
+                    <div class="stat-trend">Currently underway</div>
+                    <button class="details-link" type="button" data-page="courses">View Courses <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
+                      <span class="stat-number" data-stat="completed">1</span>
+                    </div>
+                    <h2>Completed Courses</h2>
+                    <div class="stat-trend">Marked completed</div>
+                    <button class="details-link" type="button" data-page="courses">View Courses <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-play" /></svg></span>
+                      <span class="stat-number" data-stat="upcomingLive">3</span>
+                    </div>
+                    <h2>Upcoming Live Sessions</h2>
+                    <div class="stat-trend">In your calendar</div>
+                    <button class="details-link" type="button" data-page="live">View Sessions <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <div class="middle-grid">
+                  <section class="chart-card surface" aria-labelledby="course-statistics-heading">
+                    <div class="card-title-row">
+                      <h2 id="course-statistics-heading">Course Statistics</h2>
+                    </div>
+                    <p class="card-subtitle">Course distribution by current status</p>
+                    <div class="chart-plot" id="course-chart" aria-label="Course distribution by current status">
+                      <div class="y-axis" aria-hidden="true">
+                        <span>100%</span>
+                        <span>75%</span>
+                        <span>50%</span>
+                        <span>25%</span>
+                        <span>0%</span>
+                      </div>
+                      <div class="bar-chart" id="course-bars" aria-hidden="true">
+                        <div class="bar"><strong class="bar-value">1</strong><span style="--bar: 33%"></span></div>
+                        <div class="bar"><strong class="bar-value">1</strong><span style="--bar: 33%"></span></div>
+                        <div class="bar"><strong class="bar-value">1</strong><span style="--bar: 33%"></span></div>
+                      </div>
+                      <div class="bar-labels" id="course-bar-labels" aria-hidden="true">
+                        <span>Completed</span><span>In Progress</span><span>Pending</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="course-card surface" aria-labelledby="course-list-heading">
+                    <div class="card-title-row">
+                      <h2 id="course-list-heading">Course List</h2>
+                      <button class="mini-add" type="button" data-action="add-course">
+                        <svg class="icon"><use href="#i-plus" /></svg>
+                        Add Course
+                      </button>
+                    </div>
+                    <div class="course-list" id="dashboard-course-list" aria-live="polite">
+                      <article class="course-row">
+                        <span class="course-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
+                        <div class="course-copy">
+                          <strong>Develop API Endpoints</strong>
+                          <span>Due date: Nov 20, 26</span>
+                        </div>
+                        <span class="status complete">Completed</span>
+                      </article>
+                      <article class="course-row">
+                        <span class="course-icon"><svg class="icon"><use href="#i-grid" /></svg></span>
+                        <div class="course-copy">
+                          <strong>UI/UX Design Leadership</strong>
+                          <span>Due date: Nov 25, 26</span>
+                        </div>
+                        <span class="status progress">In Progress</span>
+                      </article>
+                      <article class="course-row">
+                        <span class="course-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                        <div class="course-copy">
+                          <strong>Web Development</strong>
+                          <span>Due date: Nov 20, 26</span>
+                        </div>
+                        <span class="status pending">Pending</span>
+                      </article>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="bottom-grid">
+                  <section class="assignment-card surface" aria-labelledby="assignment-heading">
+                    <h2 id="assignment-heading">Assignment Overview</h2>
+                    <p class="card-subtitle">Assignment status and type totals</p>
+                    <div class="assignment-content">
+                      <div class="legend-list">
+                        <div class="legend-row">
+                          <span class="legend-dot orange"></span><strong>11</strong><span>Pending Assignments</span>
+                        </div>
+                        <div class="legend-row">
+                          <span class="legend-dot ink"></span><strong>34</strong><span>Submitted Assignments</span>
+                        </div>
+                        <div class="legend-row">
+                          <span class="legend-dot green"></span><strong>145</strong><span>Graded Assignments</span>
+                        </div>
+                        <div class="legend-row">
+                          <span class="legend-dot blue"></span><strong>213</strong><span>Individual Assignments</span>
+                        </div>
+                      </div>
+                      <svg class="gauge" viewBox="0 0 280 155" role="img" aria-label="85 percent of assignments complete">
+                        <defs>
+                          <linearGradient id="gauge-gradient" x1="0" y1="1" x2="1" y2="0">
+                            <stop offset="0%" stop-color="#f27b5e" />
+                            <stop offset="22%" stop-color="#313943" />
+                            <stop offset="48%" stop-color="#252d35" />
+                            <stop offset="72%" stop-color="#10c83b" />
+                            <stop offset="100%" stop-color="#9ed1ff" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M28 142 A112 112 0 0 1 252 142" fill="none" stroke="#edf1f3" stroke-width="17" />
+                        <path
+                          id="completion-gauge-progress"
+                          d="M28 142 A112 112 0 0 1 252 142"
+                          fill="none"
+                          pathLength="100"
+                          stroke="url(#gauge-gradient)"
+                          stroke-dasharray="85 100"
+                          stroke-width="17"
+                        />
+                        <text x="140" y="116" text-anchor="middle" fill="#293341" font-size="31" font-weight="700">85<tspan font-size="14">%</tspan></text>
+                        <text x="140" y="138" text-anchor="middle" fill="#78838c" font-size="9">Assignment Completion</text>
+                      </svg>
+                    </div>
+                  </section>
+
+                  <section class="community-card surface" aria-labelledby="community-heading">
+                    <div class="community-heading">
+                      <h2 id="community-heading">Community</h2>
+                      <button class="icon-button" type="button" aria-label="More community links">
+                        <svg class="icon"><use href="#i-plus" /></svg>
+                      </button>
+                    </div>
+                    <div class="community-link">
+                      <span class="community-logo" aria-hidden="true">✣</span>
+                      <span class="community-copy">
+                        <strong>Slack Community</strong>
+                        <span>112K members</span>
+                      </span>
+                    </div>
+                    <div class="community-link">
+                      <span class="community-logo discord" aria-hidden="true">◉</span>
+                      <span class="community-copy">
+                        <strong>Discord Helpline</strong>
+                        <span>80K members</span>
+                      </span>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="page-surface" id="page-surface" hidden></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <dialog class="modal" id="course-dialog" aria-labelledby="course-dialog-title">
+      <form class="modal-card" id="course-form">
+        <div class="modal-heading">
+          <div>
+            <h2 id="course-dialog-title">Add course</h2>
+            <p id="course-dialog-description">Add a course to your workspace.</p>
+          </div>
+          <button class="modal-close" type="button" data-action="close-dialog" aria-label="Close dialog">×</button>
+        </div>
+        <div class="modal-fields">
+          <label class="field">
+            Course name
+            <input id="course-title-input" name="title" maxlength="120" required placeholder="e.g. Product Design" />
+          </label>
+          <label class="field">
+            Due date
+            <input id="course-date-input" name="dueDate" type="date" required />
+          </label>
+          <label class="field">
+            Status
+            <select id="course-status-input" name="status">
+              <option value="in-progress">In Progress</option>
+              <option value="pending">Pending</option>
+              <option value="complete">Completed</option>
+            </select>
+          </label>
+        </div>
+        <p class="form-error" id="course-form-error" role="alert" hidden></p>
+        <div class="modal-actions">
+          <button class="page-action" type="button" data-action="close-dialog">Cancel</button>
+          <button class="page-action primary" type="submit">Save course</button>
+        </div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <script>
+      const STORAGE_KEY = "shiko-dashboard-v1";
+      const COURSE_LIMIT = 1000;
+      const VALID_STATUSES = new Set(["complete", "in-progress", "pending"]);
+      const VALID_ICONS = new Set(["clipboard", "grid", "code"]);
+      const PAGE_INFO = {
+        dashboard: ["Dashboard", "Track your courses, progress, and learning activity."],
+        courses: ["Courses", "Review your courses, due dates, and progress"],
+        resources: ["Resources", "Keep useful study material in one place"],
+        calendar: ["Calendar", "See upcoming course deadlines"],
+        analytics: ["Analytics", "Track your course activity and progress"],
+        live: ["Live Sessions", "See your upcoming live learning sessions"],
+        profile: ["Profile", "Manage the name and email shown in your workspace"],
+        settings: ["Settings", "Manage your local data and backups"],
+        help: ["Help Center", "A short guide to using this dashboard"]
+      };
+
+      const navButtons = Array.from(document.querySelectorAll(".side-panel [data-page]"));
+      const pageTitle = document.getElementById("page-title");
+      const pageDescription = document.getElementById("page-description");
+      const dashboardContent = document.getElementById("dashboard-content");
+      const pageSurface = document.getElementById("page-surface");
+      const dashboardCourseList = document.getElementById("dashboard-course-list");
+      const courseCount = document.getElementById("course-count");
+      const searchInput = document.getElementById("course-search");
+      const courseDialog = document.getElementById("course-dialog");
+      const courseForm = document.getElementById("course-form");
+      const courseTitleInput = document.getElementById("course-title-input");
+      const courseDateInput = document.getElementById("course-date-input");
+      const courseStatusInput = document.getElementById("course-status-input");
+      const courseFormError = document.getElementById("course-form-error");
+      const importFile = document.getElementById("import-file");
+      const toast = document.getElementById("toast");
+      let currentPage = "dashboard";
+      let toastTimer = 0;
+      let storageWarning = false;
+
+      function dateAfterDays(days) {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        return [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0")
+        ].join("-");
+      }
+
+      function newId() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return window.crypto.randomUUID();
+        }
+        return "course-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9);
+      }
+
+      function createDefaultData() {
+        return {
+          version: 1,
+          profile: {
+            name: "Hasan Mahmud",
+            email: "hellohasan@gmail.com"
+          },
+          courses: [
+            {
+              id: "course-api-endpoints",
+              title: "Develop API Endpoints",
+              dueDate: dateAfterDays(11),
+              status: "complete",
+              icon: "clipboard"
+            },
+            {
+              id: "course-design-leadership",
+              title: "UI/UX Design Leadership",
+              dueDate: dateAfterDays(16),
+              status: "in-progress",
+              icon: "grid"
+            },
+            {
+              id: "course-web-development",
+              title: "Web Development",
+              dueDate: dateAfterDays(11),
+              status: "pending",
+              icon: "code"
+            }
+          ],
+          resources: [
+            {
+              title: "Course roadmap",
+              label: "Planning",
+              description: "Break a large course into weekly goals and review points.",
+              icon: "calendar"
+            },
+            {
+              title: "API design notes",
+              label: "Reference",
+              description: "A checklist for naming, documenting, and testing endpoints.",
+              icon: "code"
+            },
+            {
+              title: "Design critique guide",
+              label: "Workshop",
+              description: "Prompts for giving clear, constructive feedback on a design.",
+              icon: "grid"
+            },
+            {
+              title: "Study session template",
+              label: "Template",
+              description: "Plan a focused session with a goal, break, and short recap.",
+              icon: "clipboard"
+            }
+          ],
+          liveClasses: [
+            {
+              id: "live-design-systems",
+              title: "Building Better Design Systems",
+              date: dateAfterDays(1),
+              time: "09:30",
+              host: "Sarah Chen"
+            },
+            {
+              id: "live-web-accessibility",
+              title: "Modern Web Accessibility",
+              date: dateAfterDays(2),
+              time: "14:00",
+              host: "Daniel Kim"
+            },
+            {
+              id: "live-api-review",
+              title: "API Course Review",
+              date: dateAfterDays(4),
+              time: "11:00",
+              host: "Hasan Mahmud"
+            }
+          ]
+        };
+      }
+
+      function validDate(value) {
+        if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+        const date = new Date(value + "T12:00:00");
+        return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+      }
+
+      function normalizeCourse(record, allowGeneratedId) {
+        if (!record || typeof record !== "object" || Array.isArray(record)) {
+          throw new Error("Every course must be an object.");
+        }
+        const title = typeof record.title === "string" ? record.title.trim() : "";
+        const dueDate = record.dueDate;
+        const status = record.status;
+        let id = typeof record.id === "string" ? record.id.trim() : "";
+        if (!id && allowGeneratedId) id = newId();
+        if (!id || id.length > 100) throw new Error("Each course needs a short ID.");
+        if (!title || title.length > 120) throw new Error("Course names must be 1 to 120 characters.");
+        if (!validDate(dueDate)) throw new Error("Each course needs a valid due date.");
+        if (!VALID_STATUSES.has(status)) throw new Error("A course has an unsupported status.");
+        const icon = VALID_ICONS.has(record.icon) ? record.icon : "clipboard";
+        return { id, title, dueDate, status, icon };
+      }
+
+      function readStoredData() {
+        const defaults = createDefaultData();
+        let raw;
+        try {
+          raw = window.localStorage.getItem(STORAGE_KEY);
+        } catch {
+          storageWarning = true;
+          return defaults;
+        }
+        if (!raw) return defaults;
+        if (raw.length > 2_000_000) {
+          storageWarning = true;
+          return defaults;
+        }
+        try {
+          const parsed = JSON.parse(raw);
+          if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.courses)) {
+            throw new Error("Saved data has an unsupported format.");
+          }
+          if (parsed.courses.length > COURSE_LIMIT) throw new Error("Saved data has too many courses.");
+          const courses = parsed.courses.map((course) => normalizeCourse(course, false));
+          const ids = new Set(courses.map((course) => course.id));
+          if (ids.size !== courses.length) throw new Error("Saved data has duplicate course IDs.");
+          const profile = parsed.profile || {};
+          const name = typeof profile.name === "string" ? profile.name.trim() : "";
+          const email = typeof profile.email === "string" ? profile.email.trim() : "";
+          if (name.length > 80 || email.length > 160) throw new Error("Saved profile is too long.");
+          return {
+            ...defaults,
+            profile: {
+              name: name || defaults.profile.name,
+              email: email || defaults.profile.email
+            },
+            courses
+          };
+        } catch {
+          storageWarning = true;
+          return defaults;
+        }
+      }
+
+      let appData = readStoredData();
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "\"": "&quot;",
+          "'": "&#39;"
+        })[character]);
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.hidden = false;
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => {
+          toast.hidden = true;
+        }, 3600);
+      }
+
+      function persistData() {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            version: 1,
+            profile: appData.profile,
+            courses: appData.courses
+          }));
+          return true;
+        } catch {
+          showToast("Changes are active for this visit but could not be saved in this browser.");
+          return false;
+        }
+      }
+
+      function formatDate(value, options) {
+        if (!validDate(value)) return "Date not set";
+        const date = new Date(value + "T12:00:00");
+        return new Intl.DateTimeFormat("en-US", options || {
+          month: "short",
+          day: "numeric",
+          year: "2-digit"
+        }).format(date);
+      }
+
+      function dateParts(value) {
+        if (!validDate(value)) return ["—", "—"];
+        const date = new Date(value + "T12:00:00");
+        return [
+          new Intl.DateTimeFormat("en-US", { month: "short" }).format(date),
+          String(date.getDate())
+        ];
+      }
+
+      function statusLabel(status) {
+        if (status === "complete") return "Completed";
+        if (status === "in-progress") return "In Progress";
+        return "Pending";
+      }
+
+      function statusClass(status) {
+        if (status === "complete") return "complete";
+        if (status === "in-progress") return "progress";
+        return "pending";
+      }
+
+      function filteredCourses() {
+        const query = searchInput.value.trim().toLowerCase();
+        if (!query) return appData.courses.slice();
+        return appData.courses.filter((course) => {
+          return (course.title + " " + formatDate(course.dueDate) + " " + statusLabel(course.status))
+            .toLowerCase()
+            .includes(query);
+        });
+      }
+
+      function upcomingLiveClasses() {
+        const today = dateAfterDays(0);
+        return appData.liveClasses.filter((event) => event.date >= today);
+      }
+
+      function getDashboardMetrics() {
+        return {
+          totalCourses: appData.courses.length,
+          inProgress: appData.courses.filter((course) => course.status === "in-progress").length,
+          completed: appData.courses.filter((course) => course.status === "complete").length,
+          upcomingLive: upcomingLiveClasses().length
+        };
+      }
+
+      function renderCourseChart(metrics) {
+        const total = metrics.totalCourses;
+        const counts = [
+          metrics.completed,
+          metrics.inProgress,
+          appData.courses.filter((course) => course.status === "pending").length
+        ];
+        const chartBars = document.querySelectorAll("#course-bars .bar");
+        chartBars.forEach((bar, index) => {
+          const value = counts[index] || 0;
+          const percent = total ? Math.round((value / total) * 100) : 0;
+          bar.style.setProperty("--bar", percent + "%");
+          const valueLabel = bar.querySelector(".bar-value");
+          if (valueLabel) valueLabel.textContent = String(value);
+        });
+        document.getElementById("course-chart").setAttribute(
+          "aria-label",
+          total + " courses: " + metrics.completed + " completed, " +
+            metrics.inProgress + " in progress, and " + counts[2] + " pending"
+        );
+      }
+
+      function renderCourseRow(course, manager) {
+        const id = escapeHtml(course.id);
+        const title = escapeHtml(course.title);
+        const date = escapeHtml(formatDate(course.dueDate));
+        const status = statusClass(course.status);
+        const icon = VALID_ICONS.has(course.icon) ? course.icon : "clipboard";
+        const statusButton =
+          '<button class="status ' + status + ' status-action" type="button" data-action="cycle-status" data-course-id="' +
+          id + '" aria-label="Change status for ' + title + '">' + statusLabel(course.status) + "</button>";
+        const deleteButton = manager
+          ? '<button class="icon-action" type="button" data-action="delete-course" data-course-id="' + id +
+            '" aria-label="Delete ' + title + '"><svg class="icon"><use href="#i-trash" /></svg></button>'
+          : "";
+        return '<article class="' + (manager ? "manager-row" : "course-row") + '">' +
+          '<span class="course-icon"><svg class="icon"><use href="#i-' + icon + '" /></svg></span>' +
+          '<div class="course-copy"><strong>' + title + "</strong><span>Due date: " + date + "</span></div>" +
+          '<div class="course-actions">' + statusButton + deleteButton + "</div></article>";
+      }
+
+      function renderDashboard() {
+        const metrics = getDashboardMetrics();
+        document.querySelectorAll("[data-stat]").forEach((element) => {
+          const key = element.dataset.stat;
+          element.textContent = String(metrics[key] || 0);
+        });
+        renderCourseChart(metrics);
+        courseCount.textContent = String(appData.courses.length);
+        document.getElementById("profile-name").textContent = appData.profile.name;
+        document.getElementById("profile-email").textContent = appData.profile.email;
+        document.getElementById("profile-avatar").setAttribute("aria-label", appData.profile.name);
+        const courses = filteredCourses().slice(0, 3);
+        dashboardCourseList.innerHTML = courses.length
+          ? courses.map((course) => renderCourseRow(course, false)).join("")
+          : '<div class="empty-state">No courses match your search.</div>';
+      }
+
+      function renderManagerPage() {
+        const courses = filteredCourses();
+        const list = courses.map((course) => renderCourseRow(course, true)).join("");
+        return '<div class="page-intro"><p>' + appData.courses.length +
+          (appData.courses.length === 1 ? " saved course" : " saved courses") +
+          " · changes are saved in this browser</p>" +
+          '<div class="page-toolbar"><button class="page-action primary" type="button" data-action="add-course">' +
+          '<svg class="icon"><use href="#i-plus" /></svg>Add course</button>' +
+          '<button class="page-action" type="button" data-action="export">' +
+          '<svg class="icon"><use href="#i-import" /></svg>Export JSON</button></div></div>' +
+          (list ? '<div class="manager-list">' + list + "</div>" :
+            '<div class="empty-state">No courses match your search. Clear the search or add a course.</div>');
+      }
+
+      function renderResourcesPage() {
+        return '<div class="resource-grid">' + appData.resources.map((resource) => {
+          const icon = VALID_ICONS.has(resource.icon) ? resource.icon : "clipboard";
+          return '<article class="resource-item"><span class="resource-icon">' +
+            '<svg class="icon"><use href="#i-' + icon + '" /></svg></span><div class="resource-copy">' +
+            "<strong>" + escapeHtml(resource.title) + "</strong>" +
+            '<span><b>' + escapeHtml(resource.label) + "</b> · " +
+            escapeHtml(resource.description) + "</span></div></article>";
+        }).join("") + "</div>";
+      }
+
+      function renderCalendarPage() {
+        const courses = appData.courses.slice().sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        if (!courses.length) return '<div class="empty-state">No due dates yet. Add a course to start your calendar.</div>';
+        return '<div class="calendar-list">' + courses.map((course) => {
+          const parts = dateParts(course.dueDate);
+          return '<article class="calendar-item"><time class="calendar-date" datetime="' +
+            escapeHtml(course.dueDate) + '"><span>' + parts[0] + "</span><strong>" + parts[1] +
+            "</strong></time><div class=\"calendar-copy\"><strong>" + escapeHtml(course.title) +
+            "</strong><span>Due " + escapeHtml(formatDate(course.dueDate)) +
+            "</span></div><span class=\"status " + statusClass(course.status) + "\">" +
+            statusLabel(course.status) + "</span></article>";
+        }).join("") + "</div>";
+      }
+
+      function renderAnalyticsPage() {
+        const metrics = getDashboardMetrics();
+        const counts = {
+          complete: metrics.completed,
+          "in-progress": metrics.inProgress,
+          pending: metrics.totalCourses - metrics.completed - metrics.inProgress
+        };
+        const rows = [
+          ["Completed courses", counts.complete, "green"],
+          ["In-progress courses", counts["in-progress"], ""],
+          ["Pending courses", counts.pending, "blue"]
+        ];
+        return '<div class="page-stat-grid">' +
+          '<div class="page-stat"><span>Total courses</span><strong>' + metrics.totalCourses + "</strong></div>" +
+          '<div class="page-stat"><span>Completed courses</span><strong>' + metrics.completed + "</strong></div>" +
+          '<div class="page-stat"><span>Upcoming live sessions</span><strong>' + metrics.upcomingLive + "</strong></div>" +
+          "</div><div class=\"progress-list\">" + rows.map((row) => {
+            const percent = metrics.totalCourses
+              ? Math.round((row[1] / metrics.totalCourses) * 100)
+              : 0;
+            return '<div class="progress-row"><span>' + row[0] +
+              '</span><div class="progress-track"><div class="progress-fill ' + row[2] +
+              '" style="width:' + percent + '%"></div></div><strong>' + percent + "%</strong></div>";
+          }).join("") + "</div>";
+      }
+
+      function renderLivePage() {
+        const sessions = upcomingLiveClasses();
+        if (!sessions.length) return '<div class="empty-state">No upcoming live sessions are scheduled.</div>';
+        return '<div class="live-list">' + sessions.map((event) => {
+          const parts = dateParts(event.date);
+          return '<article class="live-item"><time class="live-date" datetime="' +
+            escapeHtml(event.date) + '"><span>' + parts[0] + "</span><strong>" + parts[1] +
+            "</strong></time><div class=\"live-copy\"><strong>" + escapeHtml(event.title) +
+            "</strong><span>" + escapeHtml(event.time) + " · Hosted by " +
+            escapeHtml(event.host) + "</span></div><span class=\"status progress\">Upcoming</span></article>";
+        }).join("") + "</div>";
+      }
+
+      function renderProfilePage() {
+        return '<form class="profile-form" id="profile-form">' +
+          '<label class="field">Name<input name="name" maxlength="80" required value="' +
+          escapeHtml(appData.profile.name) + '"></label>' +
+          '<label class="field">Email<input name="email" type="email" maxlength="160" required value="' +
+          escapeHtml(appData.profile.email) + '"></label>' +
+          '<button class="page-action primary" type="submit">Save profile</button></form>';
+      }
+
+      function renderSettingsPage() {
+        return '<div class="settings-list">' +
+          '<div class="settings-item"><span class="settings-icon"><svg class="icon"><use href="#i-import" /></svg></span>' +
+          '<div class="settings-copy"><strong>Backup your workspace</strong><span>Download your courses and profile as a JSON file.</span></div>' +
+          '<button class="page-action" type="button" data-action="export">Export JSON</button></div>' +
+          '<div class="settings-item"><span class="settings-icon"><svg class="icon"><use href="#i-link" /></svg></span>' +
+          '<div class="settings-copy"><strong>Import workspace data</strong><span>Merge a version 1 Shiko JSON backup into this workspace.</span></div>' +
+          '<button class="page-action" type="button" data-action="import">Import JSON</button></div>' +
+          '<div class="settings-item"><span class="settings-icon"><svg class="icon"><use href="#i-settings" /></svg></span>' +
+          '<div class="settings-copy"><strong>Restore demo data</strong><span>Replace this browser\'s saved workspace with the original example.</span></div>' +
+          '<button class="page-action" type="button" data-action="reset-demo">Restore</button></div>' +
+          "</div><div class=\"help-copy\">Your workspace is saved locally in this browser. Importing merges courses by ID; exporting creates a JSON backup on your device.</div>";
+      }
+
+      function renderHelpPage() {
+        return '<section class="help-copy"><h2>Getting started</h2>' +
+          "<p>Add a course with a title, due date, and status. Use the status pill to cycle through Pending, In Progress, and Completed.</p>" +
+          "<ul><li>Use the search box to filter courses by name, due date, or status.</li>" +
+          "<li>Open Calendar to review deadlines, or Analytics to see your current course breakdown.</li>" +
+          "<li>Export a JSON backup in Settings before moving your workspace to another browser.</li>" +
+          "<li>All edits stay in this browser. There is no account sync or server connection.</li></ul></section>";
+      }
+
+      function renderPageSurface() {
+        switch (currentPage) {
+          case "courses":
+            pageSurface.innerHTML = renderManagerPage();
+            break;
+          case "resources":
+            pageSurface.innerHTML = renderResourcesPage();
+            break;
+          case "calendar":
+            pageSurface.innerHTML = renderCalendarPage();
+            break;
+          case "analytics":
+            pageSurface.innerHTML = renderAnalyticsPage();
+            break;
+          case "live":
+            pageSurface.innerHTML = renderLivePage();
+            break;
+          case "profile":
+            pageSurface.innerHTML = renderProfilePage();
+            break;
+          case "settings":
+            pageSurface.innerHTML = renderSettingsPage();
+            break;
+          case "help":
+            pageSurface.innerHTML = renderHelpPage();
+            break;
+          default:
+            pageSurface.replaceChildren();
+        }
+      }
+
+      function render() {
+        renderDashboard();
+        navButtons.forEach((button) => {
+          const active = button.dataset.page === currentPage;
+          button.classList.toggle("active", active);
+          if (active) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        pageTitle.textContent = PAGE_INFO[currentPage][0];
+        pageDescription.textContent = PAGE_INFO[currentPage][1];
+        const isDashboard = currentPage === "dashboard";
+        dashboardContent.hidden = !isDashboard;
+        pageSurface.hidden = isDashboard;
+        if (!isDashboard) renderPageSurface();
+      }
+
+      function navigate(page) {
+        if (!Object.prototype.hasOwnProperty.call(PAGE_INFO, page)) return;
+        currentPage = page;
+        render();
+      }
+
+      function cycleCourseStatus(id) {
+        const course = appData.courses.find((item) => item.id === id);
+        if (!course) return;
+        const order = ["pending", "in-progress", "complete"];
+        const oldStatus = course.status;
+        course.status = order[(order.indexOf(oldStatus) + 1) % order.length];
+        persistData();
+        render();
+        showToast('"' + course.title + '" is now ' + statusLabel(course.status) + ".");
+      }
+
+      function deleteCourse(id) {
+        const index = appData.courses.findIndex((item) => item.id === id);
+        if (index < 0) return;
+        const course = appData.courses[index];
+        if (!window.confirm('Delete "' + course.title + '"? This cannot be undone.')) return;
+        appData.courses.splice(index, 1);
+        persistData();
+        render();
+        showToast("Course deleted.");
+      }
+
+      function openCourseDialog() {
+        if (appData.courses.length >= COURSE_LIMIT) {
+          showToast("This local workspace has reached its 1,000 course limit.");
+          return;
+        }
+        courseForm.reset();
+        courseDateInput.value = dateAfterDays(7);
+        courseStatusInput.value = "in-progress";
+        courseFormError.hidden = true;
+        document.getElementById("course-dialog-title").textContent = "Add course";
+        document.getElementById("course-dialog-description").textContent =
+          "Add a course, due date, and progress status.";
+        courseDialog.showModal();
+        window.setTimeout(() => courseTitleInput.focus(), 0);
+      }
+
+      function exportData() {
+        const backup = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          profile: appData.profile,
+          courses: appData.courses
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], {
+          type: "application/json"
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "shiko-workspace-" + dateAfterDays(0) + ".json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast("Workspace backup downloaded.");
+      }
+
+      function validateImport(payload) {
+        if (!payload || payload.version !== 1 || !Array.isArray(payload.courses)) {
+          throw new Error("Choose a Shiko JSON backup with version 1 and a courses list.");
+        }
+        if (payload.courses.length > COURSE_LIMIT) {
+          throw new Error("This file contains more than 1,000 courses.");
+        }
+        const courses = payload.courses.map((record) => normalizeCourse(record, true));
+        const ids = new Set(courses.map((course) => course.id));
+        if (ids.size !== courses.length) throw new Error("This file contains duplicate course IDs.");
+        let profile = null;
+        if (payload.profile && typeof payload.profile === "object") {
+          const name = typeof payload.profile.name === "string" ? payload.profile.name.trim() : "";
+          const email = typeof payload.profile.email === "string" ? payload.profile.email.trim() : "";
+          if (name.length > 0 && name.length <= 80 && email.length <= 160 && email.includes("@")) {
+            profile = { name, email };
+          }
+        }
+        return { courses, profile };
+      }
+
+      function mergeImport(imported) {
+        const coursesById = new Map(appData.courses.map((course) => [course.id, course]));
+        let added = 0;
+        let updated = 0;
+        const newIds = imported.courses.filter((course) => !coursesById.has(course.id));
+        if (coursesById.size + newIds.length > COURSE_LIMIT) {
+          throw new Error("Importing this file would exceed the 1,000 course limit.");
+        }
+        imported.courses.forEach((course) => {
+          const existing = coursesById.get(course.id);
+          if (existing) updated += 1;
+          else added += 1;
+          coursesById.set(course.id, course);
+        });
+        appData.courses = Array.from(coursesById.values());
+        if (imported.profile) appData.profile = imported.profile;
+        persistData();
+        render();
+        showToast("Imported " + added + " new and updated " + updated + " existing courses.");
+      }
+
+      document.addEventListener("click", (event) => {
+        const pageButton = event.target.closest("[data-page]");
+        if (pageButton) {
+          navigate(pageButton.dataset.page);
+          return;
+        }
+        const actionButton = event.target.closest("[data-action]");
+        if (!actionButton) return;
+        const action = actionButton.dataset.action;
+        if (action === "new-course" || action === "add-course") openCourseDialog();
+        else if (action === "cycle-status") cycleCourseStatus(actionButton.dataset.courseId);
+        else if (action === "delete-course") deleteCourse(actionButton.dataset.courseId);
+        else if (action === "import") importFile.click();
+        else if (action === "export") exportData();
+        else if (action === "close-dialog") courseDialog.close();
+        else if (action === "demo-info") {
+          showToast("This standalone preview does not connect to an account.");
+        } else if (action === "reset-demo") {
+          if (!window.confirm("Restore the example data? Your current local changes will be replaced.")) return;
+          appData = createDefaultData();
+          persistData();
+          searchInput.value = "";
+          navigate("dashboard");
+          showToast("Example data restored.");
+        }
+      });
+
+      searchInput.addEventListener("input", () => {
+        renderDashboard();
+        if (currentPage !== "dashboard") renderPageSurface();
+      });
+
+      courseForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        courseFormError.hidden = true;
+        if (!courseForm.reportValidity()) return;
+        if (appData.courses.length >= COURSE_LIMIT) {
+          courseFormError.textContent = "This local workspace has reached its 1,000 course limit.";
+          courseFormError.hidden = false;
+          return;
+        }
+        const title = courseTitleInput.value.trim();
+        const dueDate = courseDateInput.value;
+        const status = courseStatusInput.value;
+        if (!title || title.length > 120 || !validDate(dueDate) || !VALID_STATUSES.has(status)) {
+          courseFormError.textContent = "Enter a course name, valid due date, and supported status.";
+          courseFormError.hidden = false;
+          return;
+        }
+        const course = {
+          id: newId(),
+          title,
+          dueDate,
+          status,
+          icon: "clipboard"
+        };
+        appData.courses.unshift(course);
+        courseDialog.close();
+        persistData();
+        render();
+        showToast("Course added.");
+      });
+
+      courseDialog.addEventListener("click", (event) => {
+        if (event.target === courseDialog) courseDialog.close();
+      });
+
+      pageSurface.addEventListener("submit", (event) => {
+        if (event.target.id !== "profile-form") return;
+        event.preventDefault();
+        if (!event.target.reportValidity()) return;
+        const form = new FormData(event.target);
+        const name = String(form.get("name") || "").trim();
+        const email = String(form.get("email") || "").trim();
+        if (!name || name.length > 80 || email.length > 160) {
+          showToast("Enter a name up to 80 characters and a valid email.");
+          return;
+        }
+        appData.profile = { name, email };
+        persistData();
+        render();
+        showToast("Profile saved.");
+      });
+
+      importFile.addEventListener("change", async () => {
+        const file = importFile.files && importFile.files[0];
+        if (!file) return;
+        importFile.value = "";
+        try {
+          if (file.size > 1_000_000) throw new Error("Choose a JSON file smaller than 1 MB.");
+          const contents = await file.text();
+          const imported = validateImport(JSON.parse(contents));
+          mergeImport(imported);
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : "Could not read this JSON file.");
+        }
+      });
+
+      render();
+      if (storageWarning) {
+        showToast("Saved data could not be read. The example workspace is loaded for this visit.");
+      }
+      if (!storageWarning) persistData();
+    </script>
+  </body>
+</html>

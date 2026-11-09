@@ -1,0 +1,47 @@
+/* overview.html page styles */
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: #293341;
+  color: #fff;
+  font-size: var(--type-caption);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 20px #1d273340;
+}
+.chart-plot { position: relative; }
+
+.key-reveal {
+  display: grid;
+  gap: 8px;
+  padding: 13px 15px;
+  border: 1px solid #f0d9cf;
+  border-radius: 12px;
+  background: #fff8f5;
+}
+.key-reveal strong { color: #8f3f22; font-size: var(--type-label); }
+.key-reveal p { margin: 0; color: #7a5a4c; font-size: var(--type-meta); }
+.key-reveal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.key-reveal-row code {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid #eadfd8;
+  border-radius: 9px;
+  background: #fff;
+  color: #35404b;
+  font-size: var(--type-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.key-reveal-row .page-action { display: inline-flex; align-items: center; gap: 6px; }
+.key-reveal-row .icon { width: 14px; height: 14px; }

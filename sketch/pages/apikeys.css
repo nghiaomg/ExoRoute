@@ -1,0 +1,107 @@
+/* API Keys page — extends shared design system (stat-cards, surface boards,
+   course-row key cards, budget meters, modal fields). */
+
+.prov-search,
+.prov-select {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e9eef0;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #46515c;
+  font-size: var(--type-body);
+}
+.prov-search { width: min(280px, 100%); flex: 1 1 200px; }
+.prov-select { padding-right: 34px; }
+.prov-search:focus,
+.prov-select:focus { outline: 0; border-color: #ea8a75; box-shadow: 0 0 0 3px #ed765e1a; }
+.keys-toolbar { align-items: center; }
+.icon-action.danger:hover { color: #b84935; background: #fdf1ef; }
+
+.prov-type {
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #f0f3f5;
+  color: #78838c;
+  font-size: var(--type-caption);
+  font-weight: var(--weight-medium);
+  vertical-align: 1px;
+}
+
+.key-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 130px;
+}
+.key-budget .progress-track {
+  height: 7px;
+}
+.key-budget > span {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+.key-revoked {
+  opacity: 0.72;
+}
+.key-revoked .progress-fill {
+  background: #a8b3bd;
+}
+
+.key-reveal {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: #eef4f6;
+  border: 1px dashed #c3d2d8;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.key-reveal p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.key-reveal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.key-reveal-row code {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #d9e2e7;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: all;
+}
+
+.check-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.check-row-inline input {
+  width: 16px;
+  height: 16px;
+  accent-color: #ed674d;
+}
+
+@media (max-width: 1100px) {
+  .key-budget {
+    min-width: 100px;
+  }
+}

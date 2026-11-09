@@ -1,0 +1,634 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">OpenAI</h1>
+                  <p id="page-description">openai-compatible · https://api.openai.com/v1 · configured 3 days ago</p>
+                </div>
+                <div class="heading-actions">
+                  <span class="dirty-badge" id="dirty-badge" hidden>Unsaved changes</span>
+                  <button class="action-button" type="button" id="prov-test">
+                    <span class="button-icon"><svg class="icon"><use href="#i-wifi" /></svg></span>
+                    <span class="button-label">Test connection</span>
+                  </button>
+                  <button class="action-button primary" type="button" id="prov-save" disabled>
+                    <span class="button-icon"><svg class="icon"><use href="#i-check" /></svg></span>
+                    <span class="button-label">Save changes</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="page-surface">
+                <section class="stats-grid" aria-label="Provider stats">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
+                      <span class="stat-number">8,214</span>
+                    </div>
+                    <h2>Requests · 24h</h2>
+                    <div class="stat-trend">64% of gateway traffic</div>
+                    <button class="details-link" type="button" data-nav="requests">View requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-trend-up" /></svg></span>
+                      <span class="stat-number">99.1%</span>
+                    </div>
+                    <h2>Success Rate</h2>
+                    <div class="stat-trend">Last 24 hours</div>
+                    <button class="details-link" type="button" data-nav="requests">View failures <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-clock" /></svg></span>
+                      <span class="stat-number">186 ms</span>
+                    </div>
+                    <h2>Avg Latency</h2>
+                    <div class="stat-trend">p50 upstream response</div>
+                    <button class="details-link" type="button" id="stat-usage">See usage <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-chart" /></svg></span>
+                      <span class="stat-number">62%</span>
+                    </div>
+                    <h2>Quota Used</h2>
+                    <div class="stat-trend">18,420 / 30,000 requests</div>
+                    <button class="details-link" type="button" data-nav="quota">Open quota <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <div class="detail-grid">
+                  <!-- Connection settings -->
+                  <section class="course-card surface" aria-labelledby="conn-heading">
+                    <div class="card-title-row">
+                      <h2 id="conn-heading">Connection</h2>
+                      <span class="status complete">Enabled</span>
+                    </div>
+                    <p class="card-subtitle">Upstream endpoint and credentials.</p>
+                    <div class="modal-fields provd-fields">
+                      <label class="field">
+                        Provider name
+                        <input id="pd-name" type="text" value="OpenAI" maxlength="60" />
+                      </label>
+                      <label class="field">
+                        API type
+                        <select id="pd-type">
+                          <option value="openai-compatible" selected>OpenAI-compatible</option>
+                          <option value="anthropic">Anthropic</option>
+                          <option value="google">Google</option>
+                          <option value="openrouter">OpenRouter</option>
+                          <option value="deepseek">DeepSeek</option>
+                          <option value="ollama">Ollama / LM Studio</option>
+                          <option value="custom">Custom</option>
+                        </select>
+                      </label>
+                      <label class="field provd-wide">
+                        Base URL
+                        <input id="pd-url" type="url" value="https://api.openai.com/v1" />
+                      </label>
+                      <label class="field">
+                        Default model
+                        <input id="pd-model" type="text" value="gpt-4o-mini" placeholder="e.g. gpt-4o-mini" />
+                      </label>
+                      <label class="field">
+                        Weight
+                        <input id="pd-weight" type="number" min="1" max="100" value="50" />
+                      </label>
+                    </div>
+
+                    <div class="provd-block">
+                      <div class="provd-block-head">
+                        <strong>API key</strong>
+                        <div class="course-actions">
+                          <button class="page-action" type="button" id="key-reveal"><svg class="icon"><use href="#i-eye" /></svg> Reveal</button>
+                          <button class="page-action" type="button" id="key-rotate"><svg class="icon"><use href="#i-refresh" /></svg> Rotate</button>
+                        </div>
+                      </div>
+                      <div class="key-secret" id="key-secret">
+                        <code id="key-secret-value">sk-p••••••••••••4f2a</code>
+                        <button class="icon-action" type="button" title="Copy key" id="key-copy"><svg class="icon"><use href="#i-copy" /></svg></button>
+                      </div>
+                      <p class="form-note" id="key-note">3 active credentials — managed in the API keys section below.</p>
+                    </div>
+
+                    <div class="provd-block">
+                      <div class="provd-block-head">
+                        <strong>Custom headers</strong>
+                        <button class="page-action" type="button" id="header-add"><svg class="icon"><use href="#i-plus" /></svg> Add header</button>
+                      </div>
+                      <div class="header-rows" id="header-rows">
+                        <div class="header-row">
+                          <input class="header-name" type="text" value="OpenAI-Organization" aria-label="Header name" />
+                          <input class="header-value" type="text" value="org-ExoRoute" aria-label="Header value" />
+                          <button class="icon-action danger" type="button" title="Remove header"><svg class="icon"><use href="#i-trash" /></svg></button>
+                        </div>
+                        <div class="header-row">
+                          <input class="header-name" type="text" value="X-Request-Source" aria-label="Header name" />
+                          <input class="header-value" type="text" value="exoroute-gateway" aria-label="Header value" />
+                          <button class="icon-action danger" type="button" title="Remove header"><svg class="icon"><use href="#i-trash" /></svg></button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="provd-toggles">
+                      <label class="switch-row">
+                        <span class="switch"><input type="checkbox" id="tg-redirects" /><span class="switch-track"><span class="switch-thumb"></span></span></span>
+                        <span>Follow redirects</span>
+                      </label>
+                      <label class="switch-row">
+                        <span class="switch"><input type="checkbox" id="tg-stream" checked /><span class="switch-track"><span class="switch-thumb"></span></span></span>
+                        <span>Stream passthrough (SSE)</span>
+                      </label>
+                      <label class="switch-row">
+                        <span class="switch"><input type="checkbox" id="tg-vision" checked /><span class="switch-track"><span class="switch-thumb"></span></span></span>
+                        <span>Vision / multimodal models</span>
+                      </label>
+                    </div>
+
+                    <div class="test-result" id="test-result" hidden></div>
+                  </section>
+
+                  <!-- Routing & retries -->
+                  <section class="course-card surface" aria-labelledby="retry-heading">
+                    <div class="card-title-row">
+                      <h2 id="retry-heading">Routing &amp; retries</h2>
+                    </div>
+                    <p class="card-subtitle">How the gateway treats failures from this provider.</p>
+                    <div class="modal-fields provd-fields">
+                      <label class="field">
+                        Max retries
+                        <input id="rt-retries" type="number" min="0" max="10" value="3" />
+                      </label>
+                      <label class="field">
+                        Backoff strategy
+                        <select id="rt-backoff">
+                          <option value="exp" selected>Exponential</option>
+                          <option value="linear">Linear</option>
+                          <option value="fixed">Fixed interval</option>
+                        </select>
+                      </label>
+                      <label class="field">
+                        Base delay (ms)
+                        <input id="rt-delay" type="number" min="0" max="10000" step="50" value="250" />
+                      </label>
+                      <label class="field">
+                        Timeout (s)
+                        <input id="rt-timeout" type="number" min="5" max="600" value="120" />
+                      </label>
+                      <label class="field">
+                        Concurrency limit
+                        <input id="rt-concurrency" type="number" min="1" max="1000" value="64" />
+                      </label>
+                    </div>
+                    <div class="provd-block">
+                      <div class="provd-block-head"><strong>Retry on status</strong></div>
+                      <div class="check-grid" id="retry-statuses">
+                        <label class="check-row"><input type="checkbox" value="429" checked /> <span>429 rate limit</span></label>
+                        <label class="check-row"><input type="checkbox" value="500" checked /> <span>500 server error</span></label>
+                        <label class="check-row"><input type="checkbox" value="502" checked /> <span>502 bad gateway</span></label>
+                        <label class="check-row"><input type="checkbox" value="503" checked /> <span>503 unavailable</span></label>
+                        <label class="check-row"><input type="checkbox" value="504" /> <span>504 timeout</span></label>
+                        <label class="check-row"><input type="checkbox" value="400" /> <span>400 bad request</span></label>
+                      </div>
+                    </div>
+                    <div class="provd-block">
+                      <div class="provd-block-head"><strong>Circuit breaker</strong></div>
+                      <div class="modal-fields provd-fields">
+                        <label class="field">
+                          Failure threshold
+                          <input id="cb-threshold" type="number" min="1" max="100" value="5" />
+                        </label>
+                        <label class="field">
+                          Cooldown (s)
+                          <input id="cb-cooldown" type="number" min="5" max="3600" value="60" />
+                        </label>
+                      </div>
+                      <label class="switch-row">
+                        <span class="switch"><input type="checkbox" id="cb-enabled" checked /><span class="switch-track"><span class="switch-thumb"></span></span></span>
+                        <span>Enable circuit breaker</span>
+                      </label>
+                    </div>
+                  </section>
+                </div>
+
+                <!-- Synced models -->
+                <section class="course-card surface" aria-labelledby="models-heading">
+                  <div class="card-title-row">
+                    <h2 id="models-heading">Models</h2>
+                    <div class="card-title-actions">
+                      <input id="model-search" class="prov-search" type="search" placeholder="Filter models…" aria-label="Filter models" />
+                      <button class="mini-add" type="button" id="model-sync"><svg class="icon"><use href="#i-refresh" /></svg> Sync</button>
+                      <button class="mini-add" type="button" data-open-modal="model-dialog"><svg class="icon"><use href="#i-plus" /></svg> Add model</button>
+                    </div>
+                  </div>
+                  <p class="card-subtitle">Models exposed by this provider. Disabled models are hidden from combos.</p>
+                  <div class="course-list" id="model-list">
+                    <div class="course-row model-row" data-name="gpt-4o-mini">
+                      <span class="course-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                      <div class="course-copy">
+                        <strong>gpt-4o-mini <span class="prov-type">synced</span></strong>
+                        <span>128k context · vision · $0.15 / 1M in</span>
+                      </div>
+                      <label class="switch" title="Enable model"><input type="checkbox" checked /><span class="switch-track"><span class="switch-thumb"></span></span></label>
+                      <button class="icon-action danger" type="button" title="Remove model"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                    <div class="course-row model-row" data-name="gpt-4o">
+                      <span class="course-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                      <div class="course-copy">
+                        <strong>gpt-4o <span class="prov-type">synced</span></strong>
+                        <span>128k context · vision · tools</span>
+                      </div>
+                      <label class="switch" title="Enable model"><input type="checkbox" checked /><span class="switch-track"><span class="switch-thumb"></span></span></label>
+                      <button class="icon-action danger" type="button" title="Remove model"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                    <div class="course-row model-row" data-name="gpt-4.1-mini">
+                      <span class="course-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                      <div class="course-copy">
+                        <strong>gpt-4.1-mini <span class="prov-type">synced</span></strong>
+                        <span>1M context · vision</span>
+                      </div>
+                      <label class="switch" title="Enable model"><input type="checkbox" checked /><span class="switch-track"><span class="switch-thumb"></span></span></label>
+                      <button class="icon-action danger" type="button" title="Remove model"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                    <div class="course-row model-row" data-name="o4-mini">
+                      <span class="course-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
+                      <div class="course-copy">
+                        <strong>o4-mini <span class="prov-type">reasoning</span></strong>
+                        <span>200k context · reasoning effort</span>
+                      </div>
+                      <label class="switch" title="Enable model"><input type="checkbox" /><span class="switch-track"><span class="switch-thumb"></span></span></label>
+                      <button class="icon-action danger" type="button" title="Remove model"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                  </div>
+                </section>
+
+                <div class="detail-grid">
+                  <!-- API keys -->
+                  <section class="course-card surface" aria-labelledby="keys-heading">
+                    <div class="card-title-row">
+                      <h2 id="keys-heading">API keys</h2>
+                      <span class="status progress">3 active</span>
+                    </div>
+                    <p class="card-subtitle">Credentials rotated independently; requests round-robin across healthy keys.</p>
+                    <div class="keys-list" id="prov-keys">
+                      <div class="key-row">
+                        <div class="key-row-copy">
+                          <strong>Production</strong>
+                          <code>sk-p••••4f2a</code>
+                          <span>last used 2m ago</span>
+                        </div>
+                        <div class="key-actions">
+                          <button class="icon-action" type="button" title="Copy"><svg class="icon"><use href="#i-copy" /></svg></button>
+                          <button class="icon-action" type="button" title="Reveal"><svg class="icon"><use href="#i-eye" /></svg></button>
+                          <button class="icon-action danger" type="button" title="Revoke"><svg class="icon"><use href="#i-trash" /></svg></button>
+                        </div>
+                      </div>
+                      <div class="key-row">
+                        <div class="key-row-copy">
+                          <strong>CI pipeline</strong>
+                          <code>sk-c••••91bd</code>
+                          <span>last used 1h ago</span>
+                        </div>
+                        <div class="key-actions">
+                          <button class="icon-action" type="button" title="Copy"><svg class="icon"><use href="#i-copy" /></svg></button>
+                          <button class="icon-action" type="button" title="Reveal"><svg class="icon"><use href="#i-eye" /></svg></button>
+                          <button class="icon-action danger" type="button" title="Revoke"><svg class="icon"><use href="#i-trash" /></svg></button>
+                        </div>
+                      </div>
+                      <div class="key-row">
+                        <div class="key-row-copy">
+                          <strong>Backup</strong>
+                          <code>sk-b••••07e1</code>
+                          <span>never used</span>
+                        </div>
+                        <div class="key-actions">
+                          <button class="icon-action" type="button" title="Copy"><svg class="icon"><use href="#i-copy" /></svg></button>
+                          <button class="icon-action" type="button" title="Reveal"><svg class="icon"><use href="#i-eye" /></svg></button>
+                          <button class="icon-action danger" type="button" title="Revoke"><svg class="icon"><use href="#i-trash" /></svg></button>
+                        </div>
+                      </div>
+                    </div>
+                    <form class="keys-add" id="prov-key-add">
+                      <input id="prov-key-new" type="password" placeholder="Paste a new API key…" autocomplete="off" />
+                      <button class="page-action primary" type="submit">Add key</button>
+                    </form>
+                  </section>
+
+                  <!-- Usage -->
+                  <section class="course-card surface" aria-labelledby="usage-heading">
+                    <div class="card-title-row">
+                      <h2 id="usage-heading">Usage · 24h</h2>
+                    </div>
+                    <p class="card-subtitle">Traffic and token share for this provider.</p>
+                    <div class="usage-rows" id="usage-rows">
+                      <div class="usage-row">
+                        <span class="usage-name">gpt-4o-mini</span>
+                        <div class="progress-track"><div class="progress-fill" style="width:52%"></div></div>
+                        <span class="usage-val">4,260 · 52%</span>
+                      </div>
+                      <div class="usage-row">
+                        <span class="usage-name">gpt-4o</span>
+                        <div class="progress-track"><div class="progress-fill blue" style="width:31%"></div></div>
+                        <span class="usage-val">2,540 · 31%</span>
+                      </div>
+                      <div class="usage-row">
+                        <span class="usage-name">gpt-4.1-mini</span>
+                        <div class="progress-track"><div class="progress-fill green" style="width:17%"></div></div>
+                        <span class="usage-val">1,414 · 17%</span>
+                      </div>
+                    </div>
+                    <div class="quota-meter">
+                      <div class="quota-meter-top"><span>Daily request quota</span><strong>18,420 / 30,000</strong></div>
+                      <div class="progress-track"><div class="progress-fill" data-w="62" style="width:62%"></div></div>
+                    </div>
+                    <div class="usage-foot">
+                      <span class="combo-meta"><svg class="icon"><use href="#i-clock" /></svg> p95 890 ms</span>
+                      <span class="combo-meta"><svg class="icon"><use href="#i-alert" /></svg> 74 retries</span>
+                    </div>
+                  </section>
+                </div>
+
+                <!-- Danger zone -->
+                <section class="course-card surface danger-zone" aria-labelledby="danger-heading">
+                  <div class="card-title-row">
+                    <h2 id="danger-heading">Danger zone</h2>
+                  </div>
+                  <p class="card-subtitle">Irreversible actions. Combos referencing this provider will lose the target.</p>
+                  <div class="danger-actions">
+                    <button class="page-action" type="button" id="prov-disable">Disable provider</button>
+                    <button class="page-action danger" type="button" data-open-modal="prov-delete-dialog">Delete provider</button>
+                  </div>
+                </section>
+              </div>
+
+              <!-- Add custom model -->
+              <dialog class="modal" id="model-dialog" aria-labelledby="model-dialog-title">
+                <form class="modal-card" id="model-form">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="model-dialog-title">Add custom model</h2>
+                      <p>Expose a model id that is not in the synced catalog.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-fields">
+                    <label class="field provd-wide">
+                      Model ID
+                      <input id="mf-id" type="text" required placeholder="e.g. gpt-4o-mini-2024-07-18" />
+                    </label>
+                    <label class="field">
+                      Display name
+                      <input id="mf-name" type="text" placeholder="e.g. GPT-4o mini (snapshot)" />
+                    </label>
+                    <label class="field">
+                      Context window
+                      <input id="mf-context" type="number" min="1024" max="2000000" step="1024" value="128000" />
+                    </label>
+                    <label class="field provd-wide">
+                      Capabilities
+                      <select id="mf-caps">
+                        <option value="chat">Chat / text</option>
+                        <option value="vision">Vision / multimodal</option>
+                        <option value="reasoning">Reasoning</option>
+                        <option value="embedding">Embeddings</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action primary" type="submit">Add model</button>
+                  </div>
+                </form>
+              </dialog>
+
+              <!-- Rotate key confirm -->
+              <dialog class="modal" id="rotate-dialog" aria-labelledby="rotate-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="rotate-title">Rotate API key?</h2>
+                      <p>The current key stops working immediately. In-flight retries may fail once.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action primary" id="rotate-confirm" type="button">Rotate key</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <!-- Delete provider -->
+              <dialog class="modal" id="prov-delete-dialog" aria-labelledby="prov-delete-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="prov-delete-title">Delete OpenAI?</h2>
+                      <p>Removes the provider, its 3 credentials and 12 synced models. 2 combos reference this provider.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action danger" id="prov-delete-confirm" type="button">Delete provider</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <script>
+                (() => {
+                  const saveBtn = document.getElementById('prov-save');
+                  const dirtyBadge = document.getElementById('dirty-badge');
+                  const markDirty = () => { saveBtn.disabled = false; dirtyBadge.hidden = false; };
+                  document.querySelector('.page-surface').addEventListener('input', (e) => {
+                    if (e.target.closest('dialog')) return;
+                    markDirty();
+                  });
+                  document.querySelector('.page-surface').addEventListener('change', (e) => {
+                    if (e.target.closest('dialog')) return;
+                    markDirty();
+                  });
+                  saveBtn.addEventListener('click', () => {
+                    saveBtn.disabled = true;
+                    dirtyBadge.hidden = true;
+                    showToast('Provider configuration saved');
+                  });
+
+                  // Back + cross-page links
+                  const backBtn = document.createElement('button');
+                  backBtn.className = 'back-link';
+                  backBtn.type = 'button';
+                  backBtn.innerHTML = '<svg class="icon"><use href="#i-arrow-left" /></svg> Providers';
+                  backBtn.addEventListener('click', () => { location.href = 'providers.html'; });
+                  document.querySelector('.heading-copy').prepend(backBtn);
+                  document.querySelectorAll('[data-nav]').forEach((el) => {
+                    el.addEventListener('click', () => { location.href = `${el.dataset.nav}.html`; });
+                  });
+                  document.getElementById('stat-usage').addEventListener('click', () => {
+                    document.getElementById('usage-heading').closest('section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  });
+
+                  // Connection test
+                  const testBtn = document.getElementById('prov-test');
+                  const testResult = document.getElementById('test-result');
+                  testBtn.addEventListener('click', () => {
+                    testBtn.disabled = true;
+                    testResult.hidden = false;
+                    testResult.className = 'test-result pending';
+                    testResult.textContent = 'Probing https://api.openai.com/v1 …';
+                    setTimeout(() => {
+                      testBtn.disabled = false;
+                      testResult.className = 'test-result ok';
+                      testResult.textContent = `✓ Reachable — TLS ok, auth accepted, responded in ${140 + Math.floor(Math.random() * 200)} ms`;
+                    }, 1200);
+                  });
+
+                  // API key reveal / copy / rotate
+                  const keyValue = document.getElementById('key-secret-value');
+                  const REAL_KEY = 'sk-proj-Ab3dEf7hIj9kLm2nOp5qRs8tUv1wXy4z';
+                  let revealed = false;
+                  document.getElementById('key-reveal').addEventListener('click', function () {
+                    revealed = !revealed;
+                    keyValue.textContent = revealed ? REAL_KEY : 'sk-p••••••••••••4f2a';
+                    this.innerHTML = `<svg class="icon"><use href="#i-${revealed ? 'eye-off' : 'eye'}" /></svg> ${revealed ? 'Hide' : 'Reveal'}`;
+                  });
+                  document.getElementById('key-copy').addEventListener('click', async () => {
+                    try { await navigator.clipboard.writeText(revealed ? REAL_KEY : 'sk-p••••••••••••4f2a'); } catch (_) {}
+                    showToast(revealed ? 'Full key copied' : 'Masked key copied — reveal first for the real value');
+                  });
+                  document.getElementById('key-rotate').addEventListener('click', () => {
+                    document.getElementById('rotate-dialog').showModal();
+                  });
+                  document.getElementById('rotate-confirm').addEventListener('click', () => {
+                    document.getElementById('rotate-dialog').close();
+                    revealed = false;
+                    keyValue.textContent = 'sk-p••••••••••••9c3d';
+                    document.getElementById('key-reveal').innerHTML = '<svg class="icon"><use href="#i-eye" /></svg> Reveal';
+                    markDirty();
+                    showToast('API key rotated — old key revoked');
+                  });
+
+                  // Custom headers add/remove
+                  const headerRows = document.getElementById('header-rows');
+                  document.getElementById('header-add').addEventListener('click', () => {
+                    const row = document.createElement('div');
+                    row.className = 'header-row';
+                    row.innerHTML = `
+                      <input class="header-name" type="text" placeholder="Header-Name" aria-label="Header name" />
+                      <input class="header-value" type="text" placeholder="value" aria-label="Header value" />
+                      <button class="icon-action danger" type="button" title="Remove header"><svg class="icon"><use href="#i-trash" /></svg></button>`;
+                    headerRows.appendChild(row);
+                    markDirty();
+                  });
+                  headerRows.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.icon-action');
+                    if (!btn) return;
+                    btn.closest('.header-row').remove();
+                    markDirty();
+                    showToast('Header removed');
+                  });
+
+                  // Models: filter, toggle, remove, add, sync
+                  const modelList = document.getElementById('model-list');
+                  const modelSearch = document.getElementById('model-search');
+                  modelSearch.addEventListener('input', () => {
+                    const q = modelSearch.value.trim().toLowerCase();
+                    modelList.querySelectorAll('.model-row').forEach((row) => {
+                      row.style.display = !q || row.dataset.name.includes(q) ? '' : 'none';
+                    });
+                  });
+                  modelList.addEventListener('change', (e) => {
+                    if (e.target.matches('.switch input')) markDirty();
+                  });
+                  modelList.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.icon-action');
+                    if (!btn) return;
+                    const row = btn.closest('.model-row');
+                    showToast(`Removed ${row.dataset.name} from catalog (mock)`);
+                    row.remove();
+                    markDirty();
+                  });
+                  document.getElementById('model-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const id = document.getElementById('mf-id').value.trim();
+                    const caps = document.getElementById('mf-caps').value;
+                    const row = document.createElement('div');
+                    row.className = 'course-row model-row';
+                    row.dataset.name = id;
+                    row.innerHTML = `
+                      <span class="course-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                      <div class="course-copy">
+                        <strong>${id} <span class="prov-type">custom</span></strong>
+                        <span>${caps} · added manually</span>
+                      </div>
+                      <label class="switch" title="Enable model"><input type="checkbox" checked /><span class="switch-track"><span class="switch-thumb"></span></span></label>
+                      <button class="icon-action danger" type="button" title="Remove model"><svg class="icon"><use href="#i-trash" /></svg></button>`;
+                    modelList.prepend(row);
+                    document.getElementById('model-dialog').close();
+                    e.target.reset();
+                    markDirty();
+                    showToast(`${id} added`);
+                  });
+                  document.getElementById('model-sync').addEventListener('click', function () {
+                    this.disabled = true;
+                    showToast('Syncing models from OpenAI…');
+                    setTimeout(() => {
+                      this.disabled = false;
+                      showToast('Sync complete — 12 models, 1 new');
+                    }, 1300);
+                  });
+
+                  // API keys: copy / reveal toast / revoke / add
+                  const keysList = document.getElementById('prov-keys');
+                  keysList.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.icon-action');
+                    if (!btn) return;
+                    const row = btn.closest('.key-row');
+                    const title = btn.title;
+                    if (title === 'Copy') showToast('Key copied (masked value — reveal in provider settings)');
+                    else if (title === 'Reveal') showToast('Full key reveal requires re-auth in the real app');
+                    else if (title === 'Revoke') {
+                      row.remove();
+                      markDirty();
+                      showToast('Key revoked');
+                    }
+                  });
+                  document.getElementById('prov-key-add').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('prov-key-new');
+                    const v = input.value.trim();
+                    if (!v) return;
+                    const masked = `sk-•${'•'.repeat(4)}${v.slice(-4)}`;
+                    const row = document.createElement('div');
+                    row.className = 'key-row';
+                    row.innerHTML = `
+                      <div class="key-row-copy">
+                        <strong>New key</strong>
+                        <code>${masked}</code>
+                        <span>added just now</span>
+                      </div>
+                      <div class="key-actions">
+                        <button class="icon-action" type="button" title="Copy"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action" type="button" title="Reveal"><svg class="icon"><use href="#i-eye" /></svg></button>
+                        <button class="icon-action danger" type="button" title="Revoke"><svg class="icon"><use href="#i-trash" /></svg></button>
+                      </div>`;
+                    keysList.appendChild(row);
+                    input.value = '';
+                    markDirty();
+                    showToast('API key added');
+                  });
+
+                  // Danger zone
+                  document.getElementById('prov-disable').addEventListener('click', function () {
+                    const enabled = this.dataset.enabled !== 'false';
+                    this.dataset.enabled = String(!enabled);
+                    this.textContent = enabled ? 'Enable provider' : 'Disable provider';
+                    markDirty();
+                    showToast(enabled ? 'Provider disabled — traffic rerouted' : 'Provider enabled');
+                  });
+                  document.getElementById('prov-delete-confirm').addEventListener('click', () => {
+                    document.getElementById('prov-delete-dialog').close();
+                    showToast('Provider deleted (mock) — returning to Providers…', 1800);
+                    setTimeout(() => { location.href = 'providers.html'; }, 1600);
+                  });
+                })();
+              </script>

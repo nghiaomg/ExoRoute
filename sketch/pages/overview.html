@@ -1,0 +1,350 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">Overview</h1>
+                  <p id="page-description">A clear view of your gateway, at a glance.</p>
+                </div>
+                <div class="heading-actions">
+                  <button class="action-button primary" type="button" data-open-modal="key-dialog">
+                    <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
+                    <span class="button-label">New API key</span>
+                  </button>
+                  <button class="action-button import-button" type="button" id="view-requests">
+                    <span class="button-icon"><svg class="icon"><use href="#i-import" /></svg></span>
+                    <span class="button-label">View requests</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="dashboard-content" id="dashboard-content">
+                <section class="stats-grid" aria-label="Gateway overview">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
+                      <span class="stat-number" data-stat="totalRequests">12,847</span>
+                    </div>
+                    <h2>Total Requests</h2>
+                    <div class="stat-trend">All time on this instance</div>
+                    <button class="details-link" type="button" data-nav="requests">View Requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-link" /></svg></span>
+                      <span class="stat-number" data-stat="providers">6</span>
+                    </div>
+                    <h2>Providers</h2>
+                    <div class="stat-trend">4 enabled, 2 disabled</div>
+                    <button class="details-link" type="button" data-nav="providers">View Providers <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                      <span class="stat-number" data-stat="combos">4</span>
+                    </div>
+                    <h2>Combos</h2>
+                    <div class="stat-trend">Routing rules in place</div>
+                    <button class="details-link" type="button" data-nav="combos">View Combos <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-trend-up" /></svg></span>
+                      <span class="stat-number" data-stat="successRate">98.2%</span>
+                    </div>
+                    <h2>Success Rate</h2>
+                    <div class="stat-trend">Last 24 hours</div>
+                    <button class="details-link" type="button" data-nav="requests">View Requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <div class="middle-grid">
+                  <section class="chart-card surface" aria-labelledby="status-heading">
+                    <div class="card-title-row">
+                      <h2 id="status-heading">Requests by Status</h2>
+                    </div>
+                    <p class="card-subtitle">HTTP status distribution, last 24 hours</p>
+                    <div class="chart-plot" id="status-chart" aria-label="Request distribution by HTTP status">
+                      <div class="y-axis" aria-hidden="true">
+                        <span>100%</span>
+                        <span>75%</span>
+                        <span>50%</span>
+                        <span>25%</span>
+                        <span>0%</span>
+                      </div>
+                      <div class="bar-chart" id="status-bars" aria-hidden="true">
+                        <div class="bar"><strong class="bar-value">62%</strong><span style="--bar: 62%"></span></div>
+                        <div class="bar"><strong class="bar-value">28%</strong><span style="--bar: 28%"></span></div>
+                        <div class="bar"><strong class="bar-value">7%</strong><span style="--bar: 7%"></span></div>
+                        <div class="bar"><strong class="bar-value">3%</strong><span style="--bar: 3%"></span></div>
+                      </div>
+                      <div class="bar-labels" id="status-bar-labels" aria-hidden="true">
+                        <span>2xx</span><span>4xx</span><span>5xx</span><span>Other</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="course-card surface" aria-labelledby="recent-heading">
+                    <div class="card-title-row">
+                      <h2 id="recent-heading">Recent Requests</h2>
+                      <button class="mini-add" type="button" data-nav="requests">
+                        View all
+                      </button>
+                    </div>
+                    <div class="course-list" id="recent-request-list" aria-live="polite">
+                      <article class="course-row">
+                        <span class="course-icon"><svg class="icon"><use href="#i-play" /></svg></span>
+                        <div class="course-copy">
+                          <strong>gpt-4o-mini</strong>
+                          <span>openai-compatible · 184 ms</span>
+                        </div>
+                        <span class="status complete">200</span>
+                      </article>
+                      <article class="course-row">
+                        <span class="course-icon"><svg class="icon"><use href="#i-code" /></svg></span>
+                        <div class="course-copy">
+                          <strong>claude-sonnet-4</strong>
+                          <span>anthropic · 1.2 s</span>
+                        </div>
+                        <span class="status complete">200</span>
+                      </article>
+                      <article class="course-row">
+                        <span class="course-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
+                        <div class="course-copy">
+                          <strong>gemini-2.5-flash</strong>
+                          <span>google · 96 ms</span>
+                        </div>
+                        <span class="status complete">200</span>
+                      </article>
+                      <article class="course-row">
+                        <span class="course-icon"><svg class="icon"><use href="#i-grid" /></svg></span>
+                        <div class="course-copy">
+                          <strong>llama-3.3-70b</strong>
+                          <span>local-combo · 2.4 s</span>
+                        </div>
+                        <span class="status progress">429</span>
+                      </article>
+                      <article class="course-row">
+                        <span class="course-icon"><svg class="icon"><use href="#i-book" /></svg></span>
+                        <div class="course-copy">
+                          <strong>deepseek-chat</strong>
+                          <span>deepseek · 640 ms</span>
+                        </div>
+                        <span class="status error">500</span>
+                      </article>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="bottom-grid">
+                  <section class="assignment-card surface" aria-labelledby="success-heading">
+                    <h2 id="success-heading">Success Overview</h2>
+                    <p class="card-subtitle">Request outcomes and latency, last 24 hours</p>
+                    <div class="assignment-content">
+                      <div class="legend-list">
+                        <div class="legend-row">
+                          <span class="legend-dot orange"></span><strong>231</strong><span>Failed Requests</span>
+                        </div>
+                        <div class="legend-row">
+                          <span class="legend-dot ink"></span><strong>12,616</strong><span>Successful Requests</span>
+                        </div>
+                        <div class="legend-row">
+                          <span class="legend-dot green"></span><strong>48.2M</strong><span>Total Tokens</span>
+                        </div>
+                        <div class="legend-row">
+                          <span class="legend-dot blue"></span><strong>412 ms</strong><span>Average Latency</span>
+                        </div>
+                      </div>
+                      <svg class="gauge" viewBox="0 0 280 155" role="img" aria-label="98 percent of requests successful">
+                        <defs>
+                          <linearGradient id="gauge-gradient" x1="0" y1="1" x2="1" y2="0">
+                            <stop offset="0%" stop-color="#f27b5e" />
+                            <stop offset="22%" stop-color="#313943" />
+                            <stop offset="48%" stop-color="#252d35" />
+                            <stop offset="72%" stop-color="#10c83b" />
+                            <stop offset="100%" stop-color="#9ed1ff" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M28 142 A112 112 0 0 1 252 142" fill="none" stroke="#edf1f3" stroke-width="17" />
+                        <path
+                          id="completion-gauge-progress"
+                          d="M28 142 A112 112 0 0 1 252 142"
+                          fill="none"
+                          pathLength="100"
+                          stroke="url(#gauge-gradient)"
+                          stroke-dasharray="98 100"
+                          stroke-width="17"
+                        />
+                        <text x="140" y="116" text-anchor="middle" fill="#293341" font-size="31" font-weight="700">98<tspan font-size="14">%</tspan></text>
+                        <text x="140" y="138" text-anchor="middle" fill="#78838c" font-size="9">Request Success</text>
+                      </svg>
+                    </div>
+                  </section>
+
+                  <section class="community-card surface" aria-labelledby="links-heading">
+                    <div class="community-heading">
+                      <h2 id="links-heading">Quick Links</h2>
+                      <button class="icon-button" type="button" aria-label="More links">
+                        <svg class="icon"><use href="#i-plus" /></svg>
+                      </button>
+                    </div>
+                    <div class="community-link" data-nav="docs">
+                      <span class="community-logo" aria-hidden="true"><svg class="icon"><use href="#i-book" /></svg></span>
+                      <span class="community-copy">
+                        <strong>Documentation</strong>
+                        <span>API reference &amp; guides</span>
+                      </span>
+                    </div>
+                    <div class="community-link" data-nav="chat">
+                      <span class="community-logo discord" aria-hidden="true"><svg class="icon"><use href="#i-video" /></svg></span>
+                      <span class="community-copy">
+                        <strong>Workspace Chat</strong>
+                        <span>Try models in-browser</span>
+                      </span>
+                    </div>
+                    <div class="community-link" data-nav="requests">
+                      <span class="community-logo" aria-hidden="true" style="color:#ed674d"><svg class="icon"><use href="#i-key" /></svg></span>
+                      <span class="community-copy">
+                        <strong>API Keys</strong>
+                        <span>3 active keys</span>
+                      </span>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="page-surface" id="page-surface" hidden></div>
+
+              <!-- New API key dialog -->
+              <dialog class="modal" id="key-dialog" aria-labelledby="key-dialog-title">
+                <form class="modal-card" id="key-form">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="key-dialog-title">New API key</h2>
+                      <p>Create a client key for the gateway. The secret is shown once.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-fields" id="key-fields">
+                    <label class="field">
+                      Key name
+                      <input id="key-name" type="text" required placeholder="e.g. mobile-app" />
+                    </label>
+                    <label class="field">
+                      Allowed models
+                      <select id="key-models">
+                        <option value="all">All models</option>
+                        <option value="openai">OpenAI models</option>
+                        <option value="anthropic">Anthropic models</option>
+                        <option value="local">Local models only</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      Monthly budget (USD)
+                      <input id="key-budget" type="number" min="0" step="1" value="50" />
+                    </label>
+                    <label class="field">
+                      Expiry
+                      <select id="key-expiry">
+                        <option value="30">30 days</option>
+                        <option value="90" selected>90 days</option>
+                        <option value="365">1 year</option>
+                        <option value="never">Never</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="key-reveal" id="key-reveal" hidden>
+                    <strong>Your new key</strong>
+                    <p>Copy it now — it will not be shown again.</p>
+                    <div class="key-reveal-row">
+                      <code id="key-value">exr_…</code>
+                      <button class="page-action" type="button" id="key-copy">
+                        <svg class="icon"><use href="#i-copy" /></svg> Copy
+                      </button>
+                    </div>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal id="key-cancel">Cancel</button>
+                    <button class="page-action primary" type="submit" id="key-submit">Create key</button>
+                  </div>
+                </form>
+              </dialog>
+
+              <script>
+                (() => {
+                  // Navigation helpers
+                  document.querySelectorAll('[data-nav]').forEach((el) => {
+                    el.addEventListener('click', () => {
+                      const target = el.dataset.nav;
+                      if (target === 'docs') { showToast('Documentation opens in a new tab (mock)'); return; }
+                      location.href = `${target}.html`;
+                    });
+                  });
+                  document.getElementById('view-requests').addEventListener('click', () => { location.href = 'requests.html'; });
+
+                  // Live ticker: Total Requests climbs occasionally
+                  const totalEl = document.querySelector('[data-stat="totalRequests"]');
+                  let total = 12847;
+                  setInterval(() => {
+                    if (Math.random() < 0.4) {
+                      total += 1 + Math.floor(Math.random() * 3);
+                      totalEl.textContent = total.toLocaleString('en-US');
+                    }
+                  }, 4000);
+
+                  // Chart bars: show count tooltip on hover
+                  const chart = document.getElementById('status-chart');
+                  const tooltip = document.createElement('div');
+                  tooltip.className = 'chart-tooltip';
+                  tooltip.hidden = true;
+                  chart.appendChild(tooltip);
+                  chart.addEventListener('mousemove', (e) => {
+                    const bar = e.target.closest('.bar');
+                    if (!bar) { tooltip.hidden = true; return; }
+                    const pct = bar.querySelector('.bar-value').textContent;
+                    const labels = ['2xx success', '4xx client error', '5xx server error', 'Other'];
+                    const idx = [...bar.parentElement.children].indexOf(bar);
+                    const counts = ['7,963', '3,597', '899', '388'];
+                    tooltip.textContent = `${labels[idx]} — ${pct} (${counts[idx]} requests)`;
+                    tooltip.hidden = false;
+                    const rect = chart.getBoundingClientRect();
+                    tooltip.style.left = `${Math.min(e.clientX - rect.left + 12, rect.width - 190)}px`;
+                    tooltip.style.top = `${e.clientY - rect.top - 14}px`;
+                  });
+                  chart.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+
+                  // New API key dialog flow
+                  const dialog = document.getElementById('key-dialog');
+                  const form = document.getElementById('key-form');
+                  const fields = document.getElementById('key-fields');
+                  const reveal = document.getElementById('key-reveal');
+                  const cancelBtn = document.getElementById('key-cancel');
+                  const submitBtn = document.getElementById('key-submit');
+                  dialog.addEventListener('close', () => {
+                    fields.hidden = false;
+                    reveal.hidden = true;
+                    form.reset();
+                    submitBtn.hidden = false;
+                    cancelBtn.textContent = 'Cancel';
+                  });
+                  form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('key-name').value.trim() || 'unnamed';
+                    const key = `exr_${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 10)}`;
+                    fields.hidden = true;
+                    reveal.hidden = false;
+                    document.getElementById('key-value').textContent = key;
+                    submitBtn.hidden = true;
+                    cancelBtn.textContent = 'Done';
+                    showToast(`API key "${name}" created`);
+                  });
+                  document.getElementById('key-copy').addEventListener('click', async () => {
+                    const key = document.getElementById('key-value').textContent;
+                    try { await navigator.clipboard.writeText(key); } catch (_) { /* clipboard may be unavailable */ }
+                    showToast('Key copied to clipboard');
+                  });
+                  cancelBtn.addEventListener('click', () => {
+                    if (reveal.hidden) { dialog.close(); return; }
+                    dialog.close();
+                  });
+                })();
+              </script>

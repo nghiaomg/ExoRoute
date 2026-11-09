@@ -1,0 +1,593 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">Providers</h1>
+                  <p id="page-description">Manage upstream AI providers, credentials, and synced models.</p>
+                </div>
+                <div class="heading-actions">
+                  <button class="action-button" type="button" data-open-modal="test-all-dialog">
+                    <span class="button-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
+                    <span class="button-label">Test all</span>
+                  </button>
+                  <button class="action-button primary" type="button" data-open-modal="provider-dialog" data-edit="">
+                    <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
+                    <span class="button-label">Add provider</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="page-surface">
+                <section class="stats-grid" aria-label="Provider overview">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-link" /></svg></span>
+                      <span class="stat-number">6</span>
+                    </div>
+                    <h2>Total Providers</h2>
+                    <div class="stat-trend">4 enabled, 2 disabled</div>
+                    <button class="details-link" type="button" id="stat-goto-providers">View all <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
+                      <span class="stat-number">4</span>
+                    </div>
+                    <h2>Enabled</h2>
+                    <div class="stat-trend">Serving live traffic</div>
+                    <button class="details-link" type="button" id="stat-filter-enabled">Show enabled only <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-key" /></svg></span>
+                      <span class="stat-number">11</span>
+                    </div>
+                    <h2>Credentials</h2>
+                    <div class="stat-trend">Across 5 providers</div>
+                    <button class="details-link" type="button" id="stat-keys">Manage keys <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-refresh" /></svg></span>
+                      <span class="stat-number">87</span>
+                    </div>
+                    <h2>Synced Models</h2>
+                    <div class="stat-trend">Last sync 2m ago</div>
+                    <button class="details-link" type="button" id="stat-sync">Sync now <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <section class="course-card surface provider-section" id="provider-section" aria-labelledby="providers-heading">
+                  <div class="card-title-row">
+                    <h2 id="providers-heading">Providers</h2>
+                    <button class="mini-add" type="button" id="sync-models">
+                      <svg class="icon"><use href="#i-refresh" /></svg>
+                      Sync models
+                    </button>
+                  </div>
+                  <p class="card-subtitle" id="provider-summary">6 providers · 4 enabled · 11 credentials</p>
+                  <div class="page-toolbar provider-toolbar">
+                    <input id="provider-search" class="prov-search" type="search" placeholder="Search providers..." aria-label="Search providers" />
+                    <select id="provider-filter" class="prov-select" aria-label="Filter by status">
+                      <option value="all">All statuses</option>
+                      <option value="enabled">Enabled</option>
+                      <option value="disabled">Disabled</option>
+                    </select>
+                  </div>
+                  <div class="course-list provider-list" id="provider-list" aria-live="polite">
+                  <article class="course-row provider-row" data-status="enabled" data-name="openai" data-type="openai-compatible">
+                    <span class="course-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
+                    <div class="course-copy">
+                      <strong>OpenAI <span class="prov-type">openai-compatible</span></strong>
+                      <span>https://api.openai.com/v1 · 3 keys · 12 models</span>
+                    </div>
+                    <span class="status complete prov-toggle" role="switch" aria-checked="true" tabindex="0">Enabled</span>
+                    <div class="course-actions">
+                      <button class="icon-action" type="button" title="Edit provider" data-edit="openai"><svg class="icon"><use href="#i-edit" /></svg></button>
+                      <button class="icon-action" type="button" title="Manage API keys" data-keys="openai"><svg class="icon"><use href="#i-key" /></svg></button>
+                      <button class="icon-action" type="button" title="Test connection" data-test="openai"><svg class="icon"><use href="#i-wifi" /></svg></button>
+                      <button class="icon-action danger" type="button" title="Delete provider" data-delete="openai"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                  </article>
+
+                  <article class="course-row provider-row" data-status="enabled" data-name="anthropic" data-type="anthropic">
+                    <span class="course-icon"><svg class="icon"><use href="#i-link" /></svg></span>
+                    <div class="course-copy">
+                      <strong>Anthropic <span class="prov-type">anthropic</span></strong>
+                      <span>https://api.anthropic.com · 2 keys · 9 models</span>
+                    </div>
+                    <span class="status complete prov-toggle" role="switch" aria-checked="true" tabindex="0">Enabled</span>
+                    <div class="course-actions">
+                      <button class="icon-action" type="button" title="Edit provider" data-edit="anthropic"><svg class="icon"><use href="#i-edit" /></svg></button>
+                      <button class="icon-action" type="button" title="Manage API keys" data-keys="anthropic"><svg class="icon"><use href="#i-key" /></svg></button>
+                      <button class="icon-action" type="button" title="Test connection" data-test="anthropic"><svg class="icon"><use href="#i-wifi" /></svg></button>
+                      <button class="icon-action danger" type="button" title="Delete provider" data-delete="anthropic"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                  </article>
+
+                  <article class="course-row provider-row" data-status="enabled" data-name="gemini" data-type="google">
+                    <span class="course-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
+                    <div class="course-copy">
+                      <strong>Google Gemini <span class="prov-type">google</span></strong>
+                      <span>https://generativelanguage.googleapis.com · 4 keys · 15 models</span>
+                    </div>
+                    <span class="status complete prov-toggle" role="switch" aria-checked="true" tabindex="0">Enabled</span>
+                    <div class="course-actions">
+                      <button class="icon-action" type="button" title="Edit provider" data-edit="gemini"><svg class="icon"><use href="#i-edit" /></svg></button>
+                      <button class="icon-action" type="button" title="Manage API keys" data-keys="gemini"><svg class="icon"><use href="#i-key" /></svg></button>
+                      <button class="icon-action" type="button" title="Test connection" data-test="gemini"><svg class="icon"><use href="#i-wifi" /></svg></button>
+                      <button class="icon-action danger" type="button" title="Delete provider" data-delete="gemini"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                  </article>
+
+                  <article class="course-row provider-row" data-status="enabled" data-name="openrouter" data-type="openrouter">
+                    <span class="course-icon"><svg class="icon"><use href="#i-layers" /></svg></span>
+                    <div class="course-copy">
+                      <strong>OpenRouter <span class="prov-type">openrouter</span></strong>
+                      <span>https://openrouter.ai/api/v1 · 1 key · 38 models</span>
+                    </div>
+                    <span class="status complete prov-toggle" role="switch" aria-checked="true" tabindex="0">Enabled</span>
+                    <div class="course-actions">
+                      <button class="icon-action" type="button" title="Edit provider" data-edit="openrouter"><svg class="icon"><use href="#i-edit" /></svg></button>
+                      <button class="icon-action" type="button" title="Manage API keys" data-keys="openrouter"><svg class="icon"><use href="#i-key" /></svg></button>
+                      <button class="icon-action" type="button" title="Test connection" data-test="openrouter"><svg class="icon"><use href="#i-wifi" /></svg></button>
+                      <button class="icon-action danger" type="button" title="Delete provider" data-delete="openrouter"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                  </article>
+
+                  <article class="course-row provider-row" data-status="disabled" data-name="lmstudio" data-type="ollama">
+                    <span class="course-icon"><svg class="icon"><use href="#i-cpu" /></svg></span>
+                    <div class="course-copy">
+                      <strong>LM Studio <span class="prov-type">ollama</span></strong>
+                      <span>http://127.0.0.1:1234/v1 · 1 key · 6 models</span>
+                    </div>
+                    <span class="status pending prov-toggle" role="switch" aria-checked="false" tabindex="0">Disabled</span>
+                    <div class="course-actions">
+                      <button class="icon-action" type="button" title="Edit provider" data-edit="lmstudio"><svg class="icon"><use href="#i-edit" /></svg></button>
+                      <button class="icon-action" type="button" title="Manage API keys" data-keys="lmstudio"><svg class="icon"><use href="#i-key" /></svg></button>
+                      <button class="icon-action" type="button" title="Test connection" data-test="lmstudio"><svg class="icon"><use href="#i-wifi" /></svg></button>
+                      <button class="icon-action danger" type="button" title="Delete provider" data-delete="lmstudio"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                  </article>
+
+                  <article class="course-row provider-row" data-status="enabled" data-name="deepseek" data-type="deepseek">
+                    <span class="course-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
+                    <div class="course-copy">
+                      <strong>DeepSeek <span class="prov-type">deepseek</span></strong>
+                      <span>https://api.deepseek.com · 0 keys · 4 models</span>
+                    </div>
+                    <span class="status progress prov-toggle" role="switch" aria-checked="true" tabindex="0">No keys</span>
+                    <div class="course-actions">
+                      <button class="icon-action" type="button" title="Edit provider" data-edit="deepseek"><svg class="icon"><use href="#i-edit" /></svg></button>
+                      <button class="icon-action" type="button" title="Manage API keys" data-keys="deepseek"><svg class="icon"><use href="#i-key" /></svg></button>
+                      <button class="icon-action" type="button" title="Test connection" data-test="deepseek"><svg class="icon"><use href="#i-wifi" /></svg></button>
+                      <button class="icon-action danger" type="button" title="Delete provider" data-delete="deepseek"><svg class="icon"><use href="#i-trash" /></svg></button>
+                    </div>
+                  </article>
+                </div>
+
+                  <div class="empty-state" id="provider-empty" hidden>No providers match the current filters.</div>
+                </section>
+              </div>
+
+              <!-- Add / edit provider -->
+              <dialog class="modal" id="provider-dialog" aria-labelledby="provider-dialog-title">
+                <form class="modal-card" id="provider-form">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="provider-dialog-title">Add provider</h2>
+                      <p id="provider-dialog-description">Connect an upstream AI provider.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-fields">
+                    <label class="field prov-field-wide">
+                      Provider name
+                      <input id="pf-name" name="name" maxlength="60" required placeholder="e.g. OpenAI" />
+                    </label>
+                    <label class="field">
+                      Type
+                      <select id="pf-type" name="type">
+                        <option value="openai-compatible">OpenAI-compatible</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="google">Google</option>
+                        <option value="openrouter">OpenRouter</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="ollama">Ollama / LM Studio</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      Base URL
+                      <input id="pf-url" name="baseUrl" type="url" required placeholder="https://api.example.com/v1" />
+                    </label>
+                    <label class="field">
+                      API key
+                      <input id="pf-key" name="apiKey" type="password" placeholder="sk-..." autocomplete="off" />
+                    </label>
+                    <label class="field prov-field-wide">
+                      Default model (optional)
+                      <input id="pf-model" name="model" maxlength="120" placeholder="e.g. gpt-4o-mini" />
+                    </label>
+                  </div>
+                  <p class="form-error" id="provider-form-error" role="alert" hidden></p>
+                  <p class="form-note" id="provider-form-note" hidden></p>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" id="provider-test-btn">
+                      <svg class="icon"><use href="#i-wifi" /></svg>
+                      Test connection
+                    </button>
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action primary" type="submit">Save provider</button>
+                  </div>
+                </form>
+              </dialog>
+
+              <!-- Manage API keys -->
+              <dialog class="modal modal-wide" id="keys-dialog" aria-labelledby="keys-dialog-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="keys-dialog-title">API keys</h2>
+                      <p id="keys-dialog-sub">Credentials for <strong id="keys-provider-name">provider</strong>.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="keys-list" id="keys-list"></div>
+                  <form class="keys-add" id="keys-add-form">
+                    <input id="keys-new" type="password" placeholder="Paste a new API key…" autocomplete="off" />
+                    <button class="page-action primary" type="submit">Add key</button>
+                  </form>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Close</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <!-- Delete confirm -->
+              <dialog class="modal" id="delete-dialog" aria-labelledby="delete-dialog-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="delete-dialog-title">Delete provider?</h2>
+                      <p id="delete-dialog-desc">This removes the provider and its credentials. Combos referencing it will lose that target.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action danger" id="delete-confirm" type="button">Delete provider</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <!-- Test all results -->
+              <dialog class="modal" id="test-all-dialog" aria-labelledby="test-all-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="test-all-title">Connection test</h2>
+                      <p>Probing each enabled provider…</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="test-results" id="test-results"></div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Close</button>
+                    <button class="page-action primary" id="test-all-run" type="button">Run again</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <script>
+                (() => {
+                  const list = document.getElementById('provider-list');
+                  const empty = document.getElementById('provider-empty');
+                  const search = document.getElementById('provider-search');
+                  const filter = document.getElementById('provider-filter');
+                  const summary = document.getElementById('provider-summary');
+                  const PROVIDER_DATA = {
+                    openai: { name: 'OpenAI', type: 'openai-compatible', url: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+                    anthropic: { name: 'Anthropic', type: 'anthropic', url: 'https://api.anthropic.com', model: 'claude-sonnet-4' },
+                    gemini: { name: 'Google Gemini', type: 'google', url: 'https://generativelanguage.googleapis.com', model: 'gemini-2.5-flash' },
+                    openrouter: { name: 'OpenRouter', type: 'openrouter', url: 'https://openrouter.ai/api/v1', model: '' },
+                    lmstudio: { name: 'LM Studio', type: 'ollama', url: 'http://127.0.0.1:1234/v1', model: 'llama-3.3-70b' },
+                    deepseek: { name: 'DeepSeek', type: 'deepseek', url: 'https://api.deepseek.com', model: 'deepseek-chat' },
+                  };
+                  let deleteTarget = null;
+                  let keysTarget = null;
+
+                  const rows = () => [...list.querySelectorAll('.provider-row')];
+                  const rowName = (row) => PROVIDER_DATA[row.dataset.name]?.name || row.dataset.name;
+
+                  function applyFilters() {
+                    const q = search.value.trim().toLowerCase();
+                    const f = filter.value;
+                    let visible = 0;
+                    rows().forEach((row) => {
+                      const okQ = !q || row.dataset.name.includes(q) || row.textContent.toLowerCase().includes(q);
+                      const okF = f === 'all' || row.dataset.status === f;
+                      row.style.display = okQ && okF ? '' : 'none';
+                      if (okQ && okF) visible += 1;
+                    });
+                    empty.hidden = visible !== 0;
+                  }
+                  search.addEventListener('input', applyFilters);
+                  filter.addEventListener('change', applyFilters);
+
+                  function refreshSummary() {
+                    const all = rows();
+                    const enabled = all.filter((r) => r.dataset.status === 'enabled').length;
+                    summary.textContent = `${all.length} providers · ${enabled} enabled · 11 credentials`;
+                  }
+
+                  // Enable/disable toggle
+                  list.addEventListener('click', (e) => {
+                    const toggle = e.target.closest('.prov-toggle');
+                    if (!toggle) return;
+                    const row = toggle.closest('.provider-row');
+                    const enabling = row.dataset.status !== 'enabled';
+                    row.dataset.status = enabling ? 'enabled' : 'disabled';
+                    toggle.textContent = enabling ? 'Enabled' : 'Disabled';
+                    toggle.className = `status ${enabling ? 'complete' : 'pending'} prov-toggle`;
+                    toggle.setAttribute('aria-checked', String(enabling));
+                    refreshSummary();
+                    applyFilters();
+                    showToast(`${rowName(row)} ${enabling ? 'enabled' : 'disabled'}`);
+                  });
+                  list.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    const toggle = e.target.closest('.prov-toggle');
+                    if (!toggle) return;
+                    e.preventDefault();
+                    toggle.click();
+                  });
+
+                  // Row click → provider detail page (skip interactive children)
+                  list.addEventListener('click', (e) => {
+                    if (e.target.closest('button, .prov-toggle, input, select, a')) return;
+                    const row = e.target.closest('.provider-row');
+                    if (row) location.href = 'provider.html';
+                  });
+
+                  // Edit / delete / keys / test buttons
+                  list.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-edit],button[data-delete],button[data-keys],button[data-test]');
+                    if (!btn) return;
+                    const row = btn.closest('.provider-row');
+                    const id = row.dataset.name;
+                    if (btn.dataset.edit !== undefined) openProviderDialog(id);
+                    if (btn.dataset.delete !== undefined) openDeleteDialog(id);
+                    if (btn.dataset.keys !== undefined) openKeysDialog(id);
+                    if (btn.dataset.test !== undefined) testOne(id, btn);
+                  });
+
+                  // ── Provider dialog ──
+                  const dialog = document.getElementById('provider-dialog');
+                  const form = document.getElementById('provider-form');
+                  const formError = document.getElementById('provider-form-error');
+                  const formNote = document.getElementById('provider-form-note');
+                  const title = document.getElementById('provider-dialog-title');
+                  const desc = document.getElementById('provider-dialog-description');
+                  let editingId = null;
+
+                  document.querySelector('[data-open-modal="provider-dialog"]').addEventListener('click', () => openProviderDialog(''));
+
+                  function openProviderDialog(id) {
+                    editingId = id || null;
+                    const data = id ? PROVIDER_DATA[id] : null;
+                    title.textContent = data ? `Edit ${data.name}` : 'Add provider';
+                    desc.textContent = data ? 'Update provider settings.' : 'Connect an upstream AI provider.';
+                    document.getElementById('pf-name').value = data?.name || '';
+                    document.getElementById('pf-type').value = data?.type || 'openai-compatible';
+                    document.getElementById('pf-url').value = data?.url || '';
+                    document.getElementById('pf-key').value = '';
+                    document.getElementById('pf-model').value = data?.model || '';
+                    formError.hidden = true;
+                    formNote.hidden = true;
+                    dialog.showModal();
+                  }
+
+                  form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('pf-name').value.trim();
+                    const url = document.getElementById('pf-url').value.trim();
+                    if (!name || !url) {
+                      formError.textContent = 'Name and base URL are required.';
+                      formError.hidden = false;
+                      return;
+                    }
+                    if (editingId && PROVIDER_DATA[editingId]) {
+                      PROVIDER_DATA[editingId] = {
+                        name,
+                        type: document.getElementById('pf-type').value,
+                        url,
+                        model: document.getElementById('pf-model').value.trim(),
+                      };
+                      const row = list.querySelector(`[data-name="${editingId}"]`);
+                      if (row) {
+                        row.querySelector('.course-copy strong').childNodes[0].textContent = `${name} `;
+                        row.querySelector('.course-copy span').textContent = `${url} · ${row.dataset.name === 'deepseek' ? '0' : '1'} keys · ${row.dataset.name === 'openrouter' ? '38' : '8'} models`;
+                      }
+                      showToast(`${name} updated`);
+                    } else {
+                      const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'custom';
+                      PROVIDER_DATA[id] = {
+                        name,
+                        type: document.getElementById('pf-type').value,
+                        url,
+                        model: document.getElementById('pf-model').value.trim(),
+                      };
+                      const row = document.createElement('article');
+                      row.className = 'course-row provider-row';
+                      row.dataset.status = 'enabled';
+                      row.dataset.name = id;
+                      row.dataset.type = PROVIDER_DATA[id].type;
+                      row.innerHTML = `
+                        <span class="course-icon"><svg class="icon"><use href="#i-link" /></svg></span>
+                        <div class="course-copy">
+                          <strong>${name} <span class="prov-type">${PROVIDER_DATA[id].type}</span></strong>
+                          <span>${url} · 1 key · 0 models</span>
+                        </div>
+                        <span class="status complete prov-toggle" role="switch" aria-checked="true" tabindex="0">Enabled</span>
+                        <div class="course-actions">
+                          <button class="icon-action" type="button" title="Edit provider" data-edit="${id}"><svg class="icon"><use href="#i-edit" /></svg></button>
+                          <button class="icon-action" type="button" title="Manage API keys" data-keys="${id}"><svg class="icon"><use href="#i-key" /></svg></button>
+                          <button class="icon-action" type="button" title="Test connection" data-test="${id}"><svg class="icon"><use href="#i-wifi" /></svg></button>
+                          <button class="icon-action danger" type="button" title="Delete provider" data-delete="${id}"><svg class="icon"><use href="#i-trash" /></svg></button>
+                        </div>`;
+                      list.appendChild(row);
+                      showToast(`${name} added`);
+                    }
+                    refreshSummary();
+                    dialog.close();
+                    form.reset();
+                  });
+
+                  // Test connection inside dialog
+                  document.getElementById('provider-test-btn').addEventListener('click', () => {
+                    const url = document.getElementById('pf-url').value.trim();
+                    formNote.hidden = false;
+                    formNote.className = 'form-note';
+                    formNote.textContent = url ? `Probing ${url} …` : 'Enter a base URL first.';
+                    setTimeout(() => {
+                      formNote.textContent = url
+                        ? `✓ Reachable — responded in ${120 + Math.floor(Math.random() * 380)} ms`
+                        : 'Enter a base URL first.';
+                      formNote.classList.add(url ? 'ok' : 'bad');
+                    }, 900);
+                  });
+
+                  // ── Delete dialog ──
+                  const deleteDialog = document.getElementById('delete-dialog');
+                  function openDeleteDialog(id) {
+                    deleteTarget = id;
+                    document.getElementById('delete-dialog-desc').textContent =
+                      `Delete "${rowName(list.querySelector(`[data-name="${id}"]`))}"? This removes the provider and its credentials. Combos referencing it will lose that target.`;
+                    deleteDialog.showModal();
+                  }
+                  document.getElementById('delete-confirm').addEventListener('click', () => {
+                    if (!deleteTarget) return;
+                    const row = list.querySelector(`[data-name="${deleteTarget}"]`);
+                    const name = rowName(row);
+                    row.remove();
+                    deleteDialog.close();
+                    refreshSummary();
+                    applyFilters();
+                    showToast(`${name} deleted`);
+                  });
+
+                  // ── Keys dialog ──
+                  const keysDialog = document.getElementById('keys-dialog');
+                  const keysList = document.getElementById('keys-list');
+                  const keysAddForm = document.getElementById('keys-add-form');
+                  const KEY_STORE = {
+                    openai: ['sk-••••7f2a', 'sk-••••9c1d', 'sk-••••e84b'],
+                    anthropic: ['sk-ant-••••31aa', 'sk-ant-••••77f0'],
+                    gemini: ['AIza-••••2k9x', 'AIza-••••8q1w', 'AIza-••••m4rt', 'AIza-••••p0ss'],
+                    openrouter: ['sk-or-••••c33d'],
+                    lmstudio: ['local-••••00ff'],
+                    deepseek: [],
+                  };
+                  function openKeysDialog(id) {
+                    keysTarget = id;
+                    document.getElementById('keys-provider-name').textContent = rowName(list.querySelector(`[data-name="${id}"]`));
+                    renderKeys();
+                    keysDialog.showModal();
+                  }
+                  function renderKeys() {
+                    const keys = KEY_STORE[keysTarget] || [];
+                    keysList.innerHTML = keys.length
+                      ? keys.map((k, i) => `
+                        <div class="key-row">
+                          <code>${k}</code>
+                          <span class="key-actions">
+                            <button class="icon-action" type="button" title="Reveal" data-reveal="${i}"><svg class="icon"><use href="#i-eye" /></svg></button>
+                            <button class="icon-action" type="button" title="Copy" data-copy="${i}"><svg class="icon"><use href="#i-copy" /></svg></button>
+                            <button class="icon-action danger" type="button" title="Revoke" data-revoke="${i}"><svg class="icon"><use href="#i-trash" /></svg></button>
+                          </span>
+                        </div>`).join('')
+                      : '<div class="empty-inline">No credentials yet. Add one below.</div>';
+                  }
+                  keysList.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-reveal],button[data-copy],button[data-revoke]');
+                    if (!btn) return;
+                    const i = Number(btn.dataset.reveal ?? btn.dataset.copy ?? btn.dataset.revoke);
+                    const code = keysList.querySelectorAll('code')[i];
+                    if (btn.dataset.revoke !== undefined) {
+                      KEY_STORE[keysTarget].splice(i, 1);
+                      renderKeys();
+                      showToast('Key revoked');
+                    } else if (btn.dataset.copy !== undefined) {
+                      showToast('Key copied to clipboard');
+                    } else {
+                      code.textContent = code.textContent.includes('•') ? `sk-live-${Math.random().toString(36).slice(2, 10)}` : code.textContent.replace('sk-live-', 'sk-••••');
+                    }
+                  });
+                  keysAddForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('keys-new');
+                    const value = input.value.trim();
+                    if (!value) return;
+                    (KEY_STORE[keysTarget] ||= []).push(`sk-••••${value.slice(-4)}`);
+                    input.value = '';
+                    renderKeys();
+                    showToast('Key added');
+                  });
+
+                  // ── Single + all tests ──
+                  function testOne(id, btn) {
+                    const icon = btn.querySelector('.icon use');
+                    btn.disabled = true;
+                    showToast(`Testing ${rowName(list.querySelector(`[data-name="${id}"]`))}…`);
+                    setTimeout(() => {
+                      btn.disabled = false;
+                      const fail = id === 'lmstudio';
+                      showToast(fail ? `${id}: unreachable (host down)` : `${rowName(list.querySelector(`[data-name="${id}"]`))}: OK · ${120 + Math.floor(Math.random() * 300)} ms`, fail ? 4000 : 2600);
+                    }, 1100);
+                  }
+
+                  const testDialog = document.getElementById('test-all-dialog');
+                  const testResults = document.getElementById('test-results');
+                  function runAllTests() {
+                    const enabled = rows().filter((r) => r.dataset.status === 'enabled');
+                    testResults.innerHTML = enabled.map((r) => `
+                      <div class="test-row" data-state="pending">
+                        <span class="test-name">${rowName(r)}</span>
+                        <span class="test-state">testing…</span>
+                      </div>`).join('');
+                    testDialog.showModal();
+                    enabled.forEach((r, idx) => {
+                      setTimeout(() => {
+                        const row = testResults.children[idx];
+                        const fail = Math.random() < 0.15;
+                        row.dataset.state = fail ? 'fail' : 'ok';
+                        row.querySelector('.test-state').textContent = fail ? 'unreachable' : `OK · ${100 + Math.floor(Math.random() * 350)} ms`;
+                      }, 500 + idx * 450);
+                    });
+                  }
+                  document.querySelector('[data-open-modal="test-all-dialog"]').addEventListener('click', runAllTests);
+                  document.getElementById('test-all-run').addEventListener('click', () => { testResults.innerHTML = ''; runAllTests(); });
+
+                  // Sync models
+                  const syncBtn = document.getElementById('sync-models');
+                  syncBtn.addEventListener('click', function () {
+                    this.disabled = true;
+                    showToast('Syncing models from providers…');
+                    setTimeout(() => {
+                      this.disabled = false;
+                      showToast('Model sync complete — 87 models across 5 providers');
+                    }, 1400);
+                  });
+
+                  // Stat-card actions
+                  document.getElementById('stat-goto-providers').addEventListener('click', () => {
+                    document.getElementById('provider-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  });
+                  document.getElementById('stat-filter-enabled').addEventListener('click', () => {
+                    filter.value = 'enabled';
+                    applyFilters();
+                    document.getElementById('provider-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  });
+                  document.getElementById('stat-keys').addEventListener('click', () => openKeysDialog('openai'));
+                  document.getElementById('stat-sync').addEventListener('click', () => syncBtn.click());
+                })();
+              </script>
