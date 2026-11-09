@@ -1,5 +1,91 @@
 use super::*;
 
+struct LoadedRuntimeSettings {
+    gateway_resource_limits: crate::config::GatewayResourceLimits,
+    operational_record: OperationalSettingsRecord,
+    env_operational: Result<OperationalSettings, String>,
+    output_styles: crate::support::output_styles::OutputStylesSnapshot,
+}
+
+/// Loads the persisted runtime settings and merges them with the process
+/// environment. Database overrides win over `.env` values, which win over
+/// built-in defaults.
+async fn load_runtime_settings(
+    db: &crate::infra::storage::Database,
+) -> Result<LoadedRuntimeSettings, std::io::Error> {
+    let gateway_resource_limits = crate::infra::db::load_gateway_resource_limits(db)
+        .await
+        .map_err(std::io::Error::other)?;
+    let stored_operational = crate::infra::db::load_operational_settings(db)
+        .await
+        .map_err(std::io::Error::other)?;
+    let output_styles = crate::infra::db::load_output_styles(db)
+        .await
+        .map_err(std::io::Error::other)?;
+    let env_operational = OperationalSettings::from_env();
+    let effective_operational = if stored_operational.overridden {
+        stored_operational.settings
+    } else {
+        env_operational
+            .as_ref()
+            .copied()
+            .map_err(|error| std::io::Error::other(error.clone()))?
+    };
+    let operational_record = OperationalSettingsRecord {
+        settings: effective_operational,
+        revision: stored_operational.revision,
+        overridden: stored_operational.overridden,
+    };
+    Ok(LoadedRuntimeSettings {
+        gateway_resource_limits,
+        operational_record,
+        env_operational,
+        output_styles,
+    })
+}
+
+/// Ensures an admin credential exists before the gateway can serve traffic.
+/// Generates and persists one on first run, and rejects an explicitly empty
+/// process-level override.
+fn ensure_admin_access(
+    config: &mut Config,
+    has_database_auth: bool,
+    admin_key_was_set_in_process: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if config.admin_key.is_none() && !has_database_auth {
+        if admin_key_was_set_in_process {
+            return Err("EXOROUTE_ADMIN_KEY is explicitly empty; configure a non-empty value or remove the environment override.".into());
+        }
+        let (key, generated) = crate::config::ensure_admin_key(&config.app_dir.join(".env"), None)?;
+        config.admin_key = Some(key.clone());
+        if generated {
+            if std::io::stdout().is_terminal() {
+                eprintln!(
+                    "\nGenerated initial ExoRoute admin password: {key}\nIt is also stored in {}. Keep it private.\n",
+                    config.app_dir.join(".env").display()
+                );
+            } else {
+                println!(
+                    "A random ExoRoute admin password was generated and stored in {}.",
+                    config.app_dir.join(".env").display()
+                );
+            }
+        }
+    }
+    if !has_database_auth
+        && config
+            .admin_key
+            .as_deref()
+            .map(crate::admin::password_needs_change)
+            .unwrap_or(true)
+    {
+        tracing::warn!(
+            "Legacy or weak admin password is active; gateway traffic stays disabled until it is changed through the admin login."
+        );
+    }
+    Ok(())
+}
+
 pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
     let startup_started = std::time::Instant::now();
     let command = std::env::args()
@@ -59,70 +145,17 @@ pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!(%error, "could not remove orphaned temporary settings files from a previous run");
     }
     let db = crate::infra::db::connect(&config.database_path).await?;
-    let gateway_resource_limits = crate::infra::db::load_gateway_resource_limits(&db)
-        .await
-        .map_err(std::io::Error::other)?;
-    let stored_operational = crate::infra::db::load_operational_settings(&db)
-        .await
-        .map_err(std::io::Error::other)?;
-    let output_styles = crate::infra::db::load_output_styles(&db)
-        .await
-        .map_err(std::io::Error::other)?;
-    let env_operational = OperationalSettings::from_env();
-    let effective_operational = if stored_operational.overridden {
-        stored_operational.settings
-    } else {
-        env_operational
-            .as_ref()
-            .copied()
-            .map_err(|error| std::io::Error::other(error.clone()))?
-    };
-    let operational_record = OperationalSettingsRecord {
-        settings: effective_operational,
-        revision: stored_operational.revision,
-        overridden: stored_operational.overridden,
-    };
-    apply_operational_settings_to_config(&mut config, effective_operational);
+    let loaded = load_runtime_settings(&db).await?;
+    apply_operational_settings_to_config(&mut config, loaded.operational_record.settings);
     let has_database_auth = crate::infra::db::has_admin_auth(&db).await?;
-    if config.admin_key.is_none() && !has_database_auth {
-        if admin_key_was_set_in_process {
-            return Err("EXOROUTE_ADMIN_KEY is explicitly empty; configure a non-empty value or remove the environment override.".into());
-        }
-        let (key, generated) = crate::config::ensure_admin_key(&config.app_dir.join(".env"), None)?;
-        config.admin_key = Some(key.clone());
-        if generated {
-            if std::io::stdout().is_terminal() {
-                eprintln!(
-                    "\nGenerated initial ExoRoute admin password: {key}\nIt is also stored in {}. Keep it private.\n",
-                    config.app_dir.join(".env").display()
-                );
-            } else {
-                println!(
-                    "A random ExoRoute admin password was generated and stored in {}.",
-                    config.app_dir.join(".env").display()
-                );
-            }
-        }
-    }
-    if !has_database_auth
-        && config
-            .admin_key
-            .as_deref()
-            .map(crate::admin::password_needs_change)
-            .unwrap_or(true)
-    {
-        tracing::warn!(
-            "Legacy or weak admin password is active; gateway traffic stays disabled until it is changed through the admin login."
-        );
-    }
-    let addr = config.bind;
+    ensure_admin_access(&mut config, has_database_auth, admin_key_was_set_in_process)?;
     let state = AppState::new_with_runtime_settings(
         config,
         db,
-        gateway_resource_limits,
-        operational_record,
-        env_operational,
-        output_styles,
+        loaded.gateway_resource_limits,
+        loaded.operational_record,
+        loaded.env_operational,
+        loaded.output_styles,
     );
     tokio::spawn(request_log_retention_worker(state.clone()));
     tokio::spawn(crate::admin::providers::provider_deletion_recovery_worker(
@@ -136,10 +169,12 @@ pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
             .admin_password_change_required
             .store(required, std::sync::atomic::Ordering::Release);
     }
+
     let must_change_password = state
         .admin
         .admin_password_change_required
         .load(std::sync::atomic::Ordering::Acquire);
+    let addr = state.config.bind;
     let config_ref = state.config.clone();
     let app = router(state.clone());
     let listener = tokio::net::TcpListener::bind(addr).await?;
