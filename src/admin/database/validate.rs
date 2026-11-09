@@ -143,6 +143,8 @@ pub(crate) fn validate_backup_payload(
                     record
                         .boolean("enabled")
                         .map_err(|_| "A route record in the backup is invalid.")?;
+                crate::admin::stored_retry_until_success(&record)
+                    .map_err(|_| "A route record in the backup is invalid.")?;
             }
             Table::ApiKeys => {
                 let record: Record = bincode::deserialize(&entry.value)

@@ -11,6 +11,21 @@ use crate::support::test_support::{
 };
 use std::collections::HashMap;
 
+#[test]
+fn retry_mode_defaults_off_for_legacy_route_records() {
+    assert!(!stored_retry_until_success(&Record::new()).expect("legacy default"));
+    assert!(
+        stored_retry_until_success(&Record::new().with("retry_until_success", Field::Bool(true)))
+            .expect("enabled retry mode")
+    );
+    assert!(
+        stored_retry_until_success(
+            &Record::new().with("retry_until_success", Field::Text("enabled".to_owned()))
+        )
+        .is_err()
+    );
+}
+
 fn combo_with_target_count(count: usize) -> ComboInput {
     ComboInput {
         id: "combo".to_owned(),
@@ -18,6 +33,7 @@ fn combo_with_target_count(count: usize) -> ComboInput {
         strategy: "priority".to_owned(),
         accepted_protocols: all_protocols(),
         enabled: true,
+        retry_until_success: false,
         targets: (0..count)
             .map(|index| ComboTargetInput {
                 provider_id: format!("provider-{index}"),
@@ -181,6 +197,7 @@ fn combo_with_references(id: &str, name: &str, references: &[String]) -> ComboIn
         strategy: "priority".to_owned(),
         accepted_protocols: all_protocols(),
         enabled: true,
+        retry_until_success: false,
         targets: references
             .iter()
             .enumerate()
@@ -454,6 +471,7 @@ async fn delete_succeeds_once_the_nested_reference_is_gone() {
                 strategy: "priority".to_owned(),
                 accepted_protocols: all_protocols(),
                 enabled: true,
+                retry_until_success: false,
                 targets: vec![provider_target("provider", "model", 0)],
             },
             Some(MAX_ROUTE_TARGETS),
@@ -756,6 +774,7 @@ async fn combo_creation_and_update_preserves_disabled_target_state() {
         strategy: "priority".to_owned(),
         accepted_protocols: vec!["chat_completions".to_owned()],
         enabled: true,
+        retry_until_success: false,
         targets: vec![
             ComboTargetInput {
                 provider_id: "provider".to_owned(),

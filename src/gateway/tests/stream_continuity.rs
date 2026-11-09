@@ -69,6 +69,7 @@ async fn stream_continuity_retries_rate_limit_and_server_failures_before_emittin
             analytics: None,
             stream_continuity_retry: false,
         },
+        false,
     )
     .await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -148,6 +149,7 @@ async fn stream_continuity_retries_upstream_timeout_before_emitting_an_error() {
             analytics: None,
             stream_continuity_retry: false,
         },
+        false,
     )
     .await;
     assert_eq!(response.status(), StatusCode::OK);

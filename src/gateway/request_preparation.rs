@@ -35,6 +35,7 @@ pub(super) struct Target {
 pub(super) struct StoredRoute {
     pub(super) enabled: bool,
     pub(super) strategy: String,
+    pub(super) retry_until_success: bool,
     pub(super) accepted_protocols: Vec<String>,
     pub(super) targets: Vec<Target>,
     /// Set when the stored target list cannot be routed as written. The save
@@ -76,6 +77,7 @@ pub(super) struct PreparedGatewayRequest {
     pub(super) canonical: protocol::CanonicalRequest,
     pub(super) route_alias: String,
     pub(super) targets: Vec<Target>,
+    pub(super) retry_until_success: bool,
     pub(super) background_continuity: bool,
 }
 
@@ -181,7 +183,7 @@ pub(super) async fn prepare_gateway_request(
     let route_alias = canonical.model.clone();
     let background_continuity =
         resource_limits.stream_continuity_enabled && !api_key_present && canonical.stream;
-    let mut targets = resolve_gateway_targets(
+    let (mut targets, retry_until_success) = resolve_gateway_targets(
         &state,
         &route_alias,
         client_protocol,
@@ -199,6 +201,7 @@ pub(super) async fn prepare_gateway_request(
         canonical,
         route_alias,
         targets,
+        retry_until_success,
         background_continuity,
     })
 }
@@ -245,11 +248,11 @@ async fn resolve_gateway_targets(
     route_alias: &str,
     client_protocol: Protocol,
     target_rotation_offset: usize,
-) -> Result<Vec<Target>, GatewayRequestPreparationError> {
+) -> Result<(Vec<Target>, bool), GatewayRequestPreparationError> {
     let route = load_stored_route(&state.db, route_alias, client_protocol)
         .await
         .map_err(GatewayRequestPreparationError::Database)?;
-    let (strategy, mut targets) = if let Some(route) = route {
+    let (strategy, mut targets, retry_until_success) = if let Some(route) = route {
         if !route.enabled {
             return Err(GatewayRequestPreparationError::Client {
                 status: StatusCode::NOT_FOUND,
@@ -291,13 +294,15 @@ async fn resolve_gateway_targets(
                 message,
             });
         }
-        (route.strategy, route.targets)
+        (route.strategy, route.targets, route.retry_until_success)
     } else {
         match resolve_provider_model_alias(&state.db, route_alias)
             .await
             .map_err(GatewayRequestPreparationError::Database)?
         {
-            ProviderModelAliasResolution::Found(target) => ("priority".to_owned(), vec![target]),
+            ProviderModelAliasResolution::Found(target) => {
+                ("priority".to_owned(), vec![target], false)
+            }
             ProviderModelAliasResolution::NotFound => {
                 return Err(GatewayRequestPreparationError::Client {
                     status: StatusCode::NOT_FOUND,
@@ -315,7 +320,9 @@ async fn resolve_gateway_targets(
             message: "route has no enabled targets".to_owned(),
         });
     }
-    if strategy == "round_robin" {
+    // An unbounded retry cycle must restart with the same first configured
+    // target; advancing round-robin state here would skip the combo's start.
+    if strategy == "round_robin" && !retry_until_success {
         let mut indexes = state.gates.round_robin.lock().await;
         let current = indexes.entry(route_alias.to_owned()).or_insert(0);
         let rotate_by = *current % targets.len();
@@ -324,7 +331,7 @@ async fn resolve_gateway_targets(
     } else {
         order_priority_targets(&mut targets, target_rotation_offset);
     }
-    Ok(targets)
+    Ok((targets, retry_until_success))
 }
 
 /// Rotates the target list for a retry.
@@ -364,7 +371,10 @@ pub(super) async fn load_stored_route(
             serde_json::from_str(route.text("accepted_protocols")?).map_err(|error| {
                 StorageError::Codec(format!("route protocol list is invalid: {error}"))
             })?;
-        let mut flattened = FlattenedTargets::default();
+        let mut flattened = FlattenedTargets {
+            retry_until_success: crate::admin::stored_retry_until_success(&route)?,
+            ..FlattenedTargets::default()
+        };
         let mut path = vec![route_id.clone()];
         flatten_route_targets(
             transaction,
@@ -376,6 +386,7 @@ pub(super) async fn load_stored_route(
         Ok(Some(StoredRoute {
             enabled: route.boolean("enabled")?,
             strategy: route.text("strategy")?.to_owned(),
+            retry_until_success: flattened.retry_until_success,
             accepted_protocols,
             targets: flattened.targets,
             flatten_issue: flattened.issue,
@@ -384,12 +395,31 @@ pub(super) async fn load_stored_route(
     .await
 }
 
+pub(super) async fn route_retries_until_success(
+    db: &crate::infra::storage::Database,
+    route_id: &str,
+    client_protocol: Protocol,
+) -> Result<bool, StorageError> {
+    let Some(route) = load_stored_route(db, route_id, client_protocol).await? else {
+        return Ok(false);
+    };
+    Ok(route.enabled
+        && route.retry_until_success
+        && route
+            .accepted_protocols
+            .iter()
+            .any(|protocol| protocol == client_protocol.as_str())
+        && route.flatten_issue.is_none()
+        && !route.targets.is_empty())
+}
+
 /// The target list accumulated while flattening, plus the first structural
 /// problem found. Flattening stops at the first problem: the route is unroutable
 /// either way and the partial list is never dispatched.
 #[derive(Default)]
 struct FlattenedTargets {
     targets: Vec<Target>,
+    retry_until_success: bool,
     issue: Option<FlattenIssue>,
 }
 
@@ -470,6 +500,7 @@ fn flatten_route_targets(
             );
             continue;
         }
+        out.retry_until_success |= crate::admin::stored_retry_until_success(&nested)?;
         path.push(combo_id.clone());
         flatten_route_targets(transaction, &combo_id, client_protocol, path, out)?;
         path.pop();

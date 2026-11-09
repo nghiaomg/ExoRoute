@@ -28,6 +28,7 @@ impl Orchestrator {
             mut canonical,
             route_alias,
             targets,
+            retry_until_success,
             background_continuity,
         } = match prepare_gateway_request(GatewayRequestPreparation {
             state: self.state.clone(),
@@ -138,16 +139,23 @@ impl Orchestrator {
                 }
             }
         }
-        self.final_failure(
-            &scope,
-            &canonical,
-            &route_alias,
-            request_api_key_id.as_deref(),
-            live.clone(),
-            failures,
-            started,
-        )
-        .await
+        let mut response = self
+            .final_failure(
+                &scope,
+                &canonical,
+                &route_alias,
+                request_api_key_id.as_deref(),
+                live.clone(),
+                failures,
+                started,
+            )
+            .await;
+        if retry_until_success {
+            response
+                .extensions_mut()
+                .insert(super::super::RetryableComboExhaustion);
+        }
+        response
     }
 
     /// Turns a completed upstream result into the client response.

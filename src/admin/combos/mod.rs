@@ -64,6 +64,8 @@ pub(super) struct ComboInput {
     #[serde(default = "yes")]
     pub enabled: bool,
     #[serde(default)]
+    pub retry_until_success: bool,
+    #[serde(default)]
     pub targets: Vec<ComboTargetInput>,
 }
 
@@ -100,6 +102,7 @@ struct ComboView {
     strategy: String,
     accepted_protocols: Vec<String>,
     enabled: bool,
+    retry_until_success: bool,
     targets: Vec<ComboTargetInput>,
 }
 
@@ -229,6 +232,7 @@ async fn list_items(state: AppState, combos: bool) -> ApiResult {
                     strategy: record.text("strategy")?.to_owned(),
                     accepted_protocols: protocols,
                     enabled: record.boolean("enabled")?,
+                    retry_until_success: stored_retry_until_success(&record)?,
                     targets,
                 });
             }
@@ -242,6 +246,16 @@ async fn list_items(state: AppState, combos: bool) -> ApiResult {
         json!(items),
     );
     Ok(Json(Value::Object(response)))
+}
+
+pub(crate) fn stored_retry_until_success(record: &Record) -> Result<bool, StorageError> {
+    match record.field("retry_until_success") {
+        Some(Field::Bool(value)) => Ok(*value),
+        None | Some(Field::Null) => Ok(false),
+        _ => Err(StorageError::Invalid(
+            "route retry mode is malformed".to_owned(),
+        )),
+    }
 }
 
 pub(super) async fn create_route(

@@ -10,6 +10,10 @@ pub(super) fn route_record(input: &ComboInput) -> Result<Record, StorageError> {
         .with("strategy", Field::Text(input.strategy.clone()))
         .with("accepted_protocols", Field::Text(accepted))
         .with("enabled", Field::Bool(input.enabled))
+        .with(
+            "retry_until_success",
+            Field::Bool(input.retry_until_success),
+        )
         .with("created_at", Field::Text(now.clone()))
         .with("updated_at", Field::Text(now)))
 }

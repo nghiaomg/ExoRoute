@@ -97,6 +97,11 @@ pub(in crate::gateway) async fn handle_request_with_limits_and_owner(
     if let Some(analytics) = &execution_settings.analytics {
         analytics.set_requested_model(body.get("model").and_then(Value::as_str));
     }
+    let retry_until_success_combo =
+        match combo_retry_until_success(&state, &body, client_protocol).await {
+            Ok(enabled) => enabled,
+            Err(error) => return gateway_database_error(error),
+        };
     let continuity_requested = execution_settings.resource_limits.stream_continuity_enabled
         && execution_settings.api_key_id.is_some()
         && body.get("stream").and_then(Value::as_bool) == Some(true);
@@ -104,8 +109,27 @@ pub(in crate::gateway) async fn handle_request_with_limits_and_owner(
         if let Some(analytics) = &execution_settings.analytics {
             analytics.defer_completion();
         }
-        return start_continuous_request(state, headers, body, client_protocol, execution_settings)
-            .await;
+        return start_continuous_request(
+            state,
+            headers,
+            body,
+            client_protocol,
+            execution_settings,
+            retry_until_success_combo,
+        )
+        .await;
+    }
+    if retry_until_success_combo {
+        return execute_with_server_retries_policy(
+            state,
+            headers,
+            body,
+            client_protocol,
+            None,
+            execution_settings,
+            true,
+        )
+        .await;
     }
     match tokio::time::timeout(
         server_retry_deadline(
@@ -137,6 +161,7 @@ pub(in crate::gateway) async fn start_continuous_request(
     body: Arc<Value>,
     client_protocol: Protocol,
     mut execution_settings: GatewayExecutionSettings,
+    retry_until_success_combo: bool,
 ) -> Response {
     let Some(api_key_id) = execution_settings.api_key_id.clone() else {
         return gateway_error(
@@ -210,13 +235,14 @@ pub(in crate::gateway) async fn start_continuous_request(
         state.shutdown_receiver(),
         execution_settings.operational_settings.upstream,
     );
-    let request = execute_with_server_retries(
+    let request = execute_with_server_retries_policy(
         state.clone(),
         headers,
         body,
         client_protocol,
         None,
         execution_settings,
+        retry_until_success_combo,
     );
     continuity::start_background_request(
         state,
@@ -232,6 +258,17 @@ pub(in crate::gateway) async fn start_continuous_request(
     )
     .await;
     live
+}
+
+async fn combo_retry_until_success(
+    state: &AppState,
+    body: &Value,
+    client_protocol: Protocol,
+) -> Result<bool, StorageError> {
+    let Some(route_id) = body.get("model").and_then(Value::as_str) else {
+        return Ok(false);
+    };
+    request_preparation::route_retries_until_success(&state.db, route_id, client_protocol).await
 }
 
 #[cfg(test)]
@@ -271,18 +308,95 @@ pub(in crate::gateway) async fn execute_with_server_retries(
     adapter_base_url_override: Option<&str>,
     execution_settings: GatewayExecutionSettings,
 ) -> Response {
+    execute_with_server_retries_policy(
+        state,
+        headers,
+        body,
+        client_protocol,
+        adapter_base_url_override,
+        execution_settings,
+        false,
+    )
+    .await
+}
+
+async fn execute_with_server_retries_policy(
+    state: AppState,
+    headers: HeaderMap,
+    body: Arc<Value>,
+    client_protocol: Protocol,
+    adapter_base_url_override: Option<&str>,
+    execution_settings: GatewayExecutionSettings,
+    retry_until_success_combo: bool,
+) -> Response {
     let mut attempt = 0;
+    let mut shutdown = state.shutdown_receiver();
+    if retry_until_success_combo && *shutdown.borrow() {
+        return gateway_error(StatusCode::SERVICE_UNAVAILABLE, "gateway is shutting down");
+    }
     loop {
-        let response = handle_request_inner_with_adapter_base_url_override_and_limits(
+        let target_rotation_offset = if retry_until_success_combo {
+            0
+        } else {
+            attempt
+        };
+        let request = handle_request_inner_with_adapter_base_url_override_and_limits(
             state.clone(),
             headers.clone(),
             Arc::clone(&body),
             client_protocol,
             adapter_base_url_override,
             execution_settings.clone(),
-            attempt,
-        )
-        .await;
+            target_rotation_offset,
+        );
+        let response = if retry_until_success_combo {
+            tokio::select! {
+                response = request => response,
+                _ = shutdown.changed() => {
+                    return gateway_error(StatusCode::SERVICE_UNAVAILABLE, "gateway is shutting down");
+                }
+            }
+        } else {
+            request.await
+        };
+        let exhausted_combo = response
+            .extensions()
+            .get::<super::RetryableComboExhaustion>()
+            .is_some();
+        if exhausted_combo && retry_until_success_combo {
+            if response.status().is_success()
+                || response.status() == StatusCode::BAD_REQUEST
+                || response.status() == StatusCode::PAYLOAD_TOO_LARGE
+            {
+                return response;
+            }
+            let retry_after = response
+                .headers()
+                .get(header::RETRY_AFTER)
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.parse::<u64>().ok())
+                .map(Duration::from_secs);
+            let delay = retry_policy::continuity_retry_delay(
+                attempt,
+                retry_after,
+                execution_settings.operational_settings.upstream,
+            );
+            tracing::warn!(
+                status = response.status().as_u16(),
+                retry_number = attempt.saturating_add(1),
+                delay_ms = delay.as_millis() as u64,
+                "combo targets exhausted; restarting combo until success"
+            );
+            drop(response);
+            tokio::select! {
+                _ = tokio::time::sleep(delay) => {},
+                _ = shutdown.changed() => {
+                    return gateway_error(StatusCode::SERVICE_UNAVAILABLE, "gateway is shutting down");
+                }
+            }
+            attempt = attempt.saturating_add(1);
+            continue;
+        }
         if execution_settings.stream_continuity_retry {
             if !is_retryable(response.status()) {
                 return response;

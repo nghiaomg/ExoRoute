@@ -80,6 +80,9 @@ struct GatewayExecutionSettings {
     stream_continuity_retry: bool,
 }
 
+#[derive(Clone, Copy)]
+pub(super) struct RetryableComboExhaustion;
+
 static API_KEY_LAST_USED_UPDATES: LazyLock<RateLimiter> = LazyLock::new(|| {
     RateLimiter::new(RateLimiterConfig::new(
         RateLimitPolicy::FixedWindow {

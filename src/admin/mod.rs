@@ -38,6 +38,7 @@ use tokio::{net::TcpListener, sync::watch, task::JoinSet, time::Duration};
 mod api_keys;
 mod auth;
 mod combos;
+pub(crate) use combos::stored_retry_until_success;
 mod cookie_policy;
 mod database;
 mod errors;
