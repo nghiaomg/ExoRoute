@@ -280,22 +280,328 @@ fn preflight_backup_payload(bytes: &[u8]) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<(), &'static str> {
-    fn put_index(
-        indexes: &mut Vec<SnapshotEntry>,
-        table: Table,
-        key: String,
-        value: String,
-    ) -> Result<(), &'static str> {
-        let encoded = bincode::serialize(&value).map_err(|_| "The backup indexes are invalid.")?;
-        indexes.push(SnapshotEntry {
-            table,
-            key,
-            value: encoded,
-        });
-        Ok(())
+fn index_provider_record(
+    indexes: &mut Vec<SnapshotEntry>,
+    record: &Record,
+) -> Result<(), &'static str> {
+    let id = record
+        .text("id")
+        .map_err(|_| "The backup contains an invalid provider record.")?;
+    let name = record
+        .text("name")
+        .map_err(|_| "The backup contains an invalid provider record.")?;
+    let adapter_id = record
+        .optional_text("adapter_id")
+        .map_err(|_| "The backup contains an invalid provider record.")?;
+    let adapter_id = adapter_id.unwrap_or(provider_adapters::GENERIC_ADAPTER_ID);
+    let prefix = super::providers::normalized_provider_model_prefix_for_adapter(
+        record.optional_text("model_prefix").ok().flatten(),
+        id,
+        adapter_id,
+    )
+    .map_err(|_| "The backup contains an invalid provider model prefix.")?;
+    if super::providers::validate_provider_deletion_state(record)
+        .map_err(|_| "The backup contains invalid provider deletion state.")?
+    {
+        put_index(
+            indexes,
+            Table::Indexes,
+            super::providers::provider_deletion_index_key(id)
+                .map_err(|_| "The backup contains an invalid provider deletion index.")?,
+            id.to_owned(),
+        )?;
     }
+    put_index(
+        indexes,
+        Table::ProviderNameIndex,
+        super::providers::provider_name_index_key(name, id)
+            .map_err(|_| "The backup contains an invalid provider index.")?,
+        id.to_owned(),
+    )?;
+    put_index(
+        indexes,
+        Table::Indexes,
+        super::providers::provider_prefix_index_key(&prefix)
+            .map_err(|_| "The backup contains an invalid provider index.")?,
+        id.to_owned(),
+    )?;
+    Ok(())
+}
 
+fn index_provider_api_key(
+    indexes: &mut Vec<SnapshotEntry>,
+    record: &Record,
+) -> Result<(), &'static str> {
+    let id = record
+        .text("id")
+        .map_err(|_| "The backup contains an invalid provider API key.")?;
+    let (all_key, created_key, available_key) =
+        super::providers::provider_api_key_index_keys(record)
+            .map_err(|_| "The backup contains an invalid provider API key index.")?;
+    put_index(indexes, Table::ProviderApiKeyIndex, all_key, id.to_owned())?;
+    put_index(
+        indexes,
+        Table::ProviderApiKeyCreatedIndex,
+        created_key,
+        id.to_owned(),
+    )?;
+    if record
+        .boolean("enabled")
+        .map_err(|_| "The backup contains an invalid provider API key.")?
+        && !record
+            .boolean("invalid")
+            .map_err(|_| "The backup contains an invalid provider API key.")?
+    {
+        put_index(
+            indexes,
+            Table::ProviderApiKeyAvailabilityIndex,
+            available_key,
+            id.to_owned(),
+        )?;
+    }
+    if let Some(identity_key) = super::providers::provider_api_key_identity_index_key(record)
+        .map_err(|_| "The backup contains an invalid provider API key index.")?
+    {
+        put_index(
+            indexes,
+            Table::ProviderApiKeyIndex,
+            identity_key,
+            id.to_owned(),
+        )?;
+    }
+    Ok(())
+}
+
+fn index_provider_model(
+    indexes: &mut Vec<SnapshotEntry>,
+    record: &Record,
+) -> Result<(), &'static str> {
+    let provider_id = record
+        .text("provider_id")
+        .map_err(|_| "The backup contains an invalid provider model.")?;
+    let model = record
+        .text("model")
+        .map_err(|_| "The backup contains an invalid provider model.")?;
+    put_index(
+        indexes,
+        Table::ProviderModelIndex,
+        crate::infra::db::provider_model_index_key(provider_id, model)
+            .map_err(|_| "The backup contains an invalid provider model index.")?,
+        model.to_owned(),
+    )?;
+    Ok(())
+}
+
+fn index_route(indexes: &mut Vec<SnapshotEntry>, record: &Record) -> Result<(), &'static str> {
+    let id = record
+        .text("id")
+        .map_err(|_| "The backup contains an invalid route.")?;
+    let name = record
+        .text("name")
+        .map_err(|_| "The backup contains an invalid route.")?;
+    put_index(
+        indexes,
+        Table::RouteNameIndex,
+        super::combos::route_name_index_key(name, id)
+            .map_err(|_| "The backup contains an invalid route index.")?,
+        id.to_owned(),
+    )?;
+    Ok(())
+}
+
+fn index_route_target(
+    indexes: &mut Vec<SnapshotEntry>,
+    record: &Record,
+    entry_key: &str,
+) -> Result<(), &'static str> {
+    if let Some(combo_id) = record
+        .optional_text("combo_id")
+        .map_err(|_| "The backup contains an invalid route target.")?
+    {
+        // The combo index answers "which routes reference this
+        // combo", so it stores the referencing route id.
+        let route_id = record
+            .text("route_id")
+            .map_err(|_| "The backup contains an invalid route target.")?;
+        put_index(
+            indexes,
+            Table::RouteTargetComboIndex,
+            super::combos::route_target_combo_index_key(combo_id, entry_key)
+                .map_err(|_| "The backup contains an invalid route target index.")?,
+            route_id.to_owned(),
+        )?;
+    } else {
+        let provider_id = record
+            .text("provider_id")
+            .map_err(|_| "The backup contains an invalid route target.")?;
+        put_index(
+            indexes,
+            Table::RouteTargetProviderIndex,
+            super::combos::route_target_provider_index_key(provider_id, entry_key)
+                .map_err(|_| "The backup contains an invalid route target index.")?,
+            entry_key.to_owned(),
+        )?;
+    }
+    Ok(())
+}
+
+fn index_gateway_api_key(
+    indexes: &mut Vec<SnapshotEntry>,
+    record: &Record,
+) -> Result<(), &'static str> {
+    let id = record
+        .text("id")
+        .map_err(|_| "The backup contains an invalid gateway API key.")?;
+    let created_at = record
+        .text("created_at")
+        .map_err(|_| "The backup contains an invalid gateway API key.")?;
+    let token_hash = record
+        .bytes("token_hash")
+        .map_err(|_| "The backup contains an invalid gateway API key.")?;
+    put_index(
+        indexes,
+        Table::ApiKeyIndex,
+        super::api_keys::api_key_index_key(created_at, id)
+            .map_err(|_| "The backup contains an invalid gateway API key index.")?,
+        id.to_owned(),
+    )?;
+    put_index(
+        indexes,
+        Table::ApiKeyTokenIndex,
+        super::api_keys::api_key_token_index_key(token_hash),
+        id.to_owned(),
+    )?;
+    Ok(())
+}
+
+fn index_request_log(
+    indexes: &mut Vec<SnapshotEntry>,
+    record: &Record,
+) -> Result<(), &'static str> {
+    let id = record
+        .text("id")
+        .map_err(|_| "The backup contains an invalid request log.")?;
+    let created_at = record
+        .text("created_at")
+        .map_err(|_| "The backup contains an invalid request log.")?;
+    put_index(
+        indexes,
+        Table::RequestLogIndex,
+        crate::infra::db::request_log_index_key(created_at, id)
+            .map_err(|_| "The backup contains an invalid request log index.")?,
+        id.to_owned(),
+    )?;
+    put_index(
+        indexes,
+        Table::RequestLogIndex,
+        crate::infra::db::request_log_desc_index_key(created_at, id)
+            .map_err(|_| "The backup contains an invalid request log index.")?,
+        id.to_owned(),
+    )?;
+    Ok(())
+}
+
+fn index_provider_usage_meter(record: &Record, entry_key: &str) -> Result<(), &'static str> {
+    let (credential_id, minute_text) = entry_key
+        .rsplit_once('/')
+        .ok_or("The backup contains an invalid provider usage meter key.")?;
+    if credential_id.is_empty()
+        || credential_id.len() > 256
+        || credential_id.contains('/')
+        || minute_text.len() != 20
+    {
+        return Err("The backup contains an invalid provider usage meter key.");
+    }
+    let minute = minute_text
+        .parse::<i64>()
+        .map_err(|_| "The backup contains an invalid provider usage meter key.")?;
+    if minute < 0
+        || record
+            .text("credential_id")
+            .map_err(|_| "The backup contains an invalid provider usage meter record.")?
+            != credential_id
+        || record
+            .integer("minute")
+            .map_err(|_| "The backup contains an invalid provider usage meter record.")?
+            != minute
+    {
+        return Err("The backup contains an invalid provider usage meter record.");
+    }
+    for field in [
+        "request_count",
+        "cost_micro_usd",
+        "cost_events",
+        "missing_cost_events",
+        "input_tokens",
+        "output_tokens",
+    ] {
+        if record
+            .integer(field)
+            .map_err(|_| "The backup contains an invalid provider usage meter record.")?
+            < 0
+        {
+            return Err("The backup contains an invalid provider usage meter record.");
+        }
+    }
+    Ok(())
+}
+
+fn index_usage_window(
+    indexes: &mut Vec<SnapshotEntry>,
+    record: &Record,
+    entry_key: &str,
+) -> Result<(), &'static str> {
+    let mut parts = entry_key.splitn(3, '/');
+    let window_minutes = parts
+        .next()
+        .and_then(|value| value.parse::<i64>().ok())
+        .ok_or("The backup contains an invalid statistics record.")?;
+    let dimension_kind = parts
+        .next()
+        .and_then(|value| value.parse::<i64>().ok())
+        .ok_or("The backup contains an invalid statistics record.")?;
+    let dimension_id = parts
+        .next()
+        .ok_or("The backup contains an invalid statistics record.")?;
+    let request_count = record
+        .integer("request_count")
+        .map_err(|_| "The backup contains an invalid statistics record.")?;
+    if request_count < 0 {
+        return Err("The backup contains an invalid statistics record.");
+    }
+    if request_count > 0 {
+        put_index(
+            indexes,
+            Table::StatisticsIndex,
+            crate::infra::telemetry::top_index_key(
+                window_minutes,
+                dimension_kind,
+                request_count,
+                dimension_id,
+            )
+            .map_err(|_| "The backup contains an invalid statistics index.")?,
+            dimension_id.to_owned(),
+        )?;
+    }
+    Ok(())
+}
+
+fn put_index(
+    indexes: &mut Vec<SnapshotEntry>,
+    table: Table,
+    key: String,
+    value: String,
+) -> Result<(), &'static str> {
+    let encoded = bincode::serialize(&value).map_err(|_| "The backup indexes are invalid.")?;
+    indexes.push(SnapshotEntry {
+        table,
+        key,
+        value: encoded,
+    });
+    Ok(())
+}
+
+fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<(), &'static str> {
     let is_derived_index = |table| {
         matches!(
             table,
@@ -346,276 +652,15 @@ fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<
             _ => continue,
         };
         match entry.table {
-            Table::Providers => {
-                let id = record
-                    .text("id")
-                    .map_err(|_| "The backup contains an invalid provider record.")?;
-                let name = record
-                    .text("name")
-                    .map_err(|_| "The backup contains an invalid provider record.")?;
-                let adapter_id = record
-                    .optional_text("adapter_id")
-                    .map_err(|_| "The backup contains an invalid provider record.")?;
-                let adapter_id = adapter_id.unwrap_or(provider_adapters::GENERIC_ADAPTER_ID);
-                let prefix = super::providers::normalized_provider_model_prefix_for_adapter(
-                    record.optional_text("model_prefix").ok().flatten(),
-                    id,
-                    adapter_id,
-                )
-                .map_err(|_| "The backup contains an invalid provider model prefix.")?;
-                if super::providers::validate_provider_deletion_state(&record)
-                    .map_err(|_| "The backup contains invalid provider deletion state.")?
-                {
-                    put_index(
-                        &mut indexes,
-                        Table::Indexes,
-                        super::providers::provider_deletion_index_key(id).map_err(
-                            |_| "The backup contains an invalid provider deletion index.",
-                        )?,
-                        id.to_owned(),
-                    )?;
-                }
-                put_index(
-                    &mut indexes,
-                    Table::ProviderNameIndex,
-                    super::providers::provider_name_index_key(name, id)
-                        .map_err(|_| "The backup contains an invalid provider index.")?,
-                    id.to_owned(),
-                )?;
-                put_index(
-                    &mut indexes,
-                    Table::Indexes,
-                    super::providers::provider_prefix_index_key(&prefix)
-                        .map_err(|_| "The backup contains an invalid provider index.")?,
-                    id.to_owned(),
-                )?;
-            }
-            Table::ProviderApiKeys => {
-                let id = record
-                    .text("id")
-                    .map_err(|_| "The backup contains an invalid provider API key.")?;
-                let (all_key, created_key, available_key) =
-                    super::providers::provider_api_key_index_keys(&record)
-                        .map_err(|_| "The backup contains an invalid provider API key index.")?;
-                put_index(
-                    &mut indexes,
-                    Table::ProviderApiKeyIndex,
-                    all_key,
-                    id.to_owned(),
-                )?;
-                put_index(
-                    &mut indexes,
-                    Table::ProviderApiKeyCreatedIndex,
-                    created_key,
-                    id.to_owned(),
-                )?;
-                if record
-                    .boolean("enabled")
-                    .map_err(|_| "The backup contains an invalid provider API key.")?
-                    && !record
-                        .boolean("invalid")
-                        .map_err(|_| "The backup contains an invalid provider API key.")?
-                {
-                    put_index(
-                        &mut indexes,
-                        Table::ProviderApiKeyAvailabilityIndex,
-                        available_key,
-                        id.to_owned(),
-                    )?;
-                }
-                if let Some(identity_key) =
-                    super::providers::provider_api_key_identity_index_key(&record)
-                        .map_err(|_| "The backup contains an invalid provider API key index.")?
-                {
-                    put_index(
-                        &mut indexes,
-                        Table::ProviderApiKeyIndex,
-                        identity_key,
-                        id.to_owned(),
-                    )?;
-                }
-            }
-            Table::ProviderModels => {
-                let provider_id = record
-                    .text("provider_id")
-                    .map_err(|_| "The backup contains an invalid provider model.")?;
-                let model = record
-                    .text("model")
-                    .map_err(|_| "The backup contains an invalid provider model.")?;
-                put_index(
-                    &mut indexes,
-                    Table::ProviderModelIndex,
-                    crate::infra::db::provider_model_index_key(provider_id, model)
-                        .map_err(|_| "The backup contains an invalid provider model index.")?,
-                    model.to_owned(),
-                )?;
-            }
-            Table::Routes => {
-                let id = record
-                    .text("id")
-                    .map_err(|_| "The backup contains an invalid route.")?;
-                let name = record
-                    .text("name")
-                    .map_err(|_| "The backup contains an invalid route.")?;
-                put_index(
-                    &mut indexes,
-                    Table::RouteNameIndex,
-                    super::combos::route_name_index_key(name, id)
-                        .map_err(|_| "The backup contains an invalid route index.")?,
-                    id.to_owned(),
-                )?;
-            }
-            Table::RouteTargets => {
-                let combo_id = record
-                    .optional_text("combo_id")
-                    .map_err(|_| "The backup contains an invalid route target.")?;
-                if let Some(combo_id) = combo_id {
-                    // The combo index answers "which routes reference this
-                    // combo", so it stores the referencing route id.
-                    let route_id = record
-                        .text("route_id")
-                        .map_err(|_| "The backup contains an invalid route target.")?;
-                    put_index(
-                        &mut indexes,
-                        Table::RouteTargetComboIndex,
-                        super::combos::route_target_combo_index_key(combo_id, &entry.key)
-                            .map_err(|_| "The backup contains an invalid route target index.")?,
-                        route_id.to_owned(),
-                    )?;
-                } else {
-                    let provider_id = record
-                        .text("provider_id")
-                        .map_err(|_| "The backup contains an invalid route target.")?;
-                    put_index(
-                        &mut indexes,
-                        Table::RouteTargetProviderIndex,
-                        super::combos::route_target_provider_index_key(provider_id, &entry.key)
-                            .map_err(|_| "The backup contains an invalid route target index.")?,
-                        entry.key.clone(),
-                    )?;
-                }
-            }
-            Table::ApiKeys => {
-                let id = record
-                    .text("id")
-                    .map_err(|_| "The backup contains an invalid gateway API key.")?;
-                let created_at = record
-                    .text("created_at")
-                    .map_err(|_| "The backup contains an invalid gateway API key.")?;
-                let token_hash = record
-                    .bytes("token_hash")
-                    .map_err(|_| "The backup contains an invalid gateway API key.")?;
-                put_index(
-                    &mut indexes,
-                    Table::ApiKeyIndex,
-                    super::api_keys::api_key_index_key(created_at, id)
-                        .map_err(|_| "The backup contains an invalid gateway API key index.")?,
-                    id.to_owned(),
-                )?;
-                put_index(
-                    &mut indexes,
-                    Table::ApiKeyTokenIndex,
-                    super::api_keys::api_key_token_index_key(token_hash),
-                    id.to_owned(),
-                )?;
-            }
-            Table::RequestLogs => {
-                let id = record
-                    .text("id")
-                    .map_err(|_| "The backup contains an invalid request log.")?;
-                let created_at = record
-                    .text("created_at")
-                    .map_err(|_| "The backup contains an invalid request log.")?;
-                put_index(
-                    &mut indexes,
-                    Table::RequestLogIndex,
-                    crate::infra::db::request_log_index_key(created_at, id)
-                        .map_err(|_| "The backup contains an invalid request log index.")?,
-                    id.to_owned(),
-                )?;
-                put_index(
-                    &mut indexes,
-                    Table::RequestLogIndex,
-                    crate::infra::db::request_log_desc_index_key(created_at, id)
-                        .map_err(|_| "The backup contains an invalid request log index.")?,
-                    id.to_owned(),
-                )?;
-            }
-            Table::ProviderUsageMeters => {
-                let (credential_id, minute_text) = entry
-                    .key
-                    .rsplit_once('/')
-                    .ok_or("The backup contains an invalid provider usage meter key.")?;
-                if credential_id.is_empty()
-                    || credential_id.len() > 256
-                    || credential_id.contains('/')
-                    || minute_text.len() != 20
-                {
-                    return Err("The backup contains an invalid provider usage meter key.");
-                }
-                let minute = minute_text
-                    .parse::<i64>()
-                    .map_err(|_| "The backup contains an invalid provider usage meter key.")?;
-                if minute < 0
-                    || record.text("credential_id").map_err(
-                        |_| "The backup contains an invalid provider usage meter record.",
-                    )? != credential_id
-                    || record.integer("minute").map_err(
-                        |_| "The backup contains an invalid provider usage meter record.",
-                    )? != minute
-                {
-                    return Err("The backup contains an invalid provider usage meter record.");
-                }
-                for field in [
-                    "request_count",
-                    "cost_micro_usd",
-                    "cost_events",
-                    "missing_cost_events",
-                    "input_tokens",
-                    "output_tokens",
-                ] {
-                    if record.integer(field).map_err(
-                        |_| "The backup contains an invalid provider usage meter record.",
-                    )? < 0
-                    {
-                        return Err("The backup contains an invalid provider usage meter record.");
-                    }
-                }
-            }
-            Table::UsageWindows => {
-                let mut parts = entry.key.splitn(3, '/');
-                let window_minutes = parts
-                    .next()
-                    .and_then(|value| value.parse::<i64>().ok())
-                    .ok_or("The backup contains an invalid statistics record.")?;
-                let dimension_kind = parts
-                    .next()
-                    .and_then(|value| value.parse::<i64>().ok())
-                    .ok_or("The backup contains an invalid statistics record.")?;
-                let dimension_id = parts
-                    .next()
-                    .ok_or("The backup contains an invalid statistics record.")?;
-                let request_count = record
-                    .integer("request_count")
-                    .map_err(|_| "The backup contains an invalid statistics record.")?;
-                if request_count < 0 {
-                    return Err("The backup contains an invalid statistics record.");
-                }
-                if request_count > 0 {
-                    put_index(
-                        &mut indexes,
-                        Table::StatisticsIndex,
-                        crate::infra::telemetry::top_index_key(
-                            window_minutes,
-                            dimension_kind,
-                            request_count,
-                            dimension_id,
-                        )
-                        .map_err(|_| "The backup contains an invalid statistics index.")?,
-                        dimension_id.to_owned(),
-                    )?;
-                }
-            }
+            Table::Providers => index_provider_record(&mut indexes, &record)?,
+            Table::ProviderApiKeys => index_provider_api_key(&mut indexes, &record)?,
+            Table::ProviderModels => index_provider_model(&mut indexes, &record)?,
+            Table::Routes => index_route(&mut indexes, &record)?,
+            Table::RouteTargets => index_route_target(&mut indexes, &record, &entry.key)?,
+            Table::ApiKeys => index_gateway_api_key(&mut indexes, &record)?,
+            Table::RequestLogs => index_request_log(&mut indexes, &record)?,
+            Table::ProviderUsageMeters => index_provider_usage_meter(&record, &entry.key)?,
+            Table::UsageWindows => index_usage_window(&mut indexes, &record, &entry.key)?,
             _ => {}
         }
     }
