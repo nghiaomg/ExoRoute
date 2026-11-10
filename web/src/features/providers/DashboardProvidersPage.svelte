@@ -517,9 +517,9 @@
     <section class="course-card surface provider-section" aria-labelledby="providers-heading">
       <div class="card-title-row">
         <h2 id="providers-heading">{tr('Providers')}</h2>
-        <button class="mini-add" type="button" onclick={syncModels}>
+        <button class="mini-add" type="button" onclick={() => void load()} disabled={loading}>
           <svg class="icon"><use href="#i-refresh" /></svg>
-          {tr('Sync models')}
+          {tr('Refresh current page')}
         </button>
       </div>
       <p class="card-subtitle">{tr('{providers} providers · {enabled} enabled · {keys} credentials', { providers: providers.length, enabled: enabledCount, keys: totalKeys })}</p>
