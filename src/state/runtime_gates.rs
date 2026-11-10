@@ -165,6 +165,29 @@ impl AppState {
         self.gates.round_robin.lock().await.remove(route_id);
     }
 
+    pub async fn proxy_endpoint_cursor(&self, proxy_id: &str) -> usize {
+        self.gates
+            .proxy_endpoint_cursors
+            .lock()
+            .await
+            .get(proxy_id)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    pub async fn advance_proxy_endpoint_cursor(&self, proxy_id: &str, len: usize) -> usize {
+        if len == 0 { return 0; }
+        let mut cursors = self.gates.proxy_endpoint_cursors.lock().await;
+        let cursor = cursors.entry(proxy_id.to_owned()).or_default();
+        let current = *cursor % len;
+        *cursor = cursor.wrapping_add(1);
+        current
+    }
+
+    pub async fn clear_proxy_runtime_state(&self, proxy_id: &str) {
+        self.gates.proxy_endpoint_cursors.lock().await.remove(proxy_id);
+    }
+
     /// Drop process-local state derived from provider and route records after
     /// an atomic database restore. Active provider permits remain attached to
     /// their existing semaphores so an import cannot bypass provider limits.
@@ -175,6 +198,7 @@ impl AppState {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .clear();
         self.gates.round_robin.lock().await.clear();
+        self.gates.proxy_endpoint_cursors.lock().await.clear();
         self.gates.provider_key_cursors.lock().await.clear();
         self.invalidate_provider_usage_cache().await;
         self.providers.freebuff_sessions.clear().await;
