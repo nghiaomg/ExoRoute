@@ -96,14 +96,10 @@ impl ProviderAdapter for DevinCliAdapter {
     ) -> AdapterFuture<'a, AdapterModelTestOutcome> {
         Box::pin(async move {
             match acp::model_probe(request.model, PROBE_PROMPT, PROBE_TIMEOUT).await {
-                Ok(text) => AdapterModelTestOutcome {
+                Ok(_) => AdapterModelTestOutcome {
                     test_passed: true,
                     status: None,
-                    message: if text.is_empty() {
-                        "Devin CLI answered the test prompt without text.".to_owned()
-                    } else {
-                        "Devin CLI answered the test prompt.".to_owned()
-                    },
+                    message: "Devin CLI answered the test prompt.".to_owned(),
                     provider_response_body: None,
                 },
                 Err(error) => AdapterModelTestOutcome {

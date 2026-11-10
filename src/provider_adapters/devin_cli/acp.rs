@@ -477,27 +477,41 @@ async fn drain_stderr(mut stderr: ChildStderr) {
     }
 }
 
-/// Extracts the text of an `agent_message_chunk` update. Devin 3000.2.x nests
-/// the update under `params.update`; other ACP variants put `sessionUpdate`
-/// directly on `params` — both are accepted.
-fn extract_message_chunk(message: &Value) -> Option<String> {
+/// Extracts assistant output from ACP `agent_message_chunk` updates. ACP v1
+/// chunks carry one content block; implementations can encode that block as
+/// either a JSON object or an array of blocks. Ignore thoughts and non-text.
+pub(super) fn extract_message_chunk(message: &Value) -> Option<String> {
     let update = message
         .pointer("/params/update")
         .or_else(|| message.get("params"))?;
-    if update.get("sessionUpdate").and_then(Value::as_str) != Some("agent_message_chunk") {
+    let update_kind = update.get("sessionUpdate").and_then(Value::as_str)?;
+    if update_kind != "agent_message_chunk" {
         return None;
     }
+    let content = update.get("content")?;
     let mut text = String::new();
-    if let Some(blocks) = update.get("content").and_then(Value::as_array) {
-        for block in blocks {
-            if block.get("type").and_then(Value::as_str) == Some("text")
-                && let Some(part) = block.get("text").and_then(Value::as_str)
-            {
-                text.push_str(part);
+    match content {
+        Value::Array(blocks) => {
+            for block in blocks {
+                append_text_block(block, &mut text);
             }
         }
+        Value::Object(_) => append_text_block(content, &mut text),
+        _ => return None,
     }
-    Some(text)
+    (!text.is_empty()).then_some(text)
+}
+
+fn append_text_block(block: &Value, text: &mut String) {
+    if block.get("type").and_then(Value::as_str) == Some("text")
+        && let Some(part) = block.get("text").and_then(Value::as_str)
+    {
+        text.push_str(part);
+    }
+}
+
+pub(super) fn has_assistant_output(text: &str) -> bool {
+    !text.trim().is_empty()
 }
 
 fn compact_error_text(error: &Value) -> String {
@@ -594,6 +608,7 @@ where
         let _keep_alive = guard;
         let TurnRender { completion_id, model, created, prompt_chars, request_timeout } = render;
         let mut output_chars: usize = 0;
+        let mut has_non_whitespace_output = false;
         yield Ok(chat_chunk_frame(
             &completion_id,
             &model,
@@ -619,6 +634,7 @@ where
                 }
                 Ok(Ok(Some(TurnEvent::Text(delta)))) => {
                     output_chars += delta.chars().count();
+                    has_non_whitespace_output |= !delta.trim().is_empty();
                     if output_chars > MAX_OUTPUT_TEXT_CHARS {
                         yield Ok(error_turn_frame("the Devin CLI reply exceeded the output limit"));
                         break;
@@ -633,6 +649,10 @@ where
                     ));
                 }
                 Ok(Ok(Some(TurnEvent::Ended { stop_reason }))) => {
+                    if !has_non_whitespace_output {
+                        yield Ok(error_turn_frame("the Devin CLI completed the turn without assistant text"));
+                        break;
+                    }
                     let finish_reason = if stop_reason == "max_tokens" { "length" } else { "stop" };
                     let usage = json!({
                         "prompt_tokens": estimated_tokens(prompt_chars),
@@ -691,6 +711,11 @@ where
                 }
             }
             Some(TurnEvent::Ended { stop_reason }) => {
+                if !has_assistant_output(&text) {
+                    return Err(
+                        "the Devin CLI completed the turn without assistant text".to_owned()
+                    );
+                }
                 let completion_tokens = estimated_tokens(text.chars().count());
                 return Ok(json!({
                     "id": completion_id,
@@ -751,7 +776,14 @@ pub(super) async fn model_probe(
                     return Err("the Devin CLI reply exceeded the output limit".to_owned());
                 }
             }
-            Some(TurnEvent::Ended { .. }) => return Ok(text),
+            Some(TurnEvent::Ended { .. }) => {
+                if !has_assistant_output(&text) {
+                    return Err(
+                        "the Devin CLI completed the probe without assistant text".to_owned()
+                    );
+                }
+                return Ok(text);
+            }
             None => return Err("the Devin CLI exited before finishing the probe".to_owned()),
         }
     }

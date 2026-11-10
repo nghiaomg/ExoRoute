@@ -93,6 +93,18 @@ async fn prompt_turn_flattens_updates_and_ends_on_the_prompt_result() {
         )
         .await
         .unwrap();
+    // Devin ACP can encode a text chunk as one content object rather than an array.
+    child_out
+        .write_all(
+            json_line(&serde_json::json!({
+                "jsonrpc": "2.0", "method": "session/update",
+                "params": {"update": {"sessionUpdate": "agent_message_chunk",
+                    "content": {"type": "text", "text": "!"}}},
+            }))
+            .as_bytes(),
+        )
+        .await
+        .unwrap();
     child_out
         .write_all(
             json_line(&serde_json::json!({
@@ -116,7 +128,10 @@ async fn prompt_turn_flattens_updates_and_ends_on_the_prompt_result() {
             }
         }
     }
-    assert_eq!(texts, vec!["Hello".to_owned(), " world".to_owned()]);
+    assert_eq!(
+        texts,
+        vec!["Hello".to_owned(), " world".to_owned(), "!".to_owned()]
+    );
 
     // The engine only wrote the prompt request: no other stdin traffic.
     let mut line = String::new();
@@ -179,6 +194,82 @@ async fn a_server_request_is_denied_and_the_turn_continues() {
     assert_eq!(denial["error"]["code"], -32601);
 }
 
+#[test]
+fn acp_assistant_chunk_accepts_object_or_array_and_ignores_other_updates() {
+    assert!(super::acp::has_assistant_output("usable answer"));
+    let whitespace = super::acp::extract_message_chunk(&serde_json::json!({
+        "params": {"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": "  \n"}},
+    }))
+    .expect("a text chunk is extracted");
+    assert!(!super::acp::has_assistant_output(&whitespace));
+    // Single-object chunks are the format returned by Devin CLI.
+    let nested = serde_json::json!({
+        "params": {"update": {"sessionUpdate": "agent_message_chunk",
+            "content": {"type": "text", "text": "nested"}}},
+    });
+    assert_eq!(
+        super::acp::extract_message_chunk(&nested).as_deref(),
+        Some("nested")
+    );
+
+    let flat_complete_message = serde_json::json!({
+        "params": {"sessionUpdate": "agent_message",
+            "content": [{"type": "text", "text": "complete"}]},
+    });
+    assert_eq!(
+        super::acp::extract_message_chunk(&flat_complete_message),
+        None
+    );
+
+    let non_assistant_message = serde_json::json!({
+        "params": {"sessionUpdate": "agent_thought_chunk",
+            "content": {"type": "text", "text": "private reasoning"}},
+    });
+    assert_eq!(
+        super::acp::extract_message_chunk(&non_assistant_message),
+        None
+    );
+}
+
+#[tokio::test]
+async fn empty_successful_devin_turn_is_an_error_not_an_empty_completion() {
+    let (engine_to_child, _child_in) = duplex(64 * 1024);
+    let (mut child_out, engine_reads) = duplex(64 * 1024);
+    child_out.write_all(
+        json_line(&serde_json::json!({"jsonrpc": "2.0", "id": 7, "result": {"stopReason": "end_turn"}})).as_bytes(),
+    ).await.unwrap();
+    drop(child_out);
+
+    let stream = streaming_turn(
+        AcpSession::new(engine_to_child, engine_reads),
+        (),
+        7,
+        super::acp::TurnRender {
+            completion_id: "chatcmpl-empty".to_owned(),
+            model: "swe-2-flash".to_owned(),
+            created: 0,
+            prompt_chars: 8,
+            request_timeout: Duration::from_secs(5),
+        },
+    );
+    let mut output = String::new();
+    {
+        futures_util::pin_mut!(stream);
+        while let Some(frame) = stream.next().await {
+            output.push_str(&String::from_utf8(frame.unwrap()).unwrap());
+        }
+    }
+    assert!(
+        output.contains("the Devin CLI completed the turn without assistant text"),
+        "{output}"
+    );
+    assert!(
+        !output.contains("\"finish_reason\":\"stop\""),
+        "empty completion must not look successful: {output}"
+    );
+    assert!(output.ends_with("data: [DONE]\n\n"));
+}
+
 #[tokio::test]
 async fn streaming_turn_emits_role_content_and_finish_frames() {
     let (engine_to_child, _child_in) = duplex(64 * 1024);
@@ -188,7 +279,7 @@ async fn streaming_turn_emits_role_content_and_finish_frames() {
             json_line(&serde_json::json!({
                 "jsonrpc": "2.0", "method": "session/update",
                 "params": {"update": {"sessionUpdate": "agent_message_chunk",
-                    "content": [{"type": "text", "text": "Hi"}]}},
+                    "content": {"type": "text", "text": "Hi"}}},
             }))
             .as_bytes(),
         )
