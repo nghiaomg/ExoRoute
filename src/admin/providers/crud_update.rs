@@ -139,10 +139,35 @@ pub(crate) async fn update_provider(
     let preferred_protocol = input.preferred_protocol.clone();
     let enabled = input.enabled;
     let live_state_changed = provider_state.boolean("enabled").map_err(internal)? != enabled;
+    let requested_proxy_change = input.proxy_id.clone();
+    let requested_proxy_id = match &requested_proxy_change {
+        super::provider_view::ProxyBindingUpdate::Unchanged => {
+            provider_state.optional_text("proxy_id").map_err(internal)?.map(str::to_owned)
+        }
+        super::provider_view::ProxyBindingUpdate::Clear => None,
+        super::provider_view::ProxyBindingUpdate::Set(value) => {
+            let normalized = value.trim();
+            if normalized.is_empty() {
+                return Err(fail(StatusCode::BAD_REQUEST, "proxy id must not be empty"));
+            }
+            Some(normalized.to_owned())
+        }
+    };
+    if let Some(proxy_id) = requested_proxy_id.as_deref() {
+        state
+            .db
+            .read({
+                let proxy_id = proxy_id.to_owned();
+                move |transaction| crate::admin::proxies::ensure_proxy_bindable(transaction, &proxy_id)
+            })
+            .await
+            .map_err(|error| fail(StatusCode::BAD_REQUEST, error.to_string()))?;
+    }
     let adapter_id = adapter_id.clone();
     let model_prefix = model_prefix.clone();
     let supported = supported.clone();
     let effective_auth_type = effective_auth_type.to_owned();
+    let requested_proxy_change = requested_proxy_change.clone();
     let mut key_records = Vec::with_capacity(encrypted_keys.len());
     for (index, (secret, test)) in encrypted_keys.iter().zip(key_tests.iter()).enumerate() {
         let key_id = uuid::Uuid::new_v4().to_string();
@@ -179,6 +204,22 @@ pub(crate) async fn update_provider(
                     "provider adapter cannot be changed after the provider is created".to_owned(),
                 ));
             }
+            let current_proxy_id = current.optional_text("proxy_id")?.map(str::to_owned);
+            let previous_proxy_id = current_proxy_id.as_deref();
+            let next_proxy_id = match requested_proxy_change.clone() {
+                super::provider_view::ProxyBindingUpdate::Unchanged => current_proxy_id.clone(),
+                super::provider_view::ProxyBindingUpdate::Clear => None,
+                super::provider_view::ProxyBindingUpdate::Set(value) => Some(value.trim().to_owned()),
+            };
+            if let Some(proxy_id) = next_proxy_id.as_deref() {
+                crate::admin::proxies::ensure_proxy_bindable_write(transaction, proxy_id)?;
+            }
+            crate::admin::proxies::set_provider_proxy_binding(
+                transaction,
+                &id,
+                previous_proxy_id,
+                next_proxy_id.as_deref(),
+            )?;
             let old_name_index = provider_name_index_key(current.text("name")?, &id)?;
             let old_prefix = provider_model_prefix_value(&current, &id)?;
             let old_prefix_index = provider_prefix_index_key(&old_prefix)?;
@@ -213,6 +254,7 @@ pub(crate) async fn update_provider(
                 invalid_api_key_count: current.integer("invalid_api_key_count")?,
                 model_count: current.integer("model_count")?,
                 local_rpm_target,
+                proxy_id: next_proxy_id.as_deref(),
             });
             if let Some(secret) = current.field("secret") {
                 updated.insert("secret", secret.clone());

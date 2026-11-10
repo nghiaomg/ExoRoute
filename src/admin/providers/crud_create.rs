@@ -33,11 +33,34 @@ pub(crate) async fn create_provider(
         state.config.allow_private_provider_urls,
     )?;
     let local_rpm_target = create_local_rpm_target(&input, &adapter_id);
+    let proxy_id = match &input.proxy_id {
+        super::provider_view::ProxyBindingUpdate::Unchanged
+        | super::provider_view::ProxyBindingUpdate::Clear => None,
+        super::provider_view::ProxyBindingUpdate::Set(value) => {
+            let normalized = value.trim();
+            if normalized.is_empty() {
+                return Err(fail(StatusCode::BAD_REQUEST, "proxy id must not be empty"));
+            }
+            Some(normalized.to_owned())
+        }
+    };
     let id = if input.id.trim().is_empty() {
         super::super::resource_id(&input.name)
     } else {
         input.id.clone()
     };
+    if let Some(proxy_id) = proxy_id.as_deref() {
+        state
+            .db
+            .read({
+                let proxy_id = proxy_id.to_owned();
+                move |transaction| {
+                    crate::admin::proxies::ensure_proxy_bindable(transaction, &proxy_id)
+                }
+            })
+            .await
+            .map_err(|error| fail(StatusCode::BAD_REQUEST, error.to_string()))?;
+    }
     let model_prefix = normalized_provider_model_prefix_for_adapter(
         input.model_prefix.as_deref(),
         &id,
@@ -165,6 +188,9 @@ pub(crate) async fn create_provider(
             {
                 return Err(StorageError::Conflict);
             }
+            if let Some(proxy_id) = proxy_id.as_deref() {
+                crate::admin::proxies::ensure_proxy_bindable_write(transaction, proxy_id)?;
+            }
             let provider = provider_record(ProviderRecordData {
                 id: &provider_id,
                 name: &input.name,
@@ -187,10 +213,18 @@ pub(crate) async fn create_provider(
                 invalid_api_key_count: invalid_count,
                 model_count: 0,
                 local_rpm_target,
+                proxy_id: proxy_id.as_deref(),
             });
             transaction.put_if_absent(Table::Providers, &provider_id, &provider)?;
             transaction.put_if_absent(Table::ProviderNameIndex, &name_index, &provider_id)?;
             transaction.put_if_absent(Table::Indexes, &prefix_index, &provider_id)?;
+            if let Some(proxy_id) = proxy_id.as_deref() {
+                transaction.put(
+                    Table::ProxyProviderIndex,
+                    &crate::admin::proxies::proxy_provider_index_key(proxy_id, &provider_id)?,
+                    &provider_id,
+                )?;
+            }
             for record in &key_records {
                 store_provider_api_key(transaction, record)?;
             }

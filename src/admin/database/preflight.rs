@@ -148,6 +148,9 @@ pub(crate) fn preflight_backup_reader(
                 | Table::RouteNameIndex
                 | Table::RouteTargetProviderIndex
                 | Table::RouteTargetComboIndex
+                | Table::ProxyNameIndex
+                | Table::ProxyEndpointRefIndex
+                | Table::ProxyProviderIndex
         )
     }
 

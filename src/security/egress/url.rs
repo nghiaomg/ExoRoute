@@ -8,8 +8,7 @@
 //! `build_pinned_client` and must be revalidated at every hop if re-enabled.
 
 use reqwest::Url;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::time::Duration;
+use std::{net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr}, time::Duration};
 
 /// Validates an HTTP(S) provider URL.
 ///
@@ -49,6 +48,99 @@ pub fn validate_provider_url(input: &str, allow_local: bool) -> Result<Url, Stri
     Ok(url)
 }
 
+/// Validates the provider URL shape when its DNS is delegated to an explicitly
+/// configured proxy. The destination policy applies to the proxy in this mode;
+/// retain HTTP-vs-HTTPS policy, reject userinfo, and leave hostname/IP resolution
+/// to the proxy instead of making a local DNS request.
+pub fn validate_provider_url_via_proxy(input: &str, allow_local: bool) -> Result<Url, String> {
+    let url = Url::parse(input).map_err(|_| "Invalid provider URL".to_owned())?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err("Provider URL must use http or https".to_owned());
+    }
+    if url.scheme() == "http" && !allow_local {
+        return Err("Public provider URLs must use https; http is allowed only with explicit local-provider permission".into());
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err("Provider URL must not contain username or password".to_owned());
+    }
+    if url.host_str().is_none() || url.port_or_known_default().is_none() {
+        return Err("Provider URL must include a host and valid port".to_owned());
+    }
+    Ok(url)
+}
+
+/// Validates an HTTP(S) proxy URL with the strict destination policy.
+pub fn validate_proxy_url(input: &str, allow_local: bool) -> Result<Url, String> {
+    let url = Url::parse(input).map_err(|_| "Invalid proxy URL".to_owned())?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err("Proxy URL must use http or https".to_owned());
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err("Proxy URL must not contain username or password".to_owned());
+    }
+    if url.query().is_some() || url.fragment().is_some() || !matches!(url.path(), "" | "/") {
+        return Err("Proxy URL must not include a path, query, or fragment".to_owned());
+    }
+    let host = url
+        .host_str()
+        .ok_or_else(|| "Proxy URL must include a host".to_owned())?;
+    let host = strip_ipv6_brackets(host);
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        validate_ip_address(ip, allow_local)?;
+    } else if is_local_hostname(host) {
+        if !allow_local {
+            return Err("Local proxy hosts require explicit local-provider permission".into());
+        }
+    } else if is_special_hostname(host) && !allow_local {
+        return Err("Non-public proxy host requires explicit local-provider permission".into());
+    }
+    if url.port_or_known_default().is_none() {
+        return Err("Proxy URL must include a valid port".to_owned());
+    }
+    Ok(url)
+}
+
+pub async fn resolve_proxy_url(
+    input: &str,
+    allow_local: bool,
+    max_addresses: usize,
+) -> Result<ResolvedProviderUrl, String> {
+    let url = validate_proxy_url(input, allow_local)?;
+    let host = url
+        .host_str()
+        .ok_or_else(|| "Proxy URL must include a host".to_owned())?;
+    let host = strip_ipv6_brackets(host).to_owned();
+    let port = url
+        .port_or_known_default()
+        .ok_or_else(|| "Proxy URL must include a valid port".to_owned())?;
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        validate_ip_address(ip, allow_local)?;
+        return Ok(ResolvedProviderUrl {
+            url,
+            addresses: vec![SocketAddr::new(ip, port)],
+        });
+    }
+    let mut addresses = Vec::with_capacity(8);
+    let mut resolved = tokio::time::timeout(
+        Duration::from_secs(5),
+        tokio::net::lookup_host((host.as_str(), port)),
+    )
+    .await
+    .map_err(|_| "Proxy host resolution timed out".to_owned())?
+    .map_err(|_| "Could not resolve proxy host".to_owned())?;
+    for address in &mut resolved {
+        if addresses.len() >= max_addresses {
+            return Err("Proxy host resolved to too many addresses".to_owned());
+        }
+        validate_ip_address(address.ip(), allow_local)?;
+        addresses.push(address);
+    }
+    if addresses.is_empty() {
+        return Err("Proxy host resolved to no addresses".to_owned());
+    }
+    Ok(ResolvedProviderUrl { url, addresses })
+}
+
 /// A URL plus the addresses approved during DNS resolution.
 #[derive(Clone, Debug)]
 pub struct ResolvedProviderUrl {
@@ -80,6 +172,33 @@ pub fn build_pinned_client(
         .resolve_to_addrs(strip_ipv6_brackets(host), &resolved.addresses)
         .build()
         .map_err(|_| "Could not build pinned provider HTTP client".to_owned())
+}
+
+/// Builds a client that routes through one explicitly selected proxy endpoint.
+/// DNS for the provider URL is intentionally delegated to the proxy because
+/// reqwest uses CONNECT/forwarding through it and its local `resolve_to_addrs`
+/// override would not constrain the remote target. The proxy itself is checked
+/// by `validate_proxy_url` before this function is called.
+pub fn build_proxy_client(
+    builder: reqwest::ClientBuilder,
+    proxy: reqwest::Proxy,
+    resolved_proxy: &ResolvedProviderUrl,
+) -> Result<reqwest::Client, String> {
+    let host = resolved_proxy
+        .url
+        .host_str()
+        .ok_or_else(|| "Proxy URL must include a host".to_owned())?;
+    if resolved_proxy.addresses.is_empty() {
+        return Err("Proxy host resolved to no addresses".to_owned());
+    }
+    builder
+        // Adding an explicit Proxy disables the system-proxy auto-discovery; do
+        // not call no_proxy after this or reqwest would remove our configured hop.
+        .proxy(proxy)
+        .redirect(reqwest::redirect::Policy::none())
+        .resolve_to_addrs(strip_ipv6_brackets(host), &resolved_proxy.addresses)
+        .build()
+        .map_err(|_| "Could not build provider HTTP client for the configured proxy".to_owned())
 }
 
 /// Validates a URL and checks the addresses its hostname resolves to now.

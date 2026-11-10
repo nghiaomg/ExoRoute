@@ -68,6 +68,7 @@ pub(crate) async fn list_providers(State(state): State<AppState>) -> ApiResult {
                     invalid_api_key_count: record.integer("invalid_api_key_count")?,
                     model_count: record.integer("model_count")?,
                     local_rpm_target,
+                    proxy_id: record.optional_text("proxy_id")?.map(str::to_owned),
                     preferred_protocol: record.text("preferred_protocol")?.to_owned(),
                     supported_protocols: serde_json::from_str(supported).map_err(|error| {
                         StorageError::Invalid(format!("provider protocol list is invalid: {error}"))

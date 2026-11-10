@@ -219,6 +219,12 @@ pub(crate) async fn provider_deletion_step(
                 let name_index = provider_name_index_key(provider.text("name")?, &id)?;
                 let model_prefix = provider_model_prefix_value(&provider, &id)?;
                 let prefix_index = provider_prefix_index_key(&model_prefix)?;
+                if let Some(proxy_id) = provider.optional_text("proxy_id")? {
+                    transaction.delete(
+                        Table::ProxyProviderIndex,
+                        &crate::admin::proxies::proxy_provider_index_key(proxy_id, &id)?,
+                    )?;
+                }
                 transaction.delete(Table::ProviderNameIndex, &name_index)?;
                 transaction.delete(Table::Indexes, &prefix_index)?;
                 transaction.delete(Table::Indexes, &provider_deletion_index_key(&id)?)?;

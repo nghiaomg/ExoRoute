@@ -22,6 +22,7 @@ pub(crate) struct ProviderRecordData<'a> {
     pub(super) invalid_api_key_count: i64,
     pub(super) model_count: i64,
     pub(super) local_rpm_target: Option<u32>,
+    pub(super) proxy_id: Option<&'a str>,
 }
 
 pub(crate) fn provider_record(data: ProviderRecordData<'_>) -> Record {
@@ -47,6 +48,7 @@ pub(crate) fn provider_record(data: ProviderRecordData<'_>) -> Record {
         invalid_api_key_count,
         model_count,
         local_rpm_target,
+        proxy_id,
     } = data;
     Record::new()
         .with("id", Field::Text(id.to_owned()))
@@ -99,6 +101,12 @@ pub(crate) fn provider_record(data: ProviderRecordData<'_>) -> Record {
             "local_rpm_target",
             local_rpm_target
                 .map(|value| Field::I64(i64::from(value)))
+                .unwrap_or(Field::Null),
+        )
+        .with(
+            "proxy_id",
+            proxy_id
+                .map(|value| Field::Text(value.to_owned()))
                 .unwrap_or(Field::Null),
         )
 }

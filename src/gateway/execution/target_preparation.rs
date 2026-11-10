@@ -32,9 +32,12 @@ pub(super) struct AttemptContext<'a> {
     pub(super) adapter: &'static dyn ProviderAdapter,
     pub(super) endpoint: reqwest::Url,
     pub(super) provider_http: reqwest::Client,
+    /// Remaining proxy endpoints, tried only when reqwest reports a connect error.
+    pub(super) proxy_fallbacks: Vec<crate::security::egress::ProxyEgress>,
     pub(super) circuit_probe: CircuitProbePermit,
     pub(super) provider_permit: DynamicSemaphorePermit,
     pub(super) upstream_body: Value,
+    pub(super) effective_effort: Option<String>,
     pub(super) target_model: &'a str,
 }
 
@@ -67,20 +70,34 @@ pub(super) async fn prepare_target<'a>(
 ) -> Result<AttemptContext<'a>, TargetPreparationError> {
     let state = &scope.state;
     let provider_id = target.provider_id.clone();
-    let provider_record = match state
+    let provider_data = match state
         .db
-        .read(move |transaction| transaction.get::<Record>(Table::Providers, &provider_id))
+        .read(move |transaction| {
+            let provider = transaction.get::<Record>(Table::Providers, &provider_id)?;
+            let proxy_id = if let Some(record) = provider.as_ref() {
+                record.optional_text("proxy_id")?.map(str::to_owned)
+            } else {
+                None
+            };
+            let proxy_group = if let Some(proxy_id) = proxy_id {
+                Some(crate::admin::load_proxy_endpoint_configs(transaction, &proxy_id)?)
+            } else {
+                None
+            };
+            Ok((provider, proxy_group))
+        })
         .await
     {
-        Ok(Some(record)) => record,
-        Ok(None) => {
-            return Err(TargetPreparationError::Skip(format!(
-                "provider '{}' not found",
-                target.provider_id
-            )));
-        }
+        Ok(data) => data,
         Err(error) => return Err(TargetPreparationError::Database(error)),
     };
+    let Some(provider_record) = provider_data.0 else {
+        return Err(TargetPreparationError::Skip(format!(
+            "provider '{}' not found",
+            target.provider_id
+        )));
+    };
+    let proxy_group = provider_data.1;
     let provider = match decode_provider(&provider_record, state.config.master_key.as_ref()) {
         Ok(provider) => provider,
         Err(error) => return Err(TargetPreparationError::Skip(error)),
@@ -174,25 +191,19 @@ pub(super) async fn prepare_target<'a>(
             upstream_protocol.as_str()
         )));
     }
-    if let Err(error) = provider_adapters::prepare_request_body(
-        &provider.adapter_id,
-        &mut upstream_body,
-        &scope.adapter_session_id,
-    ) {
+    if let Err(error) =
+        provider_adapters::prepare_request_body(&provider.adapter_id, &mut upstream_body, &scope.adapter_session_id)
+    {
         return Err(TargetPreparationError::Skip(format!(
             "provider '{}' adapter rejected the request: {error}",
             provider.id
         )));
     }
     if let Err(error) =
-        provider_adapters::prepare_provider_images(&provider.adapter_id, state, &mut upstream_body)
-            .await
+        provider_adapters::prepare_provider_images(&provider.adapter_id, state, &mut upstream_body).await
     {
         return Err(TargetPreparationError::SkipWithStatus(
-            format!(
-                "provider '{}' could not prepare adapter input: {error}",
-                provider.id
-            ),
+            format!("provider '{}' could not prepare adapter input: {error}", provider.id),
             StatusCode::BAD_GATEWAY,
         ));
     }
@@ -202,6 +213,8 @@ pub(super) async fn prepare_target<'a>(
             provider.id
         )));
     };
+    let effective_effort = protocol::effective_effort(upstream_protocol, &upstream_body)
+        .map(|effort| effort.as_str().to_owned());
     let endpoint = match provider_adapters::upstream_endpoint(
         &provider.adapter_id,
         &provider.base_url,
@@ -213,6 +226,8 @@ pub(super) async fn prepare_target<'a>(
         Ok(url) => url,
         Err(error) => return Err(TargetPreparationError::Skip(error)),
     };
+    let streaming = scope.canonical_stream || provider_adapters::wants_event_stream(&provider.adapter_id);
+    let mut proxy_fallbacks = Vec::new();
     let (endpoint, provider_http) = if provider_adapters::uses_local_transport(&provider.adapter_id)
     {
         // Local transports never reach egress: the endpoint is a process
@@ -221,6 +236,69 @@ pub(super) async fn prepare_target<'a>(
         // shape so classification and streaming treat a local reply exactly
         // like an HTTP reply.
         (endpoint, provider_adapters::local_transport_client())
+    } else if provider.proxy_id.is_some() {
+        let proxy_group = proxy_group.ok_or_else(|| {
+            TargetPreparationError::Skip("provider proxy binding has no group".to_owned())
+        })?;
+        if !proxy_group.enabled {
+            return Err(TargetPreparationError::Skip(format!(
+                "provider '{}' is bound to a disabled proxy",
+                provider.id
+            )));
+        }
+        if proxy_group.endpoints.is_empty() {
+            return Err(TargetPreparationError::Skip(format!(
+                "provider '{}' is bound to a proxy with no enabled endpoints",
+                provider.id
+            )));
+        }
+        let mut endpoint_configs = proxy_group.endpoints;
+        if proxy_group.strategy == "round_robin" && endpoint_configs.len() > 1 {
+            let start = state
+                .advance_proxy_endpoint_cursor(&proxy_group.proxy_id, endpoint_configs.len())
+                .await;
+            endpoint_configs.rotate_left(start);
+        }
+        let mut endpoint_configs = endpoint_configs.into_iter();
+        let first_config = endpoint_configs.next().ok_or_else(|| {
+            TargetPreparationError::Skip("bound proxy has no usable endpoint".to_owned())
+        })?;
+        let first_proxy = crate::security::egress::proxy_egress_from_record(
+            &first_config.endpoint_id,
+            &first_config.record,
+            state.config.master_key.as_ref(),
+            state.config.allow_private_provider_urls,
+        )
+        .map_err(TargetPreparationError::Skip)?;
+        for endpoint_config in endpoint_configs {
+            proxy_fallbacks.push(
+                crate::security::egress::proxy_egress_from_record(
+                    &endpoint_config.endpoint_id,
+                    &endpoint_config.record,
+                    state.config.master_key.as_ref(),
+                    state.config.allow_private_provider_urls,
+                )
+                .map_err(TargetPreparationError::Skip)?,
+            );
+        }
+        let (url, client) = egress::provider_client_with_proxy(
+            endpoint.as_str(),
+            state.config.allow_private_provider_urls,
+            scope.operational_settings.connect_timeout,
+            scope.operational_settings.request_timeout,
+            streaming,
+            concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
+            scope.operational_settings.upstream,
+            Some(&first_proxy),
+        )
+        .await
+        .map_err(|error| {
+            TargetPreparationError::Skip(format!(
+                "provider '{}' proxy egress rejected: {error}",
+                provider.id
+            ))
+        })?;
+        (url, client)
     } else {
         match egress::provider_client(
             endpoint.as_str(),
@@ -270,9 +348,11 @@ pub(super) async fn prepare_target<'a>(
         adapter,
         endpoint,
         provider_http,
+        proxy_fallbacks,
         circuit_probe,
         provider_permit,
         upstream_body,
+        effective_effort,
         target_model: &target.model,
     })
 }

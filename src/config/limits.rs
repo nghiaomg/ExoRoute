@@ -13,6 +13,18 @@ pub const MAX_ROUTE_TARGETS: usize = 32;
 /// time and at request time.
 pub const MAX_COMBO_NESTING_DEPTH: usize = 8;
 
+/// Endpoints a proxy may declare, and proxy endpoints one gateway request may
+/// try once nested proxy references are flattened.
+///
+/// Every flattened endpoint is a candidate client the gateway may build when its
+/// predecessors fail to connect, so this bound is also the worst-case connect
+/// fan-out for a single upstream attempt.
+pub const MAX_PROXY_ENDPOINTS: usize = 64;
+
+/// Maximum depth of nested proxy references. Proxies nest one level shallower
+/// than combos because each level multiplies connect attempts.
+pub const MAX_PROXY_NESTING_DEPTH: usize = 4;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct GatewayResourceLimits {
     pub gateway_body_limit_bytes: usize,

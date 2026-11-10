@@ -1,4 +1,4 @@
-export type DashboardPage = 'overview' | 'providers' | 'combos' | 'quota' | 'requests' | 'api-keys' | 'settings' | 'chat' | 'help';
+export type DashboardPage = 'overview' | 'providers' | 'combos' | 'proxies' | 'quota' | 'requests' | 'api-keys' | 'settings' | 'chat' | 'help';
 export type DocsPage = 'docs' | 'docs-quickstart' | 'docs-integrations' | 'docs-reference';
 export type Page = 'login' | DashboardPage | DocsPage;
 export interface FeatureActionRequest { id: number; page: DashboardPage }
@@ -8,6 +8,7 @@ export const pagePaths: Record<Page, string> = {
   overview: '/overview',
   providers: '/providers',
   combos: '/combos',
+  proxies: '/proxies',
   quota: '/quota',
   requests: '/requests',
   'api-keys': '/api-keys',
@@ -31,6 +32,7 @@ export const dashboardPages: ReadonlyArray<DashboardPage> = [
   'overview',
   'providers',
   'combos',
+  'proxies',
   'quota',
   'requests',
   'api-keys',

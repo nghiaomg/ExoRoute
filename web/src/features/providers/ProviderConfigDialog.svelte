@@ -2,10 +2,12 @@
   import { Check, LoaderCircle, Plus, X } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import ArkField from '../../components/ArkField.svelte';
+  import ArkCombobox from '../../components/ArkCombobox.svelte';
   import { api } from '../../lib/api';
+  import { proxyApi } from '../../lib/api/proxies';
   import { type Translate } from '../../lib/format';
   import { localizedError } from '../../lib/errors';
-  import type { Provider, ProviderKeyStrategy as KeyStrategyType, ProviderThinkingMode } from '../../lib/types';
+  import type { Provider, ProviderKeyStrategy as KeyStrategyType, ProviderThinkingMode, ProxyProviderOption } from '../../lib/types';
   import ProviderKeyStrategy from './ProviderKeyStrategy.svelte';
   import ProviderThinkingSettings from './ProviderThinkingSettings.svelte';
 
@@ -22,6 +24,14 @@
   let keyStrategyDraft: KeyStrategyType = 'priority';
   let modelPrefixDraft = '';
   let logoDraft = '';
+  let proxyIdDraft: string | null = null;
+  let proxyOptions: ProxyProviderOption[] = [];
+  let proxyOptionsLoaded = false;
+  let proxyOptionsLoading = false;
+  let proxyLoadFailed = false;
+  let proxyOptionsQuery = '';
+  let proxyOptionsCursor: string | null = null;
+
   let customHeaderDrafts: HeaderDraft[] = [];
 
   let saving = false;
@@ -36,6 +46,7 @@
     keyStrategyDraft = provider.key_strategy ?? 'priority';
     modelPrefixDraft = provider.model_prefix ?? provider.id ?? '';
     logoDraft = provider.logo_url ?? '';
+    proxyIdDraft = provider.proxy_id ?? null;
     customHeaderDrafts = (provider.custom_headers ?? []).map((name) => ({
       name,
       value: '',
@@ -47,6 +58,40 @@
 
   function addCustomHeader(): void {
     customHeaderDrafts = [...customHeaderDrafts, { name: '', value: '', existing: false }];
+  }
+
+  let proxyOptionsFlight: Promise<void> | null = null;
+  async function loadProxyOptions(query = '', append = false): Promise<void> {
+    if (proxyOptionsLoading) return proxyOptionsFlight ?? Promise.resolve();
+    proxyOptionsLoading = true;
+    proxyLoadFailed = false;
+    proxyOptionsFlight = (async () => {
+      try {
+        const page = await proxyApi.proxyOptions({
+          q: query || undefined,
+          cursor: append ? (proxyOptionsCursor ?? undefined) : undefined,
+          includeId: provider?.proxy_id ?? undefined,
+        });
+        proxyOptions = append
+          ? [...proxyOptions, ...page.proxies.filter((option) => !proxyOptions.some((current) => current.id === option.id))]
+          : page.proxies;
+        proxyOptionsCursor = page.next_cursor ?? null;
+        proxyOptionsQuery = query;
+        proxyOptionsLoaded = true;
+      } catch (cause) {
+        proxyLoadFailed = true;
+        dialogNotice = localizedError(cause, 'Could not load proxy options.', tr);
+        dialogNoticeTone = 'error';
+      } finally {
+        proxyOptionsLoading = false;
+        proxyOptionsFlight = null;
+      }
+    })();
+    return proxyOptionsFlight;
+  }
+
+  $: if (open && provider && !proxyOptionsLoaded && !proxyOptionsLoading && !proxyLoadFailed) {
+    void loadProxyOptions();
   }
 
   function removeCustomHeader(index: number): void {
@@ -94,6 +139,7 @@
 
     const initialPrefix = (currentProvider.model_prefix ?? '').trim().toLowerCase() || currentProvider.id.toLowerCase();
     const initialLogo = (currentProvider.logo_url ?? '').trim() || null;
+    const proxyChanged = proxyIdDraft !== (currentProvider.proxy_id ?? null);
     const initialCustomHeaderNames = currentProvider.custom_headers ?? [];
     const headersChanged =
       customHeaders.length !== initialCustomHeaderNames.length ||
@@ -101,6 +147,7 @@
     const mainChanged =
       modelPrefix !== initialPrefix ||
       logoUrl !== initialLogo ||
+      proxyChanged ||
       headersChanged;
 
     if (!mainChanged && !thinkingChanged && !keyStrategyChanged) {
@@ -125,6 +172,7 @@
           auth_header: currentProvider.auth_header,
           custom_headers: customHeaders,
           local_rpm_target: currentProvider.local_rpm_target,
+          proxy_id: proxyIdDraft,
           preferred_protocol: currentProvider.preferred_protocol,
           supported_protocols: currentProvider.supported_protocols,
         });
@@ -153,6 +201,7 @@
       const updatedProvider: Provider = {
         ...currentProvider,
         logo_url: logoUrl,
+        proxy_id: proxyIdDraft,
         model_prefix: modelPrefix,
         custom_headers: headerNames,
         thinking_mode: thinkingModeDraft,
@@ -205,6 +254,31 @@
             disabled={saving}
             placeholder={tr('Defaults to the provider ID')}
           />
+        </div>
+      </div>
+
+      <div class="detail-form-section">
+        <div>
+          <label class="ark-field-root">
+            <span class="ark-field-label">{tr('Egress proxy')}</span>
+            <ArkCombobox
+              items={proxyOptions.map((option) => ({ label: option.name, value: option.id, keywords: option.id, hint: option.enabled ? undefined : tr('disabled') }))}
+              value={proxyIdDraft ?? ''}
+              disabled={saving || proxyLoadFailed}
+              placeholder={tr('Search proxy groups')}
+              noOptionsText={tr(proxyOptionsLoading ? 'Loading…' : 'No proxy groups found')}
+              clearable
+              onSearch={(search) => { void loadProxyOptions(search); }}
+              onValueChange={(value) => proxyIdDraft = value || null}
+            />
+          </label>
+          {#if proxyOptionsCursor && !proxyOptionsQuery}
+            <button class="secondary-button compact" type="button" disabled={proxyOptionsLoading} onclick={() => { void loadProxyOptions('', true); }}>{tr(proxyOptionsLoading ? 'Loading…' : 'Load more')}</button>
+          {/if}
+          {#if provider.proxy_id && !proxyOptions.some((option) => option.id === provider?.proxy_id)}
+            <p class="form-help">{tr('The current proxy is not in this result page; clear or search for it before changing the binding.')}</p>
+          {/if}
+          {#if proxyLoadFailed}<p class="form-error" role="alert">{tr('Could not load proxy options. Check the Proxies page and try again.')}</p>{/if}
         </div>
       </div>
 

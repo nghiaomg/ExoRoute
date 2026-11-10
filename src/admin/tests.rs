@@ -86,6 +86,7 @@ fn codex_provider_requires_its_fixed_responses_endpoint_without_api_keys() {
         api_key: None,
         api_keys: Vec::new(),
         local_rpm_target: None,
+        proxy_id: super::providers::provider_view::ProxyBindingUpdate::Unchanged,
         preferred_protocol: "responses".to_owned(),
         supported_protocols: vec!["responses".to_owned()],
     };
@@ -123,6 +124,7 @@ fn devin_cli_provider_accepts_the_local_process_endpoint() {
         api_key: None,
         api_keys: Vec::new(),
         local_rpm_target: None,
+        proxy_id: super::providers::provider_view::ProxyBindingUpdate::Unchanged,
         preferred_protocol: "chat_completions".to_owned(),
         supported_protocols: vec!["chat_completions".to_owned()],
     };
@@ -165,6 +167,7 @@ fn header_auth_defaults_the_api_key_header_name() {
         api_key: None,
         api_keys: vec!["sk-ant-test".to_owned()],
         local_rpm_target: None,
+        proxy_id: super::providers::provider_view::ProxyBindingUpdate::Unchanged,
         preferred_protocol: "messages".to_owned(),
         supported_protocols: vec!["messages".to_owned()],
     };

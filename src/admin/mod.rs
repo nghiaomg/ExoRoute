@@ -39,6 +39,10 @@ mod api_keys;
 mod auth;
 mod combos;
 pub(crate) use combos::stored_retry_until_success;
+mod proxies;
+pub(crate) use proxies::{
+    ProxyEndpointConfig, ProxyEndpointGroup, load_proxy_endpoint_configs,
+};
 mod cookie_policy;
 mod database;
 mod errors;

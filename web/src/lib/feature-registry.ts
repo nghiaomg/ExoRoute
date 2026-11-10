@@ -15,6 +15,7 @@ const featureLoaders: Record<DashboardPage, FeatureLoader> = {
   overview: () => import('../features/overview/DashboardOverviewPage.svelte'),
   providers: () => import('../features/providers/DashboardProvidersPage.svelte'),
   combos: () => import('../features/combos/DashboardCombosPage.svelte'),
+  proxies: () => import('../features/proxies/DashboardProxiesPage.svelte'),
   quota: () => import('../features/quota/DashboardQuotaPage.svelte'),
   requests: () => import('../features/requests/DashboardRequestsPage.svelte'),
   'api-keys': () => import('../features/api-keys/DashboardApiKeysPage.svelte'),

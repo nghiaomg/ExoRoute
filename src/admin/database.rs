@@ -325,6 +325,18 @@ fn index_provider_record(
             .map_err(|_| "The backup contains an invalid provider index.")?,
         id.to_owned(),
     )?;
+    if let Some(proxy_id) = record
+        .optional_text("proxy_id")
+        .map_err(|_| "The backup contains an invalid provider proxy binding.")?
+    {
+        put_index(
+            indexes,
+            Table::ProxyProviderIndex,
+            super::proxies::proxy_provider_index_key(proxy_id, id)
+                .map_err(|_| "The backup contains an invalid provider proxy index.")?,
+            id.to_owned(),
+        )?;
+    }
     Ok(())
 }
 
@@ -440,6 +452,48 @@ fn index_route_target(
             super::combos::route_target_provider_index_key(provider_id, entry_key)
                 .map_err(|_| "The backup contains an invalid route target index.")?,
             entry_key.to_owned(),
+        )?;
+    }
+    Ok(())
+}
+
+fn index_proxy(indexes: &mut Vec<SnapshotEntry>, record: &Record) -> Result<(), &'static str> {
+    let id = record
+        .text("id")
+        .map_err(|_| "The backup contains an invalid proxy.")?;
+    let name = record
+        .text("name")
+        .map_err(|_| "The backup contains an invalid proxy.")?;
+    put_index(
+        indexes,
+        Table::ProxyNameIndex,
+        super::proxies::proxy_name_index_key(name, id)
+            .map_err(|_| "The backup contains an invalid proxy index.")?,
+        id.to_owned(),
+    )?;
+    Ok(())
+}
+
+fn index_proxy_endpoint(
+    indexes: &mut Vec<SnapshotEntry>,
+    record: &Record,
+    entry_key: &str,
+) -> Result<(), &'static str> {
+    if let Some(reference) = record
+        .optional_text("ref_proxy_id")
+        .map_err(|_| "The backup contains an invalid proxy endpoint.")?
+    {
+        // The reference index answers "which proxies embed this proxy", so it
+        // stores the referencing proxy id, mirroring the nested-combo index.
+        let proxy_id = record
+            .text("proxy_id")
+            .map_err(|_| "The backup contains an invalid proxy endpoint.")?;
+        put_index(
+            indexes,
+            Table::ProxyEndpointRefIndex,
+            super::proxies::proxy_endpoint_ref_index_key(reference, entry_key)
+                .map_err(|_| "The backup contains an invalid proxy endpoint index.")?,
+            proxy_id.to_owned(),
         )?;
     }
     Ok(())
@@ -618,6 +672,9 @@ fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<
                 | Table::RouteNameIndex
                 | Table::RouteTargetProviderIndex
                 | Table::RouteTargetComboIndex
+                | Table::ProxyNameIndex
+                | Table::ProxyEndpointRefIndex
+                | Table::ProxyProviderIndex
         )
     };
     let dictionary = crate::infra::storage::request_log_dictionary_from_entries(entries);
@@ -631,6 +688,8 @@ fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<
             | Table::ProviderModels
             | Table::Routes
             | Table::RouteTargets
+            | Table::Proxies
+            | Table::ProxyEndpoints
             | Table::ApiKeys
             | Table::RequestLogs
             | Table::UsageWindows
@@ -657,6 +716,8 @@ fn rebuild_backup_secondary_indexes(entries: &mut Vec<SnapshotEntry>) -> Result<
             Table::ProviderModels => index_provider_model(&mut indexes, &record)?,
             Table::Routes => index_route(&mut indexes, &record)?,
             Table::RouteTargets => index_route_target(&mut indexes, &record, &entry.key)?,
+            Table::Proxies => index_proxy(&mut indexes, &record)?,
+            Table::ProxyEndpoints => index_proxy_endpoint(&mut indexes, &record, &entry.key)?,
             Table::ApiKeys => index_gateway_api_key(&mut indexes, &record)?,
             Table::RequestLogs => index_request_log(&mut indexes, &record)?,
             Table::ProviderUsageMeters => index_provider_usage_meter(&record, &entry.key)?,

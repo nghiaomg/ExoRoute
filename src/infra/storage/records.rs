@@ -131,6 +131,11 @@ pub enum Table {
     RouteTargetProviderIndex,
     RouteTargetComboIndex,
     Integrations,
+    Proxies,
+    ProxyEndpoints,
+    ProxyNameIndex,
+    ProxyEndpointRefIndex,
+    ProxyProviderIndex,
 }
 
 impl Table {
@@ -174,6 +179,11 @@ impl Table {
         Table::RouteTargetProviderIndex,
         Table::RouteTargetComboIndex,
         Table::Integrations,
+        Table::Proxies,
+        Table::ProxyEndpoints,
+        Table::ProxyNameIndex,
+        Table::ProxyEndpointRefIndex,
+        Table::ProxyProviderIndex,
     ];
 
     pub(crate) const fn name(self) -> &'static str {
@@ -215,6 +225,11 @@ impl Table {
             Table::RouteTargetProviderIndex => "route_target_provider_index",
             Table::RouteTargetComboIndex => "route_target_combo_index",
             Table::Integrations => "integrations",
+            Table::Proxies => "proxies",
+            Table::ProxyEndpoints => "proxy_endpoints",
+            Table::ProxyNameIndex => "proxy_name_index",
+            Table::ProxyEndpointRefIndex => "proxy_endpoint_ref_index",
+            Table::ProxyProviderIndex => "proxy_provider_index",
         }
     }
 }

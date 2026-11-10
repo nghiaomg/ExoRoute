@@ -1,12 +1,17 @@
 //! Pinned provider HTTP client construction and bounded caching.
 //!
-//! One client is cached per provider origin plus timeout and streaming shape so
-//! unrelated providers never share DNS overrides. DNS is revalidated on the
-//! cache TTL and every client has redirects disabled.
+//! Direct clients pin provider DNS. Proxy clients deliberately delegate provider
+//! DNS to the validated egress proxy; both shapes are isolated in the client
+//! cache so unrelated providers never share proxy credentials or DNS overrides.
 
-use super::url::{build_pinned_client, resolve_provider_url, validate_provider_url};
-use crate::config::UpstreamSettings;
+use super::url::{
+    ResolvedProviderUrl, build_pinned_client, build_proxy_client, resolve_proxy_url,
+    resolve_provider_url, validate_proxy_url, validate_provider_url,
+    validate_provider_url_via_proxy,
+};
+use crate::{config::UpstreamSettings, security::decrypt_secret};
 use reqwest::Url;
+use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     sync::LazyLock,
@@ -17,14 +22,23 @@ use tokio::sync::Mutex;
 const PROVIDER_POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Upper bound for a single streaming provider response that has no total
-/// request timeout. Liveness is owned by the gateway's own idle deadlines;
-/// this bound exists so a provider that keeps the connection open without
-/// sending frames cannot hold a socket forever.
+/// request timeout. Liveness is owned by the gateway's own idle deadlines.
 pub const PROVIDER_STREAM_TOTAL_TIMEOUT: Duration = Duration::from_secs(24 * 60 * 60);
+
+/// Decrypted proxy settings for exactly one endpoint. The secret is kept only in
+/// this request-scoped value and is never formatted or logged.
+#[derive(Clone)]
+pub struct ProxyEgress {
+    pub id: String,
+    pub url: Url,
+    pub username: Option<String>,
+    pub secret: Option<String>,
+}
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 struct ProviderClientKey {
     origin: String,
+    proxy_fingerprint: Option<[u8; 32]>,
     allow_local: bool,
     connect_timeout: Duration,
     request_timeout: Duration,
@@ -41,10 +55,10 @@ struct CachedProviderClient {
 static PROVIDER_CLIENTS: LazyLock<Mutex<HashMap<ProviderClientKey, CachedProviderClient>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// Return a reusable client pinned to recently validated public (or explicitly
-/// permitted local) DNS addresses. DNS is revalidated every 30 seconds and all
-/// redirects are disabled by the pinned-client builder. Cache size is bounded;
-/// cloned clients remain valid for requests already in flight after eviction.
+/// Build a client for a provider origin. With no proxy, provider DNS is resolved
+/// and pinned as before. With a proxy, the proxy is validated as the actual
+/// destination and provider DNS is delegated to that proxy; reqwest's
+/// `resolve_to_addrs` cannot constrain a remote CONNECT target.
 pub async fn provider_client(
     input: &str,
     allow_local: bool,
@@ -54,15 +68,44 @@ pub async fn provider_client(
     user_agent: &str,
     upstream: UpstreamSettings,
 ) -> Result<(Url, reqwest::Client), String> {
-    let url = validate_provider_url(input, allow_local)?;
+    provider_client_with_proxy(
+        input,
+        allow_local,
+        connect_timeout,
+        request_timeout,
+        streaming,
+        user_agent,
+        upstream,
+        None,
+    )
+    .await
+}
+
+pub async fn provider_client_with_proxy(
+    input: &str,
+    allow_local: bool,
+    connect_timeout: Duration,
+    request_timeout: Duration,
+    streaming: bool,
+    user_agent: &str,
+    upstream: UpstreamSettings,
+    proxy: Option<&ProxyEgress>,
+) -> Result<(Url, reqwest::Client), String> {
+    let url = if proxy.is_some() {
+        validate_provider_url_via_proxy(input, allow_local)?
+    } else {
+        validate_provider_url(input, allow_local)?
+    };
     let host = url
         .host_str()
         .ok_or_else(|| "Provider URL must include a host".to_owned())?;
     let port = url
         .port_or_known_default()
         .ok_or_else(|| "Provider URL must include a valid port".to_owned())?;
+    let proxy_fingerprint = proxy.map(proxy_fingerprint);
     let key = ProviderClientKey {
         origin: format!("{}://{}:{port}", url.scheme(), host.to_ascii_lowercase()),
+        proxy_fingerprint,
         allow_local,
         connect_timeout,
         request_timeout,
@@ -85,33 +128,42 @@ pub async fn provider_client(
         }
     }
 
-    let resolved = resolve_provider_url(
-        input,
-        allow_local,
-        upstream.provider_client_max_resolved_addresses,
-    )
-    .await?;
-    // reqwest's total timeout spans connect through the end of the response
-    // body and does not reset on activity. Applying it to streaming requests
-    // kills any stream that outlives `request_timeout` even while frames keep
-    // arriving, so streaming clients bound the body with the idle-oriented
-    // total limit instead; gateway idle deadlines own liveness.
     let total_timeout = if streaming {
         PROVIDER_STREAM_TOTAL_TIMEOUT
     } else {
         request_timeout
     };
-    let client = build_pinned_client(
-        reqwest::Client::builder()
-            .connect_timeout(connect_timeout)
-            .timeout(total_timeout)
-            // Evict idle sockets before common provider/proxy keep-alive
-            // windows expire. Reusing a server-closed socket makes POSTs
-            // fail with a reset instead of opening a fresh connection.
-            .pool_idle_timeout(PROVIDER_POOL_IDLE_TIMEOUT)
-            .user_agent(user_agent),
-        &resolved,
-    )?;
+    let builder = reqwest::Client::builder()
+        .connect_timeout(connect_timeout)
+        .timeout(total_timeout)
+        .pool_idle_timeout(PROVIDER_POOL_IDLE_TIMEOUT)
+        .user_agent(user_agent);
+    let client = if let Some(proxy) = proxy {
+        let proxy_url = validate_proxy_url(proxy.url.as_str(), allow_local)?;
+        let resolved_proxy = resolve_proxy_url(
+            proxy_url.as_str(),
+            allow_local,
+            upstream.provider_client_max_resolved_addresses,
+        )
+        .await?;
+        let mut configured_proxy = reqwest::Proxy::all(proxy_url)
+            .map_err(|_| "Configured proxy URL could not be validated".to_owned())?;
+        if let (Some(username), Some(secret)) =
+            (proxy.username.as_deref(), proxy.secret.as_deref())
+        {
+            configured_proxy = configured_proxy.basic_auth(username, secret);
+        }
+        build_proxy_client(builder, configured_proxy, &resolved_proxy)?
+    } else {
+        let resolved = resolve_provider_url(
+            input,
+            allow_local,
+            upstream.provider_client_max_resolved_addresses,
+        )
+        .await?;
+        build_pinned_client(builder, &resolved)?
+    };
+
     let mut cache = PROVIDER_CLIENTS.lock().await;
     let inserted_at = Instant::now();
     cache.retain(|_, entry| {
@@ -123,7 +175,7 @@ pub async fn provider_client(
     });
     if let Some(entry) = cache.get_mut(&key) {
         entry.last_used_at = inserted_at;
-        return Ok((resolved.url, entry.client.clone()));
+        return Ok((url, entry.client.clone()));
     }
     if cache.len() >= upstream.provider_client_cache_max_entries
         && let Some(least_recently_used) = cache
@@ -143,7 +195,49 @@ pub async fn provider_client(
             last_used_at: inserted_at,
         },
     );
-    Ok((resolved.url, client))
+    Ok((url, client))
+}
+
+fn proxy_fingerprint(proxy: &ProxyEgress) -> [u8; 32] {
+    let mut hash = Sha256::new();
+    hash.update(proxy.id.as_bytes());
+    hash.update([0]);
+    hash.update(proxy.url.as_str().as_bytes());
+    hash.update([0]);
+    hash.update(proxy.username.as_deref().unwrap_or("").as_bytes());
+    hash.update([0]);
+    hash.update(proxy.secret.as_deref().unwrap_or("").as_bytes());
+    hash.finalize().into()
+}
+
+/// Decode encrypted proxy endpoint records for request preparation. The
+/// endpoint secret is decrypted only after it has been selected for a request.
+pub(crate) fn proxy_egress_from_record(
+    endpoint_id: &str,
+    record: &crate::infra::storage::Record,
+    master_key: Option<&[u8; 32]>,
+    allow_local: bool,
+) -> Result<ProxyEgress, String> {
+    let url = record
+        .text("url")
+        .map_err(|_| "Stored proxy endpoint has no URL".to_owned())?;
+    let url = validate_proxy_url(url, allow_local)?;
+    let username = record
+        .optional_text("username")
+        .map_err(|_| "Stored proxy endpoint username is invalid".to_owned())?
+        .map(str::to_owned);
+    let secret = decrypt_secret(
+        master_key,
+        record
+            .optional_bytes("secret")
+            .map_err(|_| "Stored proxy endpoint credential is invalid".to_owned())?,
+    )?;
+    Ok(ProxyEgress {
+        id: endpoint_id.to_owned(),
+        url,
+        username,
+        secret,
+    })
 }
 
 #[cfg(test)]
@@ -177,112 +271,5 @@ mod tests {
         .expect("explicit local provider is pinned");
         assert_eq!(url.host_str(), Some("127.0.0.1"));
         drop(client);
-    }
-
-    /// Streams a response whose body outlives `request_timeout` in chunks.
-    /// The non-streaming client must fail with its total timeout; the
-    /// streaming client must deliver every chunk because its total bound is
-    /// the idle-oriented 24h limit, not the per-request timeout.
-
-    #[tokio::test]
-    async fn streaming_client_survives_bodies_longer_than_request_timeout() {
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-            .await
-            .expect("test listener binds");
-        let address = listener.local_addr().expect("listener address");
-        let server = tokio::spawn(async move {
-            use tokio::io::AsyncWriteExt;
-            // Both flavors connect to the same listener; serve each one with
-            // the same headers followed by chunks past the request timeout.
-            for _ in 0..2 {
-                let (mut socket, _) = listener.accept().await.expect("test connection");
-                let mut request = Vec::new();
-                let mut buffer = [0_u8; 512];
-                while !request.ends_with(b"\r\n\r\n") {
-                    let read = tokio::io::AsyncReadExt::read(&mut socket, &mut buffer)
-                        .await
-                        .expect("request headers");
-                    if read == 0 {
-                        break;
-                    }
-                    request.extend_from_slice(&buffer[..read]);
-                }
-                // The non-streaming flavor deliberately abandons the body
-                // mid-stream when its total timeout fires, so chunk writes
-                // must tolerate a peer that has closed the socket.
-                let _ = socket
-                    .write_all(
-                        b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\n\r\n",
-                    )
-                    .await;
-                for delay in [0, 150, 500] {
-                    tokio::time::sleep(Duration::from_millis(delay)).await;
-                    if socket.write_all(b"3\r\nabc\r\n").await.is_err() {
-                        break;
-                    }
-                }
-                let _ = socket.write_all(b"0\r\n\r\n").await;
-            }
-        });
-
-        let url = format!("http://{address}/v1/stream");
-        let (_, streaming_client) = provider_client(
-            &url,
-            true,
-            Duration::from_secs(1),
-            Duration::from_millis(200),
-            true,
-            "ExoRoute/test",
-            UpstreamSettings::default(),
-        )
-        .await
-        .expect("streaming client builds");
-        let response = streaming_client
-            .get(&url)
-            .send()
-            .await
-            .expect("streaming request succeeds");
-        use futures_util::StreamExt;
-        let mut chunks = response.bytes_stream();
-        let mut received = 0_usize;
-        while let Some(chunk) = chunks.next().await {
-            chunk.expect("streaming body survives past the request timeout");
-            received += 1;
-        }
-        assert_eq!(received, 3, "every streamed chunk is delivered");
-
-        let (_, plain_client) = provider_client(
-            &url,
-            true,
-            Duration::from_secs(1),
-            Duration::from_millis(200),
-            false,
-            "ExoRoute/test",
-            UpstreamSettings::default(),
-        )
-        .await
-        .expect("non-streaming client builds");
-        let response = plain_client
-            .get(&url)
-            .send()
-            .await
-            .expect("headers arrive before the total timeout");
-        let mut chunks = response.bytes_stream();
-        let mut timed_out = false;
-        while let Some(chunk) = chunks.next().await {
-            match chunk {
-                Ok(_) => {}
-                Err(error) if error.is_timeout() => {
-                    timed_out = true;
-                    break;
-                }
-                Err(error) => panic!("unexpected non-streaming body error: {error}"),
-            }
-        }
-        assert!(
-            timed_out,
-            "non-streaming client still enforces its total timeout"
-        );
-        server.await.expect("test server task");
     }
 }

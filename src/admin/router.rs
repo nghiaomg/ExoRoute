@@ -158,6 +158,23 @@ fn combo_routes() -> Router<AppState> {
         .route("/api/v1/admin/models/test", post(model_probes::test_models))
 }
 
+fn proxy_routes() -> Router<AppState> {
+    Router::new()
+        .route(
+            "/api/v1/admin/proxies",
+            get(proxies::list_proxies).post(proxies::create_proxy),
+        )
+        .route(
+            "/api/v1/admin/proxies/options",
+            get(proxies::list_proxy_options),
+        )
+        .route("/api/v1/admin/proxies/bulk", post(proxies::bulk_create_proxies))
+        .route(
+            "/api/v1/admin/proxies/{id}",
+            put(proxies::update_proxy).delete(proxies::delete_proxy),
+        )
+}
+
 fn workspace_routes() -> Router<AppState> {
     Router::new()
         .route(
@@ -249,6 +266,7 @@ pub(crate) fn router(state: AppState) -> Router<AppState> {
     let protected = Router::new()
         .merge(provider_routes())
         .merge(combo_routes())
+        .merge(proxy_routes())
         .merge(workspace_routes())
         .layer(DefaultBodyLimit::max(
             workspace::MAX_WORKSPACE_CHAT_BODY_BYTES,

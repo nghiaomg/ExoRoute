@@ -12,15 +12,16 @@ pub(super) enum SendStep {
 
 fn build_upstream_request(
     attempt: &AttemptContext<'_>,
+    client: &reqwest::Client,
+    endpoint: &reqwest::Url,
     credential_secret: Option<&str>,
     oauth_auth: Option<&provider_adapters::OAuthRequestAuth>,
     preparation: &provider_adapters::AdapterRequestPreparation,
     session_id: &str,
 ) -> Result<reqwest::RequestBuilder, String> {
     let provider = &attempt.provider;
-    let mut request = attempt
-        .provider_http
-        .post(attempt.endpoint.clone())
+    let mut request = client
+        .post(endpoint.clone())
         .json(&attempt.upstream_body)
         .header("x-request-id", &attempt.scope.request_id);
     if provider_adapters::wants_event_stream(&provider.adapter_id)
@@ -98,6 +99,8 @@ pub(super) async fn send_request(
     } else {
         let request = match build_upstream_request(
             attempt,
+            &attempt.provider_http,
+            &attempt.endpoint,
             credential_secret,
             oauth_auth,
             &preparation,
@@ -110,6 +113,52 @@ pub(super) async fn send_request(
             }
         };
         let mut response = request.send().await;
+        let mut fallback_index = 0_usize;
+        while let Err(error) = &response {
+            if !error.is_connect() || fallback_index >= attempt.proxy_fallbacks.len() {
+                break;
+            }
+            let fallback = &attempt.proxy_fallbacks[fallback_index];
+            fallback_index += 1;
+            let fallback_client = match crate::security::egress::provider_client_with_proxy(
+                attempt.endpoint.as_str(),
+                attempt.scope.state.config.allow_private_provider_urls,
+                attempt.scope.operational_settings.connect_timeout,
+                attempt.scope.operational_settings.request_timeout,
+                attempt.scope.canonical_stream
+                    || provider_adapters::wants_event_stream(&attempt.provider.adapter_id),
+                concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
+                attempt.scope.operational_settings.upstream,
+                Some(fallback),
+            )
+            .await
+            {
+                Ok((_, client)) => client,
+                Err(proxy_error) => {
+                    failures.last_error = format!(
+                        "provider '{}' proxy endpoint could not be prepared: {proxy_error}",
+                        provider.id
+                    );
+                    continue;
+                }
+            };
+            let retry_request = match build_upstream_request(
+                attempt,
+                &fallback_client,
+                &attempt.endpoint,
+                credential_secret,
+                oauth_auth,
+                &preparation,
+                &attempt.scope.adapter_session_id,
+            ) {
+                Ok(request) => request,
+                Err(build_error) => {
+                    failures.last_error = build_error;
+                    break;
+                }
+            };
+            response = retry_request.send().await;
+        }
         let is_auth_rejection = response.as_ref().ok().is_some_and(|r| {
             let status = r.status();
             (status == StatusCode::UNAUTHORIZED || status == StatusCode::FORBIDDEN)
@@ -125,6 +174,8 @@ pub(super) async fn send_request(
             let fresh_session_id = uuid::Uuid::new_v4().to_string();
             if let Ok(retry_request) = build_upstream_request(
                 attempt,
+                &attempt.provider_http,
+                &attempt.endpoint,
                 credential_secret,
                 oauth_auth,
                 &preparation,

@@ -1,6 +1,26 @@
 use crate::provider_adapters;
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) enum ProxyBindingUpdate {
+    #[default]
+    Unchanged,
+    Clear,
+    Set(String),
+}
+
+impl<'de> serde::Deserialize<'de> for ProxyBindingUpdate {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(match <Option<String> as serde::Deserialize<'de>>::deserialize(deserializer)? {
+            Some(value) => Self::Set(value),
+            None => Self::Clear,
+        })
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub(super) struct ProviderView {
     pub(super) id: String,
@@ -20,6 +40,8 @@ pub(super) struct ProviderView {
     pub(super) model_count: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) local_rpm_target: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) proxy_id: Option<String>,
     pub(super) preferred_protocol: String,
     pub(super) supported_protocols: Vec<String>,
     pub(super) thinking_mode: String,
@@ -53,6 +75,9 @@ pub struct ProviderInput {
     pub api_keys: Vec<String>,
     #[serde(default)]
     pub local_rpm_target: Option<u32>,
+    /// Missing means unchanged for backward compatibility; null clears the binding.
+    #[serde(default)]
+    pub proxy_id: ProxyBindingUpdate,
     #[serde(default = "super::validation::default_protocol")]
     pub preferred_protocol: String,
     #[serde(default = "super::validation::default_protocols")]

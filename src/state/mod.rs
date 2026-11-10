@@ -95,6 +95,7 @@ pub(crate) struct GatewayGates {
     pub(crate) gateway_sse_processing: Arc<DynamicSemaphore>,
     pub(crate) provider_in_flight: Arc<Mutex<HashMap<String, Arc<DynamicSemaphore>>>>,
     pub(crate) round_robin: Arc<Mutex<HashMap<String, usize>>>,
+    pub(crate) proxy_endpoint_cursors: Arc<Mutex<HashMap<String, usize>>>,
     /// Fallback position that starts the next round-robin request of a provider.
     /// Entries are dropped with the provider or by an atomic restore.
     pub(crate) provider_key_cursors: Arc<Mutex<HashMap<String, String>>>,
@@ -320,6 +321,7 @@ impl AppState {
                 )),
                 provider_in_flight: Arc::new(Mutex::new(HashMap::new())),
                 round_robin: Arc::new(Mutex::new(HashMap::new())),
+                proxy_endpoint_cursors: Arc::new(Mutex::new(HashMap::new())),
                 provider_key_cursors: Arc::new(Mutex::new(HashMap::new())),
                 circuit_breakers: Arc::new(std::sync::Mutex::new(HashMap::new())),
                 circuit_breaker_settings: Arc::new(StdRwLock::new(CircuitBreakerRuntimeSettings {
