@@ -1,0 +1,42 @@
+/* Shared interaction states for editable controls. Geometry stays with each component; color, border and feedback come from the New API key field. */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not(.search-box input), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input) {
+  transition: border-color .14s ease, box-shadow .14s ease, background-color .14s ease;
+}
+.search-box:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--db-accent-ring);
+  background-color: color-mix(in srgb, var(--accent) 3%, var(--surface));
+}
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input):not(.search-box input):not(:disabled):not([readonly]):hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background-color: color-mix(in srgb, var(--accent) 2%, var(--surface));
+}
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input):not(.search-box input):focus,
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input):not(.search-box input):focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
+  outline: 0;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--db-accent-ring);
+  background-color: color-mix(in srgb, var(--accent) 3%, var(--surface));
+}
+:where(.ark-combobox-root[data-state="open"] .ark-combobox-input, .ark-select-root[data-state="open"] .ark-select-trigger) {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
+  box-shadow: 0 0 0 3px var(--db-accent-ring);
+  background-color: color-mix(in srgb, var(--accent) 3%, var(--surface));
+}
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input):not(.search-box input):active:not(:disabled) {
+  border-color: var(--accent);
+}
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input):disabled,
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input)[data-disabled] {
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input) { transition: none; }
+}
+
+:root[data-theme='dark'] :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not(.search-box input), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input) {
+  background-color: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-color: var(--line);
+}

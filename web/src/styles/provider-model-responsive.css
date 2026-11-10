@@ -523,12 +523,6 @@
   font: inherit;
   font-weight: var(--font-medium);
 }
-.resource-limit-input input:focus-visible,
-.resource-limit-input select:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 33%, transparent);
-  outline-offset: 1px;
-  border-color: var(--accent);
-}
 .resource-limit-input input:disabled,
 .resource-limit-input select:disabled { opacity: 0.65; }
 .resource-limit-input > small {

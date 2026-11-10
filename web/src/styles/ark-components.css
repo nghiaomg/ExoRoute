@@ -37,7 +37,6 @@
 .ark-select-label { color: var(--ink); font-size: var(--text-xs); font-weight: var(--font-semibold); }
 .ark-select-control { display: flex; align-items: center; position: relative; width: 100%; }
 .ark-select-trigger { width: 100%; min-height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px 0 11px; border: var(--nb-border); border-radius: var(--radius-sm); color: var(--ink); background: var(--surface); font-size: var(--text-sm); font-family: inherit; cursor: pointer; text-align: left; outline: none; transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease; box-sizing: border-box; box-shadow: var(--nb-shadow-sm); }
-.ark-select-trigger:focus, .ark-select-root[data-state="open"] .ark-select-trigger { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }
 .ark-select-trigger[data-disabled] { cursor: not-allowed; opacity: .55; background: var(--surface-sunken); }
 .ark-select-value-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .ark-select-value-text[data-placeholder-shown] { color: var(--text-dim); }
@@ -70,7 +69,7 @@
 .ark-combobox-label { color: var(--ink); font-size: var(--text-xs); font-weight: var(--font-semibold); }
 .ark-combobox-control { display: flex; align-items: center; position: relative; width: 100%; }
 .ark-combobox-input { width: 100%; min-height: 38px; outline: none; padding: 0 60px 0 11px; border: var(--nb-border); border-radius: var(--radius-sm); color: var(--ink); background: var(--surface); font-size: var(--text-sm); font-family: inherit; box-sizing: border-box; transition: border-color .14s ease, box-shadow .14s ease; box-shadow: var(--nb-shadow-sm); }
-.ark-combobox-input:focus, :root .ark-combobox-root[data-state="open"] .ark-combobox-input { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }
+
 .ark-combobox-input[data-disabled] { cursor: not-allowed; opacity: .55; background: var(--surface-sunken); }
 .ark-combobox-input::placeholder { color: var(--text-dim); }
 .ark-combobox-indicators { position: absolute; right: 8px; display: flex; align-items: center; gap: 4px; color: var(--muted); }
@@ -98,7 +97,6 @@
 /* Pill variant: a compact header trigger that opens the same searchable list.
    Soft Neo-Brutalism: 2px ink border + hard offset ink shadow, pressed focus. */
 .ark-combobox-pill .ark-combobox-input { min-height: 30px; height: 30px; padding: 0 52px 0 10px; border: var(--nb-border); border-radius: 10px; box-shadow: var(--nb-shadow-sm); font-size: var(--text-xs); font-weight: var(--font-semibold); color: #37394d; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
-.ark-combobox-pill .ark-combobox-input:focus { transform: translate(1px, 1px); box-shadow: var(--nb-shadow-sm); background: var(--surface); }
 .ark-combobox-pill.ark-combobox-no-clear .ark-combobox-input { padding-right: 26px; }
 .ark-combobox-pill .ark-combobox-indicators { right: 6px; }
 
@@ -112,7 +110,6 @@
 .ark-field-label { color: var(--ink); font-size: var(--text-xs); font-weight: var(--font-semibold); }
 .provider-preset-value { min-width: 0; padding: 9px 10px; border: 1px solid #e4e5ec; border-radius: 7px; color: #64687a; background: var(--surface-sunken); font-size: 12px; overflow-wrap: anywhere; }
 .ark-field-input { width: 100%; height: 38px; outline: none; padding: 0 11px; border: var(--nb-border); border-radius: var(--radius-sm); color: var(--ink); background: var(--surface); font-size: var(--text-sm); font-family: inherit; box-sizing: border-box; transition: border-color .14s ease, box-shadow .14s ease; box-shadow: var(--nb-shadow-sm); }
-.ark-field-input:focus { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }
 .ark-field-input[data-disabled] { cursor: not-allowed; opacity: .55; background: var(--surface-sunken); }
 .ark-field-helper { color: #8a8e9e; font-size: var(--text-xs); line-height: var(--leading-normal); }
 .ark-field-error { color: #dc2626; font-size: var(--text-xs); line-height: var(--leading-normal); }
@@ -122,7 +119,6 @@
 .ark-password-label { color: var(--ink); font-size: var(--text-xs); font-weight: var(--font-semibold); }
 .ark-password-control { display: flex; align-items: center; position: relative; width: 100%; }
 .ark-password-input { width: 100%; height: 38px; outline: none; padding: 0 36px 0 11px; border: var(--nb-border); border-radius: var(--radius-sm); color: var(--ink); background: var(--surface); font-size: var(--text-sm); font-family: inherit; box-sizing: border-box; transition: border-color .14s ease, box-shadow .14s ease; box-shadow: var(--nb-shadow-sm); }
-.ark-password-input:focus { border-color: var(--accent); box-shadow: 2px 2px 0 var(--accent); }
 .ark-password-input[data-disabled] { cursor: not-allowed; opacity: .55; background: var(--surface-sunken); }
 .ark-password-trigger { position: absolute; right: 8px; display: grid; place-items: center; width: 24px; height: 24px; border: 0; background: transparent; color: var(--muted); padding: 0; cursor: pointer; border-radius: 4px; transition: color .14s ease; }
 .ark-password-trigger:hover { color: var(--accent-strong); }

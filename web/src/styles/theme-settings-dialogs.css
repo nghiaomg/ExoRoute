@@ -51,32 +51,19 @@
 :root[data-theme='dark'] .modal-kicker { color: var(--info); }
 :root[data-theme='dark'] .modal-form label,
 :root[data-theme='dark'] .key-reveal-field { color: #c4c8d8; }
-:root[data-theme='dark'] .modal-form input,
-:root[data-theme='dark'] .modal-form select,
-:root[data-theme='dark'] .modal-form textarea,
-:root[data-theme='dark'] input,
-:root[data-theme='dark'] select,
-:root[data-theme='dark'] textarea {
+:root[data-theme='dark'] .dashboard-app .modal-form input,
+:root[data-theme='dark'] .dashboard-app .modal-form select,
+:root[data-theme='dark'] .dashboard-app .modal-form textarea,
+:root[data-theme='dark'] .dashboard-app input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+:root[data-theme='dark'] .dashboard-app select,
+:root[data-theme='dark'] .dashboard-app textarea {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.04);
-  border: var(--nb-border);
-  box-shadow: var(--nb-shadow-sm);
+  border-color: var(--line);
 }
-:root[data-theme='dark'] .modal-form input:focus,
-:root[data-theme='dark'] .modal-form select:focus,
-:root[data-theme='dark'] .modal-form textarea:focus,
-:root[data-theme='dark'] input:focus,
-:root[data-theme='dark'] select:focus,
-:root[data-theme='dark'] textarea:focus {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: var(--accent);
-  box-shadow: 2px 2px 0 var(--accent);
-}
-:root[data-theme='dark'] .modal-form input::placeholder,
-:root[data-theme='dark'] input::placeholder,
-:root[data-theme='dark'] textarea::placeholder { color: #767a92; }
+:root[data-theme='dark'] .dashboard-app input::placeholder,
+:root[data-theme='dark'] .dashboard-app textarea::placeholder { color: #767a92; }
 :root[data-theme='dark'] .search-box input { color: var(--ink); background: transparent; border: 0; box-shadow: none; }
-:root[data-theme='dark'] .search-box input:focus { border: 0; box-shadow: none; }
 :root[data-theme='dark'] .optional-label,
 :root[data-theme='dark'] .form-help { color: #8e93aa; }
 :root[data-theme='dark'] .form-section-label { color: var(--info-soft); }

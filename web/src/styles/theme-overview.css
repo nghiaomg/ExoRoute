@@ -30,8 +30,6 @@
 :root[data-theme='dark'] .search-box:focus-within {
   background: rgba(255, 255, 255, 0.07) !important;
   color: var(--ink);
-  border-color: color-mix(in srgb, var(--info) 50%, transparent) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 18%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
 }
 :root[data-theme='dark'] .search-box input { color: var(--ink) !important; border: none !important; background: transparent !important; }
 :root[data-theme='dark'] .search-box input::placeholder { color: #767a92; }

@@ -2130,10 +2130,6 @@
       }
 
       @media (max-width: 680px) {
-        .dashboard-app .page-surface {
-          max-height: 65vh;
-        }
-
         .dashboard-app .page-intro {
           align-items: flex-start;
           flex-direction: column;

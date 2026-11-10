@@ -33,11 +33,6 @@
 .settings-view .resource-limit-select .ark-select-control {
   width: min(100%, 220px);
 }
-.settings-view .resource-limit-input input:focus,
-.settings-view .resource-limit-input select:focus {
-  background: var(--surface);
-  outline: none;
-}
 .settings-view .resource-continuity-control strong {
   color: var(--accent-strong);
 }

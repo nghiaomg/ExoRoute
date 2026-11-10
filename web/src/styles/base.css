@@ -309,14 +309,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--ink);
   font-size: 13px;
   box-shadow: var(--nb-shadow-sm);
-  transition: background .15s ease, box-shadow .15s ease, border-color .15s ease;
-}
-.login-screen .ark-password-input:focus,
-.login-screen .modal-form input:focus {
-  background: var(--surface);
-  border-color: var(--accent);
-  box-shadow: 2px 2px 0 var(--accent);
-  outline: none !important;
+  transition: border-color .14s ease, box-shadow .14s ease, background-color .14s ease;
 }
 .login-screen .ark-password-trigger {
   right: 10px;
@@ -736,8 +729,6 @@ h1 { margin-bottom: 4px; color: var(--ink); font: 700 27px var(--font-heading); 
   transition: all 0.16s ease;
 }
 .search-box:focus-within {
-  border-color: var(--accent) !important;
-  box-shadow: 2px 2px 0 var(--accent) !important;
   color: var(--accent-strong);
 }
 .search-box input { width: 175px; padding: 0; color: var(--ink); border: 0; outline: 0; background: transparent; font-size: 12px; }

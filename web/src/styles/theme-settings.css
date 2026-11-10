@@ -188,8 +188,6 @@
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
-:root[data-theme='dark'] .resource-limit-input input:focus-visible,
-:root[data-theme='dark'] .resource-limit-input select:focus-visible { outline-color: color-mix(in srgb, var(--info) 40%, transparent); border-color: var(--info); }
 :root[data-theme='dark'] .resource-limits-notice { color: #fde047; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); }
 :root[data-theme='dark'] .resource-limits-error { color: #fca5a5; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.28); }
 :root[data-theme='dark'] .resource-limits-success { color: #86efac; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.28); }

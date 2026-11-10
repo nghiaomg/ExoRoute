@@ -6,7 +6,7 @@
  * their own borders, glass panels, ambient glows, or precision hairlines.
  */
 
-:root[data-theme='dark']:not([data-palette]) *,
+:root[data-theme='dark']:not([data-palette]) *:not(:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input)),
 :root[data-theme='dark']:not([data-palette]) ::before,
 :root[data-theme='dark']:not([data-palette]) ::after {
   border-color: transparent !important;
@@ -14,7 +14,7 @@
   text-shadow: none !important;
 }
 
-:root[data-theme='dark'] *:focus-visible {
+:root[data-theme='dark'] *:focus-visible:not(input):not(textarea):not(select):not(.ark-field-input):not(.ark-password-input):not(.ark-select-trigger):not(.ark-combobox-input) {
   outline: 2px solid var(--accent-glow) !important;
   outline-offset: 2px !important;
 }

@@ -10,6 +10,8 @@ import './styles/dark-mode.css';
 import './styles/palettes.css';
 // Theme styles declare complete, distinct design systems per theme.
 import './styles/theme-styles.css';
+// Shared control states load last so the same focus treatment applies across themes.
+import './styles/form-control-states.css';
 
 const app = mount(App, { target: document.getElementById('app')! });
 

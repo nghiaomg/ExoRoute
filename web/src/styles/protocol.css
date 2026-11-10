@@ -84,7 +84,6 @@
 .oauth-format-guide code { color: var(--accent-deep); background: transparent; font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; word-break: break-all; overflow-wrap: anywhere; }
 .oauth-callback-field { display: grid; gap: 6px; min-width: 0; max-width: 100%; color: var(--muted); font-size: 12px; font-weight: 650; box-sizing: border-box; }
 .oauth-callback-textarea { width: 100%; min-width: 0; max-width: 100%; min-height: 80px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); font: 500 12px/1.5 var(--font-mono, ui-monospace, monospace); overflow-wrap: anywhere; word-break: break-all; resize: vertical; box-sizing: border-box; }
-.oauth-callback-textarea:focus { border-color: var(--accent-glow); outline: 3px solid color-mix(in srgb, var(--info) 18%, transparent); }
 .agy-cli-import { display: grid; gap: 8px; justify-items: start; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .agy-cli-hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .agy-cli-textarea { min-height: 96px; }

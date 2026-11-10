@@ -11,7 +11,6 @@
 
 :root[data-theme='dark'] .ark-select-label { color: #d0d2df; }
 :root[data-theme='dark'] .ark-select-trigger { color: #e3e4ee; background: #222330; border-color: #404252; }
-:root[data-theme='dark'] .ark-select-trigger:focus, :root[data-theme='dark'] .ark-select-root[data-state="open"] .ark-select-trigger { border-color: var(--accent-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 20%, transparent); }
 :root[data-theme='dark'] .ark-select-trigger[data-disabled] { background: #1c1d28; }
 :root[data-theme='dark'] .ark-select-value-text[data-placeholder-shown] { color: #8e91a4; }
 :root[data-theme='dark'] .ark-select-indicators { color: #8e91a4; }
@@ -35,7 +34,7 @@
 /* Ark Combobox (searchable select) */
 :root[data-theme='dark'] .ark-combobox-label { color: #d0d2df; }
 :root[data-theme='dark'] .ark-combobox-input { color: #e3e4ee; background: #222330; border-color: #404252; }
-:root[data-theme='dark'] .ark-combobox-input:focus, :root[data-theme='dark'] .ark-combobox-root[data-state="open"] .ark-combobox-input { border-color: var(--accent-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 20%, transparent); }
+
 :root[data-theme='dark'] .ark-combobox-input[data-disabled] { background: #1c1d28; }
 :root[data-theme='dark'] .ark-combobox-input::placeholder { color: #8e91a4; }
 :root[data-theme='dark'] .ark-combobox-indicators { color: #8e91a4; }
@@ -49,7 +48,6 @@
 :root[data-theme='dark'] .ark-combobox-item-indicator { color: var(--accent-soft); }
 :root[data-theme='dark'] .ark-combobox-empty { color: #8e91a4; }
 :root[data-theme='dark'] .ark-combobox-pill .ark-combobox-input { color: #e3e4ee; background: color-mix(in srgb, var(--accent) 8%, transparent); }
-:root[data-theme='dark'] .ark-combobox-pill .ark-combobox-input:focus { background: #222330; }
 
 :root[data-theme='dark'] .ark-select-content,
 :root[data-theme='dark'] .ark-combobox-content,
@@ -63,14 +61,12 @@
 :root[data-theme='dark'] .ark-field-label { color: #d0d2df; }
 :root[data-theme='dark'] .provider-preset-value { color: #c1c3d2; background: #20212f; border-color: #3a3c4d; }
 :root[data-theme='dark'] .ark-field-input { color: #e3e4ee; background: #222330; border-color: #404252; }
-:root[data-theme='dark'] .ark-field-input:focus { border-color: var(--accent-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 20%, transparent); }
 :root[data-theme='dark'] .ark-field-input[data-disabled] { background: #1c1d28; }
 :root[data-theme='dark'] .ark-field-helper { color: #8e91a4; }
 :root[data-theme='dark'] .ark-field-error { color: #f87171; }
 
 :root[data-theme='dark'] .ark-password-label { color: #d0d2df; }
 :root[data-theme='dark'] .ark-password-input { color: #e3e4ee; background: #222330; border-color: #404252; }
-:root[data-theme='dark'] .ark-password-input:focus { border-color: var(--accent-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 20%, transparent); }
 :root[data-theme='dark'] .ark-password-input[data-disabled] { background: #1c1d28; }
 :root[data-theme='dark'] .ark-password-trigger { color: #8e91a4; }
 :root[data-theme='dark'] .ark-password-trigger:hover { color: var(--info-soft); }
