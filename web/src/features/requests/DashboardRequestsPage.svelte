@@ -16,6 +16,7 @@
   import { requestOutcome, requestPageMetrics } from './request.metrics';
   import { requestsCsvFilename, requestsToCsv } from './request.csv';
   import { modelLogoSrc } from './model-logo';
+  import ArkSelect from '../../components/ArkSelect.svelte';
   import { createStatisticsLiveRefresher } from './request.stats.refresh';
   import '../../styles/dashboard/pages/requests.css';
 
@@ -124,12 +125,9 @@
     return row.status ? String(row.status) : '—';
   }
 
-  function tokensLabel(row: RequestLog | RequestLiveRow): string {
-    const input = row.input_tokens ?? 0;
-    const output = row.output_tokens ?? 0;
+  function cacheTokens(row: RequestLog | RequestLiveRow): number | null {
     const cache = row.cached_tokens ?? row.cache_input_tokens ?? null;
-    const cacheText = cache != null && cache > 0 ? `[${formatCount(cache, locale)}]` : '[—]';
-    return `${formatCount(input, locale)} / ${formatCount(output, locale)} ${cacheText}`;
+    return cache != null && cache > 0 ? cache : null;
   }
 
   function providerLabel(row: RequestLog | RequestLiveRow): string {
@@ -472,12 +470,13 @@
           <option value="5xx">5xx</option>
           <option value="live">{tr('Live only')}</option>
         </select>
-        <select class="req-select" aria-label={tr('Filter by provider')} bind:value={providerFilter} onchange={() => { cursorStack = []; void loadPage(null, false); }}>
-          <option value="all">{tr('All providers')}</option>
-          {#each providers as provider (provider.id)}
-            <option value={provider.id}>{provider.name}</option>
-          {/each}
-        </select>
+        <ArkSelect
+          class="req-select"
+          ariaLabel={tr('Filter by provider')}
+          bind:value={providerFilter}
+          items={[{ label: tr('All providers'), value: 'all' }, ...providers.map((provider) => ({ label: provider.name, value: provider.id }))]}
+          onValueChange={() => { cursorStack = []; void loadPage(null, false); }}
+        />
         <div class="req-range" role="group" aria-label={tr('Statistics time range')}>
           {#each RANGE_OPTIONS as range (range)}
             <button type="button" class:active={rangeFilter === range} aria-pressed={rangeFilter === range} onclick={() => (rangeFilter = range)}>{tr(RANGE_LABEL[range])}</button>
@@ -517,7 +516,14 @@
                 <td>{providerLabel(row)}</td>
                 <td>{row.api_key_name || '—'}</td>
                 <td class="num">{durationLabel(row)}</td>
-                <td class="num tok-cell">{tokensLabel(row)}</td>
+                <td class="num tok-cell">
+                  <span class="req-token-input">{formatCount(row.input_tokens ?? 0, locale)}</span>
+                  <span class="req-token-separator">/</span>
+                  <span class="req-token-output">{formatCount(row.output_tokens ?? 0, locale)}</span>
+                  {#if cacheTokens(row) !== null}
+                    <span class="req-token-cache-chip">{tr('Cache: {count}', { count: formatCount(cacheTokens(row) ?? 0, locale) })}</span>
+                  {/if}
+                </td>
                 <td class="num">{formatCostMicroUsd(row.cost_micro_usd) || '—'}</td>
               </tr>
             {:else}
@@ -547,27 +553,40 @@
       <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
     </div>
     {#if detailRow}
+      {@const live = isLiveRequest(detailRow)}
+      {@const status = live ? 'LIVE' : String(detailRow.status ?? '—')}
       <div class="req-detail">
-        <div class="req-detail-grid">
-          <div><span>{tr('Status')}</span><strong>{isLiveRequest(detailRow) ? tr('LIVE') : detailRow.status ?? '—'}</strong></div>
-          <div><span>{tr('Model')}</span><strong>{detailRow.model || '—'}</strong></div>
-          <div><span>{tr('Route alias')}</span><strong>{detailRow.route_alias || '—'}</strong></div>
-          <div><span>{tr('Provider')}</span><strong>{providerLabel(detailRow)}</strong></div>
-          <div><span>{tr('API key')}</span><strong>{detailRow.api_key_name || '—'}</strong></div>
-          <div><span>{tr('Latency')}</span><strong>{durationLabel(detailRow)}</strong></div>
-          <div><span>{tr('Tokens in')}</span><strong>{formatCount(detailRow.input_tokens ?? 0, locale)}</strong></div>
-          <div><span>{tr('Tokens out')}</span><strong>{formatCount(detailRow.output_tokens ?? 0, locale)}</strong></div>
-          <div><span>{tr('Cache read')}</span><strong>{formatCount(detailRow.cached_tokens ?? detailRow.cache_input_tokens ?? 0, locale)}</strong></div>
-          <div><span>{tr('Cost')}</span><strong>{formatCostMicroUsd(detailRow.cost_micro_usd) || '—'}</strong></div>
-          <div><span>{tr('Time')}</span><strong>{timeLabel(detailRow)}{detailRow.created_at ? ` · ${new Date(detailRow.created_at).toLocaleString(locale)}` : ''}</strong></div>
-          <div><span>{tr('Protocols')}</span><strong>{detailRow.client_protocol || '—'} → {detailRow.upstream_protocol || '—'}</strong></div>
-        </div>
-        {#if detailRow.error}
-          <div class="req-error-note" role="alert">{detailRow.error}</div>
-        {/if}
-        {#if detailRow.request_id}
-          <p class="form-note">{tr('Request ID')}: {detailRow.request_id}</p>
-        {/if}
+        <section class="req-detail-overview" aria-label={tr('Request summary')}>
+          <span class="req-detail-status" class:live class:success={!live && (detailRow.status ?? 0) >= 200 && (detailRow.status ?? 0) < 300} class:failure={!live && (detailRow.status ?? 0) >= 400} aria-label={tr('Status')}>{status}</span>
+          <div class="req-detail-title">
+            <strong>{detailRow.route_alias || detailRow.model || tr('request')}</strong>
+            <span>{providerLabel(detailRow)}{detailRow.model && detailRow.route_alias ? ` · ${detailRow.model}` : ''}</span>
+          </div>
+          <span class="req-detail-latency">{durationLabel(detailRow)}</span>
+        </section>
+
+        <section class="req-detail-section" aria-labelledby="req-detail-usage">
+          <h3 id="req-detail-usage">{tr('Token usage')}</h3>
+          <div class="req-detail-usage">
+            <div class="req-usage-metric input"><span>{tr('Tokens in')}</span><strong>{formatCount(detailRow.input_tokens ?? 0, locale)}</strong></div>
+            <div class="req-usage-metric output"><span>{tr('Tokens out')}</span><strong>{formatCount(detailRow.output_tokens ?? 0, locale)}</strong></div>
+            <div class="req-usage-metric cache"><span>{tr('Cache read')}</span><strong>{formatCount(detailRow.cached_tokens ?? detailRow.cache_input_tokens ?? 0, locale)}</strong></div>
+          </div>
+        </section>
+
+        <section class="req-detail-section" aria-labelledby="req-detail-info">
+          <h3 id="req-detail-info">{tr('Request info')}</h3>
+          <dl class="req-detail-grid">
+            <div><dt>{tr('Route alias')}</dt><dd>{detailRow.route_alias || '—'}</dd></div>
+            <div><dt>{tr('Provider')}</dt><dd>{providerLabel(detailRow)}</dd></div>
+            <div><dt>{tr('API key')}</dt><dd>{detailRow.api_key_name || '—'}</dd></div>
+            <div><dt>{tr('Cost')}</dt><dd>{formatCostMicroUsd(detailRow.cost_micro_usd) || '—'}</dd></div>
+            <div><dt>{tr('Time')}</dt><dd>{timeLabel(detailRow)}{detailRow.created_at ? ` · ${new Date(detailRow.created_at).toLocaleString(locale)}` : ''}</dd></div>
+            <div><dt>{tr('Protocols')}</dt><dd>{detailRow.client_protocol || '—'} → {detailRow.upstream_protocol || '—'}</dd></div>
+          </dl>
+        </section>
+        {#if detailRow.error}<div class="req-error-note" role="alert">{detailRow.error}</div>{/if}
+        {#if detailRow.request_id}<p class="form-note req-detail-id">{tr('Request ID')}: <code>{detailRow.request_id}</code></p>{/if}
       </div>
     {/if}
     <div class="modal-actions">
