@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
+  import Input from '../../components/Input.svelte';
   import type { DashboardPage } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
   import type { Translate } from '../../lib/format';
@@ -571,7 +572,6 @@
                       <span class="course-copy">
                         <strong>{preset.name} <span class="prov-type">{providerTypeLabel(preset)}</span></strong>
                         <span>{preset.default_base_url ?? preset.adapter_id}</span>
-                        <small>{preset.description}</small>
                       </span>
                       <button class="secondary-button compact provider-catalog-add" type="button" onclick={() => providerPreset(preset.id)}>{tr('Add provider')}</button>
                     </article>
