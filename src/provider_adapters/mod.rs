@@ -248,6 +248,10 @@ pub struct AdapterModelTestRequest<'a> {
     pub custom_headers: &'a BTreeMap<String, String>,
     pub protocol: Protocol,
     pub credentials: &'a [Option<String>],
+    /// The provider's bound proxy endpoints: index 0 is the selected endpoint
+    /// and the rest are connect-error fallbacks. Empty when the provider has
+    /// no proxy binding; the probe then builds the direct pinned client.
+    pub proxy_endpoints: &'a [crate::security::egress::ProxyEgress],
 }
 
 pub struct AdapterApiKeyRequest<'a> {
@@ -764,6 +768,14 @@ pub async fn relay_workspace_inference_stream(
     relay_workspace_inference_stream_impl(adapter, request).await
 }
 
+/// Whether the adapter owning `adapter_id` accepts a streaming response that
+/// arrives without a `text/event-stream` content type. Stream relays outside
+/// this crate (the dashboard chat) must apply the same adapter-aware gate as
+/// the gateway instead of a strict header check.
+pub fn adapter_allows_missing_event_stream_content_type(adapter_id: &str) -> bool {
+    adapter(adapter_id).is_some_and(|adapter| adapter.allows_missing_event_stream_content_type())
+}
+
 pub(crate) use registry::local_transport_client;
 pub use registry::{send_local_upstream_request, uses_local_transport};
 
@@ -777,7 +789,6 @@ pub(crate) use discovery::{
 pub use presets::{
     capabilities, default_models, preset_for_adapter, presets, supported_upstream_protocols,
 };
-pub(crate) use sse::is_event_stream_content_type;
 pub(crate) use sse::{
     AdapterSseError, ResponsesStreamAccumulator, accepts_event_stream_response,
     adapter_sse_error_can_fail_over, parse_adapter_event_stream, read_adapter_event_stream,

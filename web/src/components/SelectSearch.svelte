@@ -1,5 +1,5 @@
-<script lang="ts" context="module">
-  export interface ComboboxOption {
+<script lang="ts" module>
+  export interface SelectSearchOption {
     label: string;
     value: string;
     /** Short muted suffix rendered after the label, e.g. the provider prefix. */
@@ -10,12 +10,14 @@
 </script>
 
 <script lang="ts">
+  import Button from "./Button.svelte";
   import { Portal } from '@ark-ui/svelte/portal';
   import { Combobox, createListCollection } from '@ark-ui/svelte/combobox';
+  import Input from './Input.svelte';
   import { Check, ChevronsUpDown, X } from '@lucide/svelte';
 
   interface Props {
-    items: ComboboxOption[];
+    items: SelectSearchOption[];
     value?: string;
     placeholder?: string;
     label?: string;
@@ -40,41 +42,39 @@
     onValueChange?: (value: string) => void;
   }
 
-  export let items: ComboboxOption[] = [];
-  export let value = '';
-  export let placeholder = 'Select…';
-  export let label = '';
-  export let disabled = false;
-  export let pill = false;
-  export let ariaLabel = '';
-  export let clearable = true;
-  export let openOnClick = true;
-  export let noOptionsText = 'No options';
-  // `class` is a reserved word: declare an alias and re-export it under the
-  // attribute name, the standard legacy-Svelte rename pattern.
-  export let className = '';
-  export { className as class };
-  export let onValueChange: ((value: string) => void) | undefined = undefined;
-  export let onSearch: ((query: string) => void) | undefined = undefined;
+  let {
+    items = [],
+    value = $bindable(''),
+    placeholder = 'Select…',
+    label = '',
+    disabled = false,
+    pill = false,
+    ariaLabel = '',
+    clearable = true,
+    openOnClick = true,
+    noOptionsText = 'No options',
+    class: className = '',
+    onValueChange,
+    onSearch,
+  }: Props = $props();
 
   // Ark performs no filtering on its own: the dropdown renders whatever the
   // caller's collection holds, so the search text narrows it here. The hint
   // and keywords stay searchable even when only the short label is shown.
   // With `onSearch` the caller owns the filtering and `items` is passed through.
-  let filterQuery = '';
+  let filterQuery = $state('');
 
-  function searchText(item: ComboboxOption): string {
+  function searchText(item: SelectSearchOption): string {
     return `${item.label} ${item.hint ?? ''} ${item.keywords ?? ''}`.toLowerCase();
   }
 
-  $: query = filterQuery.trim().toLowerCase();
-  $: filteredItems = onSearch || !query ? items : items.filter((item) => searchText(item).includes(query));
-
-  $: collection = createListCollection({
+  const query = $derived(filterQuery.trim().toLowerCase());
+  const filteredItems = $derived(onSearch || !query ? items : items.filter((item) => searchText(item).includes(query)));
+  const collection = $derived(createListCollection({
     items: filteredItems,
-    itemToString: (item: ComboboxOption) => item.label,
-    itemToValue: (item: ComboboxOption) => item.value,
-  });
+    itemToString: (item: SelectSearchOption) => item.label,
+    itemToValue: (item: SelectSearchOption) => item.value,
+  }));
 
   function handleInputValueChange(details: { inputValue: string; reason?: string }): void {
     filterQuery = details.inputValue ?? '';
@@ -131,21 +131,22 @@
       <Combobox.Label class="ark-combobox-label">{label}</Combobox.Label>
     {/if}
     <Combobox.Control class="ark-combobox-control">
-      <Combobox.Input
+      <Input
+        variant="combobox"
         class="ark-combobox-input"
         {placeholder}
-        aria-label={pill ? ariaLabel || label || placeholder : undefined}
+        aria-label={pill ? ariaLabel || label || placeholder : label || placeholder}
       />
       <div class="ark-combobox-indicators">
         {#if value && clearable}
-          <button
+          <Button
             class="ark-combobox-clear"
             type="button"
             aria-label="Clear selection"
-            on:click={clearSelection}
+            onclick={clearSelection}
           >
             <X size={13} />
-          </button>
+          </Button>
         {/if}
         <span class="ark-combobox-chevron" aria-hidden="true">
           <ChevronsUpDown size={14} />

@@ -1,29 +1,28 @@
 /* ExoRoute gateway proxies page — scoped additions to dashboard shell. */
-.proxy-traffic-panel { margin: 14px 0 16px; padding: 17px; }
-.proxy-traffic-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
-.proxy-traffic-heading h2 { margin: 0; color: var(--ink); font-size: var(--type-title); }
-.proxy-traffic-heading p { margin: 4px 0 0; color: var(--muted); font-size: var(--type-caption); }
-.proxy-traffic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 10px; }
-.proxy-traffic-card { display: grid; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-sunken); }
-.proxy-traffic-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: var(--type-caption); }
-.proxy-traffic-card div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--muted); font-size: var(--type-caption); }
-.proxy-traffic-card b { color: var(--ink); font-size: var(--type-label); font-variant-numeric: tabular-nums; }
-.proxy-traffic-card small, .proxy-traffic-note { color: var(--muted); font-size: var(--type-2xs); }
-.proxy-traffic-note { display: block; margin-top: 11px; line-height: 1.45; }
+.proxy-stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .proxy-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .proxy-stats-grid { grid-template-columns: minmax(0, 1fr); } }
 .proxy-toolbar { margin: 12px 0 16px; display: flex; align-items: center; gap: 8px; }
-.proxy-toolbar .prov-search { flex: 1 1 260px; min-width: 0; max-width: 420px; }
-.proxy-toolbar .prov-select { flex: 0 0 180px; min-width: 0; }
-.proxy-toolbar .prov-select .ark-select-control { min-height: 38px; }
-.proxy-toolbar .prov-select .ark-select-trigger { display: flex; width: 100%; min-height: 38px; align-items: center; justify-content: space-between; gap: 8px; padding: 0 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface); font: inherit; text-align: left; }
-.proxy-toolbar .prov-select .ark-select-trigger:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
-.proxy-toolbar .prov-select .ark-select-trigger:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
-.proxy-toolbar .prov-select .ark-select-value-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.proxy-toolbar .prov-select .ark-select-indicators { display: flex; flex: 0 0 auto; align-items: center; color: var(--muted); }
-.proxy-toolbar .ark-select-content { z-index: 50; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow-md); }
-.proxy-toolbar .ark-select-item { display: flex; min-height: 36px; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 10px; color: var(--ink); cursor: pointer; }
-.proxy-toolbar .ark-select-item[data-highlighted] { background: var(--db-tint-strong); }
-.proxy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 390px), 1fr)); gap: 12px; align-content: start; }
-.proxy-card { display: grid; gap: 13px; padding: 17px; }
+.proxy-toolbar .prov-search {
+  width: min(420px, 100%);
+  min-width: 0;
+  min-height: 38px;
+  flex: 1 1 260px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.proxy-toolbar .prov-search::placeholder { color: var(--muted); }
+.proxy-toolbar .prov-search:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
+  box-shadow: 0 0 0 3px var(--db-accent-ring);
+}
+.proxy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 12px; align-content: start; margin-top: 12px; }
+.proxy-card { display: grid; min-height: 88px; align-content: start; gap: 12px; padding: 13px; }
 .proxy-card-head { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .proxy-icon { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border: 1px solid var(--db-accent-line); border-radius: 12px; color: var(--accent); background: var(--db-accent-tint); }
 .proxy-title { display: grid; min-width: 0; gap: 3px; flex: 1; }
@@ -37,7 +36,7 @@
 .proxy-endpoint-list > small { color: var(--muted); font-size: var(--type-caption); }
 .proxy-card-actions { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 10px; }
 .proxy-empty { grid-column: 1 / -1; min-height: 170px; display: grid; place-items: center; }
-.proxy-empty .empty-state { width: 100%; text-align: center; }
+.proxy-grid > .proxy-empty { width: 100%; }
 .proxy-editor { gap: 15px; }
 .proxy-endpoints-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 5px; }
 .proxy-endpoints-title h3 { margin: 0; color: var(--ink); font-size: var(--type-label); }
@@ -68,6 +67,7 @@
 .bulk-proxy-errors ul { display: grid; gap: 4px; margin: 0; padding-left: 18px; }
 .bulk-proxy-success { display: flex; align-items: center; gap: 7px; color: #247a45; font-size: var(--type-caption); }
 @media (max-width: 640px) {
+  .proxy-grid { grid-template-columns: 1fr; }
   .proxy-edit-dialog .proxy-endpoint-fields { grid-template-columns: 1fr; }
   .proxy-edit-dialog .proxy-endpoints-title { align-items: flex-start; }
 }

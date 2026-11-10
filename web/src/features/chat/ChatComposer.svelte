@@ -1,8 +1,10 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { FileText, Image as ImageIcon, Paperclip, SendHorizontal, Settings2, Square, X } from '@lucide/svelte';
   import { afterUpdate } from 'svelte';
   import ArkField from '../../components/ArkField.svelte';
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import Input from '../../components/Input.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import type { Translate } from '../../lib/format';
   import type { ChatAttachmentInput, ChatThinkingMode } from '../../lib/types';
   import {
@@ -165,7 +167,7 @@
         {disabled}
         onValueChange={(value) => updateDraft({ systemPrompt: value })}
       />
-      <ArkSelect
+      <SelectOptions
         label={tr('Thinking')}
         items={thinkingItems}
         value={draft.thinkingMode}
@@ -212,9 +214,9 @@
         <li>
           {#if attachment.kind === 'image'}<ImageIcon size={12} />{:else}<FileText size={12} />{/if}
           <span class="chat-attachment-name">{attachment.filename ?? attachment.media_type}</span>
-          <button class="chat-attachment-remove" type="button" aria-label={tr('Remove attachment')} on:click={() => removeAttachment(index)}>
+          <Button class="chat-attachment-remove" type="button" aria-label={tr('Remove attachment')} onclick={() => removeAttachment(index)}>
             <X size={12} />
-          </button>
+          </Button>
         </li>
       {/each}
       <li class="chat-attachment-total">{attachmentTotalBytes} B</li>
@@ -224,28 +226,28 @@
 
   <div class="chat-composer-bar">
     <div class="chat-composer-tools">
-      <input
+      <Input
         class="chat-file-input"
         type="file"
         accept={acceptAttribute()}
         multiple
         hidden
-        bind:this={fileInput}
-        on:change={handleFiles}
+        bind:element={fileInput}
+        onchange={handleFiles}
       />
-      <button class="chat-tool-button" type="button" {disabled} title={tr('Attach')} on:click={() => fileInput?.click()}>
+      <Button class="chat-tool-button" type="button" {disabled} title={tr('Attach')} onclick={() => fileInput?.click()}>
         <Paperclip size={14} />
-      </button>
-      <button
-        class="chat-tool-button"
-        class:active={settingsOpen}
+      </Button>
+      <Button
+        class="chat-tool-button" stateClasses={{ active: settingsOpen }}
+
         type="button"
         {disabled}
         title={tr('Chat settings')}
-        on:click={toggleSettings}
+        onclick={toggleSettings}
       >
         <Settings2 size={14} />
-      </button>
+      </Button>
     </div>
     <!-- Layout-only wrapper: it exists to intercept Enter before the form can
          treat it as an implicit submit. -->
@@ -253,13 +255,13 @@
       <slot name="model-picker" />
     </div>
     {#if sending}
-      <button class="chat-stop-button" type="button" on:click={onStop} title={tr('Stop')} aria-label={tr('Stop')}>
+      <Button class="chat-stop-button" type="button" onclick={onStop} title={tr('Stop')} aria-label={tr('Stop')}>
         <Square size={14} />
-      </button>
+      </Button>
     {:else}
-      <button class="chat-send-button" type="submit" disabled={!canSend} title={tr('Send')} aria-label={tr('Send')}>
+      <Button class="chat-send-button" type="submit" disabled={!canSend} title={tr('Send')} aria-label={tr('Send')}>
         <SendHorizontal size={15} />
-      </button>
+      </Button>
     {/if}
   </div>
   <p class="chat-hint">{tr('Enter to send, Shift+Enter for a new line. Attach up to {count} images or documents.', { count: MAX_CHAT_ATTACHMENTS })}</p>
@@ -351,7 +353,7 @@
     white-space: nowrap;
   }
 
-  .chat-attachment-remove {
+  :global(.chat-attachment-remove) {
     display: inline-flex;
     border: 0;
     background: transparent;
@@ -360,7 +362,7 @@
     cursor: pointer;
   }
 
-  .chat-attachment-remove:hover {
+  :global(.chat-attachment-remove:hover) {
     color: var(--ink);
   }
 
@@ -393,7 +395,7 @@
     min-width: 0;
   }
 
-  .chat-tool-button {
+  :global(.chat-tool-button) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -409,27 +411,27 @@
     transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
   }
 
-  .chat-tool-button:hover:not(:disabled) {
+  :global(.chat-tool-button:hover:not(:disabled)) {
     transform: translate(-1px, -1px);
     box-shadow: var(--nb-shadow-md);
   }
 
-  .chat-tool-button.active {
+  :global(.chat-tool-button.active) {
     background: color-mix(in srgb, var(--accent) 14%, #fff);
   }
 
-  .chat-tool-button:active:not(:disabled) {
+  :global(.chat-tool-button:active:not(:disabled)) {
     transform: translate(1px, 1px);
     box-shadow: var(--nb-shadow-sm);
   }
 
-  .chat-tool-button:disabled {
+  :global(.chat-tool-button:disabled) {
     cursor: not-allowed;
     opacity: 0.5;
     box-shadow: none;
   }
 
-  .chat-send-button {
+  :global(.chat-send-button) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -445,24 +447,24 @@
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
 
-  .chat-send-button:hover:not(:disabled) {
+  :global(.chat-send-button:hover:not(:disabled)) {
     transform: translate(-1px, -1px);
     box-shadow: var(--nb-shadow-md);
   }
 
-  .chat-send-button:active:not(:disabled) {
+  :global(.chat-send-button:active:not(:disabled)) {
     transform: translate(1px, 1px);
     box-shadow: var(--nb-shadow-sm);
   }
 
-  .chat-send-button:disabled {
+  :global(.chat-send-button:disabled) {
     background: rgba(255, 255, 255, 0.55);
     color: var(--muted);
     cursor: not-allowed;
     box-shadow: none;
   }
 
-  .chat-stop-button {
+  :global(.chat-stop-button) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -478,12 +480,12 @@
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
 
-  .chat-stop-button:hover {
+  :global(.chat-stop-button:hover) {
     transform: translate(-1px, -1px);
     box-shadow: var(--nb-shadow-md);
   }
 
-  .chat-stop-button:active {
+  :global(.chat-stop-button:active) {
     transform: translate(1px, 1px);
     box-shadow: var(--nb-shadow-sm);
   }
@@ -495,15 +497,15 @@
     color: var(--muted);
   }
 
-  .chat-file-input {
+  :global(.chat-file-input) {
     display: none;
   }
 
   :global(:root[data-theme='dark']) .chat-composer-settings { background: rgba(255, 255, 255, 0.03); }
-  :global(:root[data-theme='dark']) .chat-tool-button { background: rgba(255, 255, 255, 0.04); }
-  :global(:root[data-theme='dark']) .chat-tool-button.active { background: color-mix(in srgb, var(--accent) 16%, transparent); }
-  :global(:root[data-theme='dark']) .chat-send-button:disabled { background: rgba(255, 255, 255, 0.06); }
-  :global(:root[data-theme='dark']) .chat-stop-button { background: rgba(248, 113, 113, 0.16); color: #fecaca; }
+  :global(:root[data-theme='dark']) :global(.chat-tool-button) { background: rgba(255, 255, 255, 0.04); }
+  :global(:root[data-theme='dark'] .chat-tool-button.active) { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  :global(:root[data-theme='dark'] .chat-send-button:disabled) { background: rgba(255, 255, 255, 0.06); }
+  :global(:root[data-theme='dark']) :global(.chat-stop-button) { background: rgba(248, 113, 113, 0.16); color: #fecaca; }
   :global(:root[data-theme='dark']) .chat-attachment-list li { background: color-mix(in srgb, var(--accent) 10%, transparent); }
   :global(:root[data-theme='dark']) .chat-attachment-error { color: #fecaca; }
 </style>

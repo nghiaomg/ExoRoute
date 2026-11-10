@@ -124,7 +124,10 @@ pub(super) fn proxy_endpoint_key(
 ) -> Result<String, StorageError> {
     let ordinal = u32::try_from(ordinal)
         .map_err(|_| StorageError::Invalid("proxy endpoint ordinal is invalid".to_owned()))?;
-    let key = format!("{}{priority:010}/{ordinal:010}", proxy_endpoint_prefix(proxy_id)?);
+    let key = format!(
+        "{}{priority:010}/{ordinal:010}",
+        proxy_endpoint_prefix(proxy_id)?
+    );
     crate::infra::storage::validate_key(&key)?;
     Ok(key)
 }
@@ -133,7 +136,8 @@ pub(crate) fn proxy_endpoint_key_components(
     key: &str,
     proxy_id: &str,
 ) -> Result<(u32, u32), &'static str> {
-    if proxy_id.is_empty() || proxy_id.len() > super::validation::MAX_PROXY_ID_BYTES
+    if proxy_id.is_empty()
+        || proxy_id.len() > super::validation::MAX_PROXY_ID_BYTES
         || proxy_id.bytes().any(|byte| byte.is_ascii_control())
     {
         return Err("The backup contains a proxy endpoint with an invalid proxy ID.");
@@ -237,7 +241,9 @@ pub(super) fn save_proxy(
         )?;
         let mut old_secrets = std::collections::HashMap::with_capacity(old_endpoints.len());
         for (old_key, old_endpoint) in old_endpoints {
-            let stable_id = old_endpoint.optional_text("endpoint_id")?.map(str::to_owned);
+            let stable_id = old_endpoint
+                .optional_text("endpoint_id")?
+                .map(str::to_owned);
             if let Some(secret) = old_endpoint.field("secret") {
                 if let Some(stable_id) = stable_id {
                     old_secrets.insert(stable_id, secret.clone());
@@ -257,7 +263,9 @@ pub(super) fn save_proxy(
         for endpoint in endpoints {
             let mut record = endpoint.record.clone();
             if endpoint.preserve_secret {
-                if let Some(secret) = old_secrets.get(&endpoint.record.text("endpoint_id")?.to_owned()) {
+                if let Some(secret) =
+                    old_secrets.get(&endpoint.record.text("endpoint_id")?.to_owned())
+                {
                     record.insert("secret", secret.clone());
                 }
             }
@@ -272,7 +280,11 @@ pub(super) fn save_proxy(
     let proxy_id = id.to_owned();
     transaction.put(Table::ProxyNameIndex, name_index, &proxy_id)?;
     for endpoint in endpoints {
-        transaction.put_if_absent(Table::ProxyEndpoints, &endpoint.endpoint_key, &endpoint.record)?;
+        transaction.put_if_absent(
+            Table::ProxyEndpoints,
+            &endpoint.endpoint_key,
+            &endpoint.record,
+        )?;
         if let Some(reference_index) = endpoint.reference_index.as_deref() {
             transaction.put(Table::ProxyEndpointRefIndex, reference_index, &proxy_id)?;
         }

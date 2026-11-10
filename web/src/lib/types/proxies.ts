@@ -11,6 +11,29 @@ export interface ProxyEndpoint {
   enabled: boolean;
 }
 
+export interface ProxyLastCheck {
+  checked_at: number;
+  live_count: number;
+  die_count: number;
+}
+
+export interface ProxyCheckEndpointResult {
+  endpoint_id: string;
+  label: string | null;
+  url: string;
+  status: 'live' | 'die';
+  latency_ms: number;
+  error: string | null;
+}
+
+export interface ProxyCheckResponse {
+  proxy_id: string;
+  checked_at: number;
+  results: ProxyCheckEndpointResult[];
+  live_count: number;
+  die_count: number;
+}
+
 export interface GatewayProxy {
   id: string;
   name: string;
@@ -20,6 +43,8 @@ export interface GatewayProxy {
   created_at: string;
   updated_at: string;
   provider_count: number;
+  /** Counts of the last process-local live-check; null until one has run. */
+  last_check?: ProxyLastCheck | null;
 }
 
 export interface ProxyProviderOption {

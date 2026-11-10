@@ -54,7 +54,7 @@ fn chat_request<'a>(
         auth_type: "none",
         auth_header: None,
         custom_headers,
-        protocol: Protocol::ChatCompletions,
+        upstream_protocol: UpstreamProtocol::ChatCompletions,
         secret: None,
         oauth_auth: None,
         body: json!({
@@ -62,6 +62,7 @@ fn chat_request<'a>(
             "messages": [{"role": "user", "content": "hello"}],
             "stream": false
         }),
+        proxy_endpoints: &[],
     }
 }
 
@@ -141,5 +142,67 @@ async fn workspace_relay_reports_a_rejected_adapter_envelope_as_a_provider_error
     assert_eq!(
         error.message,
         "envelope provider returned a failed response envelope"
+    );
+}
+
+/// Stands in for the Devin CLI adapter: the same adapter id (the
+/// local-transport dispatch key) with the process locator endpoint the real
+/// adapter keeps.
+struct LocalTransportAdapter;
+
+impl ProviderAdapter for LocalTransportAdapter {
+    fn adapter_id(&self) -> &'static str {
+        "devin_cli"
+    }
+
+    fn endpoint(
+        &self,
+        _base_url: &str,
+        _protocol: Protocol,
+        _adapter_base_url_override: Option<&str>,
+    ) -> Result<reqwest::Url, String> {
+        reqwest::Url::parse("devin://acp/stdio").map_err(|error| error.to_string())
+    }
+
+    fn prepare_body(&self, _body: &mut Value, _request_id: &str) {}
+
+    fn normalize_response(&self, value: Value) -> Result<Value, String> {
+        Ok(value)
+    }
+}
+
+/// A local-transport endpoint is a process locator (`devin://acp/stdio`), not
+/// an HTTP URL: the relay must dispatch the adapter-owned transport instead of
+/// running the shared `http/https` egress validation over the endpoint. The
+/// body carries client tools so the local send fails fast in its own
+/// preflight — deterministically, without spawning a real CLI — which proves
+/// the failure happened after the egress boundary, not inside it.
+#[tokio::test]
+async fn workspace_relay_routes_local_transport_adapters_without_http_egress() {
+    let (_database, state) = test_state().await;
+    let headers = BTreeMap::new();
+    let mut request = chat_request(&state, "devin://acp/stdio", &headers);
+    request.provider_id = "devin cli";
+    request.body = json!({
+        "model": "swe-1-7",
+        "messages": [{"role": "user", "content": "hello"}],
+        "stream": false,
+        "tools": [{"type": "function", "function": {"name": "read_file"}}]
+    });
+
+    let error = match relay_workspace_inference_impl(&LocalTransportAdapter, request).await {
+        Ok(_) => panic!("a client-tools body must fail the Devin CLI preflight"),
+        Err(error) => error,
+    };
+
+    assert!(
+        error.message.contains("local transport failed"),
+        "expected a local transport failure, got: {}",
+        error.message
+    );
+    assert!(
+        !error.message.contains("egress check"),
+        "local transports must skip the HTTP egress check: {}",
+        error.message
     );
 }

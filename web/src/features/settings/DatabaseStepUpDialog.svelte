@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Check, LoaderCircle } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import ArkPasswordInput from '../../components/ArkPasswordInput.svelte';
@@ -57,8 +58,8 @@ import { localizedError } from '../../lib/errors';
     <ArkPasswordInput label={tr('Admin password')} bind:value={password} autocomplete="current-password" visibilityToggleLabel={tr('Toggle password visibility')} required disabled={busy} />
     {#if errorMessage}<div class="form-error" role="alert">{errorMessage}</div>{/if}
     <div class="modal-actions">
-      <button type="button" class="secondary-button" disabled={busy} onclick={close}>{tr('Cancel')}</button>
-      <button type="submit" class="primary-button" disabled={busy || !password}>{#if busy}<LoaderCircle size={14} class="spin" />{tr('Verifying password…')}{:else}<Check size={14} />{tr('Continue')}{/if}</button>
+      <Button type="button" class="secondary-button" disabled={busy} onclick={close}>{tr('Cancel')}</Button>
+      <Button type="submit" class="primary-button" disabled={busy || !password}>{#if busy}<LoaderCircle size={14} class="spin" />{tr('Verifying password…')}{:else}<Check size={14} />{tr('Continue')}{/if}</Button>
     </div>
   </form>
 </ArkDialog>

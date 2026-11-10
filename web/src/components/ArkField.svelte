@@ -1,10 +1,11 @@
 <script lang="ts">
   import { Field } from '@ark-ui/svelte/field';
   import type { HTMLInputAttributes } from 'svelte/elements';
+  import Input from './Input.svelte';
 
   interface Props {
     label?: string;
-    value?: string;
+    value?: string | number;
     type?: HTMLInputAttributes['type'];
     placeholder?: string;
     required?: boolean;
@@ -45,17 +46,14 @@
     onValueChange,
   }: Props = $props();
 
-  function handleInput(event: Event & { currentTarget: EventTarget & HTMLInputElement }): void {
-    value = event.currentTarget.value;
-    onValueChange?.(value);
-  }
 </script>
 
 <Field.Root {disabled} {required} invalid={Boolean(errorText)} class={`ark-field-root ${className}`}>
   {#if label}
     <Field.Label class="ark-field-label">{label}</Field.Label>
   {/if}
-  <Field.Input
+  <Input
+    variant="field"
     bind:value
     {type}
     class="ark-field-input"
@@ -68,7 +66,9 @@
     {max}
     {step}
     aria-label={ariaLabel || label}
-    oninput={handleInput}
+    {required}
+    {disabled}
+    oninput={(event) => { value = (event.currentTarget as HTMLInputElement).value; onValueChange?.(value); }}
   />
   {#if helperText}
     <Field.HelperText class="ark-field-helper">{helperText}</Field.HelperText>

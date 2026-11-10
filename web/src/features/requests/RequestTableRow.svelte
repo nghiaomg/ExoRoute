@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { AlertTriangle } from '@lucide/svelte';
+  import Button from "../../components/Button.svelte";
+  import { AlertTriangle, Network } from '@lucide/svelte';
   import {
     formatCount,
     formatDate,
@@ -68,6 +69,9 @@
   $: titleAlias = isAliasMasked ? (request.route_alias ? '***' : '') : (request.route_alias ?? '');
   $: displayProvider = isProviderMasked ? maskTextValue(request.provider_id) : request.provider_id;
   $: titleProvider = isProviderMasked ? (request.provider_id ? '***' : '') : (request.provider_id ?? '');
+  // Egress proxy label: the proxy's name when known, otherwise its id. Present
+  // on the row only when the request left through a proxy.
+  $: proxyLabel = request.proxy_name?.trim() || request.proxy_id?.trim() || '';
 
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -109,7 +113,11 @@
   <td class="req-alias" title={titleAlias}>
     {#if request.route_alias}
       <span class="req-alias-pill">{displayAlias}</span>
-    {:else}
+    {/if}
+    {#if proxyLabel}
+      <span class="req-proxy-chip" title={proxyLabel}><Network size={10} aria-hidden="true" />{proxyLabel}</span>
+    {/if}
+    {#if !request.route_alias && !proxyLabel}
       <span class="muted-cell">—</span>
     {/if}
   </td>
@@ -155,10 +163,10 @@
   </td>
   <td class="req-error">
     {#if request.error && !live}
-      <button type="button" class="req-error-trigger-btn" title={tr('View error')} onclick={viewError}>
+      <Button type="button" class="req-error-trigger-btn" title={tr('View error')} onclick={viewError}>
         <AlertTriangle size={12} />
         <span>{tr('View error')}</span>
-      </button>
+      </Button>
     {:else}
       <span class="muted-cell">—</span>
     {/if}
@@ -223,11 +231,11 @@
     box-shadow: inset 0 2px 0 var(--ink), inset 0 -2px 0 var(--ink);
   }
 
-  .request-row.selected td {
+  .request-row:global(.selected) td {
     background: color-mix(in srgb, var(--info) 10%, var(--surface));
   }
 
-  .request-row.selected td:first-child::before {
+  .request-row:global(.selected) td:first-child::before {
     width: 5px;
     background: var(--info);
   }
@@ -362,6 +370,41 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     vertical-align: middle;
+  }
+
+  /* The alias cell can hold both the combo pill and the proxy chip, so it
+     wraps instead of clipping the second chip (same flex pattern as the model
+     and provider cells above). */
+  .request-row td.req-alias {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    white-space: normal;
+  }
+
+  /* Egress proxy chip: the same pill language as `.req-alias-pill`, tinted
+     with the info colour so it never reads as the accent combo pill. */
+  .req-proxy-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 2px 8px;
+    border: 1px solid color-mix(in srgb, var(--info) 30%, var(--surface));
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--info) 10%, var(--surface));
+    color: var(--info);
+    font-size: 11px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .req-proxy-chip :global(svg) {
+    flex: 0 0 auto;
   }
 
   .request-row td.req-duration {
@@ -509,7 +552,7 @@
     }
   }
 
-  .req-error-trigger-btn {
+  :global(.req-error-trigger-btn) {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -525,7 +568,7 @@
     transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
 
-  .req-error-trigger-btn:hover {
+  :global(.req-error-trigger-btn:hover) {
     background: color-mix(in srgb, var(--chart-critical) 14%, var(--surface));
     color: var(--chart-critical);
     transform: translate(-1px, -1px);
@@ -555,7 +598,7 @@
       transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.1s ease;
     }
 
-    .request-row.selected {
+    .request-row:global(.selected) {
       background: color-mix(in srgb, var(--info) 10%, var(--surface));
     }
 

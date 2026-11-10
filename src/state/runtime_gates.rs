@@ -1,4 +1,7 @@
-use super::{AppState, MAX_TRACKED_PROVIDER_SEMAPHORES};
+use super::{
+    AppState, MAX_TRACKED_PROVIDER_SEMAPHORES, MAX_TRACKED_PROXY_CHECKS, ProxyCheckPermitOutcome,
+    ProxyCheckRecord, ProxyCheckSummary, ProxyEndpointCheckOutcome,
+};
 use crate::{
     config::OperationalSettings,
     state::{
@@ -6,6 +9,7 @@ use crate::{
         LocalQuotaSnapshot,
     },
 };
+use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::{sync::Arc, time::Instant};
 
@@ -192,7 +196,13 @@ impl AppState {
             .lock()
             .await
             .remove(proxy_id);
-        self.gates.proxy_traffic.lock().await.entries.remove(proxy_id);
+        self.gates
+            .proxy_traffic
+            .lock()
+            .await
+            .entries
+            .remove(proxy_id);
+        self.clear_proxy_check_state(proxy_id).await;
     }
 
     pub async fn record_proxy_traffic(
@@ -244,11 +254,18 @@ impl AppState {
         if !registry.entries.contains_key(proxy_id) {
             if registry.entries.len() >= super::MAX_TRACKED_PROXY_TRAFFIC {
                 registry.truncated = true;
-                if let Some(stale_id) = registry.entries.iter().min_by_key(|(_, totals)| totals.last_used).map(|(id, _)| id.clone()) {
+                if let Some(stale_id) = registry
+                    .entries
+                    .iter()
+                    .min_by_key(|(_, totals)| totals.last_used)
+                    .map(|(id, _)| id.clone())
+                {
                     registry.entries.remove(&stale_id);
                 }
             }
-            registry.entries.insert(proxy_id.to_owned(), Default::default());
+            registry
+                .entries
+                .insert(proxy_id.to_owned(), Default::default());
         }
         if let Some(totals) = registry.entries.get_mut(proxy_id) {
             totals.received_bytes = totals.received_bytes.saturating_add(received_bytes);
@@ -262,13 +279,117 @@ impl AppState {
     pub async fn proxy_traffic_snapshot(
         &self,
         proxy_ids: &[String],
-    ) -> (std::collections::HashMap<String, super::ProxyTrafficTotals>, bool) {
+    ) -> (
+        std::collections::HashMap<String, super::ProxyTrafficTotals>,
+        bool,
+    ) {
         let registry = self.gates.proxy_traffic.lock().await;
         let stats = proxy_ids
             .iter()
-            .filter_map(|id| registry.entries.get(id).copied().map(|totals| (id.clone(), totals)))
+            .filter_map(|id| {
+                registry
+                    .entries
+                    .get(id)
+                    .copied()
+                    .map(|totals| (id.clone(), totals))
+            })
             .collect();
         (stats, registry.truncated)
+    }
+
+    /// Reserves the right to run one live-check of `proxy_id`. At most one check
+    /// per proxy runs at a time; the permit is released on drop, so a cancelled
+    /// handler or a dropped response frees the flag.
+    pub(crate) async fn try_proxy_check_permit(&self, proxy_id: &str) -> ProxyCheckPermitOutcome {
+        let semaphore = {
+            let mut checks = self.gates.proxy_checks.lock().await;
+            // Drop flags for proxies whose check already finished.
+            checks.in_flight.retain(|_, semaphore| {
+                Arc::strong_count(semaphore) > 1 || semaphore.available_permits() == 0
+            });
+            if checks.in_flight.contains_key(proxy_id) {
+                return ProxyCheckPermitOutcome::Busy;
+            }
+            if checks.in_flight.len() >= MAX_TRACKED_PROXY_CHECKS {
+                return ProxyCheckPermitOutcome::AtCapacity;
+            }
+            let semaphore = Arc::new(tokio::sync::Semaphore::new(1));
+            checks
+                .in_flight
+                .insert(proxy_id.to_owned(), semaphore.clone());
+            semaphore
+        };
+        match semaphore.try_acquire_owned() {
+            Ok(permit) => ProxyCheckPermitOutcome::Acquired(permit),
+            Err(_) => ProxyCheckPermitOutcome::Busy,
+        }
+    }
+
+    /// Stores the outcome of one completed live-check. Results are process-local
+    /// and capped; the oldest proxy result is evicted at the cap.
+    pub async fn record_proxy_check(
+        &self,
+        proxy_id: &str,
+        checked_at: u64,
+        results: Vec<ProxyEndpointCheckOutcome>,
+    ) {
+        let mut checks = self.gates.proxy_checks.lock().await;
+        checks.clock = checks.clock.saturating_add(1);
+        let clock = checks.clock;
+        if !checks.entries.contains_key(proxy_id)
+            && checks.entries.len() >= MAX_TRACKED_PROXY_CHECKS
+        {
+            if let Some(stale_id) = checks
+                .entries
+                .iter()
+                .min_by_key(|(_, record)| record.recorded_clock)
+                .map(|(id, _)| id.clone())
+            {
+                checks.entries.remove(&stale_id);
+            }
+        }
+        checks.entries.insert(
+            proxy_id.to_owned(),
+            ProxyCheckRecord {
+                checked_at,
+                recorded_clock: clock,
+                results,
+            },
+        );
+    }
+
+    /// The last live-check summary for each requested proxy that has one.
+    pub async fn proxy_check_snapshot(
+        &self,
+        proxy_ids: &[String],
+    ) -> HashMap<String, ProxyCheckSummary> {
+        let checks = self.gates.proxy_checks.lock().await;
+        proxy_ids
+            .iter()
+            .filter_map(|id| {
+                checks.entries.get(id).map(|record| {
+                    (
+                        id.clone(),
+                        ProxyCheckSummary {
+                            checked_at: record.checked_at,
+                            live_count: record.results.iter().filter(|r| r.live).count(),
+                            die_count: record.results.iter().filter(|r| !r.live).count(),
+                        },
+                    )
+                })
+            })
+            .collect()
+    }
+
+    /// Drops one proxy's stored live-check result. An in-flight check keeps its
+    /// flag until the check finishes, so an update cannot admit a second
+    /// concurrent check of the same proxy.
+    pub async fn clear_proxy_check_state(&self, proxy_id: &str) {
+        let mut checks = self.gates.proxy_checks.lock().await;
+        checks.entries.remove(proxy_id);
+        checks.in_flight.retain(|id, semaphore| {
+            id != proxy_id || Arc::strong_count(semaphore) > 1 || semaphore.available_permits() == 0
+        });
     }
 
     /// Drop process-local state derived from provider and route records after
@@ -283,6 +404,9 @@ impl AppState {
         self.gates.round_robin.lock().await.clear();
         self.gates.proxy_endpoint_cursors.lock().await.clear();
         self.gates.provider_key_cursors.lock().await.clear();
+        // Restored proxy records replace the endpoints the stored check
+        // results described; the results are process-local, so drop them.
+        self.gates.proxy_checks.lock().await.entries.clear();
         self.invalidate_provider_usage_cache().await;
         self.providers.freebuff_sessions.clear().await;
         self.gates

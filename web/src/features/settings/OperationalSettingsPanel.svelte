@@ -1,8 +1,10 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { CircleHelp, LoaderCircle, RotateCcw, Save, SlidersHorizontal } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
+  import Input from '../../components/Input.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -216,7 +218,7 @@ import { localizedError } from '../../lib/errors';
   {:else if errorMessage && snapshot === null}
     <div class="resource-limits-state resource-limits-error" role="alert">
       <span>{errorMessage}</span>
-      <button class="secondary-button compact" type="button" onclick={load}>{tr('Retry')}</button>
+      <Button class="secondary-button compact" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   {:else if snapshot}
     <div class="resource-limits-content">
@@ -228,7 +230,7 @@ import { localizedError } from '../../lib/errors';
       {#if errorMessage}
         <div class="resource-limits-error" role="alert">
           <span>{errorMessage}</span>
-          {#if reloadConflict}<button class="secondary-button compact" type="button" onclick={reloadLatest}>{tr('Reload latest settings')}</button>{/if}
+          {#if reloadConflict}<Button class="secondary-button compact" type="button" onclick={reloadLatest}>{tr('Reload latest settings')}</Button>{/if}
         </div>
       {/if}
       {#if successMessage}<div class="resource-limits-success" role="status">{successMessage}</div>{/if}
@@ -253,7 +255,7 @@ import { localizedError } from '../../lib/errors';
           <div class="resource-limit-field">
             <div class="field-title-row">
               <span>{tr('Circuit breaker')}</span>
-              <button
+              <Button
                 type="button"
                 class="config-help-trigger"
                 title={tr('Config guidance and error codes')}
@@ -265,7 +267,7 @@ import { localizedError } from '../../lib/errors';
                 }}
               >
                 <CircleHelp size={13.5} />
-              </button>
+              </Button>
             </div>
             <ArkCheckbox checked={draft.circuit_breaker_enabled} disabled={busy !== ''} label={tr(draft.circuit_breaker_enabled ? 'Enabled' : 'Disabled')} onCheckedChange={(checked) => draft = { ...draft, circuit_breaker_enabled: checked === true }} />
             <small>{tr('Disabling it bypasses open circuits while preserving their failure state.')}</small>
@@ -293,7 +295,7 @@ import { localizedError } from '../../lib/errors';
             <label class="resource-limit-field" for={`operational-upstream-${field.key}`}>
               <div class="field-title-row">
                 <span>{tr(field.label)}</span>
-                <button
+                <Button
                   type="button"
                   class="config-help-trigger"
                   title={tr('Config guidance and error codes')}
@@ -305,10 +307,10 @@ import { localizedError } from '../../lib/errors';
                   }}
                 >
                   <CircleHelp size={13.5} />
-                </button>
+                </Button>
               </div>
               <span class="resource-limit-input">
-                <input
+                <Input
                   id={`operational-upstream-${field.key}`}
                   type="number"
                   min={field.min}
@@ -326,12 +328,12 @@ import { localizedError } from '../../lib/errors';
         </div>
 
         <div class="resource-limits-actions">
-          <button class="primary-button" type="submit" disabled={busy !== '' || !draftIsValid || !hasChanges}>
+          <Button class="primary-button" type="submit" disabled={busy !== '' || !draftIsValid || !hasChanges}>
             {#if busy === 'saving'}<LoaderCircle size={14} class="spin" />{tr('Saving…')}{:else}<Save size={14} />{tr('Save settings')}{/if}
-          </button>
-          <button class="secondary-button" type="button" onclick={resetToEnvironment} disabled={busy !== '' || !snapshot.overridden}>
+          </Button>
+          <Button class="secondary-button" type="button" onclick={resetToEnvironment} disabled={busy !== '' || !snapshot.overridden}>
             {#if busy === 'resetting'}<LoaderCircle size={14} class="spin" />{tr('Resetting…')}{:else}<RotateCcw size={14} />{tr('Reset to environment/default')}{/if}
-          </button>
+          </Button>
           {#if !draftIsValid}<span class="resource-limits-validation">{tr('One or more values are outside their allowed range.')}</span>{/if}
         </div>
       </form>
@@ -350,8 +352,8 @@ import { localizedError } from '../../lib/errors';
     <div class="resource-limits-notice" role="alert">{tr('Unlimited total gateway concurrency removes the process-wide admission cap. It can exhaust RAM, CPU, or file descriptors. Per-provider limits, API key rate limits, body limits, and SSE limits still apply.')}</div>
     <p class="modal-description">{tr('Apply unlimited gateway concurrency now?')}</p>
     <div class="modal-actions">
-      <button type="button" class="secondary-button" onclick={() => unlimitedWarningOpen = false}>{tr('Cancel')}</button>
-      <button type="button" class="primary-button" onclick={confirmUnlimited}>{tr('Apply unlimited gateway concurrency')}</button>
+      <Button type="button" class="secondary-button" onclick={() => unlimitedWarningOpen = false}>{tr('Cancel')}</Button>
+      <Button type="button" class="primary-button" onclick={confirmUnlimited}>{tr('Apply unlimited gateway concurrency')}</Button>
     </div>
   </div>
 </ArkDialog>

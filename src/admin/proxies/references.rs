@@ -163,26 +163,17 @@ where
 
 /// The reverse-index read needed by [`referencing_proxies`].
 trait ProxyEndpointRefScan {
-    fn scan_reference_index(
-        &self,
-        prefix: &str,
-    ) -> Result<Vec<(String, String)>, StorageError>;
+    fn scan_reference_index(&self, prefix: &str) -> Result<Vec<(String, String)>, StorageError>;
 }
 
 impl ProxyEndpointRefScan for ReadTxn<'_, '_> {
-    fn scan_reference_index(
-        &self,
-        prefix: &str,
-    ) -> Result<Vec<(String, String)>, StorageError> {
+    fn scan_reference_index(&self, prefix: &str) -> Result<Vec<(String, String)>, StorageError> {
         self.scan_prefix::<String>(Table::ProxyEndpointRefIndex, prefix, MAX_PROXY_NESTING_SCAN)
     }
 }
 
 impl ProxyEndpointRefScan for WriteTxn<'_, '_> {
-    fn scan_reference_index(
-        &self,
-        prefix: &str,
-    ) -> Result<Vec<(String, String)>, StorageError> {
+    fn scan_reference_index(&self, prefix: &str) -> Result<Vec<(String, String)>, StorageError> {
         self.scan_prefix::<String>(Table::ProxyEndpointRefIndex, prefix, MAX_PROXY_NESTING_SCAN)
     }
 }
@@ -350,16 +341,15 @@ impl<'a, S: ProxyStore> ReferenceWalk<'a, S> {
             ));
         }
         let Some(node) = self.store.proxy_node(proxy_id)? else {
-            return Err(ProxyReferenceError::Issue(
-                ProxyReferenceIssue::Missing {
-                    proxy_id: proxy_id.to_owned(),
-                },
-            ));
+            return Err(ProxyReferenceError::Issue(ProxyReferenceIssue::Missing {
+                proxy_id: proxy_id.to_owned(),
+            }));
         };
         if !node.enabled {
             // A disabled child contributes nothing; memoize the empty summary so
             // repeated references stay cheap.
-            self.memo.insert(proxy_id.to_owned(), NodeSummary::default());
+            self.memo
+                .insert(proxy_id.to_owned(), NodeSummary::default());
             return Ok(NodeSummary::default());
         }
         if self.stack.len() > MAX_PROXY_NESTING_DEPTH {
@@ -389,7 +379,11 @@ pub(super) fn validate_pending_proxy<S: ProxyStore>(
     if !pending.enabled {
         return Ok(());
     }
-    if pending.references.iter().any(|reference| reference == proxy_id) {
+    if pending
+        .references
+        .iter()
+        .any(|reference| reference == proxy_id)
+    {
         return Err(ProxyReferenceError::Issue(
             ProxyReferenceIssue::SelfReference,
         ));
@@ -457,13 +451,12 @@ pub(super) async fn validate_proxy_references(
     state
         .db
         .read(move |transaction| {
-            validate_pending_proxy(transaction, &proxy_id, &pending)
-                .map_err(|error| match error {
-                    ProxyReferenceError::Storage(error) => error,
-                    ProxyReferenceError::Issue(issue) => {
-                        StorageError::Invalid(proxy_issue_message(&issue))
-                    }
-                })
+            validate_pending_proxy(transaction, &proxy_id, &pending).map_err(|error| match error {
+                ProxyReferenceError::Storage(error) => error,
+                ProxyReferenceError::Issue(issue) => {
+                    StorageError::Invalid(proxy_issue_message(&issue))
+                }
+            })
         })
         .await
         .map_err(|error| match error {
@@ -489,9 +482,11 @@ pub(super) fn ensure_proxy_update_graph<S: ProxyStore + ProxyReferences>(
     proxy_id: &str,
     pending: &PendingProxy,
 ) -> Result<(), StorageError> {
-    validate_proxy_candidate_and_ancestors(store, store, proxy_id, pending).map_err(|error| match error {
-        ProxyReferenceError::Storage(error) => error,
-        ProxyReferenceError::Issue(_) => StorageError::Conflict,
+    validate_proxy_candidate_and_ancestors(store, store, proxy_id, pending).map_err(|error| {
+        match error {
+            ProxyReferenceError::Storage(error) => error,
+            ProxyReferenceError::Issue(_) => StorageError::Conflict,
+        }
     })
 }
 
@@ -507,7 +502,10 @@ pub(super) fn referencing_proxy_names<S: ProxyReferences>(
         ));
     }
     let mut names = Vec::new();
-    for reference in references.into_iter().take(super::MAX_DELETE_BLOCKERS_NAMED) {
+    for reference in references
+        .into_iter()
+        .take(super::MAX_DELETE_BLOCKERS_NAMED)
+    {
         names.push(match store.proxy_name(&reference)? {
             Some(name) => name,
             None => reference,

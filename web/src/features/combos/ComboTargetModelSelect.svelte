@@ -8,6 +8,8 @@
 
   export let providerId: string;
   export let value: string;
+  /** Shown while disabled when no provider is chosen yet; defaults to the provider prompt. */
+  export let disabledPlaceholder = '';
   export let tr: Translate;
   export let onChange: (model: string) => void;
 
@@ -140,7 +142,7 @@
     <Combobox.Control class="combo-combobox-control">
       <Combobox.Input
         class="ark-field-input combo-combobox-input"
-        placeholder={tr(providerId ? 'Search saved models' : 'Choose a provider first.')}
+        placeholder={providerId ? tr('Search saved models') : (disabledPlaceholder || tr('Choose a provider first.'))}
         aria-label={tr('Target model')}
         autocomplete="off"
         onfocus={handleInputFocus}

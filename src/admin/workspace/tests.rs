@@ -1,6 +1,7 @@
 //! Workspace chat relay tests: picker shape, relay success, and the
 //! no-persistence contract.
 
+use super::input::{ChatTextInput, ChatThinkingMode};
 use super::*;
 use crate::infra::storage::Table;
 use crate::support::mock_upstream::{spawn_upstream, sse_response};
@@ -667,4 +668,105 @@ async fn workspace_chat_stream_rejects_invalid_targets_before_streaming() {
     input["model"] = json!("not-saved");
     let response = stream_chat(state, input).await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[test]
+fn workspace_stream_gate_follows_the_adapter_content_type_tolerance() {
+    let response_with = |content_type: Option<&'static str>| {
+        let mut builder = http::Response::builder().status(200);
+        if let Some(content_type) = content_type {
+            builder = builder.header(http::header::CONTENT_TYPE, content_type);
+        }
+        reqwest::Response::from(builder.body(Vec::new()).expect("static test response"))
+    };
+
+    // A JSON-typed body is a framing mismatch for every adapter.
+    let json_typed = response_with(Some("application/json"));
+    assert!(!stream::response_supports_streaming(&json_typed, "generic"));
+    assert!(!stream::response_supports_streaming(
+        &json_typed,
+        "openai_codex"
+    ));
+
+    // A missing content type is tolerated only by adapters that opt in.
+    let missing_type = response_with(None);
+    assert!(!stream::response_supports_streaming(
+        &missing_type,
+        "generic"
+    ));
+    assert!(stream::response_supports_streaming(
+        &missing_type,
+        "openai_codex"
+    ));
+
+    // A proper event stream passes for every adapter.
+    let sse_typed = response_with(Some("text/event-stream"));
+    assert!(stream::response_supports_streaming(&sse_typed, "generic"));
+    assert!(stream::response_supports_streaming(
+        &sse_typed,
+        "openai_codex"
+    ));
+}
+
+/// Upstream-only protocols (Google Generate Content) must prepare chat turns:
+/// the relay selects the endpoint through the adapter's upstream_endpoint and
+/// decodes with the upstream protocol, so an Antigravity model is chat-capable
+/// on the dashboard even though it has no client-side protocol equivalent.
+#[tokio::test]
+async fn workspace_chat_prepares_google_generate_content_turns_for_antigravity() {
+    let database = TestDatabase::open().await;
+    let mut config = database.config();
+    config.master_key = Some([47_u8; 32]);
+    config.allow_private_provider_urls = true;
+    let state = AppState::new(config, database.db.clone());
+    seed_provider(
+        &database.db,
+        crate::support::test_support::ProviderSeed {
+            id: "antigravity",
+            name: "Antigravity",
+            base_url: "https://cloudcode-pa.googleapis.com/v1internal",
+            adapter_id: "antigravity",
+            auth_type: "oauth",
+            model_prefix: "",
+            preferred_protocol: "google_generate_content",
+            supported_protocols: &["google_generate_content"],
+        },
+    )
+    .await
+    .expect("seed antigravity provider");
+    seed_provider_model(&database.db, "antigravity", "gemini-3.8-flash-tiered")
+        .await
+        .expect("seed antigravity model");
+
+    let text = ChatTextInput {
+        message: "hello".to_owned(),
+        system_prompt: None,
+        thinking_mode: ChatThinkingMode::Default,
+        thinking_override: None,
+        history: Vec::new(),
+        temperature: None,
+        top_p: None,
+        max_tokens: None,
+    };
+    let turn = prepare_chat_turn(
+        &state,
+        "antigravity",
+        "gemini-3.8-flash-tiered",
+        &text,
+        &[],
+        false,
+    )
+    .await
+    .expect("a Google Generate Content provider prepares a chat turn");
+
+    assert_eq!(
+        turn.upstream_protocol,
+        crate::protocol::UpstreamProtocol::GoogleGenerateContent
+    );
+    // At prepare time the body is the raw GenerateContent shape; the
+    // Antigravity adapter wraps it in the Cloud Code envelope at send time.
+    assert!(
+        turn.upstream_body.get("contents").is_some(),
+        "expected a Google Generate Content request body"
+    );
 }

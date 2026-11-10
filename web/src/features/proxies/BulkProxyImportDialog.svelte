@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { AlertTriangle, Check, LoaderCircle, Save, X } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import ArkField from '../../components/ArkField.svelte';
@@ -56,7 +57,7 @@
   }
 </script>
 
-  <button class={buttonClass} type="button" onclick={() => open = true}><svg class="icon"><use href="#i-import" /></svg>{tr('Bulk add')}</button>
+  <Button class={buttonClass} type="button" onclick={() => open = true}><span class="button-icon"><svg class="icon"><use href="#i-import" /></svg></span><span class="button-label">{tr('Bulk add')}</span></Button>
 
 <ArkDialog bind:open wide title={tr('Bulk add proxies')} kicker={tr('Import proxy endpoints')} closeLabel={tr('Close dialog')} preventClose={busy} onClose={close}>
   <form class="modal-form bulk-proxy-import" onsubmit={(event) => { event.preventDefault(); void importAll(); }}>
@@ -70,6 +71,6 @@
     {/if}
     {#if error}<div class="form-error" role="alert">{error}</div>{/if}
     {#if completed !== null}<div class="bulk-proxy-success" role="status"><Check size={14}/>{tr('Created {count} proxies.', { count: completed })}</div>{/if}
-    <div class="modal-actions"><button class="secondary-button" type="button" onclick={close}>{tr('Cancel')}</button><button class="primary-button" type="submit" disabled={busy || !parsed.endpoints.length || parsed.errors.length > 0}>{#if busy}<LoaderCircle size={14} class="spin"/>{tr('Importing…')}{:else}<Save size={14}/>{tr('Create {count} proxies', { count: parsed.endpoints.length })}{/if}</button></div>
+    <div class="modal-actions"><Button class="secondary-button" type="button" onclick={close}>{tr('Cancel')}</Button><Button class="primary-button" type="submit" disabled={busy || !parsed.endpoints.length || parsed.errors.length > 0}>{#if busy}<LoaderCircle size={14} class="spin"/>{tr('Importing…')}{:else}<Save size={14}/>{tr('Create {count} proxies', { count: parsed.endpoints.length })}{/if}</Button></div>
   </form>
 </ArkDialog>

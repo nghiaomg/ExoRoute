@@ -201,12 +201,16 @@ pub(super) fn request_log_record(
             "upstream_protocol",
             optional_text(&record.upstream_protocol),
         )
+        .with("proxy_id", optional_text(&record.proxy_id))
         .with("status", Field::I64(record.status))
         .with("duration_ms", Field::I64(record.duration_ms))
         .with("input_tokens", optional_i64(record.input_tokens))
         .with("output_tokens", optional_i64(record.output_tokens))
         .with("cached_tokens", optional_i64(record.cached_tokens))
-        .with("cache_input_tokens", optional_i64(record.cache_input_tokens))
+        .with(
+            "cache_input_tokens",
+            optional_i64(record.cache_input_tokens),
+        )
         .with("reasoning_effort", optional_text(&record.reasoning_effort))
         .with("cost_micro_usd", optional_i64(record.cost_micro_usd))
         .with("error", optional_text(&record.error))
@@ -284,4 +288,56 @@ pub(super) fn provider_usage_counts(
         input_tokens: nonnegative("input_tokens")?,
         output_tokens: nonnegative("output_tokens")?,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::support::test_support::TestDatabase;
+
+    /// The persisted request-log shape carries the proxy the request
+    /// egressed through, so the requests page can name it without
+    /// re-deriving it from the provider's current binding.
+    #[tokio::test]
+    async fn persisted_request_logs_keep_their_proxy_id() {
+        let database = TestDatabase::open().await;
+        let record = RequestLogRecord {
+            id: "log-proxy".to_owned(),
+            request_id: "request-proxy".to_owned(),
+            route_alias: "coding".to_owned(),
+            provider_id: Some("provider".to_owned()),
+            provider_credential_id: None,
+            api_key_id: None,
+            model: "mock-model".to_owned(),
+            client_protocol: "chat_completions".to_owned(),
+            upstream_protocol: Some("chat_completions".to_owned()),
+            proxy_id: Some("px-hq".to_owned()),
+            status: 200,
+            duration_ms: 10,
+            input_tokens: None,
+            output_tokens: None,
+            cached_tokens: None,
+            cache_input_tokens: None,
+            reasoning_effort: None,
+            cost_micro_usd: None,
+            error: None,
+        };
+        persist_batch(
+            &database.db,
+            &[TelemetryMessage::RequestLog(Box::new(record))],
+        )
+        .await
+        .expect("persist the request log");
+
+        let stored = database
+            .db
+            .read(|transaction| transaction.get::<Record>(Table::RequestLogs, "log-proxy"))
+            .await
+            .expect("read the stored request log")
+            .expect("the request log was stored");
+        assert_eq!(
+            stored.optional_text("proxy_id").expect("proxy_id field"),
+            Some("px-hq")
+        );
+    }
 }

@@ -1,6 +1,8 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Library, Save, Trash2, X } from '@lucide/svelte';
   import type { Translate } from '../../lib/format';
+  import Input from '../../components/Input.svelte';
   import {
     loadPrompts,
     savePrompts,
@@ -47,28 +49,28 @@
 <div class="prompt-library" role="dialog" aria-label={tr('Prompt library')}>
   <header class="library-header">
     <strong>{tr('Prompt library')}</strong>
-    <button class="library-close" type="button" on:click={onClose} title={tr('Close')}>
+    <Button class="library-close" type="button" onclick={onClose} title={tr('Close')}>
       <X size={14} />
-    </button>
+    </Button>
   </header>
 
   <div class="library-save">
-    <input
+    <Input
       class="library-name"
       type="text"
       placeholder={tr('Prompt name')}
       bind:value={name}
       maxlength={120}
     />
-    <button
+    <Button
       class="library-save-button"
       type="button"
       disabled={!systemPrompt.trim()}
-      on:click={saveCurrent}
+      onclick={saveCurrent}
     >
       <Save size={12} />
       {tr('Save current system prompt')}
-    </button>
+    </Button>
   </div>
   {#if savedFlash}
     <p class="library-flash">{tr('Saved.')}</p>
@@ -85,17 +87,17 @@
             <span class="library-row-preview">{prompt.body.slice(0, 80)}{prompt.body.length > 80 ? '…' : ''}</span>
           </div>
           <div class="library-row-actions">
-            <button class="library-apply" type="button" on:click={() => apply(prompt)}>
+            <Button class="library-apply" type="button" onclick={() => apply(prompt)}>
               {tr('Apply')}
-            </button>
-            <button
+            </Button>
+            <Button
               class="library-delete"
               type="button"
-              on:click={() => remove(prompt)}
+              onclick={() => remove(prompt)}
               title={tr('Delete prompt')}
             >
               <Trash2 size={12} />
-            </button>
+            </Button>
           </div>
         </li>
       {/each}
@@ -125,7 +127,7 @@
     justify-content: space-between;
   }
 
-  .library-close {
+  :global(.library-close) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -143,7 +145,7 @@
     gap: 6px;
   }
 
-  .library-name {
+  :global(.library-name) {
     flex: 1 1 auto;
     min-width: 0;
     padding: 6px 9px;
@@ -154,7 +156,7 @@
     font-size: 12px;
   }
 
-  .library-save-button {
+  :global(.library-save-button) {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -169,7 +171,7 @@
     box-shadow: var(--nb-shadow-sm);
   }
 
-  .library-save-button:disabled {
+  :global(.library-save-button:disabled) {
     opacity: 0.45;
     cursor: not-allowed;
     box-shadow: none;
@@ -232,7 +234,7 @@
     gap: 5px;
   }
 
-  .library-apply {
+  :global(.library-apply) {
     padding: 4px 9px;
     border: var(--nb-border);
     border-radius: 8px;
@@ -243,7 +245,7 @@
     cursor: pointer;
   }
 
-  .library-delete {
+  :global(.library-delete) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -257,8 +259,8 @@
   }
 
   :global(:root[data-theme='dark']) .prompt-library { background: color-mix(in srgb, var(--surface-glass-base) 90%, transparent); }
-  :global(:root[data-theme='dark']) .library-apply { background: color-mix(in srgb, var(--accent) 20%, transparent); }
-  :global(:root[data-theme='dark']) .library-name {
+  :global(:root[data-theme='dark']) :global(.library-apply) { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+  :global(:root[data-theme='dark'] .library-name) {
     background: rgba(255, 255, 255, 0.04);
     color: #e2e8f0;
   }

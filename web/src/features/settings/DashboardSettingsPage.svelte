@@ -1,7 +1,10 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
+  import StatsCard from "../../components/StatsCard.svelte";
   import { onMount } from 'svelte';
   import { Cpu, Database, Palette, Server, SlidersHorizontal, Sparkles } from '@lucide/svelte';
   import { api } from '../../lib/api';
+  import Input from '../../components/Input.svelte';
   import { localizedError } from '../../lib/errors';
   import type { DashboardPage } from '../../lib/navigation';
   import { showDashboardToast } from '../../lib/dashboard-ui';
@@ -121,9 +124,9 @@
 
   <div class="settings-nav-tabs" role="tablist" aria-label={tr('Settings')}>
     {#each tabs as tab (tab.id)}
-      <button
-        class="settings-nav-tab"
-        class:active={activeTab === tab.id}
+      <Button
+        class="settings-nav-tab" stateClasses={{ active: activeTab === tab.id }}
+
         data-selected={activeTab === tab.id ? '' : undefined}
         type="button"
         role="tab"
@@ -132,44 +135,24 @@
       >
         <tab.icon size={15} />
         <span>{tr(tab.label)}</span>
-      </button>
+      </Button>
     {/each}
   </div>
 
   {#if error}
     <section class="course-card surface settings-card" role="alert">
       <div class="card-title-row"><h2>{error}</h2></div>
-      <button class="page-action" type="button" onclick={() => void loadPublicSettings()}>{tr('Retry')}</button>
+      <Button class="page-action" type="button" onclick={() => void loadPublicSettings()}>{tr('Retry')}</Button>
     </section>
   {:else if loading}
     <section class="course-card surface settings-card"><div class="empty-state">{tr('Loading…')}</div></section>
   {:else}
     {#if activeTab === 'server'}
       <section class="stats-grid" aria-label={tr('Settings overview')}>
-        <article class="stat-card surface">
-          <div class="stat-top"><span class="stat-icon"><svg class="icon"><use href="#i-server" /></svg></span><span class="stat-number">{port}</span></div>
-          <h2>{tr('Listen port')}</h2>
-          <div class="stat-trend">{host}</div>
-          <button class="details-link" type="button" onclick={() => selectTab('operational')}>{tr('Operational settings')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-        </article>
-        <article class="stat-card surface">
-          <div class="stat-top"><span class="stat-icon"><svg class="icon"><use href="#i-shield" /></svg></span><span class="stat-number">{settings.admin_password_configured ? tr('On') : '—'}</span></div>
-          <h2>{tr('Auth Required')}</h2>
-          <div class="stat-trend">{tr('Admin session enforced')}</div>
-          <button class="details-link" type="button" onclick={() => pwDialog?.showModal()}>{tr('Change admin password')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-        </article>
-        <article class="stat-card surface">
-          <div class="stat-top"><span class="stat-icon"><svg class="icon"><use href="#i-layers" /></svg></span><span class="stat-number">{tr('Resource limits')}</span></div>
-          <h2>{tr('Gateway resource limits')}</h2>
-          <div class="stat-trend">{tr('Body size, SSE buffers and provider concurrency')}</div>
-          <button class="details-link" type="button" onclick={() => selectTab('resources')}>{tr('Gateway resource limits')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-        </article>
-        <article class="stat-card surface">
-          <div class="stat-top"><span class="stat-icon"><svg class="icon"><use href="#i-database" /></svg></span><span class="stat-number">LMDB</span></div>
-          <h2>{tr('Storage')}</h2>
-          <div class="stat-trend">{dbPath.split(/[\\/]/).pop()}</div>
-          <button class="details-link" type="button" onclick={() => selectTab('backup')}>{tr('Database backup')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-        </article>
+        <StatsCard icon="#i-server" value={port} title={tr('Listen port')} trend={host} actionLabel={tr('Operational settings')} onAction={ () => selectTab('operational') } />
+        <StatsCard icon="#i-shield" value={settings.admin_password_configured ? tr('On') : '—'} title={tr('Auth Required')} trend={tr('Admin session enforced')} actionLabel={tr('Change admin password')} onAction={ () => pwDialog?.showModal() } />
+        <StatsCard icon="#i-layers" value={tr('Resource limits')} title={tr('Gateway resource limits')} trend={tr('Body size, SSE buffers and provider concurrency')} actionLabel={tr('Gateway resource limits')} onAction={ () => selectTab('resources') } />
+        <StatsCard icon="#i-database" value="LMDB" title={tr('Storage')} trend={dbPath.split(/[\\/]/).pop()} actionLabel={tr('Database backup')} onAction={ () => selectTab('backup') } />
       </section>
 
       <div class="settings-grid">
@@ -177,9 +160,9 @@
           <div class="card-title-row"><h2>{tr('Server')}</h2><span class="status complete">{tr('Running')}</span></div>
           <p class="card-subtitle">{tr('Bind address and request limits. Bind settings require a restart and are read-only here.')}</p>
           <div class="settings-fields">
-            <label class="field">{tr('Host')}<input type="text" value={host} readonly class="readonly-field" /></label>
-            <label class="field">{tr('Port')}<input type="text" value={port} readonly class="readonly-field" /></label>
-            <label class="field provd-wide">{tr('database_path')}<input type="text" value={dbPath} readonly class="readonly-field" /></label>
+            <label class="field">{tr('Host')}<Input type="text" value={host} readonly class="readonly-field" /></label>
+            <label class="field">{tr('Port')}<Input type="text" value={port} readonly class="readonly-field" /></label>
+            <label class="field provd-wide">{tr('database_path')}<Input type="text" value={dbPath} readonly class="readonly-field" /></label>
           </div>
         </section>
 
@@ -188,10 +171,10 @@
           <p class="card-subtitle">{tr('Admin API throttling and password management.')}</p>
           <div class="settings-fields">
             <div class="provd-wide">
-              <button class="page-action" type="button" onclick={() => pwDialog?.showModal()}><svg class="icon"><use href="#i-shield" /></svg> {tr('Change admin password')}</button>
+              <Button class="page-action" type="button" onclick={() => pwDialog?.showModal()}><svg class="icon"><use href="#i-shield" /></svg> {tr('Change admin password')}</Button>
             </div>
             <div class="provd-wide">
-              <button class="page-action" type="button" onclick={() => selectTab('operational')}><svg class="icon"><use href="#i-arrow-right" /></svg> {tr('Operational settings')}</button>
+              <Button class="page-action" type="button" onclick={() => selectTab('operational')}><svg class="icon"><use href="#i-arrow-right" /></svg> {tr('Operational settings')}</Button>
             </div>
           </div>
         </section>
@@ -201,11 +184,11 @@
           <p class="card-subtitle">{tr('Request log retention stored in LMDB.')}</p>
           <div class="settings-fields">
             <div class="provd-wide">
-              <button class="page-action" type="button" onclick={() => selectTab('operational')}><svg class="icon"><use href="#i-arrow-right" /></svg> {tr('Operational settings')}</button>
-              <button class="page-action" type="button" onclick={() => onNavigate('requests')}><svg class="icon"><use href="#i-clipboard" /></svg> {tr('View request logs')}</button>
+              <Button class="page-action" type="button" onclick={() => selectTab('operational')}><svg class="icon"><use href="#i-arrow-right" /></svg> {tr('Operational settings')}</Button>
+              <Button class="page-action" type="button" onclick={() => onNavigate('requests')}><svg class="icon"><use href="#i-clipboard" /></svg> {tr('View request logs')}</Button>
             </div>
             <div class="provd-wide">
-              <button class="page-action danger" type="button" onclick={deleteLogs}>{tr('Delete all request logs')}</button>
+              <Button class="page-action danger" type="button" onclick={deleteLogs}>{tr('Delete all request logs')}</Button>
             </div>
           </div>
         </section>
@@ -229,15 +212,15 @@
   <form class="modal-card" onsubmit={submitPassword}>
     <div class="modal-heading">
       <div><h2 id="pw-title">{tr('Change admin password')}</h2><p>{tr('Requires your current password.')}</p></div>
-      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
+      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     <div class="modal-fields">
-      <label class="field provd-wide">{tr('Current password')}<input type="password" required autocomplete="current-password" bind:value={pwCurrent} /></label>
-      <label class="field provd-wide">{tr('New password')}<input type="password" required autocomplete="new-password" bind:value={pwNew} /></label>
+      <label class="field provd-wide">{tr('Current password')}<Input type="password" required autocomplete="current-password" bind:value={pwCurrent} /></label>
+      <label class="field provd-wide">{tr('New password')}<Input type="password" required autocomplete="new-password" bind:value={pwNew} /></label>
     </div>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
-      <button class="page-action primary" type="submit">{tr('Change password')}</button>
+      <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
+      <Button class="page-action primary" type="submit">{tr('Change password')}</Button>
     </div>
   </form>
 </dialog>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Check, Copy } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
@@ -86,7 +87,7 @@
       <div class="request-error-box">
         <div class="request-error-box-header">
           <span class="request-error-box-title">{tr('Error message')}</span>
-          <button type="button" class="secondary-button compact copy-error-button" onclick={copyErrorText} title={tr('Copy error')}>
+          <Button type="button" class="secondary-button compact copy-error-button" onclick={copyErrorText} title={tr('Copy error')}>
             {#if errorCopied}
               <Check size={13} color="var(--chart-good)" />
               <span>{tr('Copied!')}</span>
@@ -94,13 +95,13 @@
               <Copy size={13} />
               <span>{tr('Copy error')}</span>
             {/if}
-          </button>
+          </Button>
         </div>
         <pre class="request-error-pre">{request.error}</pre>
       </div>
 
       <div class="modal-actions" style="margin-top: 18px;">
-        <button type="button" class="secondary-button" onclick={close}>{tr('Close')}</button>
+        <Button type="button" class="secondary-button" onclick={close}>{tr('Close')}</Button>
       </div>
     </div>
   {/if}
@@ -172,7 +173,7 @@
   }
   /* Inherits `.secondary-button`'s ink frame and radius; only the compact size
      is local. */
-  .copy-error-button {
+  :global(.copy-error-button) {
     display: inline-flex;
     align-items: center;
     gap: 5px;

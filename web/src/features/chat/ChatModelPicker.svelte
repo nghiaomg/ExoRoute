@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ArkCombobox from '../../components/ArkCombobox.svelte';
+  import SelectSearch from '../../components/SelectSearch.svelte';
   import type { Translate } from '../../lib/format';
   import type { WorkspaceChatModelOption } from '../../lib/types';
   import { modelDisplayName, modelProviderPrefix } from './chat.state';
@@ -29,7 +29,7 @@
 </script>
 
 <div class="chat-model-picker">
-  <ArkCombobox
+  <SelectSearch
     {items}
     value={modelId}
     {disabled}

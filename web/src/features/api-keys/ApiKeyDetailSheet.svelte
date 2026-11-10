@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { ShieldAlert, SlidersHorizontal } from '@lucide/svelte';
   import type { Translate } from '../../lib/format';
   import type { Locale } from '../../lib/i18n';
@@ -34,10 +35,10 @@
       <p>{apiKey.name}</p>
     </div>
     <div class="heading-actions">
-      <button class="action-button" type="button" onclick={onBack}>
+      <Button class="action-button" type="button" onclick={onBack}>
         <span class="button-icon"><svg class="icon"><use href="#i-arrow-left" /></svg></span>
         <span class="button-label">{tr('Back to API keys')}</span>
-      </button>
+      </Button>
     </div>
   </div>
 
@@ -58,7 +59,7 @@
     </dl>
 
     <!-- Keep scope summary beside its editing control. -->
-    <button
+    <Button
       class="scope-toggle"
       type="button"
       aria-expanded={scopeOpen}
@@ -68,7 +69,7 @@
       <SlidersHorizontal size={14} />
       {tr('Access scope')}
       <span class="scope-toggle-hint">{apiKey.scope_restricted ? tr('restricted') : tr('all models')}</span>
-    </button>
+    </Button>
 
     {#if scopeOpen}
       <section id="api-key-scope-section" class="scope-section">
@@ -123,7 +124,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .scope-toggle {
+  :global(.scope-toggle) {
     display: flex;
     align-items: center;
     gap: 7px;
@@ -137,10 +138,10 @@
     text-align: left;
     cursor: pointer;
   }
-  .scope-toggle:hover {
+  :global(.scope-toggle:hover) {
     border-color: var(--accent);
   }
-  .scope-toggle-hint {
+  :global(.scope-toggle-hint) {
     margin-left: auto;
     color: var(--muted);
     font-weight: 500;

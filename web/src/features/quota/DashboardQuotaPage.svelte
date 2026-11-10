@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
+  import StatsCard from "../../components/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
   import type { DashboardPage } from '../../lib/navigation';
@@ -64,6 +66,12 @@
   ));
   const missingKeys = $derived(views.filter((v) => v.provider.enabled && !(v.provider.api_key_count ?? 0)));
   const localProviders = $derived(views.filter((v) => isLocal(v.provider)));
+  const nearLimitTrend = $derived.by(() => {
+    if (nearLimit.length) return tr('{name} · {percent}% remaining', { name: nearLimit[0].provider.name, percent: remainingPercent(nearLimit[0].maxUsed ?? 0) });
+    if (missingQuotaProviders.length || incompleteQuotaProviders.length) return tr('No quota data reported');
+    if (allQuotaProvidersFresh) return tr('All providers healthy');
+    return tr('No configured provider reports usage data.');
+  });
 
   function hasFreshQuotaData(view: ProviderQuotaView): boolean {
     return view.hasData
@@ -107,7 +115,8 @@
 
   function quotaBarStyle(usedPercent: number): string {
     const remaining = Math.min(100, Math.max(0, 100 - usedPercent));
-    return `background: linear-gradient(to right, var(--quota-fill, var(--accent)) 0 ${remaining}%, var(--surface-sunken) ${remaining}% 100%)`;
+    // Filled segment fades from deep orange on the left to soft orange on the right.
+    return `background: linear-gradient(to right, var(--quota-fill-deep, #c2410c) 0, var(--quota-fill-soft, #fdba74) ${remaining}%, var(--surface-sunken) ${remaining}% 100%)`;
   }
 
   function quotaValue(quota: ProviderUsageQuota): string {
@@ -233,71 +242,29 @@
     <div class="card-title-row"><h2>{tr('Could not load quota')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
     <div class="modal-actions" style="padding-top:14px">
-      <button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</button>
+      <Button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   </section>
 {:else if loading}
   <section class="stats-grid" aria-label={tr('Loading')}>
-    {#each [0, 1, 2, 3] as i (i)}<article class="stat-card surface" style="min-height:132px"></article>{/each}
+    {#each [0, 1, 2, 3] as i (i)}<StatsCard skeleton />{/each}
   </section>
 {:else}
   <div class="page-surface">
     <section class="stats-grid" aria-label={tr('Quota overview')}>
-      <article class="stat-card surface">
-        <div class="stat-top">
-          <span class="stat-icon"><svg class="icon"><use href="#i-users" /></svg></span>
-          <span class="stat-number">{views.length}</span>
-        </div>
-        <h2>{tr('Providers Monitored')}</h2>
-        <div class="stat-trend">{tr('{reporting} reporting, {missing} missing keys', { reporting: reporting.length, missing: missingKeys.length })}</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('providers')}>{tr('View providers')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-      </article>
-      <article class="stat-card surface">
-        <div class="stat-top">
-          <span class="stat-icon"><svg class="icon"><use href="#i-chart" /></svg></span>
-          <span class="stat-number">{avgUtil === null ? '—' : `${avgUtil}%`}</span>
-        </div>
-        <h2>{tr('Avg Utilization')}</h2>
-        <div class="stat-trend">{tr('Across reporting providers')}</div>
-        <button class="details-link" type="button" onclick={() => document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' })}>{tr('See breakdown')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-      </article>
-      <article class="stat-card surface">
-        <div class="stat-top">
-          <span class="stat-icon"><svg class="icon"><use href="#i-alert" /></svg></span>
-          <span class="stat-number">{nearLimit.length}</span>
-        </div>
-        <h2>{tr('Near Limit')}</h2>
-        <div class="stat-trend">
-          {#if nearLimit.length}
-            {tr('{name} · {percent}% remaining', { name: nearLimit[0].provider.name, percent: remainingPercent(nearLimit[0].maxUsed ?? 0) })}
-          {:else if missingQuotaProviders.length || incompleteQuotaProviders.length}
-            {tr('No quota data reported')}
-          {:else if allQuotaProvidersFresh}
-            {tr('All providers healthy')}
-          {:else}
-            {tr('No configured provider reports usage data.')}
-          {/if}
-        </div>
-        <button class="details-link" type="button" onclick={() => nearLimit[0] ? openDetail(nearLimit[0]) : document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' })}>{nearLimit[0] ? tr('Inspect {name}', { name: nearLimit[0].provider.name }) : tr('See breakdown')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-      </article>
-      <article class="stat-card surface">
-        <div class="stat-top">
-          <span class="stat-icon"><svg class="icon"><use href="#i-cpu" /></svg></span>
-          <span class="stat-number">{localProviders.length}</span>
-        </div>
-        <h2>{tr('Local Providers')}</h2>
-        <div class="stat-trend">{localProviders.map((v) => v.provider.name).join(', ') || tr('None configured')}</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('chat')}>{tr('Open chat')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-      </article>
+      <StatsCard icon="#i-users" value={views.length} title={tr('Providers Monitored')} trend={tr('{reporting} reporting, {missing} missing keys', { reporting: reporting.length, missing: missingKeys.length })} actionLabel={tr('View providers')} onAction={ () => onNavigate('providers') } />
+      <StatsCard icon="#i-chart" value={avgUtil === null ? '—' : `${avgUtil}%`} title={tr('Avg Utilization')} trend={tr('Across reporting providers')} actionLabel={tr('See breakdown')} onAction={ () => document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' }) } />
+      <StatsCard icon="#i-alert" value={nearLimit.length} title={tr('Near Limit')} trend={nearLimitTrend} actionLabel={nearLimit[0] ? tr('Inspect {name}', { name: nearLimit[0].provider.name }) : tr('See breakdown')} onAction={ () => nearLimit[0] ? openDetail(nearLimit[0]) : document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' }) } />
+      <StatsCard icon="#i-cpu" value={localProviders.length} title={tr('Local Providers')} trend={localProviders.map((v) => v.provider.name).join(', ') || tr('None configured')} actionLabel={tr('Open chat')} onAction={ () => onNavigate('chat') } />
     </section>
 
     <section class="course-card surface quota-board" id="quota-board" aria-labelledby="quota-heading">
       <div class="card-title-row">
         <h2 id="quota-heading">{tr('Quota by provider')}</h2>
-        <button class="mini-add" type="button" onclick={refresh} disabled={refreshing}>
+        <Button class="mini-add" type="button" onclick={refresh} disabled={refreshing}>
           <svg class="icon"><use href="#i-refresh" /></svg>
           {refreshing ? tr('Refreshing…') : tr('Refresh')}
-        </button>
+        </Button>
       </div>
       <p class="card-subtitle">{tr('Upstream quotas are informational — they never change provider routing.')}</p>
       <div class="quota-grid">
@@ -335,7 +302,7 @@
                 </div>
               {/if}
             </div>
-            <button class="details-link quota-detail" type="button" onclick={() => openDetail(view)}>{tr('View details')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+            <Button class="details-link quota-detail" type="button" onclick={() => openDetail(view)}>{tr('View details')} <svg class="icon"><use href="#i-arrow-right" /></svg></Button>
           </article>
         {/each}
         {#if !boardViews.length}
@@ -354,7 +321,7 @@
         <h2 id="quota-dialog-title">{tr('{name} quota', { name: detailView?.provider.name ?? tr('Provider') })}</h2>
         <p>{detailView?.plan ? tr('{plan} plan', { plan: detailView.plan }) : detailView?.provider.base_url}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
+      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     <div class="quota-detail-body">
       {#if detailView?.quotas.length}
@@ -388,7 +355,7 @@
     </div>
     <p class="form-note">{tr('Quota values are informational and never change provider routing.')}</p>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>{tr('Close')}</button>
+      <Button class="page-action" type="button" data-close-modal>{tr('Close')}</Button>
     </div>
   </div>
 </dialog>

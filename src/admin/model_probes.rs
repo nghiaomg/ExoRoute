@@ -1,4 +1,5 @@
 use super::*;
+use crate::admin::workspace::{ProxyEgressError, resolve_provider_proxy_egress};
 #[cfg(test)]
 use crate::protocol::Protocol;
 use crate::protocol::UpstreamProtocol;
@@ -17,6 +18,11 @@ struct SavedModelTestConfig<'a> {
     auth_header: Option<&'a str>,
     custom_headers: &'a std::collections::BTreeMap<String, String>,
     protocol: UpstreamProtocol,
+    /// The provider's bound proxy endpoints: index 0 is the selected endpoint
+    /// and the rest are connect-error fallbacks. Empty when the provider has
+    /// no proxy binding; a bound-but-unusable proxy fails the probe instead
+    /// of probing over a direct connection.
+    proxy_endpoints: &'a [egress::ProxyEgress],
 }
 
 /// Resolves the upstream protocol a model probe must use.
@@ -192,9 +198,10 @@ struct ProbeConnectionConfig {
     auth_header: Option<String>,
     custom_headers: std::collections::BTreeMap<String, String>,
     protocol: UpstreamProtocol,
+    proxy_endpoints: Vec<egress::ProxyEgress>,
 }
 
-fn probe_connection_config(
+async fn probe_connection_config(
     state: &AppState,
     provider: &crate::infra::storage::Record,
     provider_id: &str,
@@ -235,6 +242,32 @@ fn probe_connection_config(
         provider_response_body: None,
     })?;
     let protocol = probe_protocol(&adapter_id, model, protocol);
+    // A provider bound to a proxy must be probed through it exactly like the
+    // gateway routes its requests; a disabled or empty proxy fails the probe
+    // instead of probing over a direct connection.
+    let proxy_endpoints = match resolve_provider_proxy_egress(state, provider_id).await {
+        Ok(resolved) => resolved
+            .map(|resolved| resolved.endpoints)
+            .unwrap_or_default(),
+        Err(ProxyEgressError::Database(error)) => {
+            return Err(model_test_database_error(
+                provider_id.to_owned(),
+                model.to_owned(),
+                error,
+            ));
+        }
+        Err(error) => {
+            return Err(ModelTestResult {
+                provider_id: provider_id.to_owned(),
+                model: model.to_owned(),
+                test_passed: false,
+                status: Some(StatusCode::BAD_GATEWAY.as_u16()),
+                latency_ms: 0,
+                message: error.message(provider_id),
+                provider_response_body: None,
+            });
+        }
+    };
     Ok(ProbeConnectionConfig {
         adapter_id,
         base_url,
@@ -242,6 +275,7 @@ fn probe_connection_config(
         auth_header,
         custom_headers,
         protocol,
+        proxy_endpoints,
     })
 }
 
@@ -284,7 +318,7 @@ async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
         };
     }
 
-    let connection = match probe_connection_config(state, &provider, &provider_id, &model) {
+    let connection = match probe_connection_config(state, &provider, &provider_id, &model).await {
         Ok(config) => config,
         Err(result) => return result,
     };
@@ -298,6 +332,7 @@ async fn test_one_model(state: &AppState, entry: &Value) -> ModelTestResult {
         auth_header: connection.auth_header.as_deref(),
         custom_headers: &connection.custom_headers,
         protocol: connection.protocol,
+        proxy_endpoints: &connection.proxy_endpoints,
     };
     let capabilities = provider_adapters::capabilities(&connection.adapter_id);
     if capabilities.is_some_and(|capabilities| capabilities.api_keys && capabilities.oauth_accounts)
@@ -610,6 +645,7 @@ async fn test_saved_model_credential(
             custom_headers: config.custom_headers,
             protocol,
             credentials: &credentials,
+            proxy_endpoints: config.proxy_endpoints,
         },
     )
     .await

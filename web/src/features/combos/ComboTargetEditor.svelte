@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { ArrowDown, ArrowUp, Layers3, Power, PowerOff, Server, ShieldCheck, Trash2, Zap } from '@lucide/svelte';
   import type { Translate } from '../../lib/format';
 
@@ -36,10 +37,10 @@
     </div>
 
     <div class="target-card-actions">
-      <button
+      <Button
         type="button"
         class="target-icon-btn is-toggle"
-        class:is-off={!view.target.enabled}
+        stateClasses={{ 'is-off': !view.target.enabled }}
         aria-label={tr(view.target.enabled ? 'Disable target {index}' : 'Enable target {index}', { index: view.index + 1 })}
         title={tr(view.target.enabled ? 'Disable target' : 'Enable target')}
         onclick={() => actions.onToggleEnabled(view.target.key)}
@@ -49,8 +50,8 @@
         {:else}
           <PowerOff size={13} />
         {/if}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         class="target-icon-btn"
         aria-label={tr('Move target {index} up', { index: view.index + 1 })}
@@ -59,8 +60,8 @@
         onclick={() => actions.onMove(view.index, -1)}
       >
         <ArrowUp size={13} />
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         class="target-icon-btn"
         aria-label={tr('Move target {index} down', { index: view.index + 1 })}
@@ -69,9 +70,9 @@
         onclick={() => actions.onMove(view.index, 1)}
       >
         <ArrowDown size={13} />
-      </button>
+      </Button>
       {#if view.count > 1}
-        <button
+        <Button
           type="button"
           class="target-icon-btn is-danger"
           aria-label={tr('Remove target {index}', { index: view.index + 1 })}
@@ -79,33 +80,33 @@
           onclick={() => actions.onRemove(view.target.key)}
         >
           <Trash2 size={13} />
-        </button>
+        </Button>
       {/if}
     </div>
   </div>
 
   <div class="target-card-body">
     <div class="target-kind-toggle" role="group" aria-label={tr('Target type')}>
-      <button
+      <Button
         type="button"
         class="target-kind-btn"
-        class:is-active={view.target.kind === 'provider'}
+        stateClasses={{ 'is-active': view.target.kind === 'provider' }}
         aria-pressed={view.target.kind === 'provider'}
         onclick={() => actions.onKindChange(view.target.key, 'provider')}
       >
         <Server size={12} />
         <span>{tr('Provider target')}</span>
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         class="target-kind-btn is-combo"
-        class:is-active={view.target.kind === 'combo'}
+        stateClasses={{ 'is-active': view.target.kind === 'combo' }}
         aria-pressed={view.target.kind === 'combo'}
         onclick={() => actions.onKindChange(view.target.key, 'combo')}
       >
         <Layers3 size={12} />
         <span>{tr('Combo target')}</span>
-      </button>
+      </Button>
     </div>
 
     {#if view.target.kind === 'combo'}

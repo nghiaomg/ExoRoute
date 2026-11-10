@@ -1,8 +1,9 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { ArrowDown, Layers3, ListOrdered, LoaderCircle, Plus, RefreshCw, Save } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import ArkField from '../../components/ArkField.svelte';
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import ComboTargetEditor from './ComboTargetEditor.svelte';
   import { cyclingComboIds } from './references';
   import { MAX_COMBO_TARGETS, type ComboTargetActions, type ComboTargetDraft, type ComboTargetKind, type ComboTargetView } from './combo.types';
@@ -251,7 +252,7 @@ import { localizedError } from '../../lib/errors';
       </div>
 
       <div class="combo-config-col">
-        <ArkSelect
+        <SelectOptions
           label={tr('Routing strategy')}
           value={strategy}
           items={[
@@ -282,7 +283,7 @@ import { localizedError } from '../../lib/errors';
         </div>
         <span class="targets-section-desc">{tr('Requests evaluate targets from top to bottom')}</span>
       </div>
-      <button
+      <Button
         type="button"
         class="secondary-button compact add-target-header-btn"
         disabled={saving || comboTargets.length >= MAX_COMBO_TARGETS}
@@ -290,7 +291,7 @@ import { localizedError } from '../../lib/errors';
       >
         <Plus size={13} />
         {tr('Add fallback target')}
-      </button>
+      </Button>
     </div>
 
     <div class="combo-target-editor-list">
@@ -314,7 +315,7 @@ import { localizedError } from '../../lib/errors';
     </div>
 
     {#if comboTargets.length < MAX_COMBO_TARGETS}
-      <button
+      <Button
         type="button"
         class="add-target-dashed-btn"
         disabled={saving}
@@ -322,7 +323,7 @@ import { localizedError } from '../../lib/errors';
       >
         <Plus size={14} />
         <span>{tr('Add another fallback target')}</span>
-      </button>
+      </Button>
     {:else}
       <p class="form-help text-center">{tr('Maximum {count} targets reached.', { count: MAX_COMBO_TARGETS })}</p>
     {/if}
@@ -340,8 +341,8 @@ import { localizedError } from '../../lib/errors';
     {/if}
 
     <div class="modal-actions">
-      <button type="button" class="secondary-button" onclick={close}>{tr('Cancel')}</button>
-      <button type="submit" class="primary-button" disabled={saving || !validTargets}>
+      <Button type="button" class="secondary-button" onclick={close}>{tr('Cancel')}</Button>
+      <Button type="submit" class="primary-button" disabled={saving || !validTargets}>
         {#if saving}
           <LoaderCircle size={15} class="spin" />
         {:else if comboToEdit}
@@ -350,7 +351,7 @@ import { localizedError } from '../../lib/errors';
           <Plus size={15} />
         {/if}
         {tr(comboToEdit ? 'Save changes' : 'Create combo')}
-      </button>
+      </Button>
     </div>
 
     {#if needsProviderTarget && !hasEnabledProviders}

@@ -1,8 +1,9 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { ArrowDown, ArrowUp, GitBranch, Trash2 } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import ArkField from '../../components/ArkField.svelte';
-  import ArkCombobox from '../../components/ArkCombobox.svelte';
+  import SelectSearch from '../../components/SelectSearch.svelte';
   import type { Translate } from '../../lib/format';
   import type { ProxyEndpoint, ProxyProviderOption } from '../../lib/types';
 
@@ -33,18 +34,18 @@
     <span class="proxy-endpoint-number">{index + 1}</span>
     <div><strong>{tr('Endpoint {number}', { number: index + 1 })}</strong><small>{tr(embedded ? 'Embedded proxy group' : 'HTTP proxy server')}</small></div>
     <div class="proxy-endpoint-tools">
-      <button class="row-icon" type="button" aria-label={tr('Move endpoint up')} title={tr('Move up')} disabled={index === 0} onclick={() => onMove(-1)}><ArrowUp size={14}/></button>
-      <button class="row-icon" type="button" aria-label={tr('Move endpoint down')} title={tr('Move down')} onclick={() => onMove(1)}><ArrowDown size={14}/></button>
-      <button class="row-icon danger-hover" type="button" aria-label={tr('Remove endpoint')} title={tr('Remove endpoint')} onclick={onRemove}><Trash2 size={14}/></button>
+      <Button class="row-icon" type="button" aria-label={tr('Move endpoint up')} title={tr('Move up')} disabled={index === 0} onclick={() => onMove(-1)}><ArrowUp size={14}/></Button>
+      <Button class="row-icon" type="button" aria-label={tr('Move endpoint down')} title={tr('Move down')} onclick={() => onMove(1)}><ArrowDown size={14}/></Button>
+      <Button class="row-icon danger-hover" type="button" aria-label={tr('Remove endpoint')} title={tr('Remove endpoint')} onclick={onRemove}><Trash2 size={14}/></Button>
     </div>
   </header>
   <div class="proxy-endpoint-mode">
-    <button type="button" class:active={!embedded} onclick={() => update({ ref_proxy_id: null })}>{tr('Proxy URL')}</button>
-    <button type="button" class:active={embedded} onclick={() => update({ url: null, username: null, secret: null, ref_proxy_id: options[0]?.id ?? null })}><GitBranch size={13}/>{tr('Embed proxy group')}</button>
+    <Button type="button" stateClasses={{ active: !embedded }} onclick={() => update({ ref_proxy_id: null })}>{tr('Proxy URL')}</Button>
+    <Button type="button" stateClasses={{ active: embedded }} onclick={() => update({ url: null, username: null, secret: null, ref_proxy_id: options[0]?.id ?? null })}><GitBranch size={13}/>{tr('Embed proxy group')}</Button>
   </div>
   {#if embedded}
     <div class="proxy-group-picker">
-      <ArkCombobox
+      <SelectSearch
         items={options.map((option) => ({ label: option.name, value: option.id, keywords: option.id, hint: option.enabled ? undefined : tr('disabled') }))}
         value={endpoint.ref_proxy_id ?? ''}
         label={tr('Embedded proxy')}
@@ -55,7 +56,7 @@
         onValueChange={(value) => update({ ref_proxy_id: value || null })}
       />
       {#if hasMoreOptions}
-        <button class="secondary-button compact" type="button" disabled={optionsLoading} onclick={onOptionsMore}>{tr(optionsLoading ? 'Loading…' : 'Load more')}</button>
+        <Button class="secondary-button compact" type="button" disabled={optionsLoading} onclick={onOptionsMore}>{tr(optionsLoading ? 'Loading…' : 'Load more')}</Button>
       {/if}
     </div>
     <p class="form-note">{tr('The referenced proxy is expanded here in priority order. Cycles and excessive nesting are rejected.')}</p>

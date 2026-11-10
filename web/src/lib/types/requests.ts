@@ -16,6 +16,10 @@ export interface RequestLog {
   cached_tokens?: number;
   cache_input_tokens?: number;
   reasoning_effort?: string | null;
+  // Egress proxy fields: present only when the request left through a proxy.
+  // `RequestLiveRow` extends this interface, so live SSE rows carry them too.
+  proxy_id?: string | null;
+  proxy_name?: string | null;
   cost_micro_usd?: number | null;
   error?: string | null;
   created_at: string;

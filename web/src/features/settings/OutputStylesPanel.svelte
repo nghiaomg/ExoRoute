@@ -1,8 +1,9 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { LoaderCircle, RotateCcw, Save, Sparkles } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -241,7 +242,7 @@ import { localizedError } from '../../lib/errors';
   {:else if errorMessage && snapshot === null}
     <div class="resource-limits-state resource-limits-error" role="alert">
       <span>{errorMessage}</span>
-      <button class="secondary-button compact" type="button" onclick={load}>{tr('Retry')}</button>
+      <Button class="secondary-button compact" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   {:else if snapshot}
     <div class="resource-limits-content output-styles-content">
@@ -256,7 +257,7 @@ import { localizedError } from '../../lib/errors';
       {#if errorMessage}
         <div class="resource-limits-error" role="alert">
           <span>{errorMessage}</span>
-          {#if reloadConflict}<button class="secondary-button compact" type="button" onclick={reloadLatest}>{tr('Reload latest output styles')}</button>{/if}
+          {#if reloadConflict}<Button class="secondary-button compact" type="button" onclick={reloadLatest}>{tr('Reload latest output styles')}</Button>{/if}
         </div>
       {/if}
       {#if successMessage}<div class="resource-limits-success" role="status">{successMessage}</div>{/if}
@@ -276,7 +277,7 @@ import { localizedError } from '../../lib/errors';
               </div>
               <div class="output-style-level">
                 <span>{tr('style level')}</span>
-                <ArkSelect
+                <SelectOptions
                   ariaLabel={`${tr(item.label)} ${tr('style level')}`}
                   items={styleLevelItems}
                   value={draft[item.id] ?? 'full'}
@@ -290,12 +291,12 @@ import { localizedError } from '../../lib/errors';
         </div>
 
         <div class="resource-limits-actions">
-          <button class="primary-button" type="submit" disabled={busy !== '' || !hasChanges}>
+          <Button class="primary-button" type="submit" disabled={busy !== '' || !hasChanges}>
             {#if busy === 'saving'}<LoaderCircle size={14} class="spin" />{tr('Saving…')}{:else}<Save size={14} />{tr('Save output styles')}{/if}
-          </button>
-          <button class="secondary-button" type="button" onclick={resetToDefault} disabled={busy !== '' || !snapshot.overridden}>
+          </Button>
+          <Button class="secondary-button" type="button" onclick={resetToDefault} disabled={busy !== '' || !snapshot.overridden}>
             {#if busy === 'resetting'}<LoaderCircle size={14} class="spin" />{tr('Resetting…')}{:else}<RotateCcw size={14} />{tr('Reset to default')}{/if}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

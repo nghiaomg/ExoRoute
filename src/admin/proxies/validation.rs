@@ -37,13 +37,21 @@ pub(super) fn validate_proxy(input: &mut ProxyInput) -> Result<(), &'static str>
     if input.name.trim().is_empty() || input.name.len() > MAX_PROXY_NAME_BYTES {
         return Err("proxy name is required and must not exceed 256 bytes");
     }
-    if input.name.chars().any(|character| character.is_ascii_control()) {
+    if input
+        .name
+        .chars()
+        .any(|character| character.is_ascii_control())
+    {
         return Err("proxy name contains unsupported control characters");
     }
     if input.id.len() > MAX_PROXY_ID_BYTES {
         return Err("proxy ID must not exceed 128 bytes");
     }
-    if input.id.chars().any(|character| character.is_ascii_control()) {
+    if input
+        .id
+        .chars()
+        .any(|character| character.is_ascii_control())
+    {
         return Err("proxy ID contains unsupported control characters");
     }
     if input.strategy != "priority" && input.strategy != "round_robin" {
@@ -76,7 +84,10 @@ fn validate_endpoint(endpoint: &mut ProxyEndpointInput) -> Result<(), &'static s
         endpoint.endpoint_id = uuid::Uuid::new_v4().to_string();
     }
     if endpoint.endpoint_id.len() > 128
-        || endpoint.endpoint_id.bytes().any(|byte| byte.is_ascii_control())
+        || endpoint
+            .endpoint_id
+            .bytes()
+            .any(|byte| byte.is_ascii_control())
     {
         return Err("proxy endpoint ID is invalid");
     }
@@ -100,7 +111,10 @@ fn validate_endpoint(endpoint: &mut ProxyEndpointInput) -> Result<(), &'static s
         if reference.len() > MAX_PROXY_ID_BYTES {
             return Err("embedded proxy ID must not exceed 128 bytes");
         }
-        if reference.chars().any(|character| character.is_ascii_control()) {
+        if reference
+            .chars()
+            .any(|character| character.is_ascii_control())
+        {
             return Err("embedded proxy ID contains unsupported control characters");
         }
         // A reference carries no server fields: credentials on it would be
@@ -128,7 +142,10 @@ fn validate_endpoint_fields(endpoint: &mut ProxyEndpointInput) -> Result<(), &'s
         if username.len() > MAX_PROXY_USERNAME_BYTES {
             return Err("proxy username must not exceed 256 bytes");
         }
-        if username.chars().any(|character| character.is_ascii_control()) {
+        if username
+            .chars()
+            .any(|character| character.is_ascii_control())
+        {
             return Err("proxy username contains unsupported control characters");
         }
     }
@@ -161,7 +178,10 @@ pub(crate) fn normalize_proxy_url(value: &str) -> Result<String, &'static str> {
     if trimmed.is_empty() {
         return Err("proxy URL is required");
     }
-    if trimmed.chars().any(|character| character.is_ascii_control()) {
+    if trimmed
+        .chars()
+        .any(|character| character.is_ascii_control())
+    {
         return Err("proxy URL contains unsupported control characters");
     }
     let with_scheme = if trimmed.contains("://") {
@@ -192,9 +212,7 @@ pub(crate) fn normalize_proxy_url(value: &str) -> Result<String, &'static str> {
     // Credentials belong in the dedicated fields, where they are encrypted; a
     // userinfo component in stored text would leak the password into logs.
     if !parsed.username().is_empty() || parsed.password().is_some() {
-        return Err(
-            "put proxy credentials in the username and password fields, not in the URL",
-        );
+        return Err("put proxy credentials in the username and password fields, not in the URL");
     }
     if parsed.query().is_some() || parsed.fragment().is_some() {
         return Err("proxy URL must not include a query or fragment");

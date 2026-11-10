@@ -8,7 +8,10 @@
 //! `build_pinned_client` and must be revalidated at every hop if re-enabled.
 
 use reqwest::Url;
-use std::{net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr}, time::Duration};
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    time::Duration,
+};
 
 /// Validates an HTTP(S) provider URL.
 ///

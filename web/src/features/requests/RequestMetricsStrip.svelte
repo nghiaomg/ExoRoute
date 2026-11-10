@@ -82,7 +82,7 @@
     transition: transform 0.16s ease;
   }
 
-  .request-metric.active .request-metric-icon {
+  .request-metric:global(.active) .request-metric-icon {
     background: color-mix(in srgb, var(--accent) 7%, var(--surface));
     color: var(--accent-strong);
   }

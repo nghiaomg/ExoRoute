@@ -12,6 +12,8 @@
   export let combos: GatewayCombo[];
   export let selectedComboId: string;
   export let targetKey: number;
+  /** Compact rows render the picker without its field label. */
+  export let hideLabel = false;
   export let tr: Translate;
   export let onComboChange: (targetKey: number, comboId: string) => void;
 
@@ -74,11 +76,12 @@
   positioning={{ sameWidth: true, fitViewport: true }}
   class="combo-reference-picker"
 >
-  <Combobox.Label class="combo-field-label">{tr('Combo target')}</Combobox.Label>
+  {#if !hideLabel}<Combobox.Label class="combo-field-label">{tr('Combo target')}</Combobox.Label>{/if}
   <Combobox.Control class="combo-combobox-control">
     <Combobox.Input
       class="ark-field-input combo-combobox-input"
       placeholder={tr('Search combos by name or ID')}
+      aria-label={tr('Combo target')}
       autocomplete="off"
       onfocus={(event) => event.currentTarget.select()}
     />

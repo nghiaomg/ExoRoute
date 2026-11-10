@@ -379,6 +379,7 @@ pub(super) async fn final_failure_response(
             model: &canonical.model,
             client: scope.client_protocol,
             upstream: None,
+            proxy_id: None,
             status: final_status,
             duration_ms: started.elapsed().as_millis() as i64,
             input_tokens: None,

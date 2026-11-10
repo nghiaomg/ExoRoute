@@ -313,13 +313,16 @@ pub(super) struct PreparedChatTurn {
     pub(super) provider_id: String,
     pub(super) model: String,
     pub(super) upstream_protocol: UpstreamProtocol,
-    pub(super) client_protocol: Protocol,
     pub(super) base_url: String,
     pub(super) auth_type: String,
     pub(super) auth_header: Option<String>,
     pub(super) adapter_id: String,
     pub(super) custom_headers: std::collections::BTreeMap<String, String>,
     pub(super) upstream_body: Value,
+    /// The decrypted proxy endpoints the turn must egress through. Empty when
+    /// the provider has no proxy binding; a bound-but-unusable proxy fails
+    /// preparation instead of falling back to a direct connection.
+    pub(super) proxy_endpoints: Vec<crate::security::egress::ProxyEgress>,
 }
 
 /// Prepares everything about one chat turn that can fail before the upstream
@@ -358,6 +361,21 @@ pub(super) async fn prepare_chat_turn(
             "provider uses an unregistered adapter",
         ));
     }
+    // A provider bound to a proxy must egress through it exactly like the
+    // gateway's public API does; a disabled or empty proxy is a hard failure
+    // instead of a silent direct connection.
+    let proxy_endpoints = match resolve_provider_proxy_egress(state, provider_id).await {
+        Ok(resolved) => resolved
+            .map(|resolved| resolved.endpoints)
+            .unwrap_or_default(),
+        Err(ProxyEgressError::Database(error)) => return Err(internal(error)),
+        Err(error) => {
+            return Err(fail_request(
+                StatusCode::BAD_GATEWAY,
+                error.message(provider_id),
+            ));
+        }
+    };
     let upstream_protocol =
         resolve_chat_upstream_protocol(&provider, target.saved_model_protocol, model)?;
     if !provider_adapters::supports_upstream_protocol(&adapter_id, upstream_protocol) {
@@ -387,12 +405,9 @@ pub(super) async fn prepare_chat_turn(
             ),
         ));
     }
-    let Some(client_protocol) = upstream_protocol.client_protocol() else {
-        return Err(fail_request(
-            StatusCode::UNPROCESSABLE_ENTITY,
-            "provider upstream protocol cannot carry a chat request",
-        ));
-    };
+    // Upstream-only protocols (Google Generate Content) are chat-capable:
+    // the relay resolves the endpoint through the adapter's upstream_endpoint
+    // and decodes with the upstream protocol, mirroring the gateway.
     let thinking_choice = chat_thinking_handling(&provider, text)?;
     let thinking_handling = match &thinking_choice {
         ChatThinkingChoice::Preserve => ThinkingHandling::Preserve,
@@ -442,13 +457,13 @@ pub(super) async fn prepare_chat_turn(
         provider_id: provider_id.to_owned(),
         model: model.to_owned(),
         upstream_protocol,
-        client_protocol,
         base_url,
         auth_type,
         auth_header,
         adapter_id,
         custom_headers,
         upstream_body,
+        proxy_endpoints,
     })
 }
 

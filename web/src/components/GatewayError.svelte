@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "./Button.svelte";
   import { Radio, RefreshCw } from '@lucide/svelte';
   import type { Translate } from '../lib/format';
 
@@ -14,5 +15,5 @@
     <p>{message}</p>
     <div class="state-hint"><code>/api/v1/admin</code><span>{tr('Check the server, then try again.')}</span></div>
   </div>
-  <button class="secondary-button" onclick={onRetry}><RefreshCw size={15} />{tr('Retry')}</button>
+  <Button class="secondary-button" onclick={onRetry}><RefreshCw size={15} />{tr('Retry')}</Button>
 </section>

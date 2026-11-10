@@ -1,39 +1,29 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
+  import StatsCard from "../../components/StatsCard.svelte";
   import { onMount } from 'svelte';
   import { ArrowDown, ArrowUp, GitBranch, Plus, Save, Trash2 } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
+  import Input from '../../components/Input.svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import { proxyApi } from '../../lib/api/proxies';
   import { localizedError } from '../../lib/errors';
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import type { Translate } from '../../lib/format';
-  import type { ProxyEndpoint, GatewayProxy, ProxyProviderOption, ProxyTrafficStats } from '../../lib/types';
+  import type { ProxyEndpoint, GatewayProxy, ProxyProviderOption } from '../../lib/types';
   import BulkProxyImportDialog from './BulkProxyImportDialog.svelte';
   import ProxyEndpointEditor from './ProxyEndpointEditor.svelte';
   import { blankProxy, normalizeProxyDraft } from './proxy.state';
   import '../../styles/dashboard/pages/proxies.css';
 
-  function formatBytes(value: number): string {
-    if (value < 1024) return String(value) + ' B';
-    const units = ['KiB', 'MiB', 'GiB', 'TiB'];
-    let size = value;
-    let unit = -1;
-    do { size /= 1024; unit += 1; } while (size >= 1024 && unit < units.length - 1);
-    return size.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' ' + units[unit];
-  }
-
-  function formatRate(value: number | null): string {
-    return value === null ? '—' : formatBytes(value) + '/s';
-  }
-
   interface Props { tr: Translate; locale: string; }
   let { tr, locale: _locale }: Props = $props();
 
   let proxies = $state<GatewayProxy[]>([]);
-  let trafficStats = $state<ProxyTrafficStats[]>([]);
-  let statsError = $state('');
-  let statsTruncated = $state(false);
+  const enabledCount = $derived(proxies.filter((proxy) => proxy.enabled).length);
+  const endpointCount = $derived(proxies.reduce((total, proxy) => total + proxy.endpoints.length, 0));
+  const providerCount = $derived(proxies.reduce((total, proxy) => total + proxy.provider_count, 0));
   let options = $state<ProxyProviderOption[]>([]);
   let optionsError = $state('');
   let optionsQuery = $state('');
@@ -43,7 +33,7 @@
   let saving = $state(false);
   let error = $state('');
   let query = $state('');
-  let enabledFilter = $state<'all' | 'enabled' | 'disabled'>('all');
+  let enabledOnly = $state(false);
   let optionCursor = $state<string | null>(null);
   let editDialog = $state(false);
   let deleteDialog = $state(false);
@@ -51,31 +41,18 @@
   let editingId = $state<string | null>(null);
   let deleting = $state<GatewayProxy | null>(null);
   let deleteBusy = $state(false);
+  let checkingId = $state<string | null>(null);
 
   const filtered = $derived.by(() => {
     const q = query.trim().toLowerCase();
-    return proxies.filter((proxy) => {
-      if (enabledFilter === 'enabled' && !proxy.enabled) return false;
-      if (enabledFilter === 'disabled' && proxy.enabled) return false;
-      return !q || proxy.name.toLowerCase().includes(q)
-        || proxy.endpoints.some((endpoint) => `${endpoint.url ?? ''} ${endpoint.ref_proxy_id ?? ''} ${endpoint.label ?? ''}`.toLowerCase().includes(q));
-    });
+    return proxies.filter((proxy) =>
+      (!enabledOnly || proxy.enabled) && (!q || proxy.name.toLowerCase().includes(q)
+        || proxy.endpoints.some((endpoint) => `${endpoint.url ?? ''} ${endpoint.ref_proxy_id ?? ''} ${endpoint.label ?? ''}`.toLowerCase().includes(q))),
+    );
   });
-
-  async function loadTrafficStats(): Promise<void> {
-    try {
-      const result = await proxyApi.trafficStats();
-      trafficStats = result.proxies;
-      statsTruncated = result.truncated;
-      statsError = '';
-    } catch (cause) {
-      statsError = localizedError(cause, 'Could not load proxy traffic stats.', tr);
-    }
-  }
 
   async function load(): Promise<void> {
     loading = true;
-    void loadTrafficStats();
     error = '';
     try {
       proxies = await proxyApi.proxies();
@@ -185,6 +162,21 @@
     }
   }
 
+  async function runCheck(proxy: GatewayProxy): Promise<void> {
+    if (checkingId !== null) return;
+    checkingId = proxy.id;
+    try {
+      const response = await proxyApi.checkProxy(proxy.id);
+      proxies = proxies.map((item) => item.id === proxy.id
+        ? { ...item, last_check: { checked_at: response.checked_at, live_count: response.live_count, die_count: response.die_count } }
+        : item);
+    } catch (cause) {
+      showDashboardToast(localizedError(cause, 'Could not check proxy.', tr));
+    } finally {
+      checkingId = null;
+    }
+  }
+
   async function onBulkImported(created: number): Promise<void> {
     await load();
     showDashboardToast(tr('Created {count} proxies.', { count: created }));
@@ -197,76 +189,54 @@
   <div class="heading-copy"><h1>{tr('Proxies')}</h1><p>{tr('Configure egress proxy groups and ordered connect fallbacks.')}</p></div>
   <div class="heading-actions">
     <BulkProxyImportDialog buttonClass="action-button" {tr} onImported={onBulkImported} />
-    <button class="action-button primary" type="button" onclick={openCreate}><span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span><span class="button-label">{tr('Add proxy')}</span></button>
+    <Button class="action-button primary" type="button" onclick={openCreate}><span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span><span class="button-label">{tr('Add proxy')}</span></Button>
   </div>
 </div>
 
-{#if !loading}
-  <section class="proxy-traffic-panel course-card surface" aria-labelledby="proxy-traffic-heading">
-    <div class="proxy-traffic-heading">
-      <div><h2 id="proxy-traffic-heading">{tr('Network usage')}</h2><p>{tr('Application payload sent through configured proxy groups since this process started.')}</p></div>
-      <button class="page-action" type="button" onclick={() => void loadTrafficStats()}>{tr('Refresh usage')}</button>
-    </div>
-    {#if statsError}<p class="form-error" role="alert">{statsError}</p>{/if}
-    {#if statsTruncated}<p class="form-help" role="status">{tr('Proxy usage history was shortened because the runtime stats cache reached its limit.')}</p>{/if}
-    <div class="proxy-traffic-grid">
-      {#each proxies as proxy (proxy.id)}
-        {@const stats = trafficStats.find((item) => item.proxy_id === proxy.id)}
-        <article class="proxy-traffic-card" aria-label={proxy.name}>
-          <strong>{proxy.name}</strong>
-          <div><span>{tr('Received')}</span><b>{formatBytes(stats?.received_bytes ?? 0)}</b></div>
-          <div><span>{tr('Sent')}</span><b>{formatBytes(stats?.sent_bytes ?? 0)}</b></div>
-          <div><span>{tr('Total used')}</span><b>{formatBytes(stats?.total_bytes ?? 0)}</b></div>
-          <div><span>{tr('Average speed')}</span><b>{formatRate(stats?.average_bytes_per_second ?? null)}</b></div>
-          <small>{tr('{count} requests', { count: stats?.requests ?? 0 })}</small>
-        </article>
-      {:else}<p class="card-subtitle">{tr('No proxies configured yet.')}</p>{/each}
-    </div>
-    <small class="proxy-traffic-note">{tr('Traffic counts include application payload bytes only, not TLS or network protocol overhead. Runtime totals reset when the gateway restarts. Average speed uses combined request durations; it is not live link speed.')}</small>
+{#if !loading && !error}
+  <section class="stats-grid proxy-stats-grid" aria-label={tr('Proxy overview')}>
+    <StatsCard icon="#i-shield" value={proxies.length} title={tr('Total proxies')} trend={tr('{count} endpoints configured', { count: endpointCount })} actionLabel={tr('View all')} onAction={ () => { query = ''; enabledOnly = false; } } />
+    <StatsCard icon="#i-zap" value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} actionLabel={tr('Show enabled only')} onAction={ () => { query = ''; enabledOnly = true; } } />
+    <StatsCard icon="#i-layers" value={endpointCount} title={tr('Endpoints')} trend={tr('Across {count} proxy groups', { count: proxies.length })} actionLabel={tr('View all')} onAction={ () => { query = ''; enabledOnly = false; } } />
+    <StatsCard icon="#i-users" value={providerCount} title={tr('Providers')} trend={tr('Assigned across proxy groups')} />
   </section>
 {/if}
 
 {#if error}
-  <section class="course-card surface"><div class="card-title-row"><h2>{tr('Could not load proxies')}</h2></div><p class="card-subtitle">{error}</p><button class="page-action" type="button" onclick={() => void load()}>{tr('Retry')}</button></section>
+  <section class="course-card surface"><div class="card-title-row"><h2>{tr('Could not load proxies')}</h2></div><p class="card-subtitle">{error}</p><Button class="page-action" type="button" onclick={() => void load()}>{tr('Retry')}</Button></section>
 {:else if loading}
   <section class="stats-grid" aria-label={tr('Loading proxies')}>
-    {#each [0, 1, 2, 3] as index (index)}<article class="stat-card surface" style="min-height:120px"></article>{/each}
+    {#each [0, 1, 2, 3] as index (index)}<StatsCard skeleton skeletonHeight={120} />{/each}
   </section>
 {:else}
-  <div class="proxy-toolbar page-toolbar">
-    <input class="prov-search" type="search" bind:value={query} placeholder={tr('Search proxies…')} aria-label={tr('Search proxies')} />
-    <ArkSelect
-      class="prov-select"
-      bind:value={enabledFilter}
-      ariaLabel={tr('Filter proxies')}
-      items={[{ label: tr('All proxies'), value: 'all' }, { label: tr('Enabled'), value: 'enabled' }, { label: tr('Disabled'), value: 'disabled' }]}
-    />
+  <div class="page-toolbar proxy-toolbar">
+    <Input class="prov-search" type="search" bind:value={query} placeholder={tr('Search proxies…')} aria-label={tr('Search proxies')} />
   </div>
   <div class="proxy-grid">
     {#each filtered as proxy (proxy.id)}
-      <article class="course-card surface proxy-card">
+      <article class="course-row provider-row proxy-card">
         <div class="proxy-card-head"><span class="proxy-icon"><GitBranch size={18} /></span><div class="proxy-title"><strong>{proxy.name}</strong><code>{proxy.id}</code></div><span class="status" class:complete={proxy.enabled} class:pending={!proxy.enabled}>{tr(proxy.enabled ? 'Enabled' : 'Disabled')}</span></div>
-        <div class="proxy-meta"><span>{tr('{count} endpoints', { count: proxy.endpoints.length })}</span><span>{tr('{count} providers', { count: proxy.provider_count })}</span><span>{tr(proxy.strategy === 'round_robin' ? 'Round robin' : 'Priority')}</span></div>
+        <div class="proxy-meta"><span>{tr('{count} endpoints', { count: proxy.endpoints.length })}</span><span>{tr('{count} providers', { count: proxy.provider_count })}</span><span>{tr(proxy.strategy === 'round_robin' ? 'Round robin' : 'Priority')}</span>{#if proxy.last_check}<span class="status complete">{tr('Proxy live')}: {proxy.last_check.live_count}</span><span class="status error">{tr('Proxy die')}: {proxy.last_check.die_count}</span>{/if}</div>
         <div class="proxy-endpoint-list">
           {#each proxy.endpoints.slice(0, 4) as endpoint (endpoint.priority)}
             <div class="proxy-endpoint-preview"><code>{endpoint.ref_proxy_id ? `↳ ${options.find((option) => option.id === endpoint.ref_proxy_id)?.name ?? endpoint.ref_proxy_id}` : endpoint.url}</code><span>{tr(endpoint.has_secret ? 'Auth' : 'No auth')}</span></div>
           {/each}
           {#if proxy.endpoints.length > 4}<small>{tr('+{count} more', { count: proxy.endpoints.length - 4 })}</small>{/if}
         </div>
-        <div class="proxy-card-actions"><button class="page-action" type="button" onclick={() => openEdit(proxy)}><svg class="icon"><use href="#i-edit" /></svg>{tr('Edit')}</button><button class="page-action danger" type="button" onclick={() => { deleting = proxy; deleteDialog = true; }}><Trash2 size={14} />{tr('Delete')}</button></div>
+        <div class="proxy-card-actions"><Button class="page-action" type="button" disabled={checkingId !== null} onclick={() => void runCheck(proxy)}>{#if checkingId === proxy.id}<span class="spin">◌</span>{/if}{tr(checkingId === proxy.id ? 'Checking…' : 'Check live')}</Button><Button class="page-action" type="button" onclick={() => openEdit(proxy)}><svg class="icon"><use href="#i-edit" /></svg>{tr('Edit')}</Button><Button class="page-action danger" type="button" onclick={() => { deleting = proxy; deleteDialog = true; }}><Trash2 size={14} />{tr('Delete')}</Button></div>
       </article>
     {:else}
-      <section class="course-card surface proxy-empty"><div class="empty-state">{query ? tr('No proxies match your search.') : tr('No proxies configured yet.')}</div></section>
+      <div class="empty-state proxy-empty">{query ? tr('No proxies match your search.') : tr('No proxies configured yet.')}</div>
     {/each}
   </div>
 {/if}
 
 <ArkDialog bind:open={editDialog} wide class="proxy-edit-dialog" title={tr(editingId ? 'Edit proxy' : 'Add proxy')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} preventClose={saving} onClose={() => { editDialog = false; }}>
   <form class="modal-form proxy-editor" onsubmit={(event) => { event.preventDefault(); void save(); }}>
-    <label class="field">{tr('Proxy name')}<input maxlength="256" bind:value={draft.name} placeholder={tr('e.g. Residential pool')} required /></label>
-    <label class="field">{tr('Endpoint selection')}<ArkSelect bind:value={draft.strategy} ariaLabel={tr('Endpoint selection')} items={[{ label: tr('Priority order'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]} /></label>
+    <label class="field">{tr('Proxy name')}<Input maxlength={256} bind:value={draft.name} placeholder={tr('e.g. Residential pool')} required /></label>
+    <label class="field">{tr('Endpoint selection')}<SelectOptions bind:value={draft.strategy} ariaLabel={tr('Endpoint selection')} items={[{ label: tr('Priority order'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]} /></label>
     <ArkCheckbox checked={draft.enabled} label={tr('Enable this proxy')} onCheckedChange={(checked) => draft.enabled = checked === true} />
-    <div class="proxy-endpoints-title"><div><h3>{tr('Endpoints and groups')}</h3><p>{tr('A group expands in place. Fallback happens only when connecting to an endpoint fails.')}</p></div><button class="secondary-button compact" type="button" onclick={addEndpoint} disabled={draft.endpoints.length >= 64}><Plus size={14}/>{tr('Add endpoint')}</button></div>
+    <div class="proxy-endpoints-title"><div><h3>{tr('Endpoints and groups')}</h3><p>{tr('A group expands in place. Fallback happens only when connecting to an endpoint fails.')}</p></div><Button class="secondary-button compact" type="button" onclick={addEndpoint} disabled={draft.endpoints.length >= 64}><Plus size={14}/>{tr('Add endpoint')}</Button></div>
     <div class="proxy-endpoints-editor">
       {#each draft.endpoints as endpoint, index (index)}
         <ProxyEndpointEditor
@@ -285,11 +255,11 @@
         />
       {/each}
     </div>
-    <div class="modal-actions"><button class="secondary-button" type="button" onclick={() => editDialog = false}>{tr('Cancel')}</button><button class="primary-button" type="submit" disabled={saving}>{#if saving}<span class="spin">◌</span>{tr('Saving…')}{:else}<Save size={14}/>{tr('Save proxy')}{/if}</button></div>
+    <div class="modal-actions"><Button class="secondary-button" type="button" onclick={() => editDialog = false}>{tr('Cancel')}</Button><Button class="primary-button" type="submit" disabled={saving}>{#if saving}<span class="spin">◌</span>{tr('Saving…')}{:else}<Save size={14}/>{tr('Save proxy')}{/if}</Button></div>
   </form>
 </ArkDialog>
 
 <ArkDialog bind:open={deleteDialog} title={tr('Delete proxy?')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} onClose={() => { deleteDialog = false; }}>
-  <div class="modal-form"><p>{tr('Delete {name}? Providers or proxy groups still using it will block deletion.', { name: deleting?.name ?? '' })}</p><div class="modal-actions"><button class="secondary-button" type="button" onclick={() => deleteDialog = false}>{tr('Cancel')}</button><button class="danger-button" type="button" disabled={deleteBusy} onclick={() => void confirmDelete()}>{tr(deleteBusy ? 'Deleting…' : 'Delete proxy')}</button></div></div>
+  <div class="modal-form"><p>{tr('Delete {name}? Providers or proxy groups still using it will block deletion.', { name: deleting?.name ?? '' })}</p><div class="modal-actions"><Button class="secondary-button" type="button" onclick={() => deleteDialog = false}>{tr('Cancel')}</Button><Button class="danger-button" type="button" disabled={deleteBusy} onclick={() => void confirmDelete()}>{tr(deleteBusy ? 'Deleting…' : 'Delete proxy')}</Button></div></div>
 </ArkDialog>
 

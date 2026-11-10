@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "./Button.svelte";
   import { Check, LoaderCircle, Moon, Sun } from '@lucide/svelte';
   import ArkPasswordInput from './ArkPasswordInput.svelte';
   import FlyingFishLogo from './FlyingFishLogo.svelte';
@@ -62,7 +63,7 @@ import { localizedError } from '../lib/errors';
       </a>
       <div class="preference-controls" aria-label={tr('Language and appearance')}>
         <LanguageSelect locale={preferences.locale} {tr} onLocaleChange={preferences.setLocale} />
-        <button class="preference-button theme-button" aria-label={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.scheme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</button>
+        <Button class="preference-button theme-button" aria-label={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.scheme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</Button>
       </div>
     </div>
 
@@ -82,13 +83,13 @@ import { localizedError } from '../lib/errors';
           {/if}
         </p>
         {#if sessionCheckStatus !== 'checking'}
-          <button class="session-check-retry" type="button" disabled={sessionRetryAfterSeconds > 0} onclick={onRetrySessionCheck}>
+          <Button class="session-check-retry" type="button" disabled={sessionRetryAfterSeconds > 0} onclick={onRetrySessionCheck}>
             {#if sessionRetryAfterSeconds > 0}
               {tr('Retry session check in {seconds}s', { seconds: sessionRetryAfterSeconds })}
             {:else}
               {tr('Retry session check')}
             {/if}
-          </button>
+          </Button>
         {/if}
       </section>
     {/if}
@@ -98,7 +99,7 @@ import { localizedError } from '../lib/errors';
       <form class="modal-form login-form" onsubmit={signIn}>
         <ArkPasswordInput label={tr('Admin password')} bind:value={passwordDraft} autocomplete="current-password" visibilityToggleLabel={tr('Toggle password visibility')} disabled={saving || sessionCheckStatus === 'checking'} required />
         {#if errorMessage}<div class="form-error" role="alert">{errorMessage}</div>{/if}
-        <button class="primary-button login-submit" disabled={saving || sessionCheckStatus === 'checking'}>{#if saving}<LoaderCircle size={15} class="spin" />{:else}<Check size={15} />{/if}{tr('Sign in')}</button>
+        <Button class="primary-button login-submit" disabled={saving || sessionCheckStatus === 'checking'}>{#if saving}<LoaderCircle size={15} class="spin" />{:else}<Check size={15} />{/if}{tr('Sign in')}</Button>
       </form>
     {/if}
     <a class="login-docs-link" href="/docs">{docsCopy(preferences.locale).shell.documentation} <span aria-hidden="true">→</span></a>

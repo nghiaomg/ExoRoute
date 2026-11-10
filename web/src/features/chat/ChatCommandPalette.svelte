@@ -1,6 +1,8 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onMount, tick } from 'svelte';
   import type { Translate } from '../../lib/format';
+  import Input from '../../components/Input.svelte';
   import { loadPrompts, type SavedPrompt } from './chat.state';
 
   export let tr: Translate;
@@ -104,12 +106,12 @@
     on:click|stopPropagation
     on:keydown={handleKeydown}
   >
-    <input
+    <Input
       class="palette-input"
       type="text"
       placeholder={tr('Search prompts and commands')}
       bind:value={query}
-      bind:this={inputElement}
+      bind:element={inputElement}
       maxlength={200}
     />
     {#if !entries.length}
@@ -118,22 +120,22 @@
       <ul class="palette-list" role="listbox">
         {#each entries as entry, index (entry.id)}
           <li>
-            <button
-              class="palette-entry"
-              class:active={index === activeIndex}
+            <Button
+              class="palette-entry" stateClasses={{ active: index === activeIndex }}
+
               type="button"
               role="option"
               aria-selected={index === activeIndex}
-              on:click={() => {
+              onclick={() => {
                 entry.run();
                 onClose();
               }}
-              on:mouseenter={() => (activeIndex = index)}
+              onmouseenter={() => (activeIndex = index)}
             >
               <span class="palette-entry-kind">{entry.kind === 'command' ? tr('Commands') : tr('Prompt library')}</span>
               <span class="palette-entry-label">{entry.label}</span>
               <span class="palette-entry-hint">{entry.hint}</span>
-            </button>
+            </Button>
           </li>
         {/each}
       </ul>
@@ -169,7 +171,7 @@
     overflow: hidden;
   }
 
-  .palette-input {
+  :global(.palette-input) {
     padding: 12px 14px;
     border: none;
     border-bottom: var(--nb-border);
@@ -194,7 +196,7 @@
     overflow-y: auto;
   }
 
-  .palette-entry {
+  :global(.palette-entry) {
     display: grid;
     grid-template-columns: auto auto 1fr;
     gap: 8px;
@@ -210,22 +212,22 @@
     cursor: pointer;
   }
 
-  .palette-entry.active {
+  :global(.palette-entry.active) {
     background: color-mix(in srgb, var(--accent) 14%, var(--surface));
   }
 
-  .palette-entry-kind {
+  :global(.palette-entry-kind) {
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--muted);
   }
 
-  .palette-entry-label {
+  :global(.palette-entry-label) {
     font-weight: var(--font-bold);
   }
 
-  .palette-entry-hint {
+  :global(.palette-entry-hint) {
     font-size: 10px;
     color: var(--muted);
     overflow: hidden;
@@ -243,8 +245,8 @@
   }
 
   :global(:root[data-theme='dark']) .palette { background: var(--surface-modal); color: var(--ink); }
-  :global(:root[data-theme='dark']) .palette-entry.active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
-  :global(:root[data-theme='dark']) .palette-input {
+  :global(:root[data-theme='dark'] .palette-entry.active) { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+  :global(:root[data-theme='dark'] .palette-input) {
     background: transparent;
     color: var(--ink);
   }

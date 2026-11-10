@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Dialog } from '@ark-ui/svelte/dialog';
   import { Portal } from '@ark-ui/svelte/portal';
   import { LoaderCircle, Trash2, X } from '@lucide/svelte';
@@ -41,9 +42,9 @@
           <Dialog.CloseTrigger class="secondary-button" disabled={busy}>
             {tr('Cancel')}
           </Dialog.CloseTrigger>
-          <button type="button" class="primary-button danger" disabled={busy} onclick={confirm}>
+          <Button type="button" class="primary-button danger" disabled={busy} onclick={confirm}>
             {#if busy}<LoaderCircle size={13} class="spin" />{tr('Deleting…')}{:else}<Trash2 size={13} />{tr('Delete all logs')}{/if}
-          </button>
+          </Button>
         </div>
       </Dialog.Content>
     </Dialog.Positioner>

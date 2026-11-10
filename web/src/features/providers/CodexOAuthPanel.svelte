@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Check, Command, Copy, ExternalLink, LoaderCircle, X } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
@@ -322,7 +323,7 @@ import { localizedError } from '../../lib/errors';
       <h3>{tr('{provider} account', { provider: providerName })}</h3>
     </div>
     <div class="codex-oauth-actions">
-      <button class="primary-button compact" disabled={state === 'pending'} onclick={connect}>
+      <Button class="primary-button compact" disabled={state === 'pending'} onclick={connect}>
         {#if state === 'pending'}
           <LoaderCircle size={13} class="spin" />
           {tr('Waiting for authorization…')}
@@ -330,11 +331,11 @@ import { localizedError } from '../../lib/errors';
           <Command size={14} />
           {tr('Connect account')}
         {/if}
-      </button>
+      </Button>
       {#if state === 'pending' && flowId}
-        <button type="button" class="secondary-button compact" onclick={openCallbackDialog}>
+        <Button type="button" class="secondary-button compact" onclick={openCallbackDialog}>
           {tr('Paste callback URL or authorization code')}
-        </button>
+        </Button>
         {#if authorizationUrl}
           <a class="codex-auth-link" href={authorizationUrl} target="_blank" rel="noopener noreferrer">
             <ExternalLink size={13} />
@@ -353,9 +354,9 @@ import { localizedError } from '../../lib/errors';
 
   {#if providerAdapterId === 'antigravity'}
     <div class="agy-cli-import">
-      <button type="button" class="secondary-button compact" aria-expanded={cliImportOpen} onclick={() => (cliImportOpen = !cliImportOpen)}>
+      <Button type="button" class="secondary-button compact" aria-expanded={cliImportOpen} onclick={() => (cliImportOpen = !cliImportOpen)}>
         {tr('Import Antigravity CLI login')}
-      </button>
+      </Button>
       {#if cliImportOpen}
         <p class="agy-cli-hint">{tr('Paste the agy token file JSON, or auto-detect a local CLI login on this machine.')}</p>
         <textarea
@@ -370,13 +371,13 @@ import { localizedError } from '../../lib/errors';
           placeholder={'{"token":{"access_token":"…","refresh_token":"…","expiry":"…"}}'}
         ></textarea>
         <div class="agy-cli-actions">
-          <button type="button" class="secondary-button compact" disabled={cliImportBusy || !cliImportContent.trim()} onclick={() => void importCliLogin(false)}>
+          <Button type="button" class="secondary-button compact" disabled={cliImportBusy || !cliImportContent.trim()} onclick={() => void importCliLogin(false)}>
             {#if cliImportBusy}<LoaderCircle size={13} class="spin" />{/if}
             {tr('Import CLI login')}
-          </button>
-          <button type="button" class="secondary-button compact" disabled={cliImportBusy} onclick={() => void importCliLogin(true)}>
+          </Button>
+          <Button type="button" class="secondary-button compact" disabled={cliImportBusy} onclick={() => void importCliLogin(true)}>
             {tr('Auto-detect local login')}
-          </button>
+          </Button>
         </div>
         {#if cliImportError}<div class="form-error" role="alert">{cliImportError}</div>{/if}
       {/if}
@@ -406,7 +407,7 @@ import { localizedError } from '../../lib/errors';
               <ExternalLink size={13} />
               <span>{tr('Open authorization page')}</span>
             </a>
-            <button
+            <Button
               type="button"
               class="secondary-button compact"
               onclick={copyAuthUrl}
@@ -418,7 +419,7 @@ import { localizedError } from '../../lib/errors';
                 <Copy size={13} />
                 <span>{tr('Copy URL')}</span>
               {/if}
-            </button>
+            </Button>
           </div>
         {:else}
           <div class="inline-loading">
@@ -452,15 +453,15 @@ import { localizedError } from '../../lib/errors';
     </div>
     {#if callbackError}<div class="form-error" role="alert">{callbackError}</div>{/if}
     <div class="modal-actions">
-      <button type="button" class="secondary-button" disabled={callbackSubmitting} onclick={closeCallbackDialog}>{tr('Cancel')}</button>
-      <button type="submit" class="primary-button" disabled={callbackSubmitting || !callbackInput.trim()}>
+      <Button type="button" class="secondary-button" disabled={callbackSubmitting} onclick={closeCallbackDialog}>{tr('Cancel')}</Button>
+      <Button type="submit" class="primary-button" disabled={callbackSubmitting || !callbackInput.trim()}>
         {#if callbackSubmitting}
           <LoaderCircle size={14} class="spin" />
           {tr('Completing sign-in…')}
         {:else}
           {tr('Complete sign-in')}
         {/if}
-      </button>
+      </Button>
     </div>
   </form>
 </ArkDialog>

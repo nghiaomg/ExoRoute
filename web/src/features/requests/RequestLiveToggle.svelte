@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Pause, Play } from '@lucide/svelte';
   import type { Translate } from '../../lib/format';
 
@@ -11,10 +12,10 @@
   $: idleSeconds = lastUpdatedMs <= 0 ? null : Math.max(0, Math.round((nowMs - lastUpdatedMs) / 1000));
 </script>
 
-<button
+<Button
   type="button"
-  class="request-live-toggle"
-  class:paused={!live}
+  class="request-live-toggle" stateClasses={{ paused: !live }}
+
   aria-pressed={live}
   onclick={onToggle}
 >
@@ -26,12 +27,12 @@
   <span class="request-live-icon" aria-hidden="true">
     {#if live}<Pause size={13} />{:else}<Play size={13} />{/if}
   </span>
-</button>
+</Button>
 
 <style>
   /* An ink-framed pill with a hard offset shadow, matching the theme's other
      small framed controls. */
-  .request-live-toggle {
+  :global(.request-live-toggle) {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -48,13 +49,13 @@
   }
 
   @media (hover: hover) {
-    .request-live-toggle:hover {
+    :global(.request-live-toggle:hover) {
       transform: translate(-1px, -1px);
       box-shadow: var(--nb-shadow-md);
     }
   }
 
-  .request-live-toggle.paused {
+  :global(.request-live-toggle.paused) {
     background: color-mix(in srgb, var(--accent) 10%, var(--surface));
     color: var(--accent-deep);
   }
@@ -68,7 +69,7 @@
     animation: request-live-pulse 1.8s ease-out infinite;
   }
 
-  .request-live-toggle.paused .request-live-dot {
+  :global(.request-live-toggle.paused) .request-live-dot {
     background: var(--accent);
     box-shadow: none;
     animation: none;
@@ -84,7 +85,7 @@
     font-weight: 500;
   }
 
-  .request-live-toggle.paused .request-live-age {
+  :global(.request-live-toggle.paused) .request-live-age {
     color: var(--accent-deep);
   }
 
@@ -111,7 +112,7 @@
     .request-live-dot {
       animation: none;
     }
-    .request-live-toggle {
+    :global(.request-live-toggle) {
       transition: none;
     }
   }

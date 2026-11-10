@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Check, Clipboard, Copy } from '@lucide/svelte';
   import { onDestroy } from 'svelte';
   import type { DocsCodeSample } from './docsCopy';
@@ -49,7 +50,7 @@
       <span>{sample.label}</span>
       <code>{sample.language}</code>
     </div>
-    <button class="docs-copy-button" type="button" onclick={copyCode} aria-label={copied ? copiedLabel : copyLabel}>
+    <Button class="docs-copy-button" type="button" onclick={copyCode} aria-label={copied ? copiedLabel : copyLabel}>
       {#if copied}
         <Check size={14} />{copiedLabel}
       {:else if copyFailed}
@@ -57,7 +58,7 @@
       {:else}
         <Copy size={14} />{copyLabel}
       {/if}
-    </button>
+    </Button>
   </div>
   <pre><code>{sample.code}</code></pre>
 </div>

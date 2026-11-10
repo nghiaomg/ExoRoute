@@ -1,6 +1,8 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { CircleHelp } from '@lucide/svelte';
   import { type Translate } from '../../lib/format';
+  import Input from '../../components/Input.svelte';
   import type { ConfigHelp } from './operational-settings.config';
 
   export let tr: Translate;
@@ -20,7 +22,7 @@
   <div class="field-title-row">
     <span>{title}</span>
     {#if help}
-      <button
+      <Button
         type="button"
         class="config-help-trigger"
         title={tr('Config guidance and error codes')}
@@ -32,11 +34,11 @@
         }}
       >
         <CircleHelp size={13.5} />
-      </button>
+      </Button>
     {/if}
   </div>
   <span class="resource-limit-input">
-    <input {id} type="number" {min} {max} step="1" bind:value {disabled} />
+    <Input {id} type="number" {min} {max} step="1" bind:value {disabled} />
     {#if unit}<small>{unit}</small>{/if}
   </span>
   {#if hint}<small>{hint}</small>{/if}

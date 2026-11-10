@@ -63,7 +63,7 @@
 
   /* The three segment colours are the row stripe accents, so the legend and
      the rows always agree. */
-  .request-outcome-segment.active {
+  .request-outcome-segment:global(.active) {
     background: var(--accent);
   }
 
@@ -102,7 +102,7 @@
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 6%, transparent);
   }
 
-  .request-outcome-entry.active .request-outcome-dot {
+  .request-outcome-entry:global(.active) .request-outcome-dot {
     background: var(--accent);
   }
 

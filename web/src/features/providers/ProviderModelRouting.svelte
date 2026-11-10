@@ -1,7 +1,8 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { LoaderCircle, RefreshCw, Save, X } from '@lucide/svelte';
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { labelProtocol } from '../../lib/labels';
@@ -182,13 +183,13 @@ import { localizedError } from '../../lib/errors';
         <h3>{tr('Model protocol routing')}</h3>
         <p>{tr('Set a default upstream protocol for each model. Combo target overrides take precedence.')}</p>
       </div>
-      <button class="secondary-button compact" disabled={state === 'loading' || Boolean(savingModel)} onclick={retry}>
+      <Button class="secondary-button compact" disabled={state === 'loading' || Boolean(savingModel)} onclick={retry}>
         {#if state === 'loading'}<LoaderCircle size={13} class="spin" />{tr('Loading routes…')}
         {:else}<RefreshCw size={13} />{tr('Refresh routes')}{/if}
-      </button>
+      </Button>
     </div>
 
-    {#if errorMessage}<div class="form-error" role="alert">{errorMessage}<button class="secondary-button compact" onclick={retry}>{tr('Retry loading routes')}</button></div>{/if}
+    {#if errorMessage}<div class="form-error" role="alert">{errorMessage}<Button class="secondary-button compact" onclick={retry}>{tr('Retry loading routes')}</Button></div>{/if}
     {#if statusMessage}<p class="model-routing-status" role="status">{statusMessage}</p>{/if}
     {#if rowError}<p class="model-routing-error" role="alert">{rowError}</p>{/if}
 
@@ -220,7 +221,7 @@ import { localizedError } from '../../lib/errors';
                   {/if}
                 </td>
                 <td>
-                  <ArkSelect
+                  <SelectOptions
                     value={draft}
                     items={selectorOptions}
                     label={tr('Protocol override for {model}', { model: entry.model })}
@@ -232,11 +233,11 @@ import { localizedError } from '../../lib/errors';
                   {/if}
                 </td>
                 <td class="model-routing-actions">
-                  <button class="secondary-button compact" disabled={!dirty || !validDraft || Boolean(savingModel)} onclick={() => saveOverride(entry, draft ? draft as UpstreamProtocol : null)}>
+                  <Button class="secondary-button compact" disabled={!dirty || !validDraft || Boolean(savingModel)} onclick={() => saveOverride(entry, draft ? draft as UpstreamProtocol : null)}>
                     {#if savingModel === entry.model}<LoaderCircle size={12} class="spin" />{:else}<Save size={12} />{/if}{tr('Save')}
-                  </button>
+                  </Button>
                   {#if entry.override_protocol}
-                    <button class="secondary-button compact" disabled={Boolean(savingModel)} title={tr('Clear override')} onclick={() => saveOverride(entry, null)}><X size={12} />{tr('Clear override')}</button>
+                    <Button class="secondary-button compact" disabled={Boolean(savingModel)} title={tr('Clear override')} onclick={() => saveOverride(entry, null)}><X size={12} />{tr('Clear override')}</Button>
                   {/if}
                 </td>
               </tr>
@@ -245,9 +246,9 @@ import { localizedError } from '../../lib/errors';
         </table>
       </div>
       <div class="model-routing-pagination">
-        <button class="secondary-button compact" disabled={Boolean(savingModel) || pageCursors.length <= 1} onclick={previousPage}>{tr('Previous')}</button>
+        <Button class="secondary-button compact" disabled={Boolean(savingModel) || pageCursors.length <= 1} onclick={previousPage}>{tr('Previous')}</Button>
         <span>{tr('Page {current}', { current: pageCursors.length })}</span>
-        <button class="secondary-button compact" disabled={Boolean(savingModel) || !nextCursor} onclick={nextPage}>{tr('Next')}</button>
+        <Button class="secondary-button compact" disabled={Boolean(savingModel) || !nextCursor} onclick={nextPage}>{tr('Next')}</Button>
       </div>
     {/if}
   </section>

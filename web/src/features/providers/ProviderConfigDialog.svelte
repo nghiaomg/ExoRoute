@@ -1,8 +1,10 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Check, LoaderCircle, Plus, X } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import ArkField from '../../components/ArkField.svelte';
-  import ArkCombobox from '../../components/ArkCombobox.svelte';
+  import SelectSearch from '../../components/SelectSearch.svelte';
+  import Input from '../../components/Input.svelte';
   import { api } from '../../lib/api';
   import { proxyApi } from '../../lib/api/proxies';
   import { type Translate } from '../../lib/format';
@@ -261,7 +263,7 @@
         <div>
           <label class="ark-field-root">
             <span class="ark-field-label">{tr('Egress proxy')}</span>
-            <ArkCombobox
+            <SelectSearch
               items={proxyOptions.map((option) => ({ label: option.name, value: option.id, keywords: option.id, hint: option.enabled ? undefined : tr('disabled') }))}
               value={proxyIdDraft ?? ''}
               disabled={saving || proxyLoadFailed}
@@ -273,7 +275,7 @@
             />
           </label>
           {#if proxyOptionsCursor && !proxyOptionsQuery}
-            <button class="secondary-button compact" type="button" disabled={proxyOptionsLoading} onclick={() => { void loadProxyOptions('', true); }}>{tr(proxyOptionsLoading ? 'Loading…' : 'Load more')}</button>
+            <Button class="secondary-button compact" type="button" disabled={proxyOptionsLoading} onclick={() => { void loadProxyOptions('', true); }}>{tr(proxyOptionsLoading ? 'Loading…' : 'Load more')}</Button>
           {/if}
           {#if provider.proxy_id && !proxyOptions.some((option) => option.id === provider?.proxy_id)}
             <p class="form-help">{tr('The current proxy is not in this result page; clear or search for it before changing the binding.')}</p>
@@ -299,7 +301,7 @@
           <div class="form-section-label">
             {tr('Custom headers')} <span>{tr('Sent to the provider with every request')}</span>
           </div>
-          <button
+          <Button
             type="button"
             class="secondary-button compact"
             disabled={saving}
@@ -307,13 +309,13 @@
           >
             <Plus size={13} />
             {tr('Add header')}
-          </button>
+          </Button>
         </div>
         {#if customHeaderDrafts.length}
           <div class="provider-custom-headers-scroll">
             {#each customHeaderDrafts as header, index (index)}
               <div class="provider-custom-header-row">
-                <input
+                <Input
                   value={header.name}
                   aria-label={tr('Header name')}
                   placeholder="x-test"
@@ -322,7 +324,7 @@
                   disabled={saving}
                   oninput={(event) => updateCustomHeader(index, 'name', event.currentTarget.value)}
                 />
-                <input
+                <Input
                   value={header.value}
                   aria-label={tr('Header value')}
                   placeholder={header.existing ? tr('Leave blank to keep the current value') : 'bla bla'}
@@ -330,7 +332,7 @@
                   disabled={saving}
                   oninput={(event) => updateCustomHeader(index, 'value', event.currentTarget.value)}
                 />
-                <button
+                <Button
                   type="button"
                   class="row-icon danger-hover"
                   disabled={saving}
@@ -339,7 +341,7 @@
                   onclick={() => removeCustomHeader(index)}
                 >
                   <X size={15} />
-                </button>
+                </Button>
               </div>
             {/each}
           </div>
@@ -358,15 +360,15 @@
       {/if}
 
       <div class="modal-actions" style="margin-top: 16px;">
-        <button
+        <Button
           type="button"
           class="secondary-button"
           disabled={saving}
           onclick={onClose}
         >
           {tr('Cancel')}
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           class="primary-button"
           disabled={saving}
@@ -377,7 +379,7 @@
             <Check size={14} />
           {/if}
           {tr('Save changes')}
-        </button>
+        </Button>
       </div>
     </form>
   {/if}

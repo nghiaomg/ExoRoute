@@ -1,6 +1,8 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onMount } from 'svelte';
   import { api } from '../../lib/api';
+  import Input from '../../components/Input.svelte';
   import type { DashboardPage } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
   import { formatUptime, formatGatewayEndpoint } from '../../lib/format';
@@ -125,10 +127,10 @@
     <p>{tr('Guides, troubleshooting, and system status for your ExoRoute gateway.')}</p>
   </div>
   <div class="heading-actions">
-    <button class="action-button" type="button" onclick={copyDiagnostics}>
+    <Button class="action-button" type="button" onclick={copyDiagnostics}>
       <span class="button-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
       <span class="button-label">{tr('Copy diagnostics')}</span>
-    </button>
+    </Button>
   </div>
 </div>
 
@@ -150,9 +152,9 @@
       <p>{tr('Point any OpenAI- or Anthropic-compatible client at this base URL, then send the matching protocol path.')}</p>
       <div class="help-endpoint-row">
         <code class="help-endpoint">{endpointUrl}</code>
-        <button class="mini-add" type="button" onclick={() => void copyText(endpointUrl, tr('Endpoint copied'))}>
+        <Button class="mini-add" type="button" onclick={() => void copyText(endpointUrl, tr('Endpoint copied'))}>
           <svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>{tr('Copy')}
-        </button>
+        </Button>
       </div>
       <div class="help-path-list">
         <span><code>POST /v1/chat/completions</code>{tr('Chat Completions')}</span>
@@ -202,16 +204,16 @@
         <h2 id="help-reference-heading">{tr('Troubleshooting')}</h2>
         <label class="help-search">
           <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
-          <input
+          <Input
             type="search"
             bind:value={query}
             placeholder={tr('Search topics and status codes…')}
             aria-label={tr('Search help topics')}
           />
           {#if query}
-            <button class="help-search-clear" type="button" aria-label={tr('Clear search')} onclick={() => (query = '')}>
+            <Button class="help-search-clear" type="button" aria-label={tr('Clear search')} onclick={() => (query = '')}>
               <svg class="icon" aria-hidden="true"><use href="#i-close" /></svg>
-            </button>
+            </Button>
           {/if}
         </label>
       </div>
@@ -226,7 +228,7 @@
           <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
           <strong>{tr('No topic matches that search.')}</strong>
           <span>{tr('Try a status code, a provider name, or a feature such as backup.')}</span>
-          <button class="page-action" type="button" onclick={() => (query = '')}>{tr('Clear search')}</button>
+          <Button class="page-action" type="button" onclick={() => (query = '')}>{tr('Clear search')}</Button>
         </div>
       {:else}
         {#if visibleTopics.length > 0}
@@ -239,9 +241,9 @@
                 <div class="faq-body">
                   <p>{topic.body}</p>
                   {#if target}
-                    <button class="details-link" type="button" onclick={() => onNavigate(target)}>
+                    <Button class="details-link" type="button" onclick={() => onNavigate(target)}>
                       {tr('Open {page}', { page: tr(targetLabel(target)) })} <svg class="icon"><use href="#i-arrow-right" /></svg>
-                    </button>
+                    </Button>
                   {/if}
                 </div>
               </details>
@@ -271,11 +273,11 @@
         <div class="card-title-row"><h2>{tr('Common tasks')}</h2></div>
         <div class="help-links">
           {#each guides as guide (guide.title)}
-            <button class="help-link" type="button" onclick={() => onNavigate(guide.page)}>
+            <Button class="help-link" type="button" onclick={() => onNavigate(guide.page)}>
               <span class="help-link-icon"><svg class="icon"><use href={`#${guide.icon}`} /></svg></span>
               <span><strong>{guide.title}</strong><small>{guide.hint}</small></span>
               <svg class="icon help-arrow"><use href="#i-arrow-right" /></svg>
-            </button>
+            </Button>
           {/each}
         </div>
       </section>
@@ -302,9 +304,9 @@
           <div><dt>{tr('Database')}</dt><dd>LMDB</dd></div>
           <div><dt>{tr('Dropped request logs')}</dt><dd>{overview ? overview.dropped_request_logs.toLocaleString() : '—'}</dd></div>
         </dl>
-        <button class="page-action" type="button" onclick={copyDiagnostics}>
+        <Button class="page-action" type="button" onclick={copyDiagnostics}>
           <svg class="icon" aria-hidden="true"><use href="#i-clipboard" /></svg>{tr('Copy diagnostics')}
-        </button>
+        </Button>
       </section>
     </div>
   </div>

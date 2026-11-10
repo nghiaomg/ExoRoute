@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Activity, CircleCheck, CircleX, Clock3, RefreshCw } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import { api } from '../../lib/api';
@@ -91,16 +92,16 @@
     <div class="usage-controls">
       <div class="range-switch" role="group" aria-label={tr('Statistics time range')}>
         {#each RANGES as candidate (candidate)}
-          <button
+          <Button
             type="button"
-            class:active={range === candidate}
+            stateClasses={{ active: range === candidate }}
             aria-pressed={range === candidate}
             disabled={loading}
             onclick={() => void load(candidate)}
-          >{tr(RANGE_KEYS[candidate])}</button>
+          >{tr(RANGE_KEYS[candidate])}</Button>
         {/each}
       </div>
-      <button
+      <Button
         class="usage-refresh"
         type="button"
         aria-label={tr('Refresh')}
@@ -108,7 +109,7 @@
         onclick={() => void load(range)}
       >
         {#if loading}<span class="auth-bootstrap-spinner"></span>{:else}<RefreshCw size={13} />{/if}
-      </button>
+      </Button>
     </div>
   </div>
 
@@ -117,7 +118,7 @@
   {:else if errorMessage && !statistics}
     <div class="usage-error" role="alert">
       <span>{errorMessage}</span>
-      <button class="usage-retry" type="button" onclick={() => void load(range)}>{tr('Retry')}</button>
+      <Button class="usage-retry" type="button" onclick={() => void load(range)}>{tr('Retry')}</Button>
     </div>
   {:else if statistics}
     {#if !statistics.complete}
@@ -194,7 +195,7 @@
     {#if errorMessage}
       <div class="usage-error" role="alert">
         <span>{errorMessage}</span>
-        <button class="usage-retry" type="button" onclick={() => void load(range)}>{tr('Retry')}</button>
+        <Button class="usage-retry" type="button" onclick={() => void load(range)}>{tr('Retry')}</Button>
       </div>
     {/if}
   {/if}
@@ -233,7 +234,7 @@
     border-radius: 9px;
     background: var(--surface-sunken);
   }
-  .range-switch button {
+  .range-switch :global(.shared-button) {
     padding: 5px 9px;
     color: var(--muted);
     border: 0;
@@ -243,18 +244,18 @@
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  .range-switch button:hover:not(:disabled):not(.active) {
+  .range-switch :global(.shared-button:hover:not(:disabled):not(.active)) {
     color: var(--ink);
   }
-  .range-switch button.active {
+  .range-switch :global(.shared-button.active) {
     color: var(--accent-contrast);
     background: var(--accent);
   }
-  .range-switch button:disabled {
+  .range-switch :global(.shared-button:disabled) {
     cursor: default;
     opacity: 0.6;
   }
-  .usage-refresh {
+  :global(.usage-refresh) {
     display: grid;
     width: 28px;
     height: 28px;
@@ -265,10 +266,10 @@
     background: var(--surface);
     cursor: pointer;
   }
-  .usage-refresh:hover:not(:disabled) {
+  :global(.usage-refresh:hover:not(:disabled)) {
     color: var(--accent-deep);
   }
-  .usage-refresh:disabled {
+  :global(.usage-refresh:disabled) {
     cursor: default;
     opacity: 0.6;
   }
@@ -411,7 +412,7 @@
     background: var(--db-accent-tint, rgba(237, 118, 94, 0.08));
     font-size: 12px;
   }
-  .usage-retry {
+  :global(.usage-retry) {
     margin-left: auto;
     padding: 4px 10px;
     color: inherit;

@@ -46,6 +46,7 @@ async fn model_test_preserves_sanitized_provider_error_body() {
             custom_headers: &BTreeMap::new(),
             protocol: Protocol::ChatCompletions,
             credentials: &credentials,
+            proxy_endpoints: &[],
         },
     )
     .await;
@@ -103,6 +104,7 @@ async fn zen_model_probe(base_url: &str, state: &AppState) -> AdapterModelTestOu
             custom_headers: &BTreeMap::new(),
             protocol: Protocol::ChatCompletions,
             credentials: &credentials,
+            proxy_endpoints: &[],
         },
     )
     .await

@@ -39,7 +39,7 @@ pub(crate) use request_encode::encode_openai_family_request;
 #[cfg(test)]
 pub(crate) use request_encode::{anthropic_content_block_is_empty, chat_content_part_is_empty};
 pub(crate) use request_metadata::{
-    apply_model_effort, effective_effort, split_model_effort_suffix, EffectiveEffort,
+    EffectiveEffort, apply_model_effort, effective_effort, split_model_effort_suffix,
 };
 pub use response_encode::encode_response;
 #[cfg(test)]

@@ -66,14 +66,22 @@ async fn effort_suffix_reaches_the_upstream_request() {
     // The history row records the effective attempt level, not just a client hint.
     let logs = database
         .db
-        .read(|transaction| transaction.scan_prefix::<crate::infra::storage::Record>(
-            crate::infra::storage::Table::RequestLogs,
-            "",
-            10,
-        ))
+        .read(|transaction| {
+            transaction.scan_prefix::<crate::infra::storage::Record>(
+                crate::infra::storage::Table::RequestLogs,
+                "",
+                10,
+            )
+        })
         .await
         .expect("read request logs");
-    assert_eq!(logs[0].1.optional_text("reasoning_effort").expect("effort field"), Some("high"));
+    assert_eq!(
+        logs[0]
+            .1
+            .optional_text("reasoning_effort")
+            .expect("effort field"),
+        Some("high")
+    );
 
     // A client-supplied reasoning option wins over the model-name suffix.
     let response = execute_with_server_retries(
@@ -96,14 +104,18 @@ async fn effort_suffix_reaches_the_upstream_request() {
     assert_eq!(observed[1]["reasoning_effort"], json!("low"));
     let logs = database
         .db
-        .read(|transaction| transaction.scan_prefix::<crate::infra::storage::Record>(
-            crate::infra::storage::Table::RequestLogs,
-            "",
-            10,
-        ))
+        .read(|transaction| {
+            transaction.scan_prefix::<crate::infra::storage::Record>(
+                crate::infra::storage::Table::RequestLogs,
+                "",
+                10,
+            )
+        })
         .await
         .expect("read request logs");
-    assert!(logs.iter().any(|(_, row)| row.optional_text("reasoning_effort").expect("effort field") == Some("low")));
+    assert!(logs.iter().any(
+        |(_, row)| row.optional_text("reasoning_effort").expect("effort field") == Some("low")
+    ));
 
     // An unrecognized suffix is not an effort hint and stays unroutable.
     let response = execute_with_server_retries(

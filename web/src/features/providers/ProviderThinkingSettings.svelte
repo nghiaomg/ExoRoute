@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import { type Translate } from '../../lib/format';
   import type { ProviderThinkingMode } from '../../lib/types';
 
@@ -19,7 +19,7 @@
 
 <div class="detail-form-section provider-thinking-settings">
   <div>
-    <ArkSelect
+    <SelectOptions
       label={tr('Thinking block handling')}
       items={thinkingOptions}
       value={mode}

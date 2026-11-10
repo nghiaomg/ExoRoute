@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Cpu, Download, LoaderCircle, RefreshCw, Save } from '@lucide/svelte';
   import { Field } from '@ark-ui/svelte/field';
@@ -209,10 +210,10 @@ import { localizedError } from '../../lib/errors';
 <section class="provider-model-section">
   <div class="provider-model-section-heading">
     <div><h3>{tr('Saved models')}</h3><p>{tr('Manage saved models for this provider. Import a list, add a model ID manually, or test models below.')}</p></div>
-    <button class="primary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}>
+    <Button class="primary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}>
       {#if importFeedback?.state === 'loading'}<LoaderCircle size={13} class="spin" />{tr('Importing models…')}
       {:else}<Download size={13} />{tr('Import models')}{/if}
-    </button>
+    </Button>
   </div>
 
   <form class="provider-manual-model-form" onsubmit={saveManualModel}>
@@ -226,10 +227,10 @@ import { localizedError } from '../../lib/errors';
           placeholder={tr(provider.adapter_id === 'antigravity' ? 'e.g. ag/model-id' : 'e.g. provider/model-id')}
           aria-label={tr('Model ID')}
         />
-        <button type="submit" class="secondary-button compact" disabled={savingManualModel || deletingModel !== ''}>
+        <Button type="submit" class="secondary-button compact" disabled={savingManualModel || deletingModel !== ''}>
           {#if savingManualModel}<LoaderCircle size={13} class="spin" />{:else}<Save size={13} />{/if}
           <span>{tr('Save model')}</span>
-        </button>
+        </Button>
       </div>
       <Field.HelperText class="provider-manual-model-help">{tr('Add a model ID manually when provider discovery is unavailable.')}</Field.HelperText>
     </Field.Root>
@@ -241,9 +242,9 @@ import { localizedError } from '../../lib/errors';
   {#if catalogState === 'loading'}
     <div class="inline-loading"><LoaderCircle size={16} class="spin" /><span>{tr('Loading saved models…')}</span></div>
   {:else if catalogState === 'error'}
-    <div class="provider-model-empty" role="alert"><p>{catalogError}</p><button class="secondary-button compact" onclick={loadCatalog}><RefreshCw size={13} />{tr('Retry loading models')}</button></div>
+    <div class="provider-model-empty" role="alert"><p>{catalogError}</p><Button class="secondary-button compact" onclick={loadCatalog}><RefreshCw size={13} />{tr('Retry loading models')}</Button></div>
   {:else if catalogState === 'empty'}
-    <div class="provider-model-empty"><Cpu size={19} /><p>{tr('No saved models for this provider. Import a list or add a model ID manually.')}</p><button class="secondary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}><Download size={13} />{tr('Import models')}</button></div>
+    <div class="provider-model-empty"><Cpu size={19} /><p>{tr('No saved models for this provider. Import a list or add a model ID manually.')}</p><Button class="secondary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}><Download size={13} />{tr('Import models')}</Button></div>
   {:else if catalogState === 'ready'}
     <ProviderModelTests provider={provider} models={modelTargets} {manualModels} {tr} onDeleteModel={deleteModel} />
   {/if}

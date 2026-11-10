@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import ShieldInfo from './ShieldInfo.svelte';
   import type { Translate } from '../../lib/format';
 
@@ -20,10 +21,10 @@
   </p>
   <div class="chat-hero-suggestions">
     {#each suggestions as suggestion (suggestion.title)}
-      <button class="chat-suggestion" type="button" onclick={() => onApplySuggestion(suggestion.body)}>
+      <Button class="chat-suggestion" type="button" onclick={() => onApplySuggestion(suggestion.body)}>
         <span class="chat-suggestion-title">{suggestion.title}</span>
         <span class="chat-suggestion-body">{suggestion.body}</span>
-      </button>
+      </Button>
     {/each}
   </div>
 </div>
@@ -66,7 +67,7 @@
     margin-top: 10px;
   }
 
-  .chat-suggestion {
+  :global(.chat-suggestion) {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -80,17 +81,17 @@
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
 
-  .chat-suggestion:hover {
+  :global(.chat-suggestion:hover) {
     transform: translate(-1px, -1px);
     box-shadow: var(--nb-shadow-lg);
   }
 
-  .chat-suggestion:active {
+  :global(.chat-suggestion:active) {
     transform: translate(2px, 2px);
     box-shadow: var(--nb-shadow-sm);
   }
 
-  .chat-suggestion-title {
+  :global(.chat-suggestion-title) {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -99,7 +100,7 @@
     color: var(--ink);
   }
 
-  .chat-suggestion-body {
+  :global(.chat-suggestion-body) {
     font-size: 11px;
     color: var(--muted);
     overflow: hidden;

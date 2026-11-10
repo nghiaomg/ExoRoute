@@ -2,6 +2,7 @@
   import { PasswordInput } from '@ark-ui/svelte/password-input';
   import { Eye, EyeOff } from '@lucide/svelte';
   import type { HTMLInputAttributes } from 'svelte/elements';
+  import Input from './Input.svelte';
 
   interface Props {
     label?: string;
@@ -39,14 +40,18 @@
     <PasswordInput.Label class="ark-password-label">{label}</PasswordInput.Label>
   {/if}
   <PasswordInput.Control class="ark-password-control">
-    <PasswordInput.Input
+    <Input
       bind:value
       class="ark-password-input"
+      variant="password"
+      type="password"
       {placeholder}
       {name}
       {autocomplete}
       {minlength}
       {maxlength}
+      {required}
+      {disabled}
       aria-label={ariaLabel || label}
     />
     <PasswordInput.VisibilityTrigger class="ark-password-trigger" type="button" aria-label={visibilityToggleLabel}>

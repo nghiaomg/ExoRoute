@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import type { Translate } from '../../lib/format';
 
   /** Inline feedback under the composer: a session notice, a failed turn, or
@@ -14,7 +15,7 @@
   <div class="chat-notice model" role="alert">
     <span>{message}</span>
     {#if onRetry}
-      <button class="model-retry" type="button" onclick={onRetry}>{tr('Retry')}</button>
+      <Button class="model-retry" type="button" onclick={onRetry}>{tr('Retry')}</Button>
     {/if}
   </div>
 {:else}
@@ -54,7 +55,7 @@
     font-weight: var(--font-semibold);
   }
 
-  .model-retry {
+  :global(.model-retry) {
     flex: 0 0 auto;
     padding: 4px 12px;
     border: var(--nb-border);
@@ -68,12 +69,12 @@
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
 
-  .model-retry:hover {
+  :global(.model-retry:hover) {
     transform: translate(-1px, -1px);
     box-shadow: var(--nb-shadow-md);
   }
 
-  .model-retry:active {
+  :global(.model-retry:active) {
     transform: translate(1px, 1px);
     box-shadow: var(--nb-shadow-sm);
   }

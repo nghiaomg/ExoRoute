@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { RefreshCw, ShieldCheck, Zap } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import { type Translate } from '../../lib/format';
@@ -103,9 +104,9 @@ Last-Event-ID: &lt;last_event_id&gt;</pre>
     </div>
 
     <div class="modal-actions">
-      <button type="button" class="primary-button" onclick={onClose}>
+      <Button type="button" class="primary-button" onclick={onClose}>
         {tr('Understood')}
-      </button>
+      </Button>
     </div>
   </div>
 </ArkDialog>

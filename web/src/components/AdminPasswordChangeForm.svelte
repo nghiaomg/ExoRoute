@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "./Button.svelte";
   import { Check, LoaderCircle } from '@lucide/svelte';
   import ArkPasswordInput from './ArkPasswordInput.svelte';
   import { api, type AdminAccessResult } from '../lib/api';
@@ -48,7 +49,7 @@ import { localizedError } from '../lib/errors';
   <ArkPasswordInput label={tr('Confirm new password')} bind:value={confirmPassword} autocomplete="new-password" minlength={12} maxlength={128} visibilityToggleLabel={tr('Toggle password visibility')} required />
   {#if errorMessage}<div class="form-error" role="alert">{errorMessage}</div>{/if}
   <div class="modal-actions">
-    {#if !forced}<button type="button" class="secondary-button" onclick={onCancel}>{tr('Cancel')}</button>{/if}
-    <button class="primary-button" disabled={saving}>{#if saving}<LoaderCircle size={15} class="spin" />{:else}<Check size={15} />{/if}{tr(forced ? 'Set new password' : 'Save password')}</button>
+    {#if !forced}<Button type="button" class="secondary-button" onclick={onCancel}>{tr('Cancel')}</Button>{/if}
+    <Button class="primary-button" disabled={saving}>{#if saving}<LoaderCircle size={15} class="spin" />{:else}<Check size={15} />{/if}{tr(forced ? 'Set new password' : 'Save password')}</Button>
   </div>
 </form>

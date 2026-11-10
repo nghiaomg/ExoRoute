@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Copy, Moon, Sun, Terminal } from '@lucide/svelte';
   import type { Locale } from '../../lib/i18n';
   import { t } from '../../lib/i18n';
@@ -77,7 +78,7 @@
     </div>
     <div class="heading-actions docs-route-actions">
       <LanguageSelect locale={preferences.locale} tr={(key) => t(locale, key)} onLocaleChange={preferences.setLocale} />
-      <button
+      <Button
         class="icon-button"
         type="button"
         aria-label={preferences.scheme === 'light' ? copy.shell.themeDark : copy.shell.themeLight}
@@ -86,15 +87,15 @@
         onclick={preferences.toggleTheme}
       >
         {#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}
-      </button>
-      <button class="action-button" type="button" onclick={copyBaseUrl}>
+      </Button>
+      <Button class="action-button" type="button" onclick={copyBaseUrl}>
         <span class="button-icon"><Copy size={15} /></span>
         <span class="button-label">{t(locale, 'Copy base URL')}</span>
-      </button>
-      <button class="action-button primary" type="button" onclick={() => navigateFromShell('chat')}>
+      </Button>
+      <Button class="action-button primary" type="button" onclick={() => navigateFromShell('chat')}>
         <span class="button-icon"><Terminal size={15} /></span>
         <span class="button-label">{t(locale, 'Try in Chat')}</span>
-      </button>
+      </Button>
     </div>
   </div>
 
@@ -110,10 +111,10 @@
       </nav>
       <div class="docs-side-foot">
         <span class="status complete">{copy.shell.localFirst}</span>
-        <button class="mini-add" type="button" onclick={onExitDocs}>
+        <Button class="mini-add" type="button" onclick={onExitDocs}>
           <span>{onSignOut ? copy.shell.backToDashboard : copy.shell.signIn}</span>
           <svg class="icon"><use href="#i-arrow-right" /></svg>
-        </button>
+        </Button>
       </div>
     </aside>
 

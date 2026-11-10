@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { AlertTriangle, LoaderCircle, KeyRound, RefreshCw } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import { api } from '../../lib/api';
@@ -159,7 +160,7 @@ import { localizedError } from '../../lib/errors';
         ? 'Each request starts at the next enabled key, then falls back to the following keys.'
         : 'Keys are tried in this order. The first enabled key serves requests and the following keys are fallbacks.')}</p>
     </div>
-    <button class="secondary-button compact" disabled={loading} onclick={load}><RefreshCw size={13} />{tr('Refresh keys')}</button>
+    <Button class="secondary-button compact" disabled={loading} onclick={load}><RefreshCw size={13} />{tr('Refresh keys')}</Button>
   </div>
 
   {#if isFreebuff}
@@ -170,7 +171,7 @@ import { localizedError } from '../../lib/errors';
   {/if}
 
   {#if errorMessage}
-    <div class="provider-model-empty" role="alert"><p>{errorMessage}</p><button class="secondary-button compact" onclick={load}><RefreshCw size={13} />{tr('Retry')}</button></div>
+    <div class="provider-model-empty" role="alert"><p>{errorMessage}</p><Button class="secondary-button compact" onclick={load}><RefreshCw size={13} />{tr('Retry')}</Button></div>
   {:else if loading}
     <div class="provider-keys-loading"><LoaderCircle size={15} class="spin" />{tr('Loading provider keys…')}</div>
   {:else if keys.length}
@@ -194,9 +195,9 @@ import { localizedError } from '../../lib/errors';
 
   {#if pageCursors.length > 1 || nextCursor}
     <div class="provider-key-pagination">
-      <button class="secondary-button compact" disabled={loading || pageCursors.length <= 1} onclick={previousPage}>{tr('Previous keys')}</button>
+      <Button class="secondary-button compact" disabled={loading || pageCursors.length <= 1} onclick={previousPage}>{tr('Previous keys')}</Button>
       <span>{tr('Page {current}', { current: pageCursors.length })}</span>
-      <button class="secondary-button compact" disabled={loading || !nextCursor} onclick={nextPage}>{tr('Next keys')}</button>
+      <Button class="secondary-button compact" disabled={loading || !nextCursor} onclick={nextPage}>{tr('Next keys')}</Button>
     </div>
   {/if}
 </section>
@@ -214,17 +215,17 @@ import { localizedError } from '../../lib/errors';
       {tr('Remove provider key “{name}”?', { name: keyToRemove?.name ?? '' })}
     </p>
     <div class="modal-actions" style="margin-top: 16px;">
-      <button type="button" class="secondary-button" disabled={Boolean(deletingId)} onclick={() => { keyToRemove = null; }}>
+      <Button type="button" class="secondary-button" disabled={Boolean(deletingId)} onclick={() => { keyToRemove = null; }}>
         {tr('Cancel')}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         class="primary-button danger"
         disabled={Boolean(deletingId)}
         onclick={confirmRemove}
       >
         {#if deletingId}<LoaderCircle size={14} class="spin" />{tr('Removing…')}{:else}{tr('Remove key')}{/if}
-      </button>
+      </Button>
     </div>
   </div>
 </ArkDialog>

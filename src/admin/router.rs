@@ -180,6 +180,10 @@ fn proxy_routes() -> Router<AppState> {
             "/api/v1/admin/proxies/{id}",
             put(proxies::update_proxy).delete(proxies::delete_proxy),
         )
+        .route(
+            "/api/v1/admin/proxies/{id}/check",
+            post(proxies::check_proxy),
+        )
 }
 
 fn workspace_routes() -> Router<AppState> {

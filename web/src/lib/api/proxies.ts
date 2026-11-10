@@ -1,9 +1,12 @@
 import type { Collection, ProxyEndpoint, ProxyProviderOption, GatewayProxy, ProxyTrafficStatsResponse } from '../types';
+import type { ProxyCheckResponse } from '../types/proxies';
 import { collection, request } from './core';
 
 export const proxyApi = {
   proxies: async () => collection(await request<Collection<GatewayProxy> | Record<string, unknown>>('/proxies'), 'proxies'),
   trafficStats: () => request<ProxyTrafficStatsResponse>('/proxies/stats'),
+  checkProxy: (id: string) =>
+    request<ProxyCheckResponse>(`/proxies/${encodeURIComponent(id)}/check`, { method: 'POST' }),
   proxyOptions: async (options: { q?: string; cursor?: string; includeId?: string } = {}) => {
     const query = new URLSearchParams();
     if (options.q) query.set('q', options.q);

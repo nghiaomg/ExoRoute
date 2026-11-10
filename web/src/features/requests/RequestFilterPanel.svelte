@@ -1,9 +1,10 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { Download, LoaderCircle, Search, SlidersHorizontal, X } from '@lucide/svelte';
-  import ArkCombobox from '../../components/ArkCombobox.svelte';
+  import SelectSearch from '../../components/SelectSearch.svelte';
   import ArkField from '../../components/ArkField.svelte';
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import type { Translate } from '../../lib/format';
   import type { RequestLogFilters } from '../../lib/types';
   import { appliedRequestFilters, sameRequestFilters, type RequestFilterKey } from './request.metrics';
@@ -130,7 +131,7 @@
 
 <form class="request-filter-panel" onsubmit={submit}>
   <div class="request-filter-grid">
-    <ArkCombobox
+    <SelectSearch
       label={tr('API key ID')}
       items={apiKeyItems}
       value={apiKey}
@@ -140,7 +141,7 @@
       onSearch={searchApiKeys}
       onValueChange={(next) => (apiKey = next)}
     />
-    <ArkCombobox
+    <SelectSearch
       label={tr('Provider ID')}
       items={providerItems}
       value={providerId}
@@ -156,7 +157,7 @@
       placeholder={tr('Exact model name')}
       disabled={loading}
     />
-    <ArkSelect
+    <SelectOptions
       label={tr('Outcome')}
       bind:value={status}
       disabled={loading}
@@ -168,16 +169,16 @@
     />
     {#if showActions}
       <div class="request-filter-actions">
-        <button class="primary-button compact" type="submit" disabled={loading || !dirty}>
+        <Button class="primary-button compact" type="submit" disabled={loading || !dirty}>
           <Search size={14} />{tr('Apply filters')}
-        </button>
-        <button class="secondary-button compact" type="button" disabled={loading} onclick={onClearFilters}>
+        </Button>
+        <Button class="secondary-button compact" type="button" disabled={loading} onclick={onClearFilters}>
           {tr('Clear')}
-        </button>
+        </Button>
       </div>
     {/if}
     <div class="request-filter-actions">
-      <button
+      <Button
         class="secondary-button compact"
         type="button"
         disabled={loading || exporting}
@@ -188,7 +189,7 @@
         {:else}
           <Download size={13} />{tr('Export CSV')}
         {/if}
-      </button>
+      </Button>
     </div>
   </div>
 
@@ -199,7 +200,7 @@
         <span class="request-filter-chip">
           <span class="request-filter-chip-label">{filter.label}</span>
           <span class="request-filter-chip-value" title={filter.title ?? filter.value}>{filter.value}</span>
-          <button
+          <Button
             type="button"
             class="request-filter-chip-remove"
             aria-label={tr('Remove {name}', { name: filter.label })}
@@ -208,7 +209,7 @@
             onclick={() => onRemoveFilter(filter.key)}
           >
             <X size={12} />
-          </button>
+          </Button>
         </span>
       {/each}
     </div>
@@ -245,7 +246,7 @@
     gap: 8px;
   }
 
-  .request-filter-actions button {
+  .request-filter-actions :global(.shared-button) {
     height: 38px;
   }
 
@@ -296,7 +297,7 @@
     white-space: nowrap;
   }
 
-  .request-filter-chip-remove {
+  :global(.request-filter-chip-remove) {
     display: grid;
     place-items: center;
     width: 18px;
@@ -310,11 +311,11 @@
     transition: background 0.12s ease;
   }
 
-  .request-filter-chip-remove:hover:not(:disabled) {
+  :global(.request-filter-chip-remove:hover:not(:disabled)) {
     background: color-mix(in srgb, var(--accent) 30%, var(--surface-raised));
   }
 
-  .request-filter-chip-remove:disabled {
+  :global(.request-filter-chip-remove:disabled) {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -345,7 +346,7 @@
     .request-filter-actions {
       gap: 8px;
     }
-    .request-filter-actions button {
+    .request-filter-actions :global(.shared-button) {
       flex: 1;
       height: 42px;
       justify-content: center;

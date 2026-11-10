@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import {
     CircleHelp,
@@ -12,7 +13,8 @@
   } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import Input from '../../components/Input.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import ContinuityGuideDialog from './ContinuityGuideDialog.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
@@ -247,7 +249,7 @@ import { localizedError } from '../../lib/errors';
   {:else if errorMessage && limits === null}
     <div class="resource-limits-state resource-limits-error" role="alert">
       <span>{errorMessage}</span>
-      <button class="secondary-button compact" type="button" onclick={load}>{tr('Retry')}</button>
+      <Button class="secondary-button compact" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   {:else if limits}
     <div class="resource-limits-content">
@@ -256,7 +258,7 @@ import { localizedError } from '../../lib/errors';
       {#if errorMessage}
         <div class="resource-limits-error" role="alert">
           <span>{errorMessage}</span>
-          {#if reloadConflict}<button class="secondary-button compact" type="button" onclick={load}>{tr('Reload latest settings')}</button>{/if}
+          {#if reloadConflict}<Button class="secondary-button compact" type="button" onclick={load}>{tr('Reload latest settings')}</Button>{/if}
         </div>
       {/if}
       {#if successMessage}<div class="resource-limits-success" role="status">{successMessage}</div>{/if}
@@ -286,11 +288,11 @@ import { localizedError } from '../../lib/errors';
         <div class="resource-limits-grid">
           <label class="resource-limit-field" for="gateway-body-limit">
             <span>{tr('Gateway request body')}</span>
-            <span class="resource-limit-input"><input id="gateway-body-limit" type="number" min="1" max="16" step="1" bind:value={draft.gateway_body_limit_mib} disabled={busy !== ''} /><small>MiB</small></span>
+            <span class="resource-limit-input"><Input id="gateway-body-limit" type="number" min="1" max="16" step="1" bind:value={draft.gateway_body_limit_mib} disabled={busy !== ''} /><small>MiB</small></span>
             <small>{tr('Maximum accepted request body size (1–16 MiB).')}</small>
           </label>
           <div class="resource-limit-field">
-            <ArkSelect
+            <SelectOptions
               label={tr('Concurrent bodies being processed')}
               items={bodyProcessingItems}
               value={`${draft.gateway_body_processing_concurrency}`}
@@ -304,22 +306,22 @@ import { localizedError } from '../../lib/errors';
           </div>
           <label class="resource-limit-field" for="sse-frame-limit">
             <span>{tr('SSE frame size')}</span>
-            <span class="resource-limit-input"><input id="sse-frame-limit" type="number" min="0" step="1" bind:value={draft.sse_frame_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
+            <span class="resource-limit-input"><Input id="sse-frame-limit" type="number" min="0" step="1" bind:value={draft.sse_frame_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
             <small>{tr('Maximum size of one streamed event (64 KiB–1 MiB).')}</small>
           </label>
           <label class="resource-limit-field" for="sse-buffer-limit">
             <span>{tr('SSE buffer size')}</span>
-            <span class="resource-limit-input"><input id="sse-buffer-limit" type="number" min="0" step="1" bind:value={draft.sse_buffer_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
+            <span class="resource-limit-input"><Input id="sse-buffer-limit" type="number" min="0" step="1" bind:value={draft.sse_buffer_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
             <small>{tr('Maximum buffered stream data (at least the frame size, up to 2 MiB).')}</small>
           </label>
           <label class="resource-limit-field" for="provider-concurrency-limit">
             <span>{tr('Concurrent requests per provider')}</span>
-            <span class="resource-limit-input"><input id="provider-concurrency-limit" type="number" min="0" max="32" step="1" bind:value={draft.provider_max_concurrency} disabled={busy !== ''} /><small>{tr('requests')}</small></span>
+            <span class="resource-limit-input"><Input id="provider-concurrency-limit" type="number" min="0" max="32" step="1" bind:value={draft.provider_max_concurrency} disabled={busy !== ''} /><small>{tr('requests')}</small></span>
             <small>{tr('Set to 0 for unlimited; finite values allow 1–32 concurrent requests per provider.')}</small>
           </label>
           <label class="resource-limit-field" for="stream-continuity-concurrency-limit">
             <span>{tr('Concurrent continuity tasks')}</span>
-            <span class="resource-limit-input"><input id="stream-continuity-concurrency-limit" type="number" min="1" max="64" step="1" bind:value={draft.stream_continuity_max_concurrency} disabled={busy !== ''} /><small>{tr('tasks')}</small></span>
+            <span class="resource-limit-input"><Input id="stream-continuity-concurrency-limit" type="number" min="1" max="64" step="1" bind:value={draft.stream_continuity_max_concurrency} disabled={busy !== ''} /><small>{tr('tasks')}</small></span>
             <small>{tr('Choose 1–64 concurrent continuity tasks. This limit is always finite; 0 is not unlimited.')}</small>
           </label>
           <div class="resource-limit-field resource-continuity-field">
@@ -327,7 +329,7 @@ import { localizedError } from '../../lib/errors';
               <span class="resource-continuity-label-text">
                 {tr('Stream continuity')}
               </span>
-              <button
+              <Button
                 type="button"
                 class="continuity-help-trigger"
                 title={tr('Learn more about stream continuity')}
@@ -339,7 +341,7 @@ import { localizedError } from '../../lib/errors';
                 }}
               >
                 <CircleHelp size={14} />
-              </button>
+              </Button>
             </div>
             <div class="resource-continuity-control">
               <ArkCheckbox
@@ -356,9 +358,9 @@ import { localizedError } from '../../lib/errors';
         </div>
 
         <div class="resource-limits-actions">
-          <button class="primary-button" type="submit" disabled={busy !== '' || !draftIsValid || !hasChanges}>
+          <Button class="primary-button" type="submit" disabled={busy !== '' || !draftIsValid || !hasChanges}>
             {#if busy === 'saving'}<LoaderCircle size={14} class="spin" />{tr('Saving…')}{:else}<Save size={14} />{tr('Save settings')}{/if}
-          </button>
+          </Button>
            {#if !draftIsValid}<span class="resource-limits-validation">{tr('Set 0 for unlimited, or ensure the finite buffer is at least the finite frame size.')}</span>{/if}
         </div>
       </form>
@@ -377,8 +379,8 @@ import { localizedError } from '../../lib/errors';
     <div class="resource-limits-notice" role="alert">{tr('Unlimited processing removes the separate body and SSE frame concurrency cap. Body and stream-size limits and the overall gateway/provider limits still apply, but high traffic can increase CPU and memory use enough to exhaust this device.')}</div>
     <p class="modal-description">{tr('Apply unlimited body and SSE processing now?')}</p>
     <div class="modal-actions">
-      <button type="button" class="secondary-button" onclick={cancelUnlimitedWarnings}>{tr('Cancel')}</button>
-      <button type="button" class="primary-button" onclick={confirmUnlimitedProcessing}>{tr('Apply unlimited processing')}</button>
+      <Button type="button" class="secondary-button" onclick={cancelUnlimitedWarnings}>{tr('Cancel')}</Button>
+      <Button type="button" class="primary-button" onclick={confirmUnlimitedProcessing}>{tr('Apply unlimited processing')}</Button>
     </div>
   </div>
 </ArkDialog>
@@ -394,8 +396,8 @@ import { localizedError } from '../../lib/errors';
     <div class="resource-limits-notice" role="alert">{tr('Unlimited per-provider concurrency removes the per-provider request cap. A single provider can consume all available gateway capacity and exhaust RAM, CPU, or file descriptors. Overall gateway concurrency, API-key rate limits, body and SSE limits, timeouts, and circuit breakers still apply.')}</div>
     <p class="modal-description">{tr('Apply unlimited concurrency for each provider now?')}</p>
     <div class="modal-actions">
-      <button type="button" class="secondary-button" onclick={cancelUnlimitedWarnings}>{tr('Cancel')}</button>
-      <button type="button" class="primary-button" onclick={confirmUnlimitedProviderConcurrency}>{tr('Apply unlimited provider concurrency')}</button>
+      <Button type="button" class="secondary-button" onclick={cancelUnlimitedWarnings}>{tr('Cancel')}</Button>
+      <Button type="button" class="primary-button" onclick={confirmUnlimitedProviderConcurrency}>{tr('Apply unlimited provider concurrency')}</Button>
     </div>
   </div>
 </ArkDialog>

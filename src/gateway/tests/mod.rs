@@ -24,6 +24,7 @@ mod model_effort;
 mod nested_combo;
 mod protocol_selection;
 mod provider_decode;
+mod proxy_egress;
 mod request_logging;
 mod retry;
 mod routing;

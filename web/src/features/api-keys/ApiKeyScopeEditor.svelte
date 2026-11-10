@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { LoaderCircle, Save, ShieldAlert } from '@lucide/svelte';
   import { api } from '../../lib/api';
@@ -115,9 +116,9 @@
   {#if saveError}<div class="form-error" role="alert">{saveError}</div>{/if}
 
   <div class="scope-actions">
-    <button type="button" class="primary-button compact" disabled={saving} onclick={save}>
+    <Button type="button" class="primary-button compact" disabled={saving} onclick={save}>
       {#if saving}<LoaderCircle size={14} class="spin" />{tr('Saving…')}{:else}<Save size={14} />{tr('Save access scope')}{/if}
-    </button>
+    </Button>
   </div>
 
   <Toast {toast} {tr} onDismiss={dismissToast} />

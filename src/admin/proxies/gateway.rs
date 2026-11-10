@@ -41,14 +41,13 @@ pub(crate) fn load_proxy_endpoint_configs(
     }
     let mut path = HashSet::new();
     let mut scanned = 0_usize;
-    let endpoints = expand_proxy(
-        transaction,
-        proxy_id,
-        0,
-        &mut path,
-        &mut scanned,
-    )?;
-    Ok(ProxyEndpointGroup { proxy_id: proxy_id.to_owned(), strategy, enabled: proxy.boolean("enabled")?, endpoints })
+    let endpoints = expand_proxy(transaction, proxy_id, 0, &mut path, &mut scanned)?;
+    Ok(ProxyEndpointGroup {
+        proxy_id: proxy_id.to_owned(),
+        strategy,
+        enabled: proxy.boolean("enabled")?,
+        endpoints,
+    })
 }
 
 fn expand_proxy(

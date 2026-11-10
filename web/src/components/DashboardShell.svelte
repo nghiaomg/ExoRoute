@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "./Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import {
     Activity, AlertTriangle, ArrowUpCircle, BookOpen, Boxes, Ellipsis, Gauge, KeyRound, Layers3, LogOut, Menu, MessageSquare, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, Sun, X,
@@ -141,7 +142,7 @@
         <span class="brand-word">exo<span>route</span></span>
         <span class="brand-version">{DASHBOARD_VERSION}</span>
       </a>
-      <button
+      <Button
         type="button"
         class="icon-button sidebar-toggle"
         aria-label={tr(collapsed ? 'Expand sidebar' : 'Collapse sidebar')}
@@ -149,7 +150,7 @@
         onclick={onToggleCollapse}
       >
         {#if collapsed}<PanelLeftOpen size={16} />{:else}<PanelLeftClose size={16} />{/if}
-      </button>
+      </Button>
     </div>
 
     <div class="workspace-label">{tr('WORKSPACE')}</div>
@@ -171,9 +172,9 @@
     <div class="sidebar-status">
       <span class="status-light" class:online={gateway.state === 'loaded'} class:offline={gateway.state === 'error'}></span>
       <div><strong>{tr(gateway.state === 'error' ? 'Gateway unavailable' : 'Gateway connection')}</strong><small>{tr(gateway.state === 'error' ? 'Check API connection' : 'Local instance')}</small></div>
-      <button class="icon-button refresh-button" aria-label={tr('Refresh current page')} onclick={onRefresh}><RefreshCw size={15} /></button>
+      <Button class="icon-button refresh-button" aria-label={tr('Refresh current page')} onclick={onRefresh}><RefreshCw size={15} /></Button>
     </div>
-    <div class="sidebar-footer"><span class="avatar">ER</span><span class="profile-copy"><strong>{tr('ExoRoute Admin')}</strong><small>{tr('Local workspace')}</small></span><button class="icon-button sign-out-button" aria-label={tr('Sign out')} title={tr('Sign out')} disabled={signingOut} onclick={signOut}>{#if signingOut}<span class="auth-bootstrap-spinner"></span>{:else}<LogOut size={15} />{/if}</button></div>
+    <div class="sidebar-footer"><span class="avatar">ER</span><span class="profile-copy"><strong>{tr('ExoRoute Admin')}</strong><small>{tr('Local workspace')}</small></span><Button class="icon-button sign-out-button" aria-label={tr('Sign out')} title={tr('Sign out')} disabled={signingOut} onclick={signOut}>{#if signingOut}<span class="auth-bootstrap-spinner"></span>{:else}<LogOut size={15} />{/if}</Button></div>
     {#if signOutError}<p class="sidebar-sign-out-error" role="alert">{signOutError}</p>{/if}
   </aside>
 
@@ -190,10 +191,10 @@
         <div class="topbar-actions">
           <div class="preference-controls" aria-label={tr('Language and appearance')}>
             <LanguageSelect locale={preferences.locale} {tr} onLocaleChange={preferences.setLocale} />
-            <button class="preference-button theme-button" aria-label={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.scheme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</button>
+            <Button class="preference-button theme-button" aria-label={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} title={tr(preferences.scheme === 'light' ? 'Switch to dark mode' : 'Switch to light mode')} aria-pressed={preferences.scheme === 'dark'} onclick={preferences.toggleTheme}>{#if preferences.scheme === 'light'}<Moon size={15} />{:else}<Sun size={15} />{/if}</Button>
           </div>
           <div class="gateway-pill"><span class="status-light" class:online={gateway.state === 'loaded'} class:offline={gateway.state === 'error'}></span><span>{tr(gateway.state === 'error' ? 'Disconnected' : 'Gateway')}</span><code>{gateway.address}</code></div>
-          <button class="icon-button mobile-menu-btn" aria-label={tr('Main navigation')} onclick={() => mobileMoreOpen = true}><Menu size={18} /></button>
+          <Button class="icon-button mobile-menu-btn" aria-label={tr('Main navigation')} onclick={() => mobileMoreOpen = true}><Menu size={18} /></Button>
         </div>
       </div>
     </header>
@@ -210,7 +211,7 @@
           <span>{tr('ExoRoute {latest} is available. You are running {current}.', { latest: updateNotice.latest, current: DASHBOARD_VERSION })}</span>
         </p>
         <a class="update-notice-link" href={updateNotice.url} target="_blank" rel="noopener noreferrer">{tr('View release')}</a>
-        <button type="button" class="icon-button update-notice-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissUpdateNotice}>×</button>
+        <Button type="button" class="icon-button update-notice-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissUpdateNotice}>×</Button>
       </div>
     {/if}
 
@@ -234,7 +235,7 @@
             onNavigate('requests');
           }}
         >{tr('Requests')}</a>
-        <button type="button" class="icon-button update-notice-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissFailureNotice}>×</button>
+        <Button type="button" class="icon-button update-notice-dismiss" aria-label={tr('Dismiss notification')} onclick={dismissFailureNotice}>×</Button>
       </div>
     {/if}
 
@@ -247,10 +248,10 @@
   <nav class="mobile-bottom-nav" aria-label={tr('Main navigation')}>
     {#each mobileNavItems as item}
       {#if item.id === 'more'}
-        <button
+        <Button
           type="button"
-          class="mobile-nav-item"
-          class:active={isMoreActive}
+          class="mobile-nav-item" stateClasses={{ active: isMoreActive }}
+
           aria-expanded={mobileMoreOpen}
           aria-label={tr('More')}
           onclick={() => mobileMoreOpen = !mobileMoreOpen}
@@ -260,7 +261,7 @@
             {#if isMoreActive}<span class="mobile-nav-dot"></span>{/if}
           </div>
           <span>{tr('More')}</span>
-        </button>
+        </Button>
       {:else}
         <a
           class="mobile-nav-item"
@@ -298,14 +299,14 @@
           <span class="brand-mark"><FlyingFishLogo size={20} variant="mark" /></span>
           <strong>{tr('Workspace')}</strong>
         </div>
-        <button
+        <Button
           type="button"
           class="icon-button mobile-sheet-close"
           aria-label={tr('Close menu')}
           onclick={() => mobileMoreOpen = false}
         >
           <X size={18} />
-        </button>
+        </Button>
       </div>
 
       <div class="mobile-sheet-content">
@@ -335,9 +336,9 @@
             <strong>{tr(gateway.state === 'error' ? 'Gateway unavailable' : 'Gateway connection')}</strong>
             <small>{gateway.address}</small>
           </div>
-          <button class="icon-button refresh-button" aria-label={tr('Refresh current page')} onclick={() => { mobileMoreOpen = false; onRefresh(); }}>
+          <Button class="icon-button refresh-button" aria-label={tr('Refresh current page')} onclick={() => { mobileMoreOpen = false; onRefresh(); }}>
             <RefreshCw size={15} />
-          </button>
+          </Button>
         </div>
 
         <div class="mobile-sheet-footer">
@@ -346,9 +347,9 @@
             <strong>{tr('ExoRoute Admin')}</strong>
             <small>{tr('Local workspace')}</small>
           </div>
-          <button class="icon-button sign-out-button" aria-label={tr('Sign out')} title={tr('Sign out')} disabled={signingOut} onclick={signOut}>
+          <Button class="icon-button sign-out-button" aria-label={tr('Sign out')} title={tr('Sign out')} disabled={signingOut} onclick={signOut}>
             {#if signingOut}<span class="auth-bootstrap-spinner"></span>{:else}<LogOut size={15} />{/if}
-          </button>
+          </Button>
         </div>
         {#if signOutError}<p class="sidebar-sign-out-error" role="alert">{signOutError}</p>{/if}
       </div>

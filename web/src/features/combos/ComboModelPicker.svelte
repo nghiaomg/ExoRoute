@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { afterUpdate, onDestroy } from 'svelte';
   import { Check, ChevronsUpDown, LoaderCircle } from '@lucide/svelte';
   import { Portal } from '@ark-ui/svelte/portal';
@@ -245,8 +246,8 @@ import { localizedError } from '../../lib/errors';
     <div class="target-catalog-status" aria-live="polite">
       {#if state === 'loading'}<LoaderCircle size={13} class="spin" /><span>{tr('Loading saved models…')}</span>
       {:else if state === 'empty' && searchQuery}<span>{tr('No matching saved models.')}</span>
-      {:else if state === 'empty'}<span>{tr('No saved models for this provider. Import its model list first.')}</span><button type="button" class="catalog-action" onclick={onOpenProviders}>{tr('Open providers')}</button>
-      {:else if state === 'error'}<span class="catalog-error-text">{error}</span><button type="button" class="catalog-action" onclick={retry}>{tr('Retry loading models')}</button>
+      {:else if state === 'empty'}<span>{tr('No saved models for this provider. Import its model list first.')}</span><Button type="button" class="catalog-action" onclick={onOpenProviders}>{tr('Open providers')}</Button>
+      {:else if state === 'error'}<span class="catalog-error-text">{error}</span><Button type="button" class="catalog-action" onclick={retry}>{tr('Retry loading models')}</Button>
       {/if}
     </div>
   {/if}

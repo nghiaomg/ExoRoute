@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { Check, ChevronLeft, ChevronRight } from '@lucide/svelte';
   import EmptyState from '../../components/EmptyState.svelte';
@@ -491,8 +492,8 @@
 <div class="request-pager">
   <span class="request-pager-info">{tr('Page {current}', { current: previousCursors.length + 1 })}</span>
   <div class="request-pager-controls">
-    <button class="secondary-button compact" disabled={!previousCursors.length || loading} onclick={previousPage}><ChevronLeft size={14} />{tr('Previous')}</button>
-    <button class="secondary-button compact" disabled={!nextCursor || loading} onclick={nextPage}>{tr('Next')}<ChevronRight size={14} /></button>
+    <Button class="secondary-button compact" disabled={!previousCursors.length || loading} onclick={previousPage}><ChevronLeft size={14} />{tr('Previous')}</Button>
+    <Button class="secondary-button compact" disabled={!nextCursor || loading} onclick={nextPage}>{tr('Next')}<ChevronRight size={14} /></Button>
   </div>
 </div>
 
@@ -557,7 +558,7 @@
       padding: 14px 2px;
       font-size: 12px;
     }
-    .request-pager-controls button {
+    .request-pager-controls :global(.shared-button) {
       height: 38px;
       min-height: 38px;
       padding: 0 14px;
@@ -569,7 +570,7 @@
 
   /* ─── Ultra-compact Displays (320px - 360px) ─── */
   @media (max-width: 360px) {
-    .request-pager-controls button {
+    .request-pager-controls :global(.shared-button) {
       padding: 0 10px;
       font-size: 12px;
     }

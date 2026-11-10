@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "./Button.svelte";
   import { Portal } from '@ark-ui/svelte/portal';
   import { Check, X } from '@lucide/svelte';
   import { type Translate } from '../lib/format';
@@ -28,9 +29,9 @@
         <strong>{toast.title}</strong>
         {#if toast.message}<small>{toast.message}</small>{/if}
       </div>
-      <button class="app-toast-dismiss" aria-label={tr('Dismiss notification')} onclick={onDismiss}>
+      <Button class="app-toast-dismiss" aria-label={tr('Dismiss notification')} onclick={onDismiss}>
         <X size={14} />
-      </button>
+      </Button>
     </div>
   </Portal>
 {/if}

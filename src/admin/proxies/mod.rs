@@ -13,6 +13,7 @@ type ProxyApiResult<T> = Result<T, (StatusCode, Json<Value>)>;
 
 mod backup;
 mod bulk;
+mod check;
 mod gateway;
 mod references;
 mod storage;
@@ -20,6 +21,7 @@ mod validation;
 
 pub(crate) use backup::{validate_backup_proxy_entries, validate_proxy_candidate_and_ancestors};
 use bulk::BulkProxyValidationStore;
+pub(crate) use check::check_proxy;
 pub(crate) use gateway::{ProxyEndpointConfig, ProxyEndpointGroup, load_proxy_endpoint_configs};
 use references::{
     PendingProxy, ProxyReferences, ensure_reference_graph, referencing_proxy_names,
@@ -120,6 +122,15 @@ pub(super) struct ProxyInput {
     pub endpoints: Vec<ProxyEndpointInput>,
 }
 
+/// Outcome counts of the last process-local live-check, exposed on
+/// `ProxyView.last_check` so the existing list endpoint drives the chips.
+#[derive(Debug, Serialize)]
+pub(super) struct ProxyLastCheck {
+    checked_at: u64,
+    live_count: usize,
+    die_count: usize,
+}
+
 #[derive(Debug, Serialize)]
 pub(super) struct ProxyView {
     id: String,
@@ -132,6 +143,9 @@ pub(super) struct ProxyView {
     /// Providers currently bound to this proxy, so the editor can warn before a
     /// delete is blocked.
     provider_count: usize,
+    /// `None` until a live-check has run in this process; a restart or a
+    /// proxy update/delete clears it.
+    last_check: Option<ProxyLastCheck>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -147,11 +161,25 @@ pub(super) struct ProxyOptionsQuery {
 }
 
 pub(super) async fn list_proxies(State(state): State<AppState>) -> ApiResult {
-    let proxies = state
+    let mut proxies = state
         .db
         .read(|transaction| read_all_proxies(transaction))
         .await
         .map_err(internal)?;
+    let ids = proxies
+        .iter()
+        .map(|proxy| proxy.id.clone())
+        .collect::<Vec<_>>();
+    let checks = state.proxy_check_snapshot(&ids).await;
+    for proxy in &mut proxies {
+        if let Some(summary) = checks.get(&proxy.id) {
+            proxy.last_check = Some(ProxyLastCheck {
+                checked_at: summary.checked_at,
+                live_count: summary.live_count,
+                die_count: summary.die_count,
+            });
+        }
+    }
     Ok(Json(json!({ "proxies": proxies })))
 }
 
@@ -198,7 +226,9 @@ pub(super) async fn proxy_traffic_stats(State(state): State<AppState>) -> ApiRes
             })
         })
         .collect::<Vec<_>>();
-    Ok(Json(json!({"proxies": data, "scope": "since_startup", "truncated": truncated})))
+    Ok(Json(
+        json!({"proxies": data, "scope": "since_startup", "truncated": truncated}),
+    ))
 }
 
 pub(super) async fn list_proxy_options(
@@ -497,6 +527,7 @@ pub(super) async fn update_proxy(
     let proxy = proxy_record(&input).map_err(internal)?;
     let name_index = proxy_name_index_key(&input.name, &id).map_err(internal)?;
     let endpoints = proxy_endpoint_records(&input).map_err(internal)?;
+    let cleared_id = id.clone();
     let found = state
         .db
         .write(move |transaction| {
@@ -519,6 +550,8 @@ pub(super) async fn update_proxy(
     if !found {
         return Err(fail(StatusCode::NOT_FOUND, "proxy not found"));
     }
+    // Edited endpoints invalidate the process-local live-check result.
+    state.clear_proxy_check_state(&cleared_id).await;
     Ok(Json(json!({ "ok": true })))
 }
 
@@ -667,6 +700,7 @@ fn read_all_proxies(
             updated_at: record.text("updated_at")?.to_owned(),
             endpoints,
             provider_count,
+            last_check: None,
         });
     }
     Ok(proxies)

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "./components/Button.svelte";
   import { onMount } from 'svelte';
   import DashboardShell from './components/DashboardShell.svelte';
   import DashboardAppShell from './components/dashboard/DashboardAppShell.svelte';
@@ -443,7 +444,7 @@
     {#if providerOAuthNotice}
       <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
         <span>{providerOAuthNotice}</span>
-        <button type="button" class="icon-button" aria-label={tr('Dismiss notification')} onclick={() => providerOAuthNotice = ''}>×</button>
+        <Button type="button" class="icon-button" aria-label={tr('Dismiss notification')} onclick={() => providerOAuthNotice = ''}>×</Button>
       </div>
     {/if}
     {#if activeFeature && activeFeaturePage === currentPage && activeFeatureRefreshKey === refreshKey}
@@ -473,8 +474,8 @@
         <div class="card-title-row"><h2>{tr('Could not load this page.')}</h2></div>
         <p class="card-subtitle">{tr('Check the server, then try again.')}</p>
         <div class="modal-actions" style="padding-top:14px">
-          <button class="page-action primary" type="button" onclick={refreshCurrentPage}>{tr('Retry')}</button>
-          <button class="page-action" type="button" onclick={reloadDashboard}>{tr('Reload page')}</button>
+          <Button class="page-action primary" type="button" onclick={refreshCurrentPage}>{tr('Retry')}</Button>
+          <Button class="page-action" type="button" onclick={reloadDashboard}>{tr('Reload page')}</Button>
         </div>
       </section>
     {:else}
@@ -488,7 +489,7 @@
     {#if providerOAuthNotice}
       <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
         <span>{providerOAuthNotice}</span>
-        <button type="button" class="icon-button" aria-label={tr('Dismiss notification')} onclick={() => providerOAuthNotice = ''}>×</button>
+        <Button type="button" class="icon-button" aria-label={tr('Dismiss notification')} onclick={() => providerOAuthNotice = ''}>×</Button>
       </div>
     {/if}
     {#if activeFeature && activeFeaturePage === currentPage && activeFeatureRefreshKey === refreshKey}
@@ -514,8 +515,8 @@
           <section class="session-check-card">
             <h1>{tr('Could not load this page.')}</h1>
             <p>{tr('Check the server, then try again.')}</p>
-            <button class="primary-button" type="button" onclick={refreshCurrentPage}>{tr('Retry')}</button>
-            <button class="secondary-button" type="button" onclick={reloadDashboard}>{tr('Reload page')}</button>
+            <Button class="primary-button" type="button" onclick={refreshCurrentPage}>{tr('Retry')}</Button>
+            <Button class="secondary-button" type="button" onclick={reloadDashboard}>{tr('Reload page')}</Button>
           </section>
         </main>
       {:else}

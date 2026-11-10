@@ -61,20 +61,10 @@
   background: var(--db-accent-tint);
   color: var(--accent-strong);
 }
-.dashboard-app.dashboard-page-combos .combo-meter {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-}
-.dashboard-app.dashboard-page-combos .combo-meter .progress-track { height: 7px; }
-.dashboard-app.dashboard-page-combos .combo-meter-label {
+.dashboard-app.dashboard-page-combos .combo-target-more {
+  background: transparent;
+  border: 1px dashed var(--line);
   color: var(--muted);
-  font-size: var(--type-caption);
-  font-weight: var(--weight-semibold);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 .dashboard-app.dashboard-page-combos .combo-foot {
   display: flex;
@@ -84,12 +74,6 @@
   margin-top: 12px;
   padding-top: 11px;
   border-top: 1px solid var(--line);
-}
-.dashboard-app.dashboard-page-combos .combo-foot-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
 }
 .dashboard-app.dashboard-page-combos .combo-meta {
   display: inline-flex;
@@ -118,17 +102,24 @@
 .dashboard-app.dashboard-page-combos .target-rows { display: grid; gap: 8px; }
 .dashboard-app.dashboard-page-combos .target-row {
   display: grid;
-  grid-template-columns: minmax(140px, 0.8fr) minmax(180px, 1fr) auto auto 32px;
+  grid-template-columns: minmax(110px, 0.5fr) minmax(140px, 0.7fr) minmax(180px, 1fr) auto 32px;
   gap: 8px;
   align-items: center;
   min-width: 0;
 }
-.dashboard-app.dashboard-page-combos .target-row > .ark-select-root.target-provider { min-width: 0; }
-.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-trigger { min-height: 36px; padding: 0 32px 0 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: none; }
-.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-trigger:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
-.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-indicators { right: 8px; }
+/* Combo mode hides the provider and model fields; the row keeps type + nested combo only. */
+.dashboard-app.dashboard-page-combos .target-row.is-combo-mode { grid-template-columns: minmax(110px, 0.5fr) minmax(240px, 1fr) auto 32px; }
+.dashboard-app.dashboard-page-combos .target-row > .ark-select-root.target-provider,
+  .dashboard-app.dashboard-page-combos .target-row > .ark-select-root.target-kind { min-width: 0; }
+.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-trigger,
+  .dashboard-app.dashboard-page-combos .target-row .target-kind .ark-select-trigger { min-height: 36px; padding: 0 32px 0 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: none; }
+.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-trigger:focus-visible,
+  .dashboard-app.dashboard-page-combos .target-row .target-kind .ark-select-trigger:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-indicators,
+  .dashboard-app.dashboard-page-combos .target-row .target-kind .ark-select-indicators { right: 8px; }
 .dashboard-app.dashboard-page-combos .target-row .ark-select-positioner { z-index: 100000 !important; }
 .dashboard-app.dashboard-page-combos .target-provider,
+  .dashboard-app.dashboard-page-combos .target-kind,
   .dashboard-app.dashboard-page-combos .target-model {
   min-height: 36px;
   padding: 0 10px;
@@ -139,9 +130,13 @@
   font-size: var(--type-body);
 }
 .dashboard-app.dashboard-page-combos .target-provider,
-  .dashboard-app.dashboard-page-combos .target-row .target-model-field { min-width: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
-.dashboard-app.dashboard-page-combos .target-model-field .combo-combobox-input { width: 100%; height: 36px; min-height: 36px; }
-.dashboard-app.dashboard-page-combos .target-model-field .combo-combobox-input:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+  .dashboard-app.dashboard-page-combos .target-kind,
+  .dashboard-app.dashboard-page-combos .target-row .target-model-field,
+  .dashboard-app.dashboard-page-combos .target-row .target-combo-field { min-width: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.dashboard-app.dashboard-page-combos .target-model-field .combo-combobox-input,
+  .dashboard-app.dashboard-page-combos .target-combo-field .combo-combobox-input { width: 100%; height: 36px; min-height: 36px; }
+.dashboard-app.dashboard-page-combos .target-model-field .combo-combobox-input:focus-visible,
+  .dashboard-app.dashboard-page-combos .target-combo-field .combo-combobox-input:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .dashboard-app.dashboard-page-combos .target-provider:focus,
   .dashboard-app.dashboard-page-combos .target-model:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .dashboard-app.dashboard-page-combos .combo-fields { grid-template-columns: 1fr 1fr; }
@@ -155,6 +150,6 @@
   .dashboard-app.dashboard-page-combos .combo-list { grid-template-columns: 1fr; }
   .dashboard-app.dashboard-page-combos .combo-fields { grid-template-columns: 1fr; }
   .dashboard-app.dashboard-page-combos .target-rows { overflow-x: auto; }
-  .dashboard-app.dashboard-page-combos .target-row { min-width: 560px; }
+  .dashboard-app.dashboard-page-combos .target-row { min-width: 640px; }
 }
 

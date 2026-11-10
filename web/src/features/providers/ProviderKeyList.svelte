@@ -1,5 +1,7 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { ArrowDown, ArrowUp, Check, KeyRound, Pencil, Power, PowerOff, Trash2, X } from '@lucide/svelte';
+  import Input from '../../components/Input.svelte';
   import { type Locale } from '../../lib/i18n';
   import { formatDate, type Translate } from '../../lib/format';
   import type { ProviderKey } from '../../lib/types';
@@ -67,9 +69,9 @@
               commitRename(key);
             }}
           >
-            <input bind:value={renameDraft} maxlength={256} aria-label={tr('Key name')} />
-            <button type="submit" class="row-icon" aria-label={tr('Save key name')} title={tr('Save key name')}><Check size={14} /></button>
-            <button type="button" class="row-icon" aria-label={tr('Cancel')} title={tr('Cancel')} onclick={() => (renamingId = '')}><X size={14} /></button>
+            <Input bind:value={renameDraft} maxlength={256} aria-label={tr('Key name')} />
+            <Button type="submit" class="row-icon" aria-label={tr('Save key name')} title={tr('Save key name')}><Check size={14} /></Button>
+            <Button type="button" class="row-icon" aria-label={tr('Cancel')} title={tr('Cancel')} onclick={() => (renamingId = '')}><X size={14} /></Button>
           </form>
         {:else}
           <div>
@@ -85,18 +87,18 @@
           {tr(key.invalid ? 'Invalid' : key.credential_type === 'oauth' ? key.enabled ? 'Connected' : 'Disabled' : isDeferredClineApiKeyTest(key) ? 'Not tested' : key.last_test_passed === false ? 'Test failed' : key.enabled ? 'Ready' : 'Disabled')}
         </span>
         {#if onMove}
-          <button class="row-icon" aria-label={tr('Move “{name}” up in the fallback order', { name: key.name })} title={tr('Move up')} disabled={busyId === key.id || !canMove(index, -1)} onclick={() => onMove(key, -1)}><ArrowUp size={14} /></button>
-          <button class="row-icon" aria-label={tr('Move “{name}” down in the fallback order', { name: key.name })} title={tr('Move down')} disabled={busyId === key.id || !canMove(index, 1)} onclick={() => onMove(key, 1)}><ArrowDown size={14} /></button>
+          <Button class="row-icon" aria-label={tr('Move “{name}” up in the fallback order', { name: key.name })} title={tr('Move up')} disabled={busyId === key.id || !canMove(index, -1)} onclick={() => onMove(key, -1)}><ArrowUp size={14} /></Button>
+          <Button class="row-icon" aria-label={tr('Move “{name}” down in the fallback order', { name: key.name })} title={tr('Move down')} disabled={busyId === key.id || !canMove(index, 1)} onclick={() => onMove(key, 1)}><ArrowDown size={14} /></Button>
         {/if}
         {#if onToggle}
-          <button class="row-icon" aria-label={tr(key.enabled ? 'Disable key “{name}”' : 'Enable key “{name}”', { name: key.name })} title={tr(key.enabled ? 'Disable' : 'Enable')} disabled={busyId === key.id} onclick={() => onToggle(key, !key.enabled)}>
+          <Button class="row-icon" aria-label={tr(key.enabled ? 'Disable key “{name}”' : 'Enable key “{name}”', { name: key.name })} title={tr(key.enabled ? 'Disable' : 'Enable')} disabled={busyId === key.id} onclick={() => onToggle(key, !key.enabled)}>
             {#if key.enabled}<PowerOff size={14} />{:else}<Power size={14} />{/if}
-          </button>
+          </Button>
         {/if}
         {#if onRename}
-          <button class="row-icon" aria-label={tr('Rename key “{name}”', { name: key.name })} title={tr('Rename')} disabled={busyId === key.id} onclick={() => startRename(key)}><Pencil size={14} /></button>
+          <Button class="row-icon" aria-label={tr('Rename key “{name}”', { name: key.name })} title={tr('Rename')} disabled={busyId === key.id} onclick={() => startRename(key)}><Pencil size={14} /></Button>
         {/if}
-        <button class="row-icon danger-hover" aria-label={tr('Remove provider key “{name}”', { name: key.name })} title={tr('Remove provider key “{name}”', { name: key.name })} disabled={deletingId === key.id || busyId === key.id} onclick={() => onRemove(key)}><Trash2 size={14} /></button>
+        <Button class="row-icon danger-hover" aria-label={tr('Remove provider key “{name}”', { name: key.name })} title={tr('Remove provider key “{name}”', { name: key.name })} disabled={deletingId === key.id || busyId === key.id} onclick={() => onRemove(key)}><Trash2 size={14} /></Button>
       </div>
     </article>
   {/each}

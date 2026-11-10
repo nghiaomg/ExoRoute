@@ -21,7 +21,7 @@ use super::*;
 use crate::gateway::{provider_failure_message, sanitize_provider_error_body};
 use crate::protocol::UpstreamProtocol;
 use crate::provider_adapters::{
-    MAX_WORKSPACE_CHAT_RESPONSE_BYTES, is_event_stream_content_type, read_limited_response,
+    MAX_WORKSPACE_CHAT_RESPONSE_BYTES, accepts_event_stream_response, read_limited_response,
     upstream_transport_error_message,
 };
 use axum::response::sse::{Event, KeepAlive, Sse};
@@ -53,6 +53,18 @@ const STREAM_CHANNEL_CAPACITY: usize = 32;
 /// Broadcast interval for dashboard keep-alive comments while the turn runs.
 const STREAM_KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(15);
 
+/// The streaming gate mirrors the gateway's `respond` path: the strict
+/// `text/event-stream` content-type check only applies when the adapter does
+/// not opt out — Codex answers with SSE framing but no content type behind
+/// some transports, and the dashboard chat must not fail where the gateway
+/// succeeds.
+pub(super) fn response_supports_streaming(response: &reqwest::Response, adapter_id: &str) -> bool {
+    accepts_event_stream_response(
+        response,
+        crate::provider_adapters::adapter_allows_missing_event_stream_content_type(adapter_id),
+    )
+}
+
 /// Streams one dashboard chat turn as canonical SSE events:
 /// `text-delta`, `reasoning-delta`, `done`, and `error`. Validation, target
 /// preparation, and credential resolution are identical to the one-shot relay,
@@ -82,10 +94,11 @@ pub(crate) async fn stream_workspace_chat(
             auth_type: &turn.auth_type,
             auth_header: turn.auth_header.as_deref(),
             custom_headers: &turn.custom_headers,
-            protocol: turn.client_protocol,
+            upstream_protocol: turn.upstream_protocol,
             secret: auth.secret,
             oauth_auth: auth.oauth_auth,
             body: turn.upstream_body,
+            proxy_endpoints: &turn.proxy_endpoints,
         },
     )
     .await
@@ -120,7 +133,7 @@ pub(crate) async fn stream_workspace_chat(
         };
         return Err(fail(StatusCode::BAD_GATEWAY, message));
     }
-    if !is_event_stream_content_type(&response) {
+    if !response_supports_streaming(&response, &turn.adapter_id) {
         // A provider that answers a streaming request with a plain JSON body
         // reports either a configuration problem or its own failure. Keep the
         // bounded, sanitized diagnostic so the dashboard shows why instead of

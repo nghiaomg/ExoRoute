@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import {
     Columns2,
@@ -503,33 +504,33 @@
   <header class="chat-topbar">
     <div class="chat-topbar-leading">
       {#if conversation.length}
-        <button class="chat-icon-action" type="button" onclick={handleClear} disabled={sending} title={tr('Clear conversation')}>
+        <Button class="chat-icon-action" type="button" onclick={handleClear} disabled={sending} title={tr('Clear conversation')}>
           <Trash2 size={14} />
-        </button>
+        </Button>
       {/if}
       {#if conversation.length}
-        <button class="chat-icon-action" type="button" onclick={exportMarkdown} disabled={sending} title={tr('Export conversation as Markdown')}>
+        <Button class="chat-icon-action" type="button" onclick={exportMarkdown} disabled={sending} title={tr('Export conversation as Markdown')}>
           <FileDown size={14} />
-        </button>
-        <button class="chat-icon-action" type="button" onclick={exportJson} disabled={sending} title={tr('Export conversation as JSON')}>
+        </Button>
+        <Button class="chat-icon-action" type="button" onclick={exportJson} disabled={sending} title={tr('Export conversation as JSON')}>
           <Braces size={14} />
-        </button>
-        <button class="chat-icon-action" type="button" onclick={printConversation} title={tr('Print conversation')}>
+        </Button>
+        <Button class="chat-icon-action" type="button" onclick={printConversation} title={tr('Print conversation')}>
           <Printer size={14} />
-        </button>
-        <button class="chat-icon-action" type="button" onclick={copyConversation} title={tr('Copy conversation')}>
+        </Button>
+        <Button class="chat-icon-action" type="button" onclick={copyConversation} title={tr('Copy conversation')}>
           <SquareStack size={14} />
-        </button>
+        </Button>
       {/if}
-      <button class="chat-icon-action" type="button" onclick={() => (libraryOpen = !libraryOpen)} title={tr('Prompt library')}>
+      <Button class="chat-icon-action" type="button" onclick={() => (libraryOpen = !libraryOpen)} title={tr('Prompt library')}>
         <Library size={14} />
-      </button>
-      <button class="chat-icon-action" type="button" onclick={openCompare} title={tr('Compare models')}>
+      </Button>
+      <Button class="chat-icon-action" type="button" onclick={openCompare} title={tr('Compare models')}>
         <Columns2 size={14} />
-      </button>
-      <button class="chat-icon-action" type="button" onclick={() => (paletteOpen = true)} title={tr('Type / for commands')}>
+      </Button>
+      <Button class="chat-icon-action" type="button" onclick={() => (paletteOpen = true)} title={tr('Type / for commands')}>
         <Command size={14} />
-      </button>
+      </Button>
     </div>
     <div class="chat-topbar-trailing">
       {#if modelsTruncated}
@@ -552,7 +553,7 @@
   {#if editingIndex !== null}
     <div class="chat-editing-bar" role="status">
       {tr('Edit and resend')} —
-      <button class="chat-editing-cancel" type="button" onclick={cancelEdit}>{tr('Cancel')}</button>
+      <Button class="chat-editing-cancel" type="button" onclick={cancelEdit}>{tr('Cancel')}</Button>
     </div>
   {/if}
   <div class="chat-workspace-body">
@@ -670,7 +671,7 @@
     gap: 4px;
   }
 
-  .chat-icon-action {
+  :global(.chat-icon-action) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -686,17 +687,17 @@
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
 
-  .chat-icon-action:hover:not(:disabled) {
+  :global(.chat-icon-action:hover:not(:disabled)) {
     transform: translate(-1px, -1px);
     box-shadow: var(--nb-shadow-md);
   }
 
-  .chat-icon-action:active:not(:disabled) {
+  :global(.chat-icon-action:active:not(:disabled)) {
     transform: translate(1px, 1px);
     box-shadow: var(--nb-shadow-sm);
   }
 
-  .chat-icon-action:disabled {
+  :global(.chat-icon-action:disabled) {
     opacity: 0.45;
     cursor: not-allowed;
     box-shadow: none;
@@ -715,7 +716,7 @@
     font-weight: var(--font-semibold);
   }
 
-  .chat-editing-cancel {
+  :global(.chat-editing-cancel) {
     padding: 2px 8px;
     border: var(--nb-border);
     border-radius: 8px;
@@ -761,7 +762,7 @@
 
   :global(:root[data-theme='dark']) .chat-workspace { background: color-mix(in srgb, var(--surface-glass-base) 72%, transparent); }
   :global(:root[data-theme='dark']) .chat-topbar { background: color-mix(in srgb, var(--accent) 8%, transparent); }
-  :global(:root[data-theme='dark']) .chat-icon-action { background: rgba(255, 255, 255, 0.04); }
+  :global(:root[data-theme='dark']) :global(.chat-icon-action) { background: rgba(255, 255, 255, 0.04); }
   :global(:root[data-theme='dark']) .chat-editing-bar { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
   /* Print: only the conversation, sized to the paper. */

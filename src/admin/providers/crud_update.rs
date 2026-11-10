@@ -141,9 +141,10 @@ pub(crate) async fn update_provider(
     let live_state_changed = provider_state.boolean("enabled").map_err(internal)? != enabled;
     let requested_proxy_change = input.proxy_id.clone();
     let requested_proxy_id = match &requested_proxy_change {
-        super::provider_view::ProxyBindingUpdate::Unchanged => {
-            provider_state.optional_text("proxy_id").map_err(internal)?.map(str::to_owned)
-        }
+        super::provider_view::ProxyBindingUpdate::Unchanged => provider_state
+            .optional_text("proxy_id")
+            .map_err(internal)?
+            .map(str::to_owned),
         super::provider_view::ProxyBindingUpdate::Clear => None,
         super::provider_view::ProxyBindingUpdate::Set(value) => {
             let normalized = value.trim();
@@ -158,7 +159,9 @@ pub(crate) async fn update_provider(
             .db
             .read({
                 let proxy_id = proxy_id.to_owned();
-                move |transaction| crate::admin::proxies::ensure_proxy_bindable(transaction, &proxy_id)
+                move |transaction| {
+                    crate::admin::proxies::ensure_proxy_bindable(transaction, &proxy_id)
+                }
             })
             .await
             .map_err(|error| fail(StatusCode::BAD_REQUEST, error.to_string()))?;
@@ -209,7 +212,9 @@ pub(crate) async fn update_provider(
             let next_proxy_id = match requested_proxy_change.clone() {
                 super::provider_view::ProxyBindingUpdate::Unchanged => current_proxy_id.clone(),
                 super::provider_view::ProxyBindingUpdate::Clear => None,
-                super::provider_view::ProxyBindingUpdate::Set(value) => Some(value.trim().to_owned()),
+                super::provider_view::ProxyBindingUpdate::Set(value) => {
+                    Some(value.trim().to_owned())
+                }
             };
             if let Some(proxy_id) = next_proxy_id.as_deref() {
                 crate::admin::proxies::ensure_proxy_bindable_write(transaction, proxy_id)?;

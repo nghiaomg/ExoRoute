@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Check, Copy, ExternalLink, LoaderCircle, Link } from '@lucide/svelte';
   import { api } from '../../lib/api';
@@ -221,20 +222,20 @@
     </div>
     <div class="codex-oauth-actions">
       {#if state === 'idle' || state === 'connected'}
-        <button class="primary-button compact" disabled={!providerId} onclick={() => void connect()}>
+        <Button class="primary-button compact" disabled={!providerId} onclick={() => void connect()}>
           <Link size={14} />
           {tr('Connect account')}
-        </button>
+        </Button>
       {:else if state === 'pending'}
-        <button class="secondary-button compact" disabled>
+        <Button class="secondary-button compact" disabled>
           <LoaderCircle size={13} class="spin" />
           {tr('Waiting for authorization…')}
-        </button>
+        </Button>
       {:else}
-        <button class="primary-button compact" disabled={!providerId} onclick={() => void connect()}>
+        <Button class="primary-button compact" disabled={!providerId} onclick={() => void connect()}>
           <Link size={14} />
           {tr('Start again')}
-        </button>
+        </Button>
       {/if}
     </div>
   </div>
@@ -246,7 +247,7 @@
       </p>
       <div class="device-code-value">
         <code>{userCode}</code>
-        <button class="secondary-button compact" type="button" onclick={() => void copyCode()}>
+        <Button class="secondary-button compact" type="button" onclick={() => void copyCode()}>
           {#if codeCopied}
             <Check size={13} />
             {tr('Code copied')}
@@ -254,7 +255,7 @@
             <Copy size={13} />
             {tr('Copy code')}
           {/if}
-        </button>
+        </Button>
       </div>
     {/if}
     {#if verificationUrl}
@@ -275,7 +276,7 @@
           placeholder="Kiro refresh token"
         ></textarea>
         <div class="agy-cli-actions">
-          <button
+          <Button
             class="secondary-button compact"
             type="button"
             disabled={!kiroToken.trim() || kiroImporting || !providerId}
@@ -285,7 +286,7 @@
               <LoaderCircle size={13} class="spin" />
             {/if}
             {tr('Import token')}
-          </button>
+          </Button>
         </div>
       </div>
     {/if}

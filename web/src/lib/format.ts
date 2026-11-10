@@ -90,6 +90,29 @@ export function formatTokenCount(value: number | undefined, locale: Locale): str
   return formatCount(value, locale);
 }
 
+/// Compact K/M/B/T notation for large dashboard token totals, e.g. 1460000000 -> "1.46B".
+/// Values below 1000 keep grouped digits; decimals are capped at two and trailing
+/// zeros are dropped ("1B", not "1.00B").
+export function formatCompactTokenTotal(value: number | null | undefined, locale: Locale): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  const abs = Math.abs(value);
+  if (abs < 1000) return numberFormatter(locale).format(value);
+  const units: Array<[number, string]> = [
+    [1e12, 'T'],
+    [1e9, 'B'],
+    [1e6, 'M'],
+    [1e3, 'K'],
+  ];
+  for (const [divisor, suffix] of units) {
+    if (abs >= divisor) {
+      const scaled = value / divisor;
+      const text = parseFloat(scaled.toFixed(2)).toString();
+      return `${text}${suffix}`;
+    }
+  }
+  return numberFormatter(locale).format(value);
+}
+
 const percentFormatters = new Map<string, Intl.NumberFormat>();
 
 /// Whole-percent rendering of a 0–100 rate, or an em dash when it is unknown.

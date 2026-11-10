@@ -1,8 +1,10 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Check, Copy, Cpu, LoaderCircle, Search, Trash2, X, Zap } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import EmptyState from '../../components/EmptyState.svelte';
+  import Input from '../../components/Input.svelte';
   import Toast from '../../components/Toast.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
@@ -241,7 +243,7 @@ import { localizedError } from '../../lib/errors';
 </script>
 
 <div class="provider-model-filter">
-  <label class="search-box"><Search size={15} /><input bind:value={query} placeholder={tr('Search saved models')} aria-label={tr('Search saved models')} /></label>
+  <label class="search-box"><Search size={15} /><Input bind:value={query} placeholder={tr('Search saved models')} aria-label={tr('Search saved models')} /></label>
   <span class="provider-model-count">
     {#if query.trim()}
       {filteredModels.length} / {models.length} {tr('saved models')}
@@ -259,13 +261,13 @@ import { localizedError } from '../../lib/errors';
     {#if selectedModelKeys.length}
       <div class="model-test-toolbar-actions">
         <span class="model-test-selected-count">{tr('{count} selected', { count: selectedModelKeys.length })}</span>
-        <button class="primary-button compact" disabled={selectedTestableCount === 0} onclick={testSelected}>
+        <Button class="primary-button compact" disabled={selectedTestableCount === 0} onclick={testSelected}>
           <Zap size={13} />
           <span>{tr('Test selected ({count})', { count: selectedModelKeys.length })}</span>
-        </button>
-        <button class="text-button compact" onclick={() => selectedModelKeys = []}>
+        </Button>
+        <Button class="text-button compact" onclick={() => selectedModelKeys = []}>
           {tr('Clear selection')}
-        </button>
+        </Button>
       </div>
     {/if}
   </div>
@@ -286,10 +288,10 @@ import { localizedError } from '../../lib/errors';
             onCheckedChange={(checked) => toggleModel(model, checked === true)}
           />
           <div class="model-card-header-actions">
-            <button
+            <Button
               type="button"
               class="model-copy-btn"
-              class:copied={isCopied}
+              stateClasses={{ copied: isCopied }}
               title={isCopied ? tr('Model ID copied') : tr('Copy {format}', { format: formattedId })}
               aria-label={isCopied ? tr('Model ID copied') : tr('Copy {format}', { format: formattedId })}
               onclick={(e) => { e.stopPropagation(); copyModelId(model.model, key); }}
@@ -299,11 +301,11 @@ import { localizedError } from '../../lib/errors';
               {:else}
                 <Copy size={13} />
               {/if}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               class="row-icon danger-hover"
-              class:danger-confirm={isConfirming}
+              stateClasses={{ 'danger-confirm': isConfirming }}
               disabled={deletingModelKey !== '' || testState?.phase === 'pending'}
               title={isConfirming
                 ? tr('Click again to delete “{model}”', { model: model.model })
@@ -320,7 +322,7 @@ import { localizedError } from '../../lib/errors';
               {:else}
                 <Trash2 size={14} />
               {/if}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -336,7 +338,7 @@ import { localizedError } from '../../lib/errors';
         </div>
 
         <div class="model-card-footer">
-          <button
+          <Button
             type="button"
             class="secondary-button compact model-test-btn"
             disabled={testState?.phase === 'pending'}
@@ -349,7 +351,7 @@ import { localizedError } from '../../lib/errors';
               <Zap size={12} />
               <span>{tr('Test')}</span>
             {/if}
-          </button>
+          </Button>
 
           {#if testState?.phase === 'passed'}
             <span class="model-test-chip success" title={testState.message ?? ''}>
@@ -374,13 +376,13 @@ import { localizedError } from '../../lib/errors';
       <div use:setupObserver class="models-scroll-sentinel">
         <LoaderCircle size={14} class="spin" />
         <span>{tr('Showing {count} of {total} models', { count: visibleModels.length, total: filteredModels.length })}</span>
-        <button
+        <Button
           type="button"
           class="secondary-button compact"
           onclick={() => { displayLimit = filteredModels.length; }}
         >
           {tr('Show all')}
-        </button>
+        </Button>
       </div>
     {/if}
   </div>

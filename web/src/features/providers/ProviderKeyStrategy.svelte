@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ListOrdered, RefreshCw } from '@lucide/svelte';
-  import ArkSelect from '../../components/ArkSelect.svelte';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import { type Translate } from '../../lib/format';
   import type { ProviderKeyStrategy } from '../../lib/types';
 
@@ -16,7 +16,7 @@
 
 <div class="detail-form-section provider-key-strategy">
   <div>
-    <ArkSelect
+    <SelectOptions
       label={tr('Key rotation strategy')}
       items={strategyOptions}
       value={strategy}

@@ -19,7 +19,13 @@ async fn proxy_traffic_totals_accumulate_and_snapshot_only_existing_ids() {
     assert!(!stats.contains_key("proxy-b"));
 
     state.clear_proxy_runtime_state("proxy-a").await;
-    assert!(state.proxy_traffic_snapshot(&["proxy-a".to_owned()]).await.0.is_empty());
+    assert!(
+        state
+            .proxy_traffic_snapshot(&["proxy-a".to_owned()])
+            .await
+            .0
+            .is_empty()
+    );
 }
 
 #[tokio::test]

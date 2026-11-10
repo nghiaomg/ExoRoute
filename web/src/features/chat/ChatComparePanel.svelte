@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { X, Square } from '@lucide/svelte';
   import type { Translate } from '../../lib/format';
@@ -123,14 +124,14 @@
     <span class="compare-warning">{tr('Each model runs a real, billed request in parallel.')}</span>
     <div class="compare-header-actions">
       {#if columns.length}
-        <button class="compare-stop" type="button" on:click={stopCompare}>
+        <Button class="compare-stop" type="button" onclick={stopCompare}>
           <Square size={12} />
           {tr('Stop')}
-        </button>
+        </Button>
       {/if}
-      <button class="compare-close" type="button" on:click={close} title={tr('Close')}>
+      <Button class="compare-close" type="button" onclick={close} title={tr('Close')}>
         <X size={14} />
-      </button>
+      </Button>
     </div>
   </header>
 
@@ -141,25 +142,25 @@
       </p>
       <div class="compare-options">
         {#each options as option (option.id)}
-          <button
-            class="compare-option"
-            class:active={selected.includes(option.id)}
+          <Button
+            class="compare-option" stateClasses={{ active: selected.includes(option.id) }}
+
             type="button"
             disabled={!selected.includes(option.id) && selected.length >= MAX_COMPARE_MODELS}
-            on:click={() => toggleModel(option.id)}
+            onclick={() => toggleModel(option.id)}
           >
             {option.id}
-          </button>
+          </Button>
         {/each}
       </div>
-      <button
+      <Button
         class="compare-start"
         type="button"
         disabled={chosen.length < 2}
-        on:click={startCompare}
+        onclick={startCompare}
       >
         {tr('Run comparison')}
-      </button>
+      </Button>
     </div>
   {:else}
     <div class="compare-grid" style="--compare-cols: {columns.length}">
@@ -233,9 +234,9 @@
     gap: 6px;
   }
 
-  .compare-stop,
-  .compare-close,
-  .compare-start {
+  :global(.compare-stop),
+  :global(.compare-close),
+  :global(.compare-start) {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -250,8 +251,8 @@
     box-shadow: var(--nb-shadow-sm);
   }
 
-  .compare-stop:disabled,
-  .compare-start:disabled {
+  :global(.compare-stop:disabled),
+  :global(.compare-start:disabled) {
     opacity: 0.45;
     cursor: not-allowed;
     box-shadow: none;
@@ -269,7 +270,7 @@
     color: var(--muted);
   }
 
-  .compare-options {
+  :global(.compare-options) {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -277,7 +278,7 @@
     overflow-y: auto;
   }
 
-  .compare-option {
+  :global(.compare-option) {
     padding: 4px 9px;
     border: var(--nb-border);
     border-radius: 999px;
@@ -287,12 +288,12 @@
     cursor: pointer;
   }
 
-  .compare-option.active {
+  :global(.compare-option.active) {
     background: color-mix(in srgb, var(--accent) 14%, #fff);
     font-weight: var(--font-bold);
   }
 
-  .compare-option:disabled {
+  :global(.compare-option:disabled) {
     opacity: 0.4;
     cursor: not-allowed;
   }
@@ -360,5 +361,5 @@
 
   :global(:root[data-theme='dark']) .compare-panel { background: color-mix(in srgb, var(--surface-glass-base) 90%, transparent); }
   :global(:root[data-theme='dark']) .compare-column { border-color: rgba(255, 255, 255, 0.25); }
-  :global(:root[data-theme='dark']) .compare-option.active { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+  :global(:root[data-theme='dark'] .compare-option.active) { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 </style>

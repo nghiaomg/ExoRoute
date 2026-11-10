@@ -138,6 +138,14 @@
   color: var(--info-soft);
 }
 
+:root[data-theme='dark'] .button-primary, :root[data-theme='dark'] .primary-button {
+  background: var(--accent);
+  color: var(--surface);
+}
+:root[data-theme='dark'] .button-secondary, :root[data-theme='dark'] .secondary-button {
+  background: var(--surface);
+  color: var(--ink);
+}
 :root[data-theme='dark'] .login-screen .primary-button {
   background: var(--accent);
   border: var(--nb-border) !important;

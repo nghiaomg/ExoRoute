@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "./Button.svelte";
   import { Activity, Boxes, Cpu, KeyRound, Layers3, MessageSquare, Plus, Search } from '@lucide/svelte';
 
   export let icon: 'search' | 'providers' | 'combos' | 'models' | 'api-keys' | 'requests' | 'chat' = 'requests';
@@ -21,5 +22,5 @@
   </span>
   <h2>{title}</h2>
   <p>{description}</p>
-  {#if action && onclick}<button class="primary-button" onclick={onclick}><Plus size={16} />{action}</button>{/if}
+  {#if action && onclick}<Button class="primary-button" onclick={onclick}><Plus size={16} />{action}</Button>{/if}
 </section>

@@ -1,7 +1,9 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Check, Database, Download, LoaderCircle, Upload } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
+  import Input from '../../components/Input.svelte';
   import DatabaseStepUpDialog from './DatabaseStepUpDialog.svelte';
   import { api, ApiError } from '../../lib/api';
   import { formatFileSize, type Translate } from '../../lib/format';
@@ -101,9 +103,9 @@ import { localizedError } from '../../lib/errors';
   <div class="database-content">
     <div class="database-log-option"><ArkCheckbox checked={includeRequestLogs} disabled={busy !== ''} label={tr('Include request logs in export')} description={tr('When unchecked, request logs and traffic statistics are omitted, and lifetime API key counts reset in the exported backup.')} onCheckedChange={(checked) => includeRequestLogs = checked === true} /></div>
     <div class="database-actions">
-      <button class="secondary-button" disabled={busy !== ''} onclick={requestExport}>{#if busy === 'export'}<LoaderCircle size={14} class="spin" />{tr('Exporting database…')}{:else}<Download size={14} />{tr('Export database')}{/if}</button>
-      <label class="secondary-button database-file-label" class:has-file={databaseFile !== null}><Upload size={14} />{tr('Choose database file')}<input class="database-file-input" type="file" accept=".exoroute,application/vnd.exoroute.lmdb-backup" aria-label={tr('Choose database file')} disabled={busy !== ''} onchange={handleFileSelection} bind:this={fileInput} /></label>
-      <button class="primary-button" disabled={!databaseFile || busy !== ''} onclick={requestImport}>{#if busy === 'import'}<LoaderCircle size={14} class="spin" />{tr('Importing database…')}{:else}<Upload size={14} />{tr('Import database')}{/if}</button>
+      <Button class="secondary-button" disabled={busy !== ''} onclick={requestExport}>{#if busy === 'export'}<LoaderCircle size={14} class="spin" />{tr('Exporting database…')}{:else}<Download size={14} />{tr('Export database')}{/if}</Button>
+      <label class="secondary-button database-file-label" class:has-file={databaseFile !== null}><Upload size={14} />{tr('Choose database file')}<Input class="database-file-input" type="file" accept=".exoroute,application/vnd.exoroute.lmdb-backup" aria-label={tr('Choose database file')} disabled={busy !== ''} onchange={handleFileSelection} bind:element={fileInput} /></label>
+      <Button class="primary-button" disabled={!databaseFile || busy !== ''} onclick={requestImport}>{#if busy === 'import'}<LoaderCircle size={14} class="spin" />{tr('Importing database…')}{:else}<Upload size={14} />{tr('Import database')}{/if}</Button>
     </div>
     <div class="database-feedback" aria-live="polite">
       {#if busy}<span class="database-progress"><LoaderCircle size={13} class="spin" />{tr(busy === 'export' ? 'Exporting database…' : 'Importing database…')}</span>
@@ -132,8 +134,8 @@ import { localizedError } from '../../lib/errors';
       onCheckedChange={(checked) => confirmUnlimitedImport = checked === true}
     />
     <div class="modal-actions">
-      <button type="button" class="secondary-button" onclick={() => importDialogOpen = false}>{tr('Cancel')}</button>
-      <button type="button" class="primary-button" disabled={busy !== ''} onclick={importDatabase}>{#if busy === 'import'}<LoaderCircle size={14} class="spin" />{tr('Importing database…')}{:else}<Upload size={14} />{tr('Import database')}{/if}</button>
+      <Button type="button" class="secondary-button" onclick={() => importDialogOpen = false}>{tr('Cancel')}</Button>
+      <Button type="button" class="primary-button" disabled={busy !== ''} onclick={importDatabase}>{#if busy === 'import'}<LoaderCircle size={14} class="spin" />{tr('Importing database…')}{:else}<Upload size={14} />{tr('Import database')}{/if}</Button>
     </div>
   </div>
 </ArkDialog>

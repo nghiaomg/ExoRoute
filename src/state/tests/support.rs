@@ -33,6 +33,7 @@ pub(super) fn live_test_record(request_id: &str, provider_id: Option<&str>) -> R
         model: "model".to_owned(),
         client_protocol: "chat_completions".to_owned(),
         upstream_protocol: Some("chat_completions".to_owned()),
+        proxy_id: None,
         status: 200,
         duration_ms: 12,
         input_tokens: Some(12),

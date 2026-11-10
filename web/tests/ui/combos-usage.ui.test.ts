@@ -31,9 +31,28 @@ function renderPage() {
   });
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  delete (HTMLDialogElement.prototype as unknown as { showModal?: () => void }).showModal;
+  delete (HTMLDialogElement.prototype as unknown as { close?: () => void }).close;
+});
 
 describe('combo usage attribution', () => {
+  test('opens the target provider options from inside the combo dialog', async () => {
+    vi.spyOn(api, 'combos').mockResolvedValue([]);
+    vi.spyOn(api, 'comboProviderOptions').mockResolvedValue({ providers: [{ id: 'provider-a', name: 'OpenAI', enabled: true }], next_cursor: null });
+    vi.spyOn(api, 'statistics').mockRejectedValue(new Error('unavailable'));
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } });
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; this.dispatchEvent(new Event('close')); } });
+
+    renderPage();
+    await fireEvent.click(await screen.findByRole('button', { name: 'New combo' }));
+    await fireEvent.click(screen.getByRole('combobox', { name: 'Target provider' }));
+
+    expect(await screen.findByRole('option', { name: 'OpenAI' })).toBeTruthy();
+    expect(document.querySelector('dialog.modal')?.contains(screen.getByRole('listbox'))).toBe(true);
+  });
+
   test('uses the route alias breakdown instead of a same-named model breakdown', async () => {
     vi.spyOn(api, 'combos').mockResolvedValue([combo('shared/model')]);
     vi.spyOn(api, 'comboProviderOptions').mockResolvedValue({ providers: [], next_cursor: null });

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { User } from '@lucide/svelte';
   import FlyingFishLogo from '../../components/FlyingFishLogo.svelte';
   import type { Locale } from '../../lib/i18n';
@@ -128,13 +129,13 @@
                 {#if codeBlocks(message)}
                   <div class="chat-code-actions">
                     {#each Array(codeBlocks(message)) as _, position}
-                      <button
+                      <Button
                         class="chat-code-copy"
                         type="button"
-                        on:click={() => copyCodeBlock(message, position)}
+                        onclick={() => copyCodeBlock(message, position)}
                       >
                         {copiedBlockId === `${message.id}:${position}` ? tr('Copied') : `${tr('Copy code')} ${position + 1}`}
-                      </button>
+                      </Button>
                     {/each}
                   </div>
                 {/if}
@@ -399,7 +400,7 @@
     flex-wrap: wrap;
   }
 
-  .chat-code-copy {
+  :global(.chat-code-copy) {
     padding: 3px 8px;
     border: var(--nb-border);
     border-radius: 8px;
@@ -463,5 +464,5 @@
     border-color: rgba(255, 255, 255, 0.2);
   }
   :global(:root[data-theme='dark']) .chat-turn-markdown :global(.md-link) { color: var(--accent-soft); }
-  :global(:root[data-theme='dark']) .chat-code-copy { background: rgba(255, 255, 255, 0.04); color: #c9cdde; }
+  :global(:root[data-theme='dark']) :global(.chat-code-copy) { background: rgba(255, 255, 255, 0.04); color: #c9cdde; }
 </style>

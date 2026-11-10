@@ -17,12 +17,14 @@ use serde_json::{Value, json};
 use std::time::Instant;
 
 mod input;
+mod proxy_selection;
 mod stream;
 mod target;
 
 mod delta;
 
 use input::{parse_chat_attachments, parse_chat_target_ids, parse_chat_text_input};
+pub(crate) use proxy_selection::{ProxyEgressError, resolve_provider_proxy_egress};
 pub(crate) use stream::stream_workspace_chat;
 use target::{prepare_chat_turn, resolve_turn_credential, workspace_model_options};
 
@@ -56,10 +58,11 @@ pub(crate) async fn send_workspace_chat(
             auth_type: &turn.auth_type,
             auth_header: turn.auth_header.as_deref(),
             custom_headers: &turn.custom_headers,
-            protocol: turn.client_protocol,
+            upstream_protocol: turn.upstream_protocol,
             secret: auth.secret,
             oauth_auth: auth.oauth_auth,
             body: turn.upstream_body,
+            proxy_endpoints: &turn.proxy_endpoints,
         },
     )
     .await;

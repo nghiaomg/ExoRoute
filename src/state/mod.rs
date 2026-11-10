@@ -19,7 +19,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tokio::sync::{Mutex, Notify, RwLock, Semaphore, watch};
+use tokio::sync::{Mutex, Notify, OwnedSemaphorePermit, RwLock, Semaphore, watch};
 
 mod auth;
 mod auth_flows;
@@ -97,6 +97,8 @@ pub(crate) struct GatewayGates {
     pub(crate) round_robin: Arc<Mutex<HashMap<String, usize>>>,
     pub(crate) proxy_endpoint_cursors: Arc<Mutex<HashMap<String, usize>>>,
     pub(crate) proxy_traffic: Arc<Mutex<ProxyTrafficRegistry>>,
+    /// Diagnostic proxy live-check results and per-proxy in-flight flags.
+    pub(crate) proxy_checks: Arc<Mutex<ProxyCheckRegistry>>,
     /// Fallback position that starts the next round-robin request of a provider.
     /// Entries are dropped with the provider or by an atomic restore.
     pub(crate) provider_key_cursors: Arc<Mutex<HashMap<String, String>>>,
@@ -121,6 +123,9 @@ pub(crate) struct ProviderRuntime {
 
 const MAX_ADMIN_ACCESS_TOKENS: usize = 1024;
 pub(crate) const MAX_TRACKED_PROXY_TRAFFIC: usize = 256;
+/// Upper bound for tracked proxy live-check results and in-flight flags.
+/// Mirrors `MAX_TRACKED_PROXY_TRAFFIC`; entries beyond it evict the oldest.
+pub(crate) const MAX_TRACKED_PROXY_CHECKS: usize = 256;
 
 #[derive(Clone, Copy, Default)]
 pub(crate) struct ProxyTrafficTotals {
@@ -139,8 +144,68 @@ pub(crate) struct ProxyTrafficRegistry {
 
 impl Default for ProxyTrafficRegistry {
     fn default() -> Self {
-        Self { entries: HashMap::new(), clock: 0, truncated: false }
+        Self {
+            entries: HashMap::new(),
+            clock: 0,
+            truncated: false,
+        }
     }
+}
+
+/// One endpoint outcome of the last diagnostic proxy live-check.
+#[derive(Clone, Debug)]
+pub(crate) struct ProxyEndpointCheckOutcome {
+    pub endpoint_id: String,
+    pub live: bool,
+    pub latency_millis: u64,
+    /// Short, classified failure text. Never contains credentials or secrets.
+    pub error: Option<String>,
+}
+
+/// The last diagnostic live-check of one proxy, kept in process memory only.
+/// A restart or an atomic restore drops it.
+#[derive(Clone, Debug)]
+pub(crate) struct ProxyCheckRecord {
+    /// Unix seconds when the check completed.
+    pub checked_at: u64,
+    /// Insertion sequence used to evict the oldest entry at the cap.
+    pub recorded_clock: u64,
+    pub results: Vec<ProxyEndpointCheckOutcome>,
+}
+
+/// Counts exposed on `ProxyView.last_check` so the existing list endpoint can
+/// drive the dashboard chips without a second request.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ProxyCheckSummary {
+    pub checked_at: u64,
+    pub live_count: usize,
+    pub die_count: usize,
+}
+
+pub(crate) struct ProxyCheckRegistry {
+    pub entries: HashMap<String, ProxyCheckRecord>,
+    /// One single-permit semaphore per proxy with a check currently running.
+    pub in_flight: HashMap<String, Arc<Semaphore>>,
+    pub clock: u64,
+}
+
+impl Default for ProxyCheckRegistry {
+    fn default() -> Self {
+        Self {
+            entries: HashMap::new(),
+            in_flight: HashMap::new(),
+            clock: 0,
+        }
+    }
+}
+
+/// Outcome of trying to start a proxy live-check. `Busy` means the same proxy
+/// already has a check running; `AtCapacity` means too many other proxies have
+/// checks running right now.
+pub(crate) enum ProxyCheckPermitOutcome {
+    Acquired(OwnedSemaphorePermit),
+    Busy,
+    AtCapacity,
 }
 
 pub(crate) struct ProxyTrafficSample {
@@ -352,6 +417,7 @@ impl AppState {
                 round_robin: Arc::new(Mutex::new(HashMap::new())),
                 proxy_endpoint_cursors: Arc::new(Mutex::new(HashMap::new())),
                 proxy_traffic: Arc::new(Mutex::new(ProxyTrafficRegistry::default())),
+                proxy_checks: Arc::new(Mutex::new(ProxyCheckRegistry::default())),
                 provider_key_cursors: Arc::new(Mutex::new(HashMap::new())),
                 circuit_breakers: Arc::new(std::sync::Mutex::new(HashMap::new())),
                 circuit_breaker_settings: Arc::new(StdRwLock::new(CircuitBreakerRuntimeSettings {

@@ -1,6 +1,8 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { Eye, EyeOff } from '@lucide/svelte';
+  import Input from '../../components/Input.svelte';
   import type { Translate } from '../../lib/format';
   import {
     countMaskedColumns,
@@ -52,11 +54,11 @@
 </script>
 
 <div class="request-mask-container" bind:this={menuRef}>
-  <button
+  <Button
     type="button"
-    class="request-mask-trigger"
-    class:active={isAnyMasked}
-    class:open
+    class="request-mask-trigger" stateClasses={{ active: isAnyMasked, open: open }}
+
+
     aria-haspopup="true"
     aria-expanded={open}
     title={tr('Mask columns')}
@@ -71,7 +73,7 @@
     {#if isAnyMasked}
       <span class="request-mask-badge">{maskedCount}</span>
     {/if}
-  </button>
+  </Button>
 
   {#if open}
     <div class="request-mask-dropdown" role="dialog" aria-label={tr('Mask columns')}>
@@ -83,7 +85,7 @@
       <div class="request-mask-options">
         {#each MASKABLE_COLUMNS as column (column.id)}
           <label class="request-mask-option" class:checked={maskedColumns[column.id]}>
-            <input
+            <Input
               type="checkbox"
               checked={maskedColumns[column.id]}
               onchange={() => onToggleColumn(column.id)}
@@ -98,22 +100,22 @@
       </div>
 
       <div class="request-mask-actions">
-        <button
+        <Button
           type="button"
           class="request-mask-action-btn"
           disabled={isAllMasked}
           onclick={onMaskAll}
         >
           {tr('Mask all')}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           class="request-mask-action-btn"
           disabled={!isAnyMasked}
           onclick={onShowAll}
         >
           {tr('Show all')}
-        </button>
+        </Button>
       </div>
     </div>
   {/if}
@@ -125,7 +127,7 @@
     display: inline-block;
   }
 
-  .request-mask-trigger {
+  :global(.request-mask-trigger) {
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -142,19 +144,19 @@
   }
 
   @media (hover: hover) {
-    .request-mask-trigger:hover {
+    :global(.request-mask-trigger:hover) {
       transform: translate(-1px, -1px);
       box-shadow: var(--nb-shadow-md);
     }
   }
 
-  .request-mask-trigger:active,
-  .request-mask-trigger.open {
+  :global(.request-mask-trigger:active),
+  :global(.request-mask-trigger.open) {
     transform: translate(1px, 1px);
     box-shadow: var(--nb-shadow-sm);
   }
 
-  .request-mask-trigger.active {
+  :global(.request-mask-trigger.active) {
     background: color-mix(in srgb, var(--info) 10%, var(--surface));
     color: var(--info);
   }
@@ -229,7 +231,7 @@
     background: #202235;
   }
 
-  .request-mask-checkbox {
+  :global(.request-mask-checkbox) {
     width: 15px;
     height: 15px;
     cursor: pointer;
@@ -269,7 +271,7 @@
     border-top-color: #282a3c;
   }
 
-  .request-mask-action-btn {
+  :global(.request-mask-action-btn) {
     flex: 1;
     padding: 5px 8px;
     border: 1px solid #d4d6e0;
@@ -282,23 +284,23 @@
     transition: background-color 0.1s ease, border-color 0.1s ease;
   }
 
-  .request-mask-action-btn:hover:not(:disabled) {
+  :global(.request-mask-action-btn:hover:not(:disabled)) {
     background: #f0f1f5;
     border-color: #b8bac7;
   }
 
-  .request-mask-action-btn:disabled {
+  :global(.request-mask-action-btn:disabled) {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  :global(:root[data-theme='dark']) .request-mask-action-btn {
+  :global(:root[data-theme='dark']) :global(.request-mask-action-btn) {
     background: #1f2133;
     border-color: #2e3148;
     color: #9499b3;
   }
 
-  :global(:root[data-theme='dark']) .request-mask-action-btn:hover:not(:disabled) {
+  :global(:root[data-theme='dark'] .request-mask-action-btn:hover:not(:disabled)) {
     background: #272a40;
     border-color: #3f4362;
     color: #e2e4ef;

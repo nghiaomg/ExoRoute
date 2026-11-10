@@ -5,9 +5,8 @@
 //! cache so unrelated providers never share proxy credentials or DNS overrides.
 
 use super::url::{
-    ResolvedProviderUrl, build_pinned_client, build_proxy_client, resolve_proxy_url,
-    resolve_provider_url, validate_proxy_url, validate_provider_url,
-    validate_provider_url_via_proxy,
+    ResolvedProviderUrl, build_pinned_client, build_proxy_client, resolve_provider_url,
+    resolve_proxy_url, validate_provider_url, validate_provider_url_via_proxy, validate_proxy_url,
 };
 use crate::{config::UpstreamSettings, security::decrypt_secret};
 use reqwest::Url;
@@ -148,8 +147,7 @@ pub async fn provider_client_with_proxy(
         .await?;
         let mut configured_proxy = reqwest::Proxy::all(proxy_url)
             .map_err(|_| "Configured proxy URL could not be validated".to_owned())?;
-        if let (Some(username), Some(secret)) =
-            (proxy.username.as_deref(), proxy.secret.as_deref())
+        if let (Some(username), Some(secret)) = (proxy.username.as_deref(), proxy.secret.as_deref())
         {
             configured_proxy = configured_proxy.basic_auth(username, secret);
         }

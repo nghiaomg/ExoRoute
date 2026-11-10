@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onMount } from 'svelte';
   import { AlertTriangle, ArrowLeft, Check, Copy, KeyRound, Sliders, Trash2 } from '@lucide/svelte';
   import type { Locale } from '../../lib/i18n';
@@ -79,10 +80,10 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
 <div class="provider-detail-page">
   <!-- Top Navigation & Header -->
   <div class="detail-page-nav">
-    <button type="button" class="back-link-btn" onclick={onBack}>
+    <Button type="button" class="back-link-btn" onclick={onBack}>
       <ArrowLeft size={16} />
       <span>{tr('Back to providers')}</span>
-    </button>
+    </Button>
   </div>
 
   <header class="detail-hero-banner">
@@ -102,7 +103,7 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
 
         <div class="detail-url-row">
           <span class="detail-url-text" title={provider.base_url}>{provider.base_url}</span>
-          <button
+          <Button
             type="button"
             class="detail-copy-btn"
             title={copiedUrl ? tr('URL copied') : tr('Copy URL')}
@@ -115,7 +116,7 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
               <Copy size={14} />
               <span>{tr('Copy URL')}</span>
             {/if}
-          </button>
+          </Button>
         </div>
 
         <div class="detail-tags-row">
@@ -143,25 +144,25 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
     </div>
 
     <div class="detail-hero-actions">
-      <button
+      <Button
         type="button"
         class="secondary-button"
         onclick={() => configDialogOpen = true}
       >
         <Sliders size={15} />
         {tr('Provider Configurations')}
-      </button>
+      </Button>
       {#if provider.capabilities?.api_keys === true}
-        <button
+        <Button
           type="button"
           class="primary-button"
           onclick={() => onManageKeys(provider)}
         >
           <KeyRound size={15} />
           {tr('Manage keys')}
-        </button>
+        </Button>
       {/if}
-      <button
+      <Button
         type="button"
         class="detail-delete-btn"
         title={tr('Delete {name}', { name: provider.name })}
@@ -169,7 +170,7 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
       >
         <Trash2 size={15} />
         {tr('Delete provider')}
-      </button>
+      </Button>
     </div>
   </header>
 

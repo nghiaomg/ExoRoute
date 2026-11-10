@@ -13,11 +13,21 @@ pub(super) struct RequestLogPayload<'a> {
     pub(super) api_key_id: Option<&'a str>,
     pub(super) started: Instant,
     pub(super) reasoning_effort: Option<String>,
+    /// The proxy bound to the provider of the current attempt, set per target
+    /// so every failure or success log names the proxy the attempt used.
+    pub(super) proxy_id: Option<String>,
 }
 
 impl<'a> RequestLogPayload<'a> {
     pub(super) fn set_reasoning_effort(&mut self, effort: Option<String>) {
         self.reasoning_effort = effort;
+    }
+
+    /// Records the proxy of the attempt being logged; reset to `None` between
+    /// targets so a target without a proxy binding never inherits the
+    /// previous target's proxy.
+    pub(super) fn set_proxy_id(&mut self, proxy_id: Option<String>) {
+        self.proxy_id = proxy_id;
     }
 
     /// Log for a failure of one specific provider attempt.
@@ -41,6 +51,7 @@ impl<'a> RequestLogPayload<'a> {
             model,
             client: self.scope.client_protocol,
             upstream: Some(upstream_protocol),
+            proxy_id: self.proxy_id.as_deref(),
             status,
             duration_ms: self.started.elapsed().as_millis() as i64,
             input_tokens: None,
@@ -76,6 +87,7 @@ impl<'a> RequestLogPayload<'a> {
             model,
             client: self.scope.client_protocol,
             upstream: Some(upstream_protocol),
+            proxy_id: self.proxy_id.as_deref(),
             status: StatusCode::OK,
             duration_ms: self.started.elapsed().as_millis() as i64,
             input_tokens,

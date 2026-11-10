@@ -75,6 +75,7 @@ pub(super) async fn list_requests(
         .db
         .read(move |transaction| {
             let mut rows = Vec::<(Value, String, String)>::with_capacity(limit.saturating_add(1));
+            let mut proxy_ids = std::collections::BTreeSet::new();
             let mut next_key = after;
             let mut scanned = 0usize;
             let mut exhausted = false;
@@ -144,6 +145,10 @@ pub(super) async fn list_requests(
                             .flatten(),
                         None => None,
                     };
+                    let row_proxy_id = record.optional_text("proxy_id")?.map(str::to_owned);
+                    if let Some(proxy_id) = row_proxy_id.as_deref() {
+                        proxy_ids.insert(proxy_id.to_owned());
+                    }
                     let created_at = record.text("created_at")?.to_owned();
                     rows.push((
                         json!({
@@ -157,6 +162,7 @@ pub(super) async fn list_requests(
                             "model": record.text("model")?,
                             "client_protocol": record.text("client_protocol")?,
                             "upstream_protocol": record.optional_text("upstream_protocol")?,
+                            "proxy_id": row_proxy_id,
                             "status": code,
                             "duration_ms": record.integer("duration_ms")?,
                             "input_tokens": record.optional_integer("input_tokens")?,
@@ -178,6 +184,27 @@ pub(super) async fn list_requests(
                 if page_len < batch_limit {
                     exhausted = true;
                 }
+            }
+            // Proxy display names are resolved for the page's distinct proxy
+            // ids in one bounded pass: at most one primary-key get per id on
+            // a page of at most 200 rows, never a table scan. A proxy deleted
+            // after its request ran has no name left, so the row reports
+            // nulls instead of presenting the raw id as a name.
+            let mut proxy_names =
+                HashMap::with_capacity(proxy_ids.len());
+            for proxy_id in &proxy_ids {
+                let name = match transaction.get::<Record>(Table::Proxies, proxy_id)? {
+                    Some(proxy) => proxy.optional_text("name")?.map(str::to_owned),
+                    None => None,
+                };
+                proxy_names.insert(proxy_id.clone(), name);
+            }
+            for (row, _, _) in rows.iter_mut() {
+                let resolved = row
+                    .get("proxy_id")
+                    .and_then(Value::as_str)
+                    .and_then(|proxy_id| proxy_names.get(proxy_id).cloned().flatten());
+                row["proxy_name"] = json!(resolved);
             }
             let has_more = rows.len() > limit;
             rows.truncate(limit);
@@ -234,6 +261,30 @@ impl RequestLiveKeyNames {
     }
 }
 
+/// Per-connection cache of proxy ids to display names, mirroring
+/// [`RequestLiveKeyNames`]: one lookup per distinct proxy, and a proxy renamed
+/// mid-connection keeps its old name for at most the five-minute stream
+/// lifetime.
+#[derive(Default)]
+struct RequestLiveProxyNames {
+    names: HashMap<String, Option<String>>,
+}
+
+impl RequestLiveProxyNames {
+    async fn resolve(&mut self, db: &Database, proxy_id: Option<&str>) -> Option<String> {
+        let proxy_id = proxy_id?;
+        if let Some(name) = self.names.get(proxy_id) {
+            return name.clone();
+        }
+        if self.names.len() >= MAX_REQUEST_LIVE_KEY_NAMES {
+            self.names.clear();
+        }
+        let name = lookup_request_proxy_name(db, proxy_id).await;
+        self.names.insert(proxy_id.to_owned(), name.clone());
+        name
+    }
+}
+
 /// Resolves the display name of one API key. A key that was deleted has no name
 /// to show, so the row reports the unknown-key state rather than a key id.
 pub(super) async fn lookup_request_api_key_name(db: &Database, api_key_id: &str) -> Option<String> {
@@ -255,6 +306,46 @@ pub(super) async fn lookup_request_api_key_name(db: &Database, api_key_id: &str)
             None
         }
     }
+}
+
+/// Resolves the display names of a batch of proxy ids with one bounded read
+/// transaction: each id costs a single primary-key get, so callers pass the
+/// distinct ids of one page instead of looking up per row. A proxy that was
+/// deleted after a request ran resolves to `None`.
+pub(super) async fn lookup_request_proxy_names(
+    db: &Database,
+    proxy_ids: Vec<String>,
+) -> HashMap<String, Option<String>> {
+    if proxy_ids.is_empty() {
+        return HashMap::new();
+    }
+    let lookup = db.read(move |transaction| {
+        let mut names = HashMap::with_capacity(proxy_ids.len());
+        for proxy_id in &proxy_ids {
+            let name = match transaction.get::<Record>(Table::Proxies, proxy_id)? {
+                Some(proxy) => proxy.optional_text("name")?.map(str::to_owned),
+                None => None,
+            };
+            names.insert(proxy_id.clone(), name);
+        }
+        Ok(names)
+    });
+    match lookup.await {
+        Ok(names) => names,
+        Err(error) => {
+            tracing::warn!(%error, "could not resolve proxy names for request rows");
+            HashMap::new()
+        }
+    }
+}
+
+/// Resolves the display name of one proxy id for the live request stream.
+pub(super) async fn lookup_request_proxy_name(db: &Database, proxy_id: &str) -> Option<String> {
+    let single = vec![proxy_id.to_owned()];
+    lookup_request_proxy_names(db, single)
+        .await
+        .remove(proxy_id)
+        .flatten()
 }
 
 pub(super) async fn request_events(
@@ -279,6 +370,7 @@ pub(super) async fn request_events(
         let _connection_permit = connection_permit;
         let mut shutdown = state.shutdown_receiver();
         let mut names = RequestLiveKeyNames::default();
+        let mut proxy_names = RequestLiveProxyNames::default();
         yield Ok::<Event, Infallible>(request_live_snapshot_event(&state.db, &mut names, &initial).await);
 
         let max_duration = tokio::time::sleep(REQUEST_LIVE_STREAM_DURATION);
@@ -293,7 +385,7 @@ pub(super) async fn request_events(
                 }
                 update = updates.recv() => {
                     match update {
-                        Ok(update) => yield Ok(request_live_event(&state.db, &mut names, update).await),
+                        Ok(update) => yield Ok(request_live_event(&state.db, &mut names, &mut proxy_names, update).await),
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
                             let snapshot = state.request_live_snapshot();
                             yield Ok(request_live_snapshot_event(&state.db, &mut names, &snapshot).await);
@@ -333,6 +425,7 @@ async fn request_live_snapshot_event(
 async fn request_live_event(
     db: &Database,
     names: &mut RequestLiveKeyNames,
+    proxy_names: &mut RequestLiveProxyNames,
     event: RequestLiveEvent,
 ) -> Event {
     match event {
@@ -377,13 +470,25 @@ async fn request_live_event(
                 Some(api_key_id) => names.resolve(db, Some(api_key_id)).await,
                 None => None,
             };
+            let proxy_name = match request
+                .as_ref()
+                .and_then(|record| record.proxy_id.as_deref())
+            {
+                Some(proxy_id) => proxy_names.resolve(db, Some(proxy_id)).await,
+                None => None,
+            };
             request_sse_event(
                 "request-finished",
                 json!({
                     "live_id": live_id,
-                    "request": request
-                        .as_ref()
-                        .map(|record| request_log_value(record, finished_at_ms, api_key_name.as_deref())),
+                    "request": request.as_ref().map(|record| {
+                        request_log_value(
+                            record,
+                            finished_at_ms,
+                            api_key_name.as_deref(),
+                            proxy_name.as_deref(),
+                        )
+                    }),
                     "finished_at_ms": finished_at_ms,
                     "active_count": active_count,
                 }),
@@ -405,6 +510,9 @@ fn request_sse_event(name: &'static str, payload: Value) -> Event {
 }
 
 fn request_live_row_value(row: &RequestLiveRow, api_key_name: Option<&str>) -> Value {
+    // A started row is created before target preparation, so the proxy the
+    // attempt will egress through is not known yet; the request-finished
+    // event carries the resolved proxy_id and proxy_name.
     json!({
         "live": true,
         "id": row.id,
@@ -418,6 +526,8 @@ fn request_live_row_value(row: &RequestLiveRow, api_key_name: Option<&str>) -> V
         "model": row.model,
         "client_protocol": row.client_protocol,
         "upstream_protocol": row.upstream_protocol,
+        "proxy_id": null,
+        "proxy_name": null,
         "status": null,
         "duration_ms": null,
         "input_tokens": row.input_tokens,
@@ -436,6 +546,7 @@ fn request_log_value(
     record: &RequestLogRecord,
     finished_at_ms: i64,
     api_key_name: Option<&str>,
+    proxy_name: Option<&str>,
 ) -> Value {
     json!({
         "live": false,
@@ -449,6 +560,8 @@ fn request_log_value(
         "model": record.model,
         "client_protocol": record.client_protocol,
         "upstream_protocol": record.upstream_protocol,
+        "proxy_id": record.proxy_id,
+        "proxy_name": proxy_name,
         "status": record.status,
         "duration_ms": record.duration_ms,
         "input_tokens": record.input_tokens,
@@ -693,6 +806,225 @@ mod tests {
 
     fn api_key_record(name: &str) -> Record {
         Record::new().with("name", Field::Text(name.to_owned()))
+    }
+
+    /// Seeds one proxy row in the stored shape the name lookups read.
+    async fn seed_proxy(db: &crate::infra::storage::Database, proxy_id: &str, name: &str) {
+        let now = crate::infra::db::utc_timestamp_now().expect("test timestamp");
+        let proxy = Record::new()
+            .with("id", Field::Text(proxy_id.to_owned()))
+            .with("name", Field::Text(name.to_owned()))
+            .with("strategy", Field::Text("priority".to_owned()))
+            .with("enabled", Field::Bool(true))
+            .with("created_at", Field::Text(now.clone()))
+            .with("updated_at", Field::Text(now));
+        let proxy_key = proxy_id.to_owned();
+        db.write(move |transaction| transaction.put(Table::Proxies, &proxy_key, &proxy))
+            .await
+            .expect("seed proxy");
+    }
+
+    async fn seed_request_log_with_proxy(
+        database: &TestDatabase,
+        log_id: &str,
+        created_at: &str,
+        proxy_id: Option<&str>,
+    ) {
+        let mut record = request_log_record(log_id, created_at, None);
+        record.insert(
+            "proxy_id",
+            proxy_id
+                .map(|value| Field::Text(value.to_owned()))
+                .unwrap_or(Field::Null),
+        );
+        let log_key = log_id.to_owned();
+        let created_key = created_at.to_owned();
+        database
+            .db
+            .write(move |transaction| {
+                transaction.put(Table::RequestLogs, &log_key, &record)?;
+                let index_key = crate::infra::db::request_log_index_key(&created_key, &log_key)?;
+                transaction.put(Table::RequestLogIndex, &index_key, &log_key.clone())
+            })
+            .await
+            .expect("seed request log with proxy");
+    }
+
+    #[tokio::test]
+    async fn request_history_rows_carry_the_proxy_id_and_its_name() {
+        let database = TestDatabase::open().await;
+        seed_proxy(&database.db, "px-hq", "HQ Exit").await;
+        seed_request_log_with_proxy(
+            &database,
+            "log-proxied",
+            "2026-09-15 07:11:00",
+            Some("px-hq"),
+        )
+        .await;
+        let state = AppState::new(database.config(), database.db.clone());
+        let Json(page) = list_requests(
+            State(state),
+            Query(RequestLogQuery {
+                limit: Some(10),
+                ..RequestLogQuery::default()
+            }),
+        )
+        .await
+        .expect("list request page");
+        let request = &page["requests"].as_array().expect("request array")[0];
+        assert_eq!(request["proxy_id"], "px-hq");
+        assert_eq!(request["proxy_name"], "HQ Exit");
+    }
+
+    #[tokio::test]
+    async fn request_history_rows_report_null_proxy_fields_for_a_deleted_proxy() {
+        let database = TestDatabase::open().await;
+        seed_request_log_with_proxy(
+            &database,
+            "log-deleted-proxy",
+            "2026-09-15 07:12:00",
+            Some("px-deleted"),
+        )
+        .await;
+        seed_request_log_with_proxy(&database, "log-direct", "2026-09-15 07:13:00", None).await;
+        let state = AppState::new(database.config(), database.db.clone());
+        let Json(page) = list_requests(
+            State(state),
+            Query(RequestLogQuery {
+                limit: Some(10),
+                ..RequestLogQuery::default()
+            }),
+        )
+        .await
+        .expect("list request page");
+        let rows = page["requests"].as_array().expect("request array");
+        let deleted = rows
+            .iter()
+            .find(|row| row["id"] == "log-deleted-proxy")
+            .expect("deleted-proxy row");
+        assert_eq!(deleted["proxy_id"], "px-deleted");
+        assert!(
+            deleted["proxy_name"].is_null(),
+            "a deleted proxy has no name to show: {deleted}"
+        );
+        let direct = rows
+            .iter()
+            .find(|row| row["id"] == "log-direct")
+            .expect("direct row");
+        assert!(direct["proxy_id"].is_null());
+        assert!(direct["proxy_name"].is_null());
+    }
+
+    #[tokio::test]
+    async fn legacy_request_rows_without_a_proxy_field_decode_with_null_proxy_fields() {
+        // `request_log_record` writes the pre-proxy stored shape: no
+        // `proxy_id` field at all, like rows persisted by older builds.
+        let database = TestDatabase::open().await;
+        database
+            .db
+            .write(move |transaction| {
+                transaction.put(
+                    Table::RequestLogs,
+                    "log-legacy",
+                    &request_log_record("log-legacy", "2026-09-15 07:14:00", None),
+                )?;
+                let index_key =
+                    crate::infra::db::request_log_index_key("2026-09-15 07:14:00", "log-legacy")?;
+                transaction.put(Table::RequestLogIndex, &index_key, &"log-legacy".to_owned())
+            })
+            .await
+            .expect("seed legacy request log");
+        let state = AppState::new(database.config(), database.db.clone());
+        let Json(page) = list_requests(
+            State(state),
+            Query(RequestLogQuery {
+                limit: Some(10),
+                ..RequestLogQuery::default()
+            }),
+        )
+        .await
+        .expect("list request page");
+        let request = &page["requests"].as_array().expect("request array")[0];
+        assert!(request["proxy_id"].is_null(), "{request}");
+        assert!(request["proxy_name"].is_null(), "{request}");
+    }
+
+    #[tokio::test]
+    async fn finished_live_rows_carry_the_proxy_id_and_its_name() {
+        use http_body_util::BodyExt;
+
+        const PROXY_ID: &str = "px-live";
+        let database = TestDatabase::open().await;
+        let state = AppState::new(database.config(), database.db.clone());
+        seed_proxy(&database.db, PROXY_ID, "Live Exit").await;
+        // Subscribe before the request lifecycle starts so the started,
+        // updated, and finished events are queued behind the snapshot.
+        let response = request_events(State(state.clone()))
+            .await
+            .expect("request live SSE response")
+            .into_response();
+        let live = state.begin_request_live(
+            "request-live-proxy",
+            "coding",
+            "qwen3-max",
+            "chat_completions",
+            None,
+        );
+        let record = crate::state::RequestLogRecord {
+            id: "log-live-proxy".to_owned(),
+            request_id: "request-live-proxy".to_owned(),
+            route_alias: "coding".to_owned(),
+            provider_id: Some("provider".to_owned()),
+            provider_credential_id: None,
+            api_key_id: None,
+            model: "qwen3-max".to_owned(),
+            client_protocol: "chat_completions".to_owned(),
+            upstream_protocol: Some("chat_completions".to_owned()),
+            proxy_id: Some(PROXY_ID.to_owned()),
+            status: 200,
+            duration_ms: 10,
+            input_tokens: None,
+            output_tokens: None,
+            cached_tokens: None,
+            cache_input_tokens: None,
+            reasoning_effort: None,
+            cost_micro_usd: None,
+            error: None,
+        };
+        live.update_log(&record);
+        drop(live);
+
+        let mut body = response.into_body();
+        let mut frames = Vec::new();
+        for _ in 0..4 {
+            let frame = tokio::time::timeout(Duration::from_secs(1), body.frame())
+                .await
+                .expect("request live frame timeout")
+                .expect("request live frame")
+                .expect("valid request live SSE frame")
+                .into_data()
+                .expect("request live SSE data");
+            frames.push(String::from_utf8_lossy(&frame).to_string());
+        }
+        drop(body);
+        // Frames arrive in registry order: snapshot, started, updated, finished.
+        let finished = frames
+            .iter()
+            .find(|frame| frame.contains("request-finished"))
+            .expect("finished frame");
+        assert!(finished.contains(r#""proxy_id":"px-live""#), "{finished}");
+        assert!(
+            finished.contains(r#""proxy_name":"Live Exit""#),
+            "{finished}"
+        );
+        let started = frames
+            .iter()
+            .find(|frame| frame.contains("request-started"))
+            .expect("started frame");
+        assert!(
+            started.contains(r#""proxy_id":null"#),
+            "a started row does not know its proxy yet: {started}"
+        );
     }
 
     #[tokio::test]

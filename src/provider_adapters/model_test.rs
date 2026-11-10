@@ -225,6 +225,55 @@ pub(super) async fn test_api_key_credential_impl<A: ProviderAdapter + ?Sized>(
     }
 }
 
+/// Builds the probe's pinned client for one proxy endpoint of the provider's
+/// bound proxy. Index `proxy_index` past the end of the bound endpoints (or
+/// any index when the provider has no proxy) builds the direct pinned client.
+async fn probe_client(
+    request: &AdapterModelTestRequest<'_>,
+    endpoint: &reqwest::Url,
+    proxy_index: usize,
+) -> Result<(reqwest::Url, reqwest::Client), String> {
+    let upstream = request.state.operational_settings().settings.upstream;
+    let connect_timeout = request
+        .state
+        .config
+        .connect_timeout
+        .min(std::time::Duration::from_secs(3));
+    let request_timeout = request
+        .state
+        .config
+        .request_timeout
+        .min(std::time::Duration::from_secs(10));
+    let user_agent = concat!("ExoRoute/", env!("CARGO_PKG_VERSION"));
+    match request.proxy_endpoints.get(proxy_index) {
+        Some(proxy) => {
+            egress::provider_client_with_proxy(
+                endpoint.as_str(),
+                request.state.config.allow_private_provider_urls,
+                connect_timeout,
+                request_timeout,
+                false,
+                user_agent,
+                upstream,
+                Some(proxy),
+            )
+            .await
+        }
+        None => {
+            egress::provider_client(
+                endpoint.as_str(),
+                request.state.config.allow_private_provider_urls,
+                connect_timeout,
+                request_timeout,
+                false,
+                user_agent,
+                upstream,
+            )
+            .await
+        }
+    }
+}
+
 pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
     adapter: &A,
     request: AdapterModelTestRequest<'_>,
@@ -238,28 +287,6 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
     let endpoint = match adapter.endpoint(request.base_url, request.protocol, None) {
         Ok(endpoint) => endpoint,
         Err(error) => return failed(None, error),
-    };
-    let (endpoint, client) = match egress::provider_client(
-        endpoint.as_str(),
-        request.state.config.allow_private_provider_urls,
-        request
-            .state
-            .config
-            .connect_timeout
-            .min(std::time::Duration::from_secs(3)),
-        request
-            .state
-            .config
-            .request_timeout
-            .min(std::time::Duration::from_secs(10)),
-        false,
-        concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
-        request.state.operational_settings().settings.upstream,
-    )
-    .await
-    {
-        Ok(result) => result,
-        Err(error) => return failed(None, format!("Provider egress check failed: {error}")),
     };
     let mut last_rejection = None;
     // An upstream that refuses a non-streaming inference would answer this probe
@@ -324,53 +351,81 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
                 };
             }
         };
-        let mut provider_request = client
-            .post(endpoint.clone())
-            .json(&body)
-            .header("x-request-id", &request_id);
-        provider_request = match crate::provider_adapters::apply_custom_headers(
-            provider_request,
-            request.custom_headers,
-        ) {
-            Ok(request) => request,
-            Err(error) => return failed(None, error),
+        // A probe through a bound proxy retries only connect-class failures:
+        // those are the only errors where the upstream provably never received
+        // the probe, so the credential state the send path writes stays true
+        // to what the upstream actually saw.
+        let mut proxy_index = 0usize;
+        let response = loop {
+            let (send_endpoint, client) = match probe_client(&request, &endpoint, proxy_index).await
+            {
+                Ok(result) => result,
+                Err(error) => {
+                    return failed(None, format!("Provider egress check failed: {error}"));
+                }
+            };
+            let mut provider_request = client
+                .post(send_endpoint)
+                .json(&body)
+                .header("x-request-id", &request_id);
+            provider_request = match crate::provider_adapters::apply_custom_headers(
+                provider_request,
+                request.custom_headers,
+            ) {
+                Ok(request) => request,
+                Err(error) => return failed(None, error),
+            };
+            if request.protocol == Protocol::Messages {
+                provider_request = provider_request.header("anthropic-version", "2023-06-01");
+            }
+            if expects_event_stream {
+                provider_request =
+                    provider_request.header(http::header::ACCEPT, "text/event-stream");
+            }
+            let empty_client_headers = HeaderMap::new();
+            provider_request =
+                adapter.apply_client_headers(provider_request, &empty_client_headers);
+            for (name, value) in &preparation.headers {
+                provider_request = provider_request.header(name, value);
+            }
+            provider_request = match adapter.apply_upstream_request_auth(
+                provider_request,
+                UpstreamAuthContext {
+                    auth_type: request.auth_type,
+                    auth_header: request.auth_header,
+                    secret,
+                    oauth_auth: None,
+                    session_id: &request_id,
+                    protocol: request.protocol.into(),
+                    model: Some(request.model),
+                },
+            ) {
+                Ok(request) => request,
+                Err(error) => return failed(None, error),
+            };
+            if capabilities(adapter.adapter_id())
+                .is_some_and(|capabilities| capabilities.local_quota_tracking)
+            {
+                request
+                    .state
+                    .record_local_quota_attempt(request.provider_id)
+                    .await;
+            }
+            match provider_request.send().await {
+                Ok(response) => break response,
+                Err(error) => {
+                    let has_fallback = proxy_index + 1 < request.proxy_endpoints.len();
+                    if !error.is_connect() || !has_fallback {
+                        return failed(
+                            None,
+                            format!("Could not reach provider: {}", error.without_url()),
+                        );
+                    }
+                    proxy_index += 1;
+                }
+            }
         };
-        if request.protocol == Protocol::Messages {
-            provider_request = provider_request.header("anthropic-version", "2023-06-01");
-        }
-        if expects_event_stream {
-            provider_request = provider_request.header(http::header::ACCEPT, "text/event-stream");
-        }
-        let empty_client_headers = HeaderMap::new();
-        provider_request = adapter.apply_client_headers(provider_request, &empty_client_headers);
-        for (name, value) in &preparation.headers {
-            provider_request = provider_request.header(name, value);
-        }
-        provider_request = match adapter.apply_upstream_request_auth(
-            provider_request,
-            UpstreamAuthContext {
-                auth_type: request.auth_type,
-                auth_header: request.auth_header,
-                secret,
-                oauth_auth: None,
-                session_id: &request_id,
-                protocol: request.protocol.into(),
-                model: Some(request.model),
-            },
-        ) {
-            Ok(request) => request,
-            Err(error) => return failed(None, error),
-        };
-        if capabilities(adapter.adapter_id())
-            .is_some_and(|capabilities| capabilities.local_quota_tracking)
-        {
-            request
-                .state
-                .record_local_quota_attempt(request.provider_id)
-                .await;
-        }
-        let response = provider_request.send().await;
-        let response_status = response.as_ref().ok().map(reqwest::Response::status);
+        let response_status = Some(response.status());
         adapter
             .finish_upstream_request(
                 request.state,
@@ -387,31 +442,21 @@ pub(super) async fn test_api_key_model_impl<A: ProviderAdapter + ?Sized>(
                 response_status,
             )
             .await;
-        match response {
-            Ok(response)
-                if request.credentials.len() > 1
-                    && index + 1 < request.credentials.len()
-                    && adapter.retry_upstream_response_as_key_rejection()
-                    && matches!(
-                        response.status(),
-                        http::StatusCode::UNAUTHORIZED
-                            | http::StatusCode::FORBIDDEN
-                            | http::StatusCode::TOO_MANY_REQUESTS
-                    ) =>
-            {
-                let status = response.status().as_u16();
-                let outcome = model_probe_response(adapter, response, expects_event_stream).await;
-                last_rejection = Some((status, outcome.provider_response_body));
-            }
-            Ok(response) => {
-                return model_probe_response(adapter, response, expects_event_stream).await;
-            }
-            Err(error) => {
-                return failed(
-                    None,
-                    format!("Could not reach provider: {}", error.without_url()),
-                );
-            }
+        if request.credentials.len() > 1
+            && index + 1 < request.credentials.len()
+            && adapter.retry_upstream_response_as_key_rejection()
+            && matches!(
+                response.status(),
+                http::StatusCode::UNAUTHORIZED
+                    | http::StatusCode::FORBIDDEN
+                    | http::StatusCode::TOO_MANY_REQUESTS
+            )
+        {
+            let status = response.status().as_u16();
+            let outcome = model_probe_response(adapter, response, expects_event_stream).await;
+            last_rejection = Some((status, outcome.provider_response_body));
+        } else {
+            return model_probe_response(adapter, response, expects_event_stream).await;
         }
     }
     if let Some((status, provider_response_body)) = last_rejection {

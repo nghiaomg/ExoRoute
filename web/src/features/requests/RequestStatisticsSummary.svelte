@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Activity, CircleCheck, CircleX, Clock3 } from '@lucide/svelte';
   import { getIntlLocale, type Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';
@@ -44,7 +45,7 @@
   <div class="statistics-error-banner" role="alert">
     <CircleX size={16} />
     <span>{errorMessage}</span>
-    <button class="secondary-button compact" onclick={onRefresh}>{tr('Retry')}</button>
+    <Button class="secondary-button compact" onclick={onRefresh}>{tr('Retry')}</Button>
   </div>
 {:else}
   <div class="statistics-summary">
@@ -52,20 +53,20 @@
 
     <div class="statistics-actions">
       <div class="range-switch" role="group" aria-label={tr('Statistics time range')}>
-        <button class:active={selectedRange === '1d'} aria-pressed={selectedRange === '1d'} onclick={() => onRangeChange('1d')}>{tr('24 hours')}</button>
-        <button class:active={selectedRange === '7d'} aria-pressed={selectedRange === '7d'} onclick={() => onRangeChange('7d')}>{tr('7 days')}</button>
-        <button class:active={selectedRange === '30d'} aria-pressed={selectedRange === '30d'} onclick={() => onRangeChange('30d')}>{tr('30 days')}</button>
+        <Button stateClasses={{ active: selectedRange === '1d' }} aria-pressed={selectedRange === '1d'} onclick={() => onRangeChange('1d')}>{tr('24 hours')}</Button>
+        <Button stateClasses={{ active: selectedRange === '7d' }} aria-pressed={selectedRange === '7d'} onclick={() => onRangeChange('7d')}>{tr('7 days')}</Button>
+        <Button stateClasses={{ active: selectedRange === '30d' }} aria-pressed={selectedRange === '30d'} onclick={() => onRangeChange('30d')}>{tr('30 days')}</Button>
       </div>
-      <button class="secondary-button compact" aria-label={tr('Refresh statistics')} disabled={isFetching} onclick={onRefresh}>
+      <Button class="secondary-button compact" aria-label={tr('Refresh statistics')} disabled={isFetching} onclick={onRefresh}>
         {#if isFetching}<span class="auth-bootstrap-spinner"></span>{:else}<Activity size={14} />{/if}{tr('Refresh')}
-      </button>
+      </Button>
     </div>
 
     {#if inlineError}
       <div class="statistics-error-banner" role="alert">
         <CircleX size={16} />
         <span>{inlineError}</span>
-        <button class="secondary-button compact" onclick={onRefresh}>{tr('Retry')}</button>
+        <Button class="secondary-button compact" onclick={onRefresh}>{tr('Retry')}</Button>
       </div>
     {/if}
 
@@ -108,8 +109,8 @@
 <style>
   .statistics-actions { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
   .range-switch { display: inline-flex; gap: 2px; padding: 3px; border: var(--nb-border); border-radius: 9px; background: var(--paper); box-shadow: var(--nb-shadow-sm); }
-  .range-switch button { padding: 6px 9px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
-  .range-switch button.active { color: var(--accent-contrast); background: var(--violet); }
+  .range-switch :global(.shared-button) { padding: 6px 9px; color: var(--muted); border: 0; border-radius: 6px; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+  .range-switch :global(.shared-button.active) { color: var(--accent-contrast); background: var(--violet); }
   .statistics-skeleton { display: grid; gap: 14px; }
   .kpi-skeleton { height: 132px; border-radius: 13px; }
   .range-progress { height: 3px; width: 100%; margin-bottom: 12px; border-radius: 3px; background: transparent; overflow: hidden; opacity: 0; transition: opacity 0.15s ease; }

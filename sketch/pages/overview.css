@@ -46,3 +46,16 @@
 .key-reveal-row .page-action { display: inline-flex; align-items: center; gap: 6px; }
 .key-reveal-row .icon { width: 14px; height: 14px; }
 
+
+/* Token, latency and proxy metric strip under the top cards.
+   The content grid grows one row for the strip; mobile falls back to
+   plain auto rows so every card stacks naturally. */
+.dashboard-content { grid-template-rows: auto auto 1.45fr 1fr; }
+.stats-grid.metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1440px) {
+  .stats-grid.metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .dashboard-content { grid-template-rows: auto; }
+  .stats-grid.metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

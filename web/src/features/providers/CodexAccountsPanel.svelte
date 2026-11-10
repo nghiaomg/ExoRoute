@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { LoaderCircle, RefreshCw } from '@lucide/svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import type { Locale } from '../../lib/i18n';
@@ -96,15 +97,15 @@ import { localizedError } from '../../lib/errors';
       <h3>{tr('Connected accounts')}</h3>
     </div>
   </div>
-  {#if errorMessage}<div class="provider-model-empty" role="alert"><p>{errorMessage}</p><button class="secondary-button compact" onclick={load}><RefreshCw size={13} />{tr('Retry')}</button></div>
+  {#if errorMessage}<div class="provider-model-empty" role="alert"><p>{errorMessage}</p><Button class="secondary-button compact" onclick={load}><RefreshCw size={13} />{tr('Retry')}</Button></div>
   {:else if loading}<div class="provider-keys-loading"><LoaderCircle size={15} class="spin" />{tr('Loading connected accounts…')}</div>
   {:else if keys.length}<ProviderKeyList {keys} {tr} {locale} {deletingId} onRemove={remove} />
   {:else}<div class="provider-keys-empty">{tr('No {provider} accounts connected yet.', { provider: providerName })}</div>{/if}
   {#if pageCursors.length > 1 || nextCursor}
     <div class="provider-key-pagination">
-      <button class="secondary-button compact" disabled={loading || pageCursors.length <= 1} onclick={previousPage}>{tr('Previous keys')}</button>
+      <Button class="secondary-button compact" disabled={loading || pageCursors.length <= 1} onclick={previousPage}>{tr('Previous keys')}</Button>
       <span>{tr('Page {current}', { current: pageCursors.length })}</span>
-      <button class="secondary-button compact" disabled={loading || !nextCursor} onclick={nextPage}>{tr('Next keys')}</button>
+      <Button class="secondary-button compact" disabled={loading || !nextCursor} onclick={nextPage}>{tr('Next keys')}</Button>
     </div>
   {/if}
 </section>
@@ -122,17 +123,17 @@ import { localizedError } from '../../lib/errors';
       {tr('Remove provider key “{name}”?', { name: keyToRemove?.name ?? '' })}
     </p>
     <div class="modal-actions" style="margin-top: 16px;">
-      <button type="button" class="secondary-button" disabled={Boolean(deletingId)} onclick={() => { keyToRemove = null; }}>
+      <Button type="button" class="secondary-button" disabled={Boolean(deletingId)} onclick={() => { keyToRemove = null; }}>
         {tr('Cancel')}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         class="primary-button danger"
         disabled={Boolean(deletingId)}
         onclick={confirmRemove}
       >
         {#if deletingId}<LoaderCircle size={14} class="spin" />{tr('Removing…')}{:else}{tr('Remove key')}{/if}
-      </button>
+      </Button>
     </div>
   </div>
 </ArkDialog>

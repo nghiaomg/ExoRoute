@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Check, Palette } from '@lucide/svelte';
   import { THEMES, type ThemeId, type ThemePreference } from '../../lib/theme';
   import { type Translate } from '../../lib/format';
@@ -58,17 +59,17 @@
     if (index >= 0) moveFocus(event, index);
   }}>
     {#each entries as entry, index (entry.preference)}
-      <button
+      <Button
         id="theme-choice-{entry.preference}"
         type="button"
         class="appearance-theme-card"
-        class:system-choice={entry.preference === 'system'}
-        class:selected={isSelected(entry.preference)}
-        class:theme-preview-catppuccin={entry.preference === 'catppuccin'}
-        class:theme-preview-cyber-neon={entry.preference === 'cyber-neon'}
-        class:theme-preview-linear={entry.preference === 'linear'}
-        class:theme-preview-tokyo-night={entry.preference === 'tokyo-night'}
-        class:theme-preview-minimal-light={entry.preference === 'minimal-light'}
+        stateClasses={{ 'system-choice': entry.preference === 'system', selected: isSelected(entry.preference), 'theme-preview-catppuccin': entry.preference === 'catppuccin', 'theme-preview-cyber-neon': entry.preference === 'cyber-neon', 'theme-preview-linear': entry.preference === 'linear', 'theme-preview-tokyo-night': entry.preference === 'tokyo-night', 'theme-preview-minimal-light': entry.preference === 'minimal-light' }}
+
+
+
+
+
+
         role="radio"
         aria-label={entry.preference === 'system' ? tr('System theme') : entry.theme?.name}
         aria-checked={isSelected(entry.preference)}
@@ -99,7 +100,7 @@
           </span>
           <span class="appearance-theme-desc">{tr('Follow your operating system appearance setting.')}</span>
         {/if}
-      </button>
+      </Button>
     {/each}
   </div>
 </section>
@@ -111,7 +112,7 @@
     gap: 12px;
   }
 
-  .appearance-theme-card {
+  :global(.appearance-theme-card) {
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -127,22 +128,22 @@
     transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
   }
 
-  .appearance-theme-card:hover {
+  :global(.appearance-theme-card:hover) {
     border-color: var(--accent);
     transform: translateY(-1px);
   }
 
-  .appearance-theme-card.selected {
+  :global(.appearance-theme-card.selected) {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   }
 
-  .appearance-theme-card:focus-visible {
+  :global(.appearance-theme-card:focus-visible) {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
   }
 
-  .appearance-theme-card.system-choice {
+  :global(.appearance-theme-card.system-choice) {
     border-style: dashed;
   }
 
@@ -230,20 +231,20 @@
     text-transform: uppercase;
   }
 
-  .appearance-theme-card.theme-preview-catppuccin {
+  :global(.appearance-theme-card.theme-preview-catppuccin) {
     border-radius: 18px;
   }
 
-  .appearance-theme-card.theme-preview-cyber-neon {
+  :global(.appearance-theme-card.theme-preview-cyber-neon) {
     border-radius: 3px;
   }
 
-  .appearance-theme-card.theme-preview-linear,
-  .appearance-theme-card.theme-preview-tokyo-night {
+  :global(.appearance-theme-card.theme-preview-linear),
+  :global(.appearance-theme-card.theme-preview-tokyo-night) {
     border-radius: 6px;
   }
 
-  .appearance-theme-card.theme-preview-minimal-light {
+  :global(.appearance-theme-card.theme-preview-minimal-light) {
     border-radius: 8px;
   }
 
@@ -259,12 +260,12 @@
 
   @media (max-width: 480px) {
     .appearance-theme-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 10px; }
-    .appearance-theme-card { min-height: 150px; padding: 12px; }
+    :global(.appearance-theme-card) { min-height: 150px; padding: 12px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .appearance-theme-card { transition: none; }
-    .appearance-theme-card:hover { transform: none; }
+    :global(.appearance-theme-card) { transition: none; }
+    :global(.appearance-theme-card:hover) { transform: none; }
   }
 
   .appearance-theme-desc {

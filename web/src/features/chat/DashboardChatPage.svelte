@@ -1,11 +1,13 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
   import { streamWorkspaceChat } from '../../lib/api/workspace-chat-stream';
   import type { Locale } from '../../lib/i18n';
   import type { Translate } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
-  import ArkCombobox from '../../components/ArkCombobox.svelte';
+  import SelectSearch from '../../components/SelectSearch.svelte';
+  import Input from '../../components/Input.svelte';
   import type {
     ChatAttachmentInput,
     WorkspaceChatInput,
@@ -55,7 +57,7 @@
   let systemPrompt = $state('You are a concise assistant testing the ExoRoute gateway.');
   let streamEnabled = $state(true);
   let pendingAttachments = $state<ChatAttachmentInput[]>([]);
-  let fileInput: HTMLInputElement;
+  let fileInput = $state<HTMLInputElement>();
 
   const activeSession = $derived(sessions.find((s) => s.id === activeSessionId) ?? null);
   const messages = $derived(activeSession?.messages ?? []);
@@ -293,30 +295,30 @@
     <p>{tr('Test models through the gateway before wiring them into production.')}</p>
   </div>
   <div class="heading-actions">
-    <button class="action-button" type="button" data-open-modal="chat-settings-dialog">
+    <Button class="action-button" type="button" data-open-modal="chat-settings-dialog">
       <span class="button-icon"><svg class="icon"><use href="#i-sliders" /></svg></span>
       <span class="button-label">{tr('Parameters')}</span>
-    </button>
-    <button class="action-button primary" type="button" onclick={newChat}>
+    </Button>
+    <Button class="action-button primary" type="button" onclick={newChat}>
       <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
       <span class="button-label">{tr('New chat')}</span>
-    </button>
+    </Button>
   </div>
 </div>
 
 <div class="page-surface chat-surface">
   <div class="chat-layout surface">
     <aside class="chat-side">
-      <button class="chat-new-btn" type="button" onclick={newChat}>
+      <Button class="chat-new-btn" type="button" onclick={newChat}>
         <svg class="icon"><use href="#i-plus" /></svg>
         {tr('New conversation')}
-      </button>
+      </Button>
       <div class="chat-sessions">
         {#each sessions as session (session.id)}
-          <button class="chat-session" class:active={session.id === activeSessionId} type="button" onclick={() => selectSession(session.id)}>
+          <Button class="chat-session" stateClasses={{ active: session.id === activeSessionId }}  type="button" onclick={() => selectSession(session.id)}>
             <strong>{session.title}</strong>
             <span>{tr('{label} · {count} messages', { label: session.modelLabel || tr('no model'), count: session.messages.length })}</span>
-          </button>
+          </Button>
         {:else}
           <p class="card-subtitle" style="padding:10px 4px">{tr('No conversations yet.')}</p>
         {/each}
@@ -327,7 +329,7 @@
       <div class="chat-model-bar">
         <span class="chat-model-label">{tr('Model')}</span>
         <div class="chat-model-combobox">
-          <ArkCombobox
+          <SelectSearch
             items={modelItems}
             value={selectedModel}
             disabled={streaming}
@@ -352,9 +354,9 @@
             <strong>{tr('Start a conversation')}</strong>
             <p>{tr('Messages are routed through the gateway exactly like production traffic.')}</p>
             <div class="chat-suggestions">
-              <button class="chat-suggestion" type="button" onclick={() => void send('Summarize this text in 3 bullets: ExoRoute is a protocol gateway that normalizes client and provider formats, adds retries, combos, quota tracking, and per-key scoping.')}>{tr('Summarize this text in 3 bullets')}</button>
-              <button class="chat-suggestion" type="button" onclick={() => void send('Write a Python retry decorator with exponential backoff')}>{tr('Write a Python retry decorator')}</button>
-              <button class="chat-suggestion" type="button" onclick={() => void send('Explain SSE vs WebSocket for LLM streaming')}>{tr('Explain SSE vs WebSocket')}</button>
+              <Button class="chat-suggestion" type="button" onclick={() => void send('Summarize this text in 3 bullets: ExoRoute is a protocol gateway that normalizes client and provider formats, adds retries, combos, quota tracking, and per-key scoping.')}>{tr('Summarize this text in 3 bullets')}</Button>
+              <Button class="chat-suggestion" type="button" onclick={() => void send('Write a Python retry decorator with exponential backoff')}>{tr('Write a Python retry decorator')}</Button>
+              <Button class="chat-suggestion" type="button" onclick={() => void send('Explain SSE vs WebSocket for LLM streaming')}>{tr('Explain SSE vs WebSocket')}</Button>
             </div>
           </div>
         {/if}
@@ -366,10 +368,10 @@
       </div>
 
       <form class="chat-composer" onsubmit={(e) => { e.preventDefault(); void send(); }}>
-        <button class="icon-action" type="button" title={tr('Attach image')} onclick={() => fileInput.click()}>
+        <Button class="icon-action" type="button" title={tr('Attach image')} onclick={() => fileInput?.click()}>
           <svg class="icon"><use href="#i-paperclip" /></svg>
-        </button>
-        <input bind:this={fileInput} type="file" accept="image/*" hidden onchange={onAttach} />
+        </Button>
+        <Input bind:element={fileInput} type="file" accept="image/*" hidden onchange={onAttach} />
         <textarea
           bind:this={inputEl}
           bind:value={composerText}
@@ -381,13 +383,13 @@
           disabled={streaming}
         ></textarea>
         {#if streaming}
-          <button class="chat-stop" type="button" title={tr('Stop generating')} onclick={stop}>
+          <Button class="chat-stop" type="button" title={tr('Stop generating')} onclick={stop}>
             <svg class="icon"><use href="#i-stop" /></svg>
-          </button>
+          </Button>
         {:else}
-          <button class="chat-send" type="submit" title={tr('Send')} disabled={!composerText.trim() || !selectedModel}>
+          <Button class="chat-send" type="submit" title={tr('Send')} disabled={!composerText.trim() || !selectedModel}>
             <svg class="icon"><use href="#i-send" /></svg>
-          </button>
+          </Button>
         {/if}
       </form>
     </section>
@@ -402,30 +404,30 @@
         <h2 id="chat-settings-title">{tr('Chat parameters')}</h2>
         <p>{tr('Applied to the next request through the gateway.')}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
+      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     <div class="modal-fields chat-settings-fields">
       <label class="field">
         {tr('Temperature')}
-        <input type="range" min="0" max="2" step="0.1" bind:value={temperature} />
+        <Input type="range" min="0" max="2" step="0.1" bind:value={temperature} />
         <span class="range-value">{temperature.toFixed(1)}</span>
       </label>
       <label class="field">
         {tr('Max tokens')}
-        <input type="number" min="64" max="128000" step="64" bind:value={maxTokens} />
+        <Input type="number" min="64" max="128000" step="64" bind:value={maxTokens} />
       </label>
       <label class="field prov-field-wide">
         {tr('System prompt')}
         <textarea rows="3" placeholder={tr('You are a helpful routing assistant…')} bind:value={systemPrompt}></textarea>
       </label>
       <label class="field chat-check">
-        <input type="checkbox" bind:checked={streamEnabled} />
+        <Input type="checkbox" bind:checked={streamEnabled} />
         {tr('Stream response (SSE)')}
       </label>
     </div>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
-      <button class="page-action primary" type="submit">{tr('Apply')}</button>
+      <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
+      <Button class="page-action primary" type="submit">{tr('Apply')}</Button>
     </div>
   </form>
 </dialog>

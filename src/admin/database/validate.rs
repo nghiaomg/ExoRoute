@@ -565,9 +565,13 @@ pub(crate) fn validate_backup_payload(
         })?;
     super::proxies::validate_backup_proxy_entries(&payload.entries)?;
     for provider in providers.values() {
-        if let Some(proxy_id) = provider.optional_text("proxy_id")
+        if let Some(proxy_id) = provider
+            .optional_text("proxy_id")
             .map_err(|_| "A provider record in the backup is invalid.")?
-            && payload.entries.iter().all(|entry| entry.table != Table::Proxies || entry.key != proxy_id)
+            && payload
+                .entries
+                .iter()
+                .all(|entry| entry.table != Table::Proxies || entry.key != proxy_id)
         {
             return Err("A provider refers to a proxy that is missing from the backup.");
         }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { ArrowRight, Check, Copy, Layers3, ListOrdered, Pencil, Radio, RefreshCw, Trash2 } from '@lucide/svelte';
   import type { GatewayCombo } from '../../lib/types';
   import type { Translate } from '../../lib/format';
@@ -93,7 +94,7 @@
     <div class="combo-title">
       <div class="combo-name-row">
         <h3>{combo.name}</h3>
-        <button
+        <Button
           type="button"
           class="combo-copy-btn"
           aria-label={tr(copied ? 'Model name copied' : 'Copy model name')}
@@ -105,7 +106,7 @@
           {:else}
             <Copy size={12} />
           {/if}
-        </button>
+        </Button>
       </div>
       <span class="combo-id">{combo.id}</span>
     </div>
@@ -119,7 +120,7 @@
     </span>
     <div class="combo-card-actions">
       {#if onEdit}
-        <button
+        <Button
           type="button"
           class="row-icon combo-edit-btn"
           aria-label={tr('Edit combo')}
@@ -127,9 +128,9 @@
           onclick={(e) => { e.stopPropagation(); onEdit(combo); }}
         >
           <Pencil size={14} />
-        </button>
+        </Button>
       {/if}
-      <button
+      <Button
         type="button"
         class="row-icon danger-hover combo-delete"
         aria-label={tr('Delete combo “{name}”? This cannot be undone.', { name: combo.name })}
@@ -138,7 +139,7 @@
         onclick={(e) => { e.stopPropagation(); onDelete(combo); }}
       >
         <Trash2 size={14} />
-      </button>
+      </Button>
     </div>
   </div>
 
@@ -221,14 +222,14 @@
       {/each}
     {/if}
     {#if showExpander}
-      <button
+      <Button
         type="button"
         class="pipeline-toggle"
         onclick={toggleExpanded}
         onkeydown={(e) => { e.stopPropagation(); }}
       >
         {expanded ? tr('Show less') : tr('Show all {count} targets', { count: pipelineRows.length })}
-      </button>
+      </Button>
     {/if}
     {#if !pipelineRows.length}
       <div class="no-targets">{tr('No targets configured')}</div>

@@ -1,6 +1,8 @@
 <script lang="ts">
+  import Button from "../Button.svelte";
   import type { Snippet } from 'svelte';
   import DashboardIconSprite from './DashboardIconSprite.svelte';
+  import Input from '../Input.svelte';
   import { dashboardToast, submitTopSearch } from '../../lib/dashboard-ui';
   import { getStoredSidebarCollapsed, saveSidebarCollapsed } from '../../lib/sidebar';
   import { DASHBOARD_VERSION } from '../../lib/version';
@@ -176,9 +178,9 @@
               <span>ExoRoute</span>
               <span class="brand-version">{DASHBOARD_VERSION}</span>
             </div>
-            <button class="collapse-button" type="button" aria-label={tr('Collapse sidebar')} onclick={toggleCollapse}>
+            <Button class="collapse-button" type="button" aria-label={tr('Collapse sidebar')} onclick={toggleCollapse}>
               <svg class="icon"><use href="#i-chevron" /></svg>
-            </button>
+            </Button>
           </div>
 
           <nav class="side-panel" aria-label={tr('Main navigation')}>
@@ -186,9 +188,9 @@
               <p class="eyebrow">{tr('Menu')}</p>
               <div class="nav-list">
                 {#each menuItems as item (item.id)}
-                  <button
-                    class="nav-button"
-                    class:active={navPage === item.id}
+                  <Button
+                    class="nav-button" stateClasses={{ active: navPage === item.id }}
+
                     type="button"
                     aria-current={navPage === item.id ? 'page' : undefined}
                     onclick={() => handleNav(item.id)}
@@ -196,7 +198,7 @@
                     <span class="nav-icon"><svg class="icon"><use href="#{item.icon}" /></svg></span>
                     <span class="nav-label">{item.label}</span>
                     {#if item.count}<span class="nav-count">{item.count}</span>{/if}
-                  </button>
+                  </Button>
                 {/each}
               </div>
             </div>
@@ -205,24 +207,24 @@
               <p class="eyebrow">{tr('General')}</p>
               <div class="nav-list">
                 {#each generalItems as item (item.id)}
-                  <button
-                    class="nav-button"
-                    class:active={navPage === item.id}
+                  <Button
+                    class="nav-button" stateClasses={{ active: navPage === item.id }}
+
                     type="button"
                     onclick={() => handleNav(item.id)}
                   >
                     <span class="nav-icon"><svg class="icon"><use href="#{item.icon}" /></svg></span>
                     <span class="nav-label">{item.label}</span>
-                  </button>
+                  </Button>
                 {/each}
               </div>
             </div>
 
             {#if onSignOut}
-              <button class="nav-button logout" type="button" onclick={handleSignOut}>
+              <Button class="nav-button logout" type="button" onclick={handleSignOut}>
                 <span class="nav-icon"><svg class="icon"><use href="#i-logout" /></svg></span>
                 <span class="nav-label">{tr('Log Out')}</span>
-              </button>
+              </Button>
             {/if}
           </nav>
         </aside>
@@ -233,7 +235,7 @@
           <header class="topbar">
             <label class="search-box">
               <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
-              <input
+              <Input
                 type="search"
                 placeholder={tr('Search requests...')}
                 aria-label={tr('Search requests')}
@@ -242,9 +244,9 @@
               />
             </label>
             <div class="top-actions">
-              <button class="icon-button mobile-menu-btn" type="button" aria-label={tr('Toggle navigation')} aria-expanded={mobileOpen} onclick={() => setMobileOpen(!mobileOpen)}>
+              <Button class="icon-button mobile-menu-btn" type="button" aria-label={tr('Toggle navigation')} aria-expanded={mobileOpen} onclick={() => setMobileOpen(!mobileOpen)}>
                 <svg class="icon"><use href="#i-menu" /></svg>
-              </button>
+              </Button>
               <LanguageSelect {locale} {tr} onLocaleChange={onLocaleChange} />
               <span class="top-divider" aria-hidden="true"></span>
               <div class="profile">

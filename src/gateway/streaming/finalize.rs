@@ -82,6 +82,7 @@ fn log_abandoned_stream(log: &StreamLog) {
             model: &log.model,
             client: log.client_protocol,
             upstream: Some(log.upstream_protocol),
+            proxy_id: log.proxy_id.as_deref(),
             status,
             duration_ms: log.started.elapsed().as_millis() as i64,
             input_tokens: has_usage.then_some(input_tokens),
@@ -133,6 +134,7 @@ pub(crate) async fn log_failed_stream(
             model: &log.model,
             client: log.client_protocol,
             upstream: Some(log.upstream_protocol),
+            proxy_id: log.proxy_id.as_deref(),
             status: StatusCode::BAD_GATEWAY,
             duration_ms: log.started.elapsed().as_millis() as i64,
             // Preserve token counts observed before a framing or upstream
@@ -180,6 +182,7 @@ pub(crate) async fn log_completed_stream(
             model: &log.model,
             client: log.client_protocol,
             upstream: Some(log.upstream_protocol),
+            proxy_id: log.proxy_id.as_deref(),
             status: StatusCode::OK,
             duration_ms: log.started.elapsed().as_millis() as i64,
             input_tokens,

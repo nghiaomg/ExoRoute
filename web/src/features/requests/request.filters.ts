@@ -10,7 +10,7 @@ import { localizedError } from '../../lib/errors';
 import type { Translate } from '../../lib/format';
 import type { GatewayApiKey, Provider } from '../../lib/types';
 
-/// Structurally `ComboboxOption` from `components/ArkCombobox.svelte`; declared
+/// Structurally `SelectSearchOption` from `components/SelectSearch.svelte`; declared
 /// here so this module stays free of component imports and remains loadable by
 /// the plain-node tests.
 export type RequestFilterOption = {

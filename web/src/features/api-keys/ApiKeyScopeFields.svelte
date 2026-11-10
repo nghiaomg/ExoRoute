@@ -1,7 +1,9 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { Portal } from '@ark-ui/svelte/portal';
   import { Combobox, createListCollection } from '@ark-ui/svelte/combobox';
   import { ChevronsUpDown, X } from '@lucide/svelte';
+  import Input from '../../components/Input.svelte';
   import type { Translate } from '../../lib/format';
   import type { Provider } from '../../lib/types';
   import {
@@ -71,7 +73,7 @@
             <li class="scope-chip" class:missing={!known}>
               <span class="scope-chip-name">{providerLabel(providerId)}</span>
               {#if !known}<code>{tr('Deleted')}</code>{/if}
-              <button
+              <Button
                 type="button"
                 class="scope-chip-remove"
                 aria-label={tr('Remove {name}', { name: providerLabel(providerId) })}
@@ -80,7 +82,7 @@
                 onclick={() => toggleProvider(providerId, false)}
               >
                 <X size={12} />
-              </button>
+              </Button>
             </li>
           {/each}
         </ul>
@@ -102,7 +104,8 @@
         class="scope-add"
       >
         <Combobox.Control class="scope-add-control">
-          <Combobox.Input
+          <Input
+            variant="combobox"
             class="ark-field-input scope-add-input"
             placeholder={tr('Search providers by name or ID')}
             aria-label={tr('Add a provider')}
@@ -216,7 +219,7 @@
   .scope-chip.missing code {
     color: #b45309;
   }
-  .scope-chip-remove {
+  :global(.scope-chip-remove) {
     display: grid;
     place-items: center;
     width: 19px;
@@ -229,11 +232,11 @@
     background: transparent;
     cursor: pointer;
   }
-  .scope-chip-remove:hover:not(:disabled) {
+  :global(.scope-chip-remove:hover:not(:disabled)) {
     color: #c2410c;
     background: rgba(249, 115, 22, 0.12);
   }
-  .scope-chip-remove:disabled {
+  :global(.scope-chip-remove:disabled) {
     cursor: not-allowed;
     opacity: 0.5;
   }

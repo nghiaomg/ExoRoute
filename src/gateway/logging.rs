@@ -9,6 +9,10 @@ pub struct GatewayRequestLog<'a> {
     pub(super) model: &'a str,
     pub(super) client: Protocol,
     pub(super) upstream: Option<UpstreamProtocol>,
+    /// The proxy the serving attempt egressed through, when the provider is
+    /// bound to one. The final all-targets-failed log has no attempt, so it
+    /// carries no proxy.
+    pub(super) proxy_id: Option<&'a str>,
     pub(super) status: StatusCode,
     pub(super) duration_ms: i64,
     pub(super) input_tokens: Option<i64>,
@@ -47,6 +51,9 @@ pub fn log_request(
         model: record.model.chars().take(256).collect(),
         client_protocol: record.client.as_str().to_owned(),
         upstream_protocol: record.upstream.map(|protocol| protocol.as_str().to_owned()),
+        proxy_id: record
+            .proxy_id
+            .map(|value| value.chars().take(256).collect()),
         status: record.status.as_u16() as i64,
         duration_ms: record.duration_ms.max(0),
         input_tokens: record.input_tokens,

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Copy, Pencil, Quote, RefreshCw, ArrowDownToLine } from '@lucide/svelte';
+  import Button from '../../components/Button.svelte';
   import type { Translate } from '../../lib/format';
   import type { ChatConversationMessage } from '../../lib/types';
 
@@ -33,33 +34,33 @@
 </script>
 
 <div class="turn-actions">
-  <button class="turn-action" type="button" title={tr('Copy')} on:click={copyTurn}>
+  <Button class="turn-action" type="button" title={tr('Copy')} onclick={copyTurn}>
     <Copy size={12} />
-  </button>
+  </Button>
   {#if !message.error}
-    <button class="turn-action" type="button" title={tr('Quote into composer')} on:click={quoteTurn}>
+    <Button class="turn-action" type="button" title={tr('Quote into composer')} onclick={quoteTurn}>
       <Quote size={12} />
-    </button>
+    </Button>
   {/if}
   {#if isUser}
-    <button class="turn-action" type="button" title={tr('Edit and resend')} on:click={() => onEdit(index)}>
+    <Button class="turn-action" type="button" title={tr('Edit and resend')} onclick={() => onEdit(index)}>
       <Pencil size={12} />
-    </button>
+    </Button>
   {/if}
   {#if isAssistant && index === lastIndex}
-    <button class="turn-action" type="button" title={tr('Regenerate')} on:click={onRegenerate}>
+    <Button class="turn-action" type="button" title={tr('Regenerate')} onclick={onRegenerate}>
       <RefreshCw size={12} />
-    </button>
+    </Button>
   {/if}
   {#if isAssistant && index === lastIndex}
-    <button class="turn-action" type="button" title={tr('Continue generation')} on:click={onContinue}>
+    <Button class="turn-action" type="button" title={tr('Continue generation')} onclick={onContinue}>
       <ArrowDownToLine size={12} />
-    </button>
+    </Button>
   {/if}
 </div>
 
 <style>
-  .turn-actions {
+  :global(.turn-actions) {
     display: flex;
     gap: 4px;
     opacity: 0;
@@ -71,7 +72,7 @@
     opacity: 1;
   }
 
-  .turn-action {
+  :global(.turn-action) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -87,17 +88,17 @@
     transition: transform 0.1s ease, box-shadow 0.1s ease;
   }
 
-  .turn-action:hover {
+  :global(.turn-action:hover) {
     transform: translate(-1px, -1px);
     box-shadow: var(--nb-shadow-sm);
   }
 
-  .turn-action:active {
+  :global(.turn-action:active) {
     transform: translate(1px, 1px);
     box-shadow: var(--nb-shadow-sm);
   }
 
-  :global(:root[data-theme='dark']) .turn-action {
+  :global(:root[data-theme='dark'] .turn-action) {
     background: rgba(255, 255, 255, 0.04);
     color: #c9cdde;
   }

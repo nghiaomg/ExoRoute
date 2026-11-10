@@ -70,10 +70,12 @@ impl Orchestrator {
             api_key_id: request_api_key_id.as_deref(),
             started,
             reasoning_effort: None,
+            proxy_id: None,
         };
         let mut failures = TargetLoopFailures::new();
         for target in &targets {
             log.set_reasoning_effort(None);
+            log.set_proxy_id(None);
             let attempt =
                 match target_preparation::prepare_target(&scope, &mut canonical, target, &live)
                     .await
@@ -99,6 +101,7 @@ impl Orchestrator {
                     }
                 };
             log.set_reasoning_effort(attempt.effective_effort.clone());
+            log.set_proxy_id(attempt.proxy_id.clone());
             failures.request_encodable = true;
             let mut rotation =
                 match CredentialRotation::start(&scope.state, &attempt.provider).await {

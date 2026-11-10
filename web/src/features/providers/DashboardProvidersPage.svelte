@@ -1,15 +1,18 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
+  import StatsCard from "../../components/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
+  import SelectOptions from '../../components/SelectOptions.svelte';
   import Input from '../../components/Input.svelte';
   import type { DashboardPage } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
   import type { Translate } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
-  import ArkSelect from '../../components/ArkSelect.svelte';
   import type { Provider, ProviderKey, ProviderPreset, UpstreamProtocol } from '../../lib/types';
   import { providerLogo } from './provider-logo';
   import ProviderDetailsPage from './ProviderDetailsPage.svelte';
+  import ProviderPresetSetupPage from './ProviderPresetSetupPage.svelte';
   import '../../styles/dashboard/pages/providers.css';
 
   interface Props {
@@ -29,18 +32,6 @@
 
   let search = $state('');
   let statusFilter = $state('all');
-
-  // Provider dialog
-  let providerDialog = $state<HTMLDialogElement>();
-  let editingProvider = $state<Provider | null>(null);
-  let pfPreset = $state('');
-  let pfName = $state('');
-  let pfUrl = $state('');
-  let pfKey = $state('');
-  let pfModel = $state('');
-  let pfBusy = $state(false);
-  let pfError = $state('');
-  let pfNote = $state('');
 
   // Keys dialog
   let keysDialog = $state<HTMLDialogElement>();
@@ -63,9 +54,11 @@
   let testDialog = $state<HTMLDialogElement>();
   let testRows = $state<{ id: string; name: string; state: 'pending' | 'testing' | 'ok' | 'fail'; detail: string }[]>([]);
   let testRunning = $state(false);
+  let creatingPresetId = $state<string | null>(null);
+  let setupPresetId = $state<string | null>(null);
 
   const presetById = $derived(new Map(presets.map((p) => [p.id, p])));
-  const customPreset = $derived(presets.find((p) => p.id === 'custom' || p.adapter_id === 'generic') ?? presets[0] ?? null);
+  const setupPreset = $derived(setupPresetId ? presetById.get(setupPresetId) ?? null : null);
 
   const providerCatalog = $derived.by(() => {
     const configuredAdapters = new Set(providers.map((provider) => provider.adapter_id));
@@ -112,18 +105,44 @@
     return labels ? labels : tr(CATEGORY_LABEL_KEYS[presetCategory(preset)]);
   }
 
-  function providerPreset(presetId: string): void {
-    editingProvider = null;
-    pfError = '';
-    pfNote = '';
-    pfBusy = false;
-    pfPreset = presetId;
-    pfName = '';
-    pfUrl = '';
-    pfKey = '';
-    pfModel = '';
-    applyPreset();
-    providerDialog?.showModal();
+  async function providerPreset(presetId: string): Promise<void> {
+    if (creatingPresetId) return;
+    const preset = presetById.get(presetId);
+    if (!preset) return;
+
+    const endpoint = preset.default_base_url?.trim();
+    if (!endpoint) {
+      setupPresetId = presetId;
+      return;
+    }
+
+    creatingPresetId = presetId;
+    try {
+      const result = await api.createProvider({
+        adapter_id: preset.adapter_id,
+        name: preset.name,
+        base_url: endpoint,
+        logo_url: preset.default_logo_url ?? null,
+        model_prefix: preset.default_model_prefix || undefined,
+        enabled: true,
+        auth_type: preset.supported_auth_types.includes('none') ? 'none' : preset.default_auth_type,
+        api_keys: [],
+        preferred_protocol: preset.default_preferred_protocol,
+        supported_protocols: preset.default_supported_protocols as UpstreamProtocol[],
+      });
+      setupPresetId = null;
+      const providerRows = await load();
+      const provider = providerRows?.find((item) => item.id === result.id);
+      if (!provider) {
+        showDashboardToast(tr('Could not load providers.'));
+        return;
+      }
+      openDetail(provider);
+    } catch (error) {
+      showDashboardToast(error instanceof Error ? error.message : tr('Could not save provider.'));
+    } finally {
+      creatingPresetId = null;
+    }
   }
 
   /** Group order mirrors the preset catalog; adapters without a preset fall into Custom. */
@@ -152,94 +171,30 @@
     }));
   });
 
-  async function load(): Promise<void> {
+  async function load(): Promise<Provider[] | null> {
     const gen = ++generation;
     loading = true;
     errorMessage = '';
     onConnectionChange('loading');
     try {
       const [providerRows, presetRows] = await Promise.all([api.providers(), api.providerPresets()]);
-      if (gen !== generation) return;
+      if (gen !== generation) return null;
       providers = providerRows;
       presets = presetRows;
       onProviderCountChange(providerRows.length);
       onConnectionChange('loaded');
+      return providerRows;
     } catch (error) {
-      if (gen !== generation) return;
+      if (gen !== generation) return null;
       errorMessage = error instanceof Error ? error.message : tr('Could not load providers.');
       onConnectionChange('error');
+      return null;
     } finally {
       if (gen === generation) loading = false;
     }
   }
 
-  function openProviderDialog(provider: Provider | null): void {
-    editingProvider = provider;
-    pfError = '';
-    pfNote = '';
-    pfBusy = false;
-    if (provider) {
-      pfPreset = presets.find((p) => p.adapter_id === provider.adapter_id)?.id ?? customPreset?.id ?? '';
-      pfName = provider.name;
-      pfUrl = provider.base_url;
-      pfKey = '';
-      pfModel = provider.model_prefix ?? '';
-    } else {
-      pfPreset = customPreset?.id ?? '';
-      pfName = '';
-      pfUrl = '';
-      pfKey = '';
-      pfModel = '';
-    }
-    providerDialog?.showModal();
-  }
 
-  async function saveProvider(): Promise<void> {
-    const name = pfName.trim();
-    const baseUrl = pfUrl.trim();
-    if (!name || !baseUrl || pfBusy) return;
-    pfBusy = true;
-    pfError = '';
-    pfNote = '';
-    try {
-      if (editingProvider) {
-        const res = await api.updateProvider(editingProvider.id, {
-          name,
-          base_url: baseUrl,
-          model_prefix: pfModel.trim() || undefined,
-        });
-        const failed = res.key_tests.filter((t) => !t.test_passed).length;
-        pfNote = failed ? tr('{failed} API key test(s) failed; keys were kept.', { failed }) : '';
-        showDashboardToast(tr('Provider "{name}" updated', { name }));
-      } else {
-        const preset = presetById.get(pfPreset) ?? customPreset;
-        const keys = pfKey.trim() ? [pfKey.trim()] : [];
-        const res = await api.createProvider({
-          adapter_id: preset?.adapter_id ?? 'generic',
-          name,
-          base_url: baseUrl,
-          logo_url: preset?.default_logo_url ?? null,
-          model_prefix: pfModel.trim() || undefined,
-          enabled: true,
-          auth_type: keys.length ? (preset?.default_auth_type ?? 'bearer') : 'none',
-          api_keys: keys,
-          preferred_protocol: preset?.default_preferred_protocol ?? 'chat_completions',
-          supported_protocols: preset?.default_supported_protocols?.length
-            ? (preset.default_supported_protocols as UpstreamProtocol[])
-            : ['chat_completions', 'responses', 'messages'],
-        });
-        const failed = res.key_tests.filter((t) => !t.test_passed).length;
-        pfNote = failed ? tr('{failed} API key test(s) failed; keys were still saved.', { failed }) : '';
-        showDashboardToast(tr('Provider "{name}" created', { name }));
-      }
-      providerDialog?.close();
-      await load();
-    } catch (error) {
-      pfError = error instanceof Error ? error.message : tr('Could not save provider.');
-    } finally {
-      pfBusy = false;
-    }
-  }
 
   async function toggleProvider(provider: Provider): Promise<void> {
     const next = !provider.enabled;
@@ -305,6 +260,12 @@
   }
 
   /** Opens the full-page provider detail view and records it in the URL. */
+  async function finishPresetSetup(providerId: string): Promise<void> {
+    const providerRows = await load();
+    const provider = providerRows?.find((item) => item.id === providerId);
+    if (provider) openDetail(provider);
+  }
+
   function openDetail(provider: Provider): void {
     detailProviderId = provider.id;
     try {
@@ -400,13 +361,6 @@
     testRunning = false;
   }
 
-  function applyPreset() {
-    const preset = presetById.get(pfPreset) ?? customPreset;
-    if (!preset || editingProvider) return;
-    if (!pfUrl) pfUrl = preset.default_base_url ?? '';
-    if (!pfModel && preset.default_model_prefix) pfModel = preset.default_model_prefix;
-  }
-
   function fmtKeys(provider: Provider): string {
     const n = provider.api_key_count ?? 0;
     return `${n} ${tr(n === 1 ? 'key' : 'keys')}`;
@@ -433,7 +387,14 @@
 </script>
 
 <div class="providers-view">
-{#if detailLive}
+{#if setupPreset}
+  <ProviderPresetSetupPage
+    preset={setupPreset}
+    {tr}
+    onBack={() => { setupPresetId = null; }}
+    onCreated={(providerId) => { setupPresetId = null; void finishPresetSetup(providerId); }}
+  />
+{:else if detailLive}
   <ProviderDetailsPage
     provider={detailLive}
     {tr}
@@ -451,14 +412,10 @@
     <p>{tr('Manage upstream AI providers, credentials, and synced models.')}</p>
   </div>
   <div class="heading-actions">
-    <button class="action-button" type="button" onclick={runAllTests} disabled={testRunning}>
+    <Button class="action-button" type="button" onclick={runAllTests} disabled={testRunning}>
       <span class="button-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
       <span class="button-label">{tr('Test all')}</span>
-    </button>
-    <button class="action-button primary" type="button" onclick={() => openProviderDialog(null)}>
-      <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
-      <span class="button-label">{tr('Add provider')}</span>
-    </button>
+    </Button>
   </div>
 </div>
 
@@ -467,66 +424,34 @@
     <div class="card-title-row"><h2>{tr('Could not load providers')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
     <div class="modal-actions" style="padding-top:14px">
-      <button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</button>
+      <Button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   </section>
 {:else if loading}
   <section class="stats-grid" aria-label={tr('Loading')}>
-    {#each [0, 1, 2, 3] as i (i)}<article class="stat-card surface" style="min-height:132px"></article>{/each}
+    {#each [0, 1, 2, 3] as i (i)}<StatsCard skeleton />{/each}
   </section>
 {:else}
   <div class="page-surface">
     <section class="stats-grid" aria-label={tr('Provider overview')}>
-      <article class="stat-card surface">
-        <div class="stat-top">
-          <span class="stat-icon"><svg class="icon"><use href="#i-link" /></svg></span>
-          <span class="stat-number">{providers.length}</span>
-        </div>
-        <h2>{tr('Total Providers')}</h2>
-        <div class="stat-trend">{tr('{enabled} enabled, {disabled} disabled', { enabled: enabledCount, disabled: providers.length - enabledCount })}</div>
-        <button class="details-link" type="button" onclick={() => (statusFilter = 'all')}>{tr('View all')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-      </article>
-      <article class="stat-card surface">
-        <div class="stat-top">
-          <span class="stat-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
-          <span class="stat-number">{enabledCount}</span>
-        </div>
-        <h2>{tr('Enabled')}</h2>
-        <div class="stat-trend">{tr('Serving live traffic')}</div>
-        <button class="details-link" type="button" onclick={() => (statusFilter = 'enabled')}>{tr('Show enabled only')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-      </article>
-      <article class="stat-card surface">
-        <div class="stat-top">
-          <span class="stat-icon"><svg class="icon"><use href="#i-key" /></svg></span>
-          <span class="stat-number">{totalKeys}</span>
-        </div>
-        <h2>{tr('Credentials')}</h2>
-        <div class="stat-trend">{tr('Across {count} providers', { count: providers.filter((p) => (p.api_key_count ?? 0) > 0).length })}</div>
-        <button class="details-link" type="button" onclick={() => { if (providers[0]) void openKeys(providers[0]); }}>{tr('Manage keys')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-      </article>
-      <article class="stat-card surface">
-        <div class="stat-top">
-          <span class="stat-icon"><svg class="icon"><use href="#i-refresh" /></svg></span>
-          <span class="stat-number">{totalModels}</span>
-        </div>
-        <h2>{tr('Synced Models')}</h2>
-        <div class="stat-trend">{keylessCount ? tr('{count} enabled without keys', { count: keylessCount }) : tr('All enabled providers have keys')}</div>
-        <button class="details-link" type="button" onclick={syncModels}>{tr('Sync now')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
-      </article>
+      <StatsCard icon="#i-link" value={providers.length} title={tr('Total Providers')} trend={tr('{enabled} enabled, {disabled} disabled', { enabled: enabledCount, disabled: providers.length - enabledCount })} actionLabel={tr('View all')} onAction={ () => (statusFilter = 'all') } />
+      <StatsCard icon="#i-zap" value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} actionLabel={tr('Show enabled only')} onAction={ () => (statusFilter = 'enabled') } />
+      <StatsCard icon="#i-key" value={totalKeys} title={tr('Credentials')} trend={tr('Across {count} providers', { count: providers.filter((p) => (p.api_key_count ?? 0) > 0).length })} actionLabel={tr('Manage keys')} onAction={ () => { if (providers[0]) void openKeys(providers[0]); } } />
+      <StatsCard icon="#i-refresh" value={totalModels} title={tr('Synced Models')} trend={keylessCount ? tr('{count} enabled without keys', { count: keylessCount }) : tr('All enabled providers have keys')} actionLabel={tr('Sync now')} onAction={ syncModels } />
     </section>
 
     <section class="course-card surface provider-section" aria-labelledby="providers-heading">
       <div class="card-title-row">
         <h2 id="providers-heading">{tr('Providers')}</h2>
-        <button class="mini-add" type="button" onclick={() => void load()} disabled={loading}>
+        <Button class="mini-add" type="button" onclick={() => void load()} disabled={loading}>
           <svg class="icon"><use href="#i-refresh" /></svg>
           {tr('Refresh current page')}
-        </button>
+        </Button>
       </div>
       <p class="card-subtitle">{tr('{providers} providers · {enabled} enabled · {keys} credentials', { providers: providers.length, enabled: enabledCount, keys: totalKeys })}</p>
       <div class="page-toolbar provider-toolbar">
-        <input class="prov-search" type="search" placeholder={tr('Search providers...')} aria-label={tr('Search providers')} bind:value={search} />
-        <ArkSelect
+        <Input class="prov-search" type="search" placeholder={tr('Search providers...')} aria-label={tr('Search providers')} bind:value={search} />
+        <SelectOptions
           class="prov-select"
           ariaLabel={tr('Filter by status')}
           bind:value={statusFilter}
@@ -548,7 +473,7 @@
                   {#if provider}
                     <!-- Existing records open the detail page; the trailing hint stays the single action. -->
                     <article class="course-row provider-row provider-row-button" data-status={provider.enabled ? 'enabled' : 'disabled'}>
-                      <button class="provider-row-trigger" type="button" aria-label={tr('Open {name} details', { name: provider.name })} onclick={() => openDetail(provider)}>
+                      <Button class="provider-row-trigger" type="button" aria-label={tr('Open {name} details', { name: provider.name })} onclick={() => openDetail(provider)}>
                         <span class="course-icon provider-logo">
                           {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
                         </span>
@@ -562,18 +487,25 @@
                           <span class="status {provider.enabled ? 'complete' : 'pending'}">{provider.enabled ? tr('Enabled') : tr('Disabled')}</span>
                         {/if}
                         <span class="detail-hint" aria-hidden="true"><svg class="icon"><use href="#i-arrow-right" /></svg></span>
-                      </button>
+                      </Button>
                     </article>
                   {:else}
-                    <article class="course-row provider-row provider-catalog-row">
-                      <span class="course-icon provider-logo">
-                        {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
-                      </span>
-                      <span class="course-copy">
-                        <strong>{preset.name} <span class="prov-type">{providerTypeLabel(preset)}</span></strong>
-                        <span>{preset.default_base_url ?? preset.adapter_id}</span>
-                      </span>
-                      <button class="secondary-button compact provider-catalog-add" type="button" onclick={() => providerPreset(preset.id)}>{tr('Add provider')}</button>
+                    <!-- A catalog preset is a single click target, like an existing provider. -->
+                    <article class="course-row provider-row provider-row-button">
+                      <Button class="provider-row-trigger" type="button" aria-label={tr('Open {name} details', { name: preset.name })} disabled={creatingPresetId !== null} onclick={() => void providerPreset(preset.id)}>
+                        <span class="course-icon provider-logo">
+                          {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
+                        </span>
+                        <span class="course-copy">
+                          <strong>{preset.name} <span class="prov-type">{providerTypeLabel(preset)}</span></strong>
+                          <span>{preset.default_base_url ?? preset.adapter_id}</span>
+                        </span>
+                        {#if creatingPresetId === preset.id}
+                          <span class="status progress">{tr('Creating…')}</span>
+                        {:else}
+                          <span class="detail-hint" aria-hidden="true"><svg class="icon"><use href="#i-arrow-right" /></svg></span>
+                        {/if}
+                      </Button>
                     </article>
                   {/if}
                 {/each}
@@ -592,53 +524,6 @@
 </div>
 
 
-<!-- Add / edit provider -->
-<dialog class="modal" bind:this={providerDialog} aria-labelledby="provider-dialog-title" onclose={() => { pfError = ''; pfNote = ''; }}>
-  <form class="modal-card" onsubmit={(e) => { e.preventDefault(); void saveProvider(); }}>
-    <div class="modal-heading">
-      <div>
-        <h2 id="provider-dialog-title">{editingProvider ? tr('Edit provider') : tr('Add provider')}</h2>
-        <p>{editingProvider ? tr('Update {name}', { name: editingProvider.name }) : tr('Connect an upstream AI provider.')}</p>
-      </div>
-      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
-    </div>
-    <div class="modal-fields">
-      <label class="field prov-field-wide">
-        {tr('Provider name')}
-        <input bind:value={pfName} maxlength="60" required placeholder={tr('e.g. OpenAI')} />
-      </label>
-      <label class="field">
-        {tr('Type')}
-        <ArkSelect
-          ariaLabel={tr('Type')}
-          bind:value={pfPreset}
-          disabled={!!editingProvider}
-          items={presets.map((preset) => ({ label: preset.name, value: preset.id }))}
-          onValueChange={applyPreset}
-        />
-      </label>
-      <label class="field">
-        {tr('Base URL')}
-        <input bind:value={pfUrl} type="url" required placeholder="https://api.example.com/v1" />
-      </label>
-      <label class="field">
-        {editingProvider ? tr('API key (leave blank to keep existing)') : tr('API key')}
-        <input bind:value={pfKey} type="password" placeholder="sk-..." autocomplete="off" />
-      </label>
-      <label class="field prov-field-wide">
-        {tr('Model prefix (optional)')}
-        <input bind:value={pfModel} maxlength="120" placeholder={tr('e.g. gpt-4o-mini')} />
-      </label>
-    </div>
-    {#if pfError}<p class="form-error" role="alert">{pfError}</p>{/if}
-    {#if pfNote}<p class="form-note">{pfNote}</p>{/if}
-    <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
-      <button class="page-action primary" type="submit" disabled={pfBusy}>{pfBusy ? tr('Saving…') : tr('Save provider')}</button>
-    </div>
-  </form>
-</dialog>
-
 <!-- Manage API keys -->
 <dialog class="modal modal-wide" bind:this={keysDialog} aria-labelledby="keys-dialog-title">
   <div class="modal-card">
@@ -647,7 +532,7 @@
         <h2 id="keys-dialog-title">{tr('API keys')}</h2>
         <p>{tr('Credentials for')} <strong>{keysProvider?.name ?? tr('provider')}</strong>.</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
+      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     <div class="keys-list">
       {#if keysLoading}
@@ -662,18 +547,18 @@
               <span>{key.enabled ? (key.invalid ? tr('marked invalid') : tr('healthy')) : tr('disabled')} · {fmtLastUsed(key)}</span>
             </div>
             <div class="key-actions">
-              <button class="icon-action danger" type="button" title={tr('Remove key')} onclick={() => removeKey(key)}><svg class="icon"><use href="#i-trash" /></svg></button>
+              <Button class="icon-action danger" type="button" title={tr('Remove key')} onclick={() => removeKey(key)}><svg class="icon"><use href="#i-trash" /></svg></Button>
             </div>
           </div>
         {/each}
       {/if}
     </div>
     <form class="keys-add" onsubmit={(e) => { e.preventDefault(); void addKey(); }}>
-      <input bind:value={newKey} type="password" placeholder={tr('Paste a new API key…')} autocomplete="off" />
-      <button class="page-action primary" type="submit" disabled={keyBusy || !newKey.trim()}>{keyBusy ? tr('Testing…') : tr('Add key')}</button>
+      <Input bind:value={newKey} type="password" placeholder={tr('Paste a new API key…')} autocomplete="off" />
+      <Button class="page-action primary" type="submit" disabled={keyBusy || !newKey.trim()}>{keyBusy ? tr('Testing…') : tr('Add key')}</Button>
     </form>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>{tr('Close')}</button>
+      <Button class="page-action" type="button" data-close-modal>{tr('Close')}</Button>
     </div>
   </div>
 </dialog>
@@ -686,11 +571,11 @@
         <h2 id="delete-dialog-title">{tr('Delete provider?')}</h2>
         <p>{tr('This removes {name} and its credentials. Combos referencing it will lose that target.', { name: deleteTarget?.name ?? tr('the provider') })}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
+      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
-      <button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete provider')}</button>
+      <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
+      <Button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete provider')}</Button>
     </div>
   </div>
 </dialog>
@@ -703,7 +588,7 @@
         <h2 id="test-all-title">{tr('Connection test')}</h2>
         <p>{tr('Test all')}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
+      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     <div class="test-results">
       {#each testRows as row (row.id)}
@@ -714,8 +599,8 @@
       {/each}
     </div>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>{tr('Close')}</button>
-      <button class="page-action primary" type="button" onclick={runAllTests} disabled={testRunning}>{testRunning ? tr('Running…') : tr('Run again')}</button>
+      <Button class="page-action" type="button" data-close-modal>{tr('Close')}</Button>
+      <Button class="page-action primary" type="button" onclick={runAllTests} disabled={testRunning}>{testRunning ? tr('Running…') : tr('Run again')}</Button>
     </div>
   </div>
 </dialog>

@@ -14,10 +14,12 @@ impl<'de> serde::Deserialize<'de> for ProxyBindingUpdate {
     where
         D: serde::Deserializer<'de>,
     {
-        Ok(match <Option<String> as serde::Deserialize<'de>>::deserialize(deserializer)? {
-            Some(value) => Self::Set(value),
-            None => Self::Clear,
-        })
+        Ok(
+            match <Option<String> as serde::Deserialize<'de>>::deserialize(deserializer)? {
+                Some(value) => Self::Set(value),
+                None => Self::Clear,
+            },
+        )
     }
 }
 

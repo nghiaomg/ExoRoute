@@ -156,6 +156,7 @@
 }
 .dashboard-app.dashboard-page-api-keys .api-key-edit-fields > .api-key-scope-field { min-width: 0; padding: 0; border: 0; background: transparent; }
 .dashboard-app.dashboard-page-api-keys .api-key-edit-fields > .api-key-scope-field .scope-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dashboard-app.dashboard-page-api-keys .api-key-edit-fields > .api-key-scope-field .api-key-scope-models { grid-column: 1 / -1; }
 .dashboard-app.dashboard-page-api-keys .api-key-edit-fields > .api-key-scope-field .api-key-scope-providers { grid-column: 1 / -1; }
 .dashboard-app.dashboard-page-api-keys .api-key-edit-fields > .api-key-scope-field .scope-rules { min-height: 106px; }
 .dashboard-app.dashboard-page-api-keys .api-key-edit-fields .api-key-model-field input,

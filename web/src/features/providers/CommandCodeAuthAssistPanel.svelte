@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { ArrowUpRight, LoaderCircle, ShieldCheck } from '@lucide/svelte';
   import { api } from '../../lib/api';
@@ -158,16 +159,16 @@ import { localizedError } from '../../lib/errors';
   {#if errorMessage}<div class="command-code-auth-notice error" role="alert">{errorMessage}</div>{/if}
   <div class="command-code-auth-actions">
     {#if state === 'received'}
-      <button class="primary-button" disabled onclick={() => void saveReceivedKey()}><LoaderCircle size={14} class="spin" />{tr('Saving provider key…')}</button>
-      {#if errorMessage}<button class="secondary-button compact" onclick={() => void saveReceivedKey()}>{tr('Retry saving key')}</button>{/if}
+      <Button class="primary-button" disabled onclick={() => void saveReceivedKey()}><LoaderCircle size={14} class="spin" />{tr('Saving provider key…')}</Button>
+      {#if errorMessage}<Button class="secondary-button compact" onclick={() => void saveReceivedKey()}>{tr('Retry saving key')}</Button>{/if}
     {:else if state === 'pending'}
-      <button class="secondary-button compact" disabled><LoaderCircle size={14} class="spin" />{tr('Waiting for Command Code Studio…')}</button>
-      <button class="row-icon" aria-label={tr('Start again')} title={tr('Start again')} onclick={startAgain}><ArrowUpRight size={14} /></button>
+      <Button class="secondary-button compact" disabled><LoaderCircle size={14} class="spin" />{tr('Waiting for Command Code Studio…')}</Button>
+      <Button class="row-icon" aria-label={tr('Start again')} title={tr('Start again')} onclick={startAgain}><ArrowUpRight size={14} /></Button>
     {:else}
-      <button class="secondary-button compact" disabled={state === 'starting'} onclick={() => void connect()}>
+      <Button class="secondary-button compact" disabled={state === 'starting'} onclick={() => void connect()}>
         {#if state === 'starting'}<LoaderCircle size={14} class="spin" />{tr('Starting Studio sign-in…')}
         {:else}<ArrowUpRight size={14} />{tr('Connect with Command Code Studio')}{/if}
-      </button>
+      </Button>
     {/if}
   </div>
 </section>

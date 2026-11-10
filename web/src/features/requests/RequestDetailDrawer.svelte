@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from "../../components/Button.svelte";
   import ArkClipboard from '../../components/ArkClipboard.svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
   import {
@@ -134,7 +135,7 @@
             class="request-drawer-clipboard"
           />
         {/if}
-        <button type="button" class="secondary-button compact" onclick={onClose}>{tr('Close')}</button>
+        <Button type="button" class="secondary-button compact" onclick={onClose}>{tr('Close')}</Button>
       </footer>
     </div>
   {/if}

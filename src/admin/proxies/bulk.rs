@@ -17,7 +17,12 @@ impl<'a, T: ProxyStore> BulkProxyValidationStore<'a, T> {
         pending: &'a PendingProxy,
         prior: &'a [(String, PendingProxy)],
     ) -> Self {
-        Self { transaction, pending_id, pending, prior }
+        Self {
+            transaction,
+            pending_id,
+            pending,
+            prior,
+        }
     }
 }
 impl<T: ProxyStore> ProxyStore for BulkProxyValidationStore<'_, T> {
