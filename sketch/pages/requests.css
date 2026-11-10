@@ -5,10 +5,10 @@
 .req-select {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid #e9eef0;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background-color: #fff;
-  color: #46515c;
+  background-color: var(--surface);
+  color: var(--muted);
   font-size: var(--type-body);
 }
 .req-search { width: min(300px, 100%); flex: 1 1 220px; }
@@ -16,26 +16,26 @@
 .req-filters { gap: 8px; }
 .req-filters:focus-within .req-search,
 .req-search:focus,
-.req-select:focus { outline: 0; border-color: #ea8a75; box-shadow: 0 0 0 3px #ed765e1a; }
+.req-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 
 .switch-inline { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .switch-inline input { position: absolute; opacity: 0; }
-.switch-label { color: #59646e; font-size: var(--type-meta); font-weight: var(--weight-medium); }
-.switch-inline input:checked ~ .switch-track { background: #ed674d; }
+.switch-label { color: var(--muted); font-size: var(--type-meta); font-weight: var(--weight-medium); }
+.switch-inline input:checked ~ .switch-track { background: var(--accent); }
 .switch-inline input:checked ~ .switch-track .switch-thumb { transform: translateX(16px); }
 
 .req-table-wrap {
   overflow-x: auto;
   margin-top: 14px;
-  border: 1px solid #eef1f2;
+  border: 1px solid var(--line);
   border-radius: 13px;
-  background: #fbfcfc;
+  background: var(--db-tint);
 }
 .req-table { width: 100%; border-collapse: collapse; min-width: 940px; }
 .req-table th {
   padding: 11px 14px;
-  border-bottom: 1px solid #eef1f2;
-  background: #fbfcfc;
+  border-bottom: 1px solid var(--line);
+  background: var(--db-tint);
   color: var(--muted);
   font-size: var(--type-caption);
   font-weight: var(--weight-semibold);
@@ -45,20 +45,33 @@
 }
 .req-table td {
   padding: 10px 14px;
-  border-bottom: 1px solid #f4f7f8;
-  color: #46515c;
+  border-bottom: 1px solid var(--db-tint-strong);
+  color: var(--muted);
   font-size: var(--type-body);
   white-space: nowrap;
 }
 .req-table tbody tr:last-child td { border-bottom: 0; }
 .req-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .req-table th.num { text-align: right; }
-.req-table .tok-cache { color: #8b959d; font-size: var(--type-meta); white-space: nowrap; }
+.req-table .tok-cache { color: var(--text-dim); font-size: var(--type-meta); white-space: nowrap; }
 .req-row { cursor: pointer; transition: background-color 0.13s ease; }
-.req-row:hover { background: #f7fafb; }
-.req-row:hover .req-model { color: #ed674d; }
-.req-model { color: #303b48; font-weight: var(--weight-medium); transition: color 0.13s ease, transform 0.2s ease; }
+.req-row:hover { background: var(--db-tint-strong); }
+.req-row:hover .req-model { color: var(--accent); }
+.req-model { color: var(--ink); font-weight: var(--weight-medium); transition: color 0.13s ease, transform 0.2s ease; }
 .req-model-cell { display: inline-flex; min-width: 0; align-items: center; gap: 8px; }
+.req-effort-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border: 1px solid var(--db-accent-line);
+  border-radius: 999px;
+  background: var(--db-accent-tint);
+  color: var(--accent-strong);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-semibold);
+  line-height: 1.25;
+  text-transform: uppercase;
+}
 .req-model-logo {
   display: block;
   width: 20px;
@@ -73,14 +86,14 @@
   height: 8px;
   margin-right: 6px;
   border-radius: 50%;
-  background: #ed674d;
+  background: var(--accent);
   animation: req-pulse 1.2s ease-in-out infinite;
   vertical-align: 1px;
 }
 @keyframes req-pulse { 50% { opacity: 0.35; } }
-.req-live { background: #fff8f5; }
-.req-live:hover { background: #fff3ec; }
-.req-live .req-time { color: #b84935; font-weight: var(--weight-semibold); }
+.req-live { background: var(--db-accent-tint); }
+.req-live:hover { background: var(--db-accent-tint); }
+.req-live .req-time { color: var(--db-danger); font-weight: var(--weight-semibold); }
 
 .req-pager {
   display: flex;
@@ -99,15 +112,15 @@
 }
 .req-detail-item {
   padding: 11px 13px;
-  border: 1px solid #eef1f2;
+  border: 1px solid var(--line);
   border-radius: 11px;
-  background: #fbfcfc;
+  background: var(--db-tint);
 }
 .req-detail-item span { display: block; color: var(--muted); font-size: var(--type-caption); }
-.req-detail-item strong { display: block; margin-top: 4px; color: #303b48; font-size: var(--type-label); }
+.req-detail-item strong { display: block; margin-top: 4px; color: var(--ink); font-size: var(--type-label); }
 .req-payload {
   margin-top: 14px;
-  border: 1px solid #eef1f2;
+  border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -116,8 +129,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 9px 13px;
-  background: #f5f8f9;
-  color: #46515c;
+  background: var(--db-tint-strong);
+  color: var(--muted);
   font-size: var(--type-meta);
 }
 .req-payload pre {
@@ -125,8 +138,8 @@
   padding: 13px;
   max-height: 200px;
   overflow: auto;
-  background: #fbfcfc;
-  color: #4b5661;
+  background: var(--db-tint);
+  color: var(--muted);
   font-size: var(--type-meta);
   line-height: 1.55;
 }
@@ -135,13 +148,13 @@
   gap: 11px;
   margin-top: 14px;
   padding: 13px 15px;
-  border: 1px solid #f0ddd2;
+  border: 1px solid var(--db-accent-line);
   border-radius: 12px;
-  background: #fff8f4;
+  background: var(--db-accent-tint);
 }
-.req-error > .icon { flex: 0 0 auto; width: 18px; height: 18px; color: #c96a4a; margin-top: 2px; }
-.req-error strong { color: #8f3f22; font-size: var(--type-label); }
-.req-error p { margin: 4px 0 0; color: #7a5a4c; font-size: var(--type-meta); line-height: 1.5; }
+.req-error > .icon { flex: 0 0 auto; width: 18px; height: 18px; color: var(--accent-strong); margin-top: 2px; }
+.req-error strong { color: var(--accent-deep); font-size: var(--type-label); }
+.req-error p { margin: 4px 0 0; color: var(--muted); font-size: var(--type-meta); line-height: 1.5; }
 @media (max-width: 680px) {
   .req-detail-grid { grid-template-columns: 1fr 1fr; }
   .req-filters { flex-wrap: wrap; }

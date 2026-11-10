@@ -6,7 +6,7 @@
   import type { Translate } from '../../lib/format';
   import { formatCount } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
-  import type { ComboProviderOption, GatewayCombo, ModelBreakdown } from '../../lib/types';
+  import type { ComboProviderOption, GatewayCombo, RouteBreakdown } from '../../lib/types';
   import '../../styles/dashboard/pages/combos.css';
 
   interface Props {
@@ -18,7 +18,7 @@
     onProviderCountChange: (count: number) => void;
   }
 
-  let { tr: _tr, locale, actionRequest, onNavigate, onConnectionChange, onProviderCountChange: _onProviderCountChange }: Props = $props();
+  let { tr: tr, locale, actionRequest, onNavigate, onConnectionChange, onProviderCountChange: _onProviderCountChange }: Props = $props();
 
   interface TargetDraft {
     providerId: string;
@@ -28,7 +28,11 @@
 
   let combos = $state<GatewayCombo[]>([]);
   let providerOptions = $state<ComboProviderOption[]>([]);
-  let modelStats = $state(new Map<string, ModelBreakdown>());
+  let routeStats = $state(new Map<string, RouteBreakdown>());
+  let routeBreakdownTruncated = $state(false);
+  let routeBreakdownAvailable = $state(false);
+  let routeStatisticsUnavailable = $state(false);
+  let routeBreakdownComplete = $state(false);
   let loading = $state(true);
   let errorMessage = $state('');
   let generation = 0;
@@ -71,14 +75,14 @@
     return strategy === 'round_robin' ? 'round-robin' : strategy;
   }
 
-  function comboUsage(combo: GatewayCombo): ModelBreakdown | null {
-    return modelStats.get(combo.name) ?? null;
+  function comboUsage(combo: GatewayCombo): RouteBreakdown | null {
+    return routeStats.get(combo.name) ?? null;
   }
 
   function successPct(combo: GatewayCombo): number | null {
     const usage = comboUsage(combo);
     if (!usage || !usage.requests) return null;
-    return Math.round(usage.success_rate * 100);
+    return Math.round(usage.success_rate);
   }
 
   async function load(): Promise<void> {
@@ -95,13 +99,17 @@
       if (gen !== generation) return;
       combos = comboRows;
       providerOptions = options;
-      const map = new Map<string, ModelBreakdown>();
-      for (const row of statistics?.model_breakdown ?? []) map.set(row.model, row);
-      modelStats = map;
+      const map = new Map<string, RouteBreakdown>();
+      for (const row of statistics?.route_breakdown ?? []) map.set(row.route_alias, row);
+      routeStats = map;
+      routeBreakdownTruncated = statistics?.route_breakdown_truncated ?? false;
+      routeBreakdownAvailable = statistics !== null && !statistics.route_breakdown_incomplete;
+      routeStatisticsUnavailable = statistics === null;
+      routeBreakdownComplete = statistics !== null && statistics.complete && statistics.aggregation_current;
       onConnectionChange('loaded');
     } catch (error) {
       if (gen !== generation) return;
-      errorMessage = error instanceof Error ? error.message : 'Could not load combos.';
+      errorMessage = error instanceof Error ? error.message : tr('Could not load combos.');
       onConnectionChange('error');
     } finally {
       if (gen === generation) loading = false;
@@ -158,7 +166,7 @@
       .filter((t) => t.providerId && t.model.trim())
       .map((t, index) => ({ provider_id: t.providerId, model: t.model.trim(), priority: index + 1, enabled: t.enabled }));
     if (!targets.length) {
-      cfError = 'Add at least one target with a provider and model.';
+      cfError = tr('Add at least one target with a provider and model.');
       return;
     }
     cfBusy = true;
@@ -166,7 +174,7 @@
     try {
       if (editingCombo) {
         await api.updateCombo(editingCombo.id, { name, strategy: cfStrategy, retry_until_success: cfRetryUntilSuccess, enabled: editingCombo.enabled !== false, targets });
-        showDashboardToast(`Combo "${name}" updated`);
+        showDashboardToast(tr('Combo "{name}" updated', { name }));
       } else {
         await api.createCombo({
           name,
@@ -176,12 +184,12 @@
           enabled: true,
           targets,
         });
-        showDashboardToast(`Combo "${name}" created`);
+        showDashboardToast(tr('Combo "{name}" created', { name }));
       }
       comboDialog?.close();
       await load();
     } catch (error) {
-      cfError = error instanceof Error ? error.message : 'Could not save combo.';
+      cfError = error instanceof Error ? error.message : tr('Could not save combo.');
     } finally {
       cfBusy = false;
     }
@@ -192,10 +200,10 @@
     combos = combos.map((c) => (c.id === combo.id ? { ...c, enabled: next } : c));
     try {
       await api.updateCombo(combo.id, { enabled: next });
-      showDashboardToast(`${combo.name} ${next ? 'enabled' : 'disabled'}`);
+      showDashboardToast(next ? tr('{combo} enabled', { combo: combo.name }) : tr('{combo} disabled', { combo: combo.name }));
     } catch (error) {
       combos = combos.map((c) => (c.id === combo.id ? { ...c, enabled: !next } : c));
-      showDashboardToast(error instanceof Error ? error.message : 'Update failed');
+      showDashboardToast(error instanceof Error ? error.message : tr('Update failed'));
     }
   }
 
@@ -209,10 +217,10 @@
         enabled: true,
         targets: combo.targets.map((t) => ({ ...t })),
       });
-      showDashboardToast(`Duplicated as "${combo.name}-copy"`);
+      showDashboardToast(tr('Duplicated as "{name}"', { name: `${combo.name}-copy` }));
       await load();
     } catch (error) {
-      showDashboardToast(error instanceof Error ? error.message : 'Could not duplicate combo');
+      showDashboardToast(error instanceof Error ? error.message : tr('Could not duplicate combo'));
     }
   }
 
@@ -227,17 +235,17 @@
     try {
       await api.deleteCombo(deleteTarget.id);
       combos = combos.filter((c) => c.id !== deleteTarget?.id);
-      showDashboardToast(`Combo "${deleteTarget.name}" deleted`);
+      showDashboardToast(tr('Combo "{name}" deleted', { name: deleteTarget.name }));
       deleteDialog?.close();
     } catch (error) {
-      showDashboardToast(error instanceof Error ? error.message : 'Could not delete combo');
+      showDashboardToast(error instanceof Error ? error.message : tr('Could not delete combo'));
     } finally {
       deleteBusy = false;
     }
   }
 
   function targetLabel(target: { provider_id: string; model: string; combo_id?: string | null }): string {
-    if (target.combo_id) return `combo · ${target.combo_id}`;
+    if (target.combo_id) return tr('combo · {id}', { id: target.combo_id });
     const provider = providerNameById.get(target.provider_id) ?? target.provider_id;
     return `${provider} · ${target.model || '—'}`;
   }
@@ -252,85 +260,85 @@
 
 <div class="page-heading">
   <div class="heading-copy">
-    <h1>Combos</h1>
-    <p>Route models across providers with fallback chains and strategies.</p>
+    <h1>{tr('Combos')}</h1>
+    <p>{tr('Route models across providers with fallback chains and strategies.')}</p>
   </div>
   <div class="heading-actions">
-    <button class="action-button" type="button" onclick={() => showDashboardToast('Import is available in the legacy combo editor')}>
+    <button class="action-button" type="button" onclick={() => showDashboardToast(tr('Import is available in the legacy combo editor'))}>
       <span class="button-icon"><svg class="icon"><use href="#i-import" /></svg></span>
-      <span class="button-label">Import</span>
+      <span class="button-label">{tr('Import')}</span>
     </button>
     <button class="action-button primary" type="button" onclick={() => openComboDialog(null)}>
       <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
-      <span class="button-label">New combo</span>
+      <span class="button-label">{tr('New combo')}</span>
     </button>
   </div>
 </div>
 
 {#if errorMessage}
-  <section class="course-card surface" aria-label="Load error">
-    <div class="card-title-row"><h2>Could not load combos</h2></div>
+  <section class="course-card surface" aria-label={tr('Load error')}>
+    <div class="card-title-row"><h2>{tr('Could not load combos')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
     <div class="modal-actions" style="padding-top:14px">
-      <button class="page-action primary" type="button" onclick={load}>Retry</button>
+      <button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</button>
     </div>
   </section>
 {:else if loading}
-  <section class="stats-grid" aria-label="Loading">
+  <section class="stats-grid" aria-label={tr('Loading')}>
     {#each [0, 1, 2, 3] as i (i)}<article class="stat-card surface" style="min-height:132px"></article>{/each}
   </section>
 {:else}
   <div class="page-surface">
-    <section class="stats-grid" aria-label="Combo overview">
+    <section class="stats-grid" aria-label={tr('Combo overview')}>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-code" /></svg></span>
           <span class="stat-number">{combos.length}</span>
         </div>
-        <h2>Combos</h2>
-        <div class="stat-trend">{enabledCombos} enabled, {combos.length - enabledCombos} disabled</div>
-        <button class="details-link" type="button" onclick={() => (strategyFilter = 'all')}>View all <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Combos')}</h2>
+        <div class="stat-trend">{enabledCombos} {tr('enabled')}, {combos.length - enabledCombos} {tr('disabled')}</div>
+        <button class="details-link" type="button" onclick={() => (strategyFilter = 'all')}>{tr('View all')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-layers" /></svg></span>
           <span class="stat-number">{totalTargets}</span>
         </div>
-        <h2>Targets</h2>
-        <div class="stat-trend">Across {providerOptions.length} providers</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('providers')}>View providers <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Targets')}</h2>
+        <div class="stat-trend">{tr('Across {count} providers', { count: providerOptions.length })}</div>
+        <button class="details-link" type="button" onclick={() => onNavigate('providers')}>{tr('View providers')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
-          <span class="stat-number">{formatCount([...modelStats.values()].reduce((n, m) => n + m.requests, 0), locale)}</span>
+          <span class="stat-number">{routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.requests, 0), locale) : '—'}</span>
         </div>
-        <h2>Requests Routed</h2>
-        <div class="stat-trend">Last 24 hours</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('requests')}>View requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Requests Routed')}</h2>
+        <div class="stat-trend">{tr('Last 24 hours')} · {tr('attempts')}{routeStatisticsUnavailable || !routeBreakdownAvailable || routeBreakdownTruncated || !routeBreakdownComplete ? ` · ${tr('Statistics are incomplete')}` : ''}</div>
+        <button class="details-link" type="button" onclick={() => onNavigate('requests')}>{tr('View requests')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-alert" /></svg></span>
-          <span class="stat-number">{formatCount([...modelStats.values()].reduce((n, m) => n + (m.requests - m.successes), 0), locale)}</span>
+          <span class="stat-number">{routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.failures, 0), locale) : '—'}</span>
         </div>
-        <h2>Failures</h2>
-        <div class="stat-trend">Last 24 hours</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('requests')}>Inspect failures <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Failures')}</h2>
+        <div class="stat-trend">{tr('Last 24 hours')} · {tr('attempts')}{routeStatisticsUnavailable || !routeBreakdownAvailable || routeBreakdownTruncated || !routeBreakdownComplete ? ` · ${tr('Statistics are incomplete')}` : ''}</div>
+        <button class="details-link" type="button" onclick={() => onNavigate('requests')}>{tr('Inspect failures')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
     </section>
 
     <section class="course-card surface combo-board" aria-labelledby="combos-heading">
       <div class="card-title-row">
-        <h2 id="combos-heading">Combos</h2>
+        <h2 id="combos-heading">{tr('Combos')}</h2>
       </div>
-      <p class="card-subtitle">{combos.length} combos · {totalTargets} targets · {strategies} strategies</p>
+      <p class="card-subtitle">{combos.length} {tr('combos')} · {totalTargets} {tr('targets')} · {strategies} {tr('strategies')}</p>
       <div class="page-toolbar combo-toolbar">
-        <input class="combo-search" type="search" placeholder="Search combos..." aria-label="Search combos" bind:value={search} />
-        <select class="combo-select" aria-label="Filter by strategy" bind:value={strategyFilter}>
-          <option value="all">All strategies</option>
-          <option value="priority">Priority</option>
-          <option value="round_robin">Round robin</option>
+        <input class="combo-search" type="search" placeholder={tr('Search combos...')} aria-label={tr('Search combos')} bind:value={search} />
+        <select class="combo-select" aria-label={tr('Filter by strategy')} bind:value={strategyFilter}>
+          <option value="all">{tr('All strategies')}</option>
+          <option value="priority">{tr('Priority')}</option>
+          <option value="round_robin">{tr('Round robin')}</option>
         </select>
       </div>
       <div class="combo-list" aria-live="polite">
@@ -344,13 +352,13 @@
                 <strong>{combo.name} <span class="prov-type">{strategyLabel(combo.strategy)}</span></strong>
                 <span>
                   {#if usage}
-                    {formatCount(usage.requests, locale)} requests{pct !== null ? ` · ${pct}% success` : ''}
+                    {formatCount(usage.requests, locale)} {tr('requests')}{pct !== null ? ` · ${tr('{count}% success', { count: pct })}` : ''}
                   {:else}
-                    {combo.enabled === false ? 'disabled' : 'no traffic yet'} · {combo.targets.length} targets
+                    {routeBreakdownAvailable && !routeBreakdownTruncated && !routeStatisticsUnavailable ? `${tr('no traffic yet')} · ${combo.targets.length} ${tr('targets')}` : `${tr('Statistics are incomplete')} · ${combo.targets.length} ${tr('targets')}`}
                   {/if}
                 </span>
               </div>
-              <label class="switch" title="Enable combo">
+              <label class="switch" title={tr('Enable combo')}>
                 <input type="checkbox" class="combo-toggle" checked={combo.enabled !== false} onchange={() => toggleCombo(combo)} />
                 <span class="switch-track"><span class="switch-thumb"></span></span>
               </label>
@@ -363,28 +371,28 @@
             {#if pct !== null}
               <div class="combo-meter">
                 <div class="progress-track"><div class="progress-fill" style="width:{pct}%"></div></div>
-                <span class="combo-meter-label">{pct}% success</span>
+                <span class="combo-meter-label">{tr('{count}% success', { count: pct })}</span>
               </div>
             {:else}
               <div class="combo-meter">
                 <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
-                <span class="combo-meter-label">no traffic</span>
+                <span class="combo-meter-label">{routeBreakdownAvailable && !routeBreakdownTruncated && !routeStatisticsUnavailable ? tr('no traffic') : tr('Statistics are incomplete')}</span>
               </div>
             {/if}
             <div class="combo-foot">
               <span class="combo-foot-meta">
-                <span class="combo-meta"><svg class="icon"><use href="#i-clock" /></svg> {usage ? `${Math.round(usage.successes)}/${usage.requests} ok` : '—'}</span>
-                <span class="combo-meta"><svg class="icon"><use href="#i-alert" /></svg> {usage ? `${usage.requests - usage.successes} failed` : '0 failed'}</span>
+                <span class="combo-meta"><svg class="icon"><use href="#i-clock" /></svg> {usage ? `${Math.round(usage.successes)}/${usage.requests} ${tr('ok')}` : '—'}</span>
+                <span class="combo-meta"><svg class="icon"><use href="#i-alert" /></svg> {usage ? `${usage.failures} ${tr('failed')}` : routeBreakdownAvailable && !routeBreakdownTruncated && !routeStatisticsUnavailable ? `0 ${tr('failed')}` : `— ${tr('failed')}`}</span>
               </span>
               <div class="course-actions">
-                <button class="icon-action" type="button" title="Edit combo" onclick={() => openComboDialog(combo)}><svg class="icon"><use href="#i-edit" /></svg></button>
-                <button class="icon-action" type="button" title="Duplicate" onclick={() => duplicateCombo(combo)}><svg class="icon"><use href="#i-copy" /></svg></button>
-                <button class="icon-action danger" type="button" title="Delete combo" onclick={() => openDelete(combo)}><svg class="icon"><use href="#i-trash" /></svg></button>
+                <button class="icon-action" type="button" title={tr('Edit combo')} onclick={() => openComboDialog(combo)}><svg class="icon"><use href="#i-edit" /></svg></button>
+                <button class="icon-action" type="button" title={tr('Duplicate')} onclick={() => duplicateCombo(combo)}><svg class="icon"><use href="#i-copy" /></svg></button>
+                <button class="icon-action danger" type="button" title={tr('Delete combo')} onclick={() => openDelete(combo)}><svg class="icon"><use href="#i-trash" /></svg></button>
               </div>
             </div>
           </article>
         {:else}
-          <div class="empty-state">No combos match the current filters.</div>
+          <div class="empty-state">{tr('No combos match the current filters.')}</div>
         {/each}
       </div>
     </section>
@@ -396,69 +404,69 @@
   <form class="modal-card" onsubmit={(e) => { e.preventDefault(); void saveCombo(); }}>
     <div class="modal-heading">
       <div>
-        <h2 id="combo-dialog-title">{editingCombo ? 'Edit combo' : 'New combo'}</h2>
-        <p>Chain provider targets with a routing strategy.</p>
+        <h2 id="combo-dialog-title">{editingCombo ? tr('Edit combo') : tr('New combo')}</h2>
+        <p>{tr('Chain provider targets with a routing strategy.')}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
     </div>
     <div class="modal-fields combo-fields">
       <label class="field prov-field-wide">
-        Combo name
-        <input bind:value={cfName} maxlength="60" required placeholder="e.g. smart-default" />
+        {tr('Combo name')}
+        <input bind:value={cfName} maxlength="60" required placeholder={tr('e.g. smart-default')} />
       </label>
       <label class="field">
-        Strategy
+        {tr('Strategy')}
         <select bind:value={cfStrategy} disabled={!!editingCombo}>
-          <option value="priority">Priority (first healthy wins)</option>
-          <option value="round_robin">Round robin</option>
+          <option value="priority">{tr('Priority (first healthy wins)')}</option>
+          <option value="round_robin">{tr('Round robin')}</option>
         </select>
       </label>
       <label class="field">
-        Served model alias
-        <input bind:value={cfAlias} maxlength="120" placeholder="e.g. auto or fast/*" disabled />
+        {tr('Served model alias')}
+        <input bind:value={cfAlias} maxlength="120" placeholder={tr('e.g. auto or fast/*')} disabled />
       </label>
       <label class="combo-retry-setting">
         <input type="checkbox" bind:checked={cfRetryUntilSuccess} />
         <span>
-          <strong>{_tr('Retry until success')}</strong>
-          <small>{_tr('After all targets fail, restart the combo indefinitely. A provider may have processed an earlier attempt. HTTP 400 and 413 stop retries.')}</small>
+          <strong>{tr('Retry until success')}</strong>
+          <small>{tr('After all targets fail, restart the combo indefinitely. A provider may have processed an earlier attempt. HTTP 400 and 413 stop retries.')}</small>
         </span>
       </label>
     </div>
-    <p class="form-note">The combo name is the model alias clients request.</p>
+    <p class="form-note">{tr('The combo name is the model alias clients request.')}</p>
 
     <div class="targets-editor">
       <div class="targets-head">
-        <strong>Targets</strong>
-        <span class="targets-hint">Tries each target in order on failure.</span>
+        <strong>{tr('Targets')}</strong>
+        <span class="targets-hint">{tr('Tries each target in order on failure.')}</span>
       </div>
       <div class="target-rows">
         {#each cfTargets as target, i (i)}
           <div class="target-row">
-            <select value={target.providerId} onchange={(e) => (target.providerId = e.currentTarget.value)} aria-label="Target provider">
+            <select class="target-provider" value={target.providerId} onchange={(e) => (target.providerId = e.currentTarget.value)} aria-label={tr('Target provider')}>
               {#each providerOptions as option (option.id)}
-                <option value={option.id} disabled={!option.enabled && option.id !== target.providerId}>{option.name}{option.enabled ? '' : ' (disabled)'}</option>
+                <option value={option.id} disabled={!option.enabled && option.id !== target.providerId}>{option.name}{option.enabled ? '' : ` (${tr('disabled')})`}</option>
               {/each}
             </select>
-            <input value={target.model} oninput={(e) => (target.model = e.currentTarget.value)} placeholder="model id" aria-label="Target model" />
-            <label class="switch" title="Target enabled">
+            <input class="target-model" value={target.model} oninput={(e) => (target.model = e.currentTarget.value)} placeholder={tr('model id')} aria-label={tr('Target model')} />
+            <label class="switch" title={tr('Target enabled')}>
               <input type="checkbox" bind:checked={target.enabled} />
               <span class="switch-track"><span class="switch-thumb"></span></span>
             </label>
-            <button class="icon-action danger" type="button" title="Remove target" onclick={() => removeTarget(i)}><svg class="icon"><use href="#i-trash" /></svg></button>
+            <button class="icon-action danger" type="button" title={tr('Remove target')} onclick={() => removeTarget(i)}><svg class="icon"><use href="#i-trash" /></svg></button>
           </div>
         {/each}
       </div>
       <button class="page-action" type="button" onclick={addTarget}>
         <svg class="icon"><use href="#i-plus" /></svg>
-        Add target
+        {tr('Add target')}
       </button>
     </div>
 
     {#if cfError}<p class="form-error" role="alert">{cfError}</p>{/if}
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>Cancel</button>
-      <button class="page-action primary" type="submit" disabled={cfBusy}>{cfBusy ? 'Saving…' : 'Save combo'}</button>
+      <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
+      <button class="page-action primary" type="submit" disabled={cfBusy}>{cfBusy ? tr('Saving…') : tr('Save combo')}</button>
     </div>
   </form>
 </dialog>
@@ -468,14 +476,14 @@
   <div class="modal-card">
     <div class="modal-heading">
       <div>
-        <h2 id="combo-delete-title">Delete combo?</h2>
-        <p>Requests routed through {deleteTarget?.name ?? 'this combo'} will fail until a replacement exists.</p>
+        <h2 id="combo-delete-title">{tr('Delete combo?')}</h2>
+        <p>{tr('Requests routed through {name} will fail until a replacement exists.', { name: deleteTarget?.name ?? tr('this combo') })}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
     </div>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>Cancel</button>
-      <button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? 'Deleting…' : 'Delete combo'}</button>
+      <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
+      <button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete combo')}</button>
     </div>
   </div>
 </dialog>

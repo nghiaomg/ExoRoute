@@ -6,26 +6,26 @@
 .combo-select {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid #e9eef0;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background-color: #fff;
-  color: #46515c;
+  background-color: var(--surface);
+  color: var(--muted);
   font-size: var(--type-body);
 }
 .combo-search { width: min(280px, 100%); flex: 1 1 200px; }
 .combo-select { padding-right: 34px; }
 .combo-search:focus,
-.combo-select:focus { outline: 0; border-color: #ea8a75; box-shadow: 0 0 0 3px #ed765e1a; }
+.combo-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 
 .combo-list { gap: 10px; margin-top: 14px; }
 .combo-card {
   padding: 16px 18px;
   border-radius: 14px;
-  background: #f5f8f9;
+  background: var(--db-tint-strong);
   transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 .combo-card:hover {
-  background: #eef3f5;
+  background: var(--surface-sunken);
 }
 .combo-card[data-status="disabled"] { opacity: 0.62; }
 .combo-head {
@@ -37,8 +37,8 @@
 .combo-head code {
   padding: 1px 6px;
   border-radius: 6px;
-  background: #f0f3f5;
-  color: #4b5661;
+  background: var(--surface-sunken);
+  color: var(--muted);
   font-size: 0.85em;
 }
 .combo-targets {
@@ -50,15 +50,15 @@
 .combo-target {
   padding: 5px 10px;
   border-radius: 999px;
-  background: #fff;
-  color: #4b5661;
+  background: var(--surface);
+  color: var(--muted);
   font-size: var(--type-meta);
   font-weight: var(--weight-medium);
   white-space: nowrap;
 }
 .combo-target.fallback {
-  background: #fff4ee;
-  color: #a9502f;
+  background: var(--db-accent-tint);
+  color: var(--accent-strong);
 }
 .combo-meter {
   display: grid;
@@ -82,7 +82,7 @@
   gap: 10px;
   margin-top: 12px;
   padding-top: 11px;
-  border-top: 1px solid #e8edef;
+  border-top: 1px solid var(--line);
 }
 .combo-foot-meta {
   display: inline-flex;
@@ -107,12 +107,12 @@
   display: grid;
   gap: 10px;
   padding: 14px;
-  border: 1px solid #eef1f2;
+  border: 1px solid var(--line);
   border-radius: 13px;
-  background: #fbfcfc;
+  background: var(--db-tint);
 }
 .targets-head { display: flex; align-items: baseline; gap: 10px; }
-.targets-head strong { color: #303b48; font-size: var(--type-label); }
+.targets-head strong { color: var(--ink); font-size: var(--type-label); }
 .targets-hint { color: var(--muted); font-size: var(--type-caption); }
 .target-rows { display: grid; gap: 8px; }
 .target-row {
@@ -125,19 +125,19 @@
 .target-model {
   min-height: 36px;
   padding: 0 10px;
-  border: 1px solid #e5eaec;
+  border: 1px solid var(--line);
   border-radius: 9px;
-  background-color: #fff;
-  color: #35404b;
+  background-color: var(--surface);
+  color: var(--ink);
   font-size: var(--type-body);
 }
 .target-provider { padding-right: 34px; }
 .target-provider:focus,
-.target-model:focus { outline: 0; border-color: #ea8a75; box-shadow: 0 0 0 3px #ed765e1a; }
+.target-model:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .combo-fields { grid-template-columns: 1fr 1fr; }
 .combo-fields .prov-field-wide { grid-column: 1 / -1; }
-.page-action.danger { border-color: #ecd2cd; color: #b84935; }
-.page-action.danger:hover { background: #fdf1ef; }
+.page-action.danger { border-color: var(--db-accent-line); color: var(--db-danger); }
+.page-action.danger:hover { background: var(--db-accent-tint); }
 @media (max-width: 680px) {
   .combo-fields { grid-template-columns: 1fr; }
   .target-row { grid-template-columns: 1fr 1fr 32px; }

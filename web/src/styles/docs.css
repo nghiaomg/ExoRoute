@@ -129,14 +129,20 @@
 .docs-article-section { margin-top: 54px; }
 .docs-article-section > .docs-code-block { margin-top: 19px; }
 .docs-article-section > .docs-code-block + .docs-code-block { margin-top: 13px; }
-.docs-code-block { min-width: 0; overflow: hidden; border: 1px solid #272b3c; border-radius: 12px; background: #171a27; box-shadow: 0 12px 26px rgba(22, 25, 38, .10); }
-.docs-code-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 39px; padding: 0 12px 0 15px; border-bottom: 1px solid color-mix(in srgb, var(--ink) 7%, transparent); background: rgba(255, 255, 255, .025); }
-.docs-code-meta { display: inline-flex; align-items: center; gap: 8px; color: #c5c9d8; font-size: 10px; font-weight: 700; }
-.docs-code-meta code { margin-left: 2px; color: #8e94aa; font-size: 9px; }
-.docs-code-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 11px 0 0 var(--mint), 22px 0 0 var(--scrollbar-thumb); margin-right: 22px; }
-.docs-copy-button { display: inline-flex; align-items: center; gap: 5px; border: 0; color: #9fa6ba; background: transparent; font-size: 10px; font-weight: 700; }
-.docs-copy-button:hover { color: var(--ink); }
-.docs-code-block pre { max-height: 430px; margin: 0; padding: 18px 19px 20px; overflow: auto; color: #e3e6ef; font: 400 12px/1.75 var(--font-mono); white-space: pre; tab-size: 2; }
+.docs-code-block { min-width: 0; overflow: hidden; border: 1px solid #d0d7de; border-radius: 8px; background: #ffffff; box-shadow: 0 1px 3px rgba(31, 35, 40, .08); }
+.docs-code-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 39px; padding: 0 12px 0 15px; border-bottom: 1px solid #d8dee4; background: #f6f8fa; }
+.docs-code-meta { display: inline-flex; align-items: center; gap: 8px; color: #1f2328; font-size: 10px; font-weight: 700; }
+.docs-code-meta code { margin-left: 2px; color: #59636e; font-size: 9px; }
+.docs-code-dot { display: none; }
+.docs-copy-button { display: inline-flex; align-items: center; gap: 5px; border: 0; color: #59636e; background: transparent; font-size: 10px; font-weight: 700; }
+.docs-copy-button:hover { color: #0969da; }
+.docs-code-block pre { max-height: 430px; margin: 0; padding: 18px 19px 20px; overflow: auto; color: #1f2328; font: 400 12px/1.75 var(--font-mono); white-space: pre; tab-size: 2; }
+:root[data-theme='dark'] .docs-code-block { border-color: #30363d; background: #0d1117; box-shadow: 0 1px 3px rgba(1, 4, 9, .3); }
+:root[data-theme='dark'] .docs-code-toolbar { border-color: #30363d; background: #161b22; }
+:root[data-theme='dark'] .docs-code-meta { color: #e6edf3; }
+:root[data-theme='dark'] .docs-code-meta code, :root[data-theme='dark'] .docs-copy-button { color: #8b949e; }
+:root[data-theme='dark'] .docs-copy-button:hover { color: #58a6ff; }
+:root[data-theme='dark'] .docs-code-block pre { color: #e6edf3; }
 .docs-checklist-section { margin-top: 54px; }
 .docs-checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 27px; margin: 19px 0 0; padding: 0; list-style: none; }
 .docs-checklist li { display: flex; align-items: flex-start; gap: 8px; color: var(--muted); font-size: 12px; line-height: 1.65; }

@@ -118,6 +118,7 @@ export function applyRequestLiveEvent(
           output_tokens: event.output_tokens === undefined ? request.output_tokens : event.output_tokens ?? undefined,
           cached_tokens: event.cached_tokens === undefined ? request.cached_tokens : event.cached_tokens ?? undefined,
           cache_input_tokens: event.cache_input_tokens === undefined ? request.cache_input_tokens : event.cache_input_tokens ?? undefined,
+          reasoning_effort: event.reasoning_effort === undefined ? request.reasoning_effort : event.reasoning_effort ?? undefined,
         }),
       },
       finished: null,

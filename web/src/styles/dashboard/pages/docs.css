@@ -31,12 +31,12 @@
   transition: background 0.15s, color 0.15s, transform 0.22s ease;
 }
 .dashboard-app.dashboard-page-docs .docs-link:hover {
-  background: #f1f5f7;
+  background: var(--surface-sunken);
   color: var(--ink);
 }
 .dashboard-app.dashboard-page-docs .docs-link.active {
-  background: #fdf0ec;
-  color: #c2502f;
+  background: var(--db-accent-tint);
+  color: var(--accent-strong);
   font-weight: 600;
 }
 .dashboard-app.dashboard-page-docs .docs-side-foot {
@@ -45,7 +45,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 10px;
-  border-top: 1px solid #eef2f4;
+  border-top: 1px solid var(--line);
 }
 .dashboard-app.dashboard-page-docs .docs-side-foot .status {
   font-size: 11px;
@@ -81,7 +81,7 @@
   margin: 0 0 14px;
 }
 .dashboard-app.dashboard-page-docs .docs-section a {
-  color: #ed674d;
+  color: var(--accent);
   font-weight: 600;
 }
 .dashboard-app.dashboard-page-docs .docs-section a:hover {
@@ -97,7 +97,7 @@
 .dashboard-app.dashboard-page-docs .docs-step {
   padding: 14px 16px;
   border-radius: 14px;
-  background: #f5f8f9;
+  background: var(--db-tint-strong);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -113,28 +113,28 @@
 .dashboard-app.dashboard-page-docs .code-block {
   margin-top: 14px;
   border-radius: 14px;
-  background: #1d2530;
+  background: var(--ink);
   overflow: hidden;
-  border: 1px solid #2a3442;
+  border: 1px solid var(--ink);
 }
 .dashboard-app.dashboard-page-docs .code-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 9px 14px;
-  background: #232c3a;
-  color: #9fb0c3;
+  background: var(--ink);
+  color: var(--text-dim);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 .dashboard-app.dashboard-page-docs .code-head .icon-action {
-  color: #9fb0c3;
+  color: var(--text-dim);
 }
 .dashboard-app.dashboard-page-docs .code-head .icon-action:hover {
-  color: #fff;
-  background: #2f3b4d;
+  color: var(--canvas);
+  background: var(--ink);
 }
 .dashboard-app.dashboard-page-docs .code-block pre {
   margin: 0;
@@ -145,14 +145,14 @@
   font-family: ui-monospace, Consolas, monospace;
   font-size: 12.5px;
   line-height: 1.6;
-  color: #dbe4ee;
+  color: color-mix(in srgb, var(--info) 14%, var(--surface));
   white-space: pre;
 }
 
 .dashboard-app.dashboard-page-docs .docs-table-wrap {
   margin-top: 14px;
   border-radius: 14px;
-  border: 1px solid #e6edf0;
+  border: 1px solid var(--line);
   overflow: hidden;
 }
 .dashboard-app.dashboard-page-docs .docs-table {
@@ -163,7 +163,7 @@
 .dashboard-app.dashboard-page-docs .docs-table th {
   text-align: left;
   padding: 10px 16px;
-  background: #f5f8f9;
+  background: var(--db-tint-strong);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -171,13 +171,13 @@
 }
 .dashboard-app.dashboard-page-docs .docs-table td {
   padding: 11px 16px;
-  border-top: 1px solid #eef2f4;
+  border-top: 1px solid var(--line);
   vertical-align: top;
 }
 .dashboard-app.dashboard-page-docs .docs-table code {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 12px;
-  background: #eef2f4;
+  background: var(--line);
   padding: 1px 6px;
   border-radius: 6px;
 }
@@ -192,12 +192,12 @@
   color: var(--ink);
 }
 .dashboard-app.dashboard-page-docs .docs-list li::marker {
-  color: #ed674d;
+  color: var(--accent);
 }
 .dashboard-app.dashboard-page-docs .docs-list code {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 12px;
-  background: #eef2f4;
+  background: var(--line);
   padding: 1px 6px;
   border-radius: 6px;
 }
@@ -209,7 +209,7 @@
   margin-top: 14px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: #f5f8f9;
+  background: var(--db-tint-strong);
   font-size: 13px;
   color: var(--ink);
 }
@@ -218,13 +218,13 @@
   height: 18px;
   flex-shrink: 0;
   margin-top: 1px;
-  color: #ed674d;
+  color: var(--accent);
 }
 .dashboard-app.dashboard-page-docs .docs-note.warn {
-  background: #fdf3ec;
+  background: var(--db-accent-tint);
 }
 .dashboard-app.dashboard-page-docs .docs-note.warn .icon {
-  color: #d97b2f;
+  color: var(--accent-strong);
 }
 .dashboard-app.dashboard-page-docs .docs-note code {
   font-family: ui-monospace, Consolas, monospace;

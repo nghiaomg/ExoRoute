@@ -332,9 +332,9 @@
 
   .chat-turn-markdown :global(.md-code-block) {
     margin: 8px 0;
-    border: var(--nb-border);
+    border: 1px solid #d0d7de;
     border-radius: 8px;
-    background: #0f172a;
+    background: #ffffff;
     overflow: hidden;
   }
 
@@ -342,7 +342,7 @@
     display: inline-block;
     padding: 3px 8px;
     font-size: 10px;
-    color: #94a3b8;
+    color: #59636e;
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -357,9 +357,17 @@
     font-family: var(--font-mono, ui-monospace, monospace);
     font-size: 12px;
     line-height: 1.5;
-    color: #e2e8f0;
+    color: #1f2328;
     white-space: pre;
   }
+
+  :global(:root[data-theme='dark']) .chat-turn-markdown :global(.md-code-block) {
+    border-color: #30363d;
+    background: #0d1117;
+  }
+
+  :global(:root[data-theme='dark']) .chat-turn-markdown :global(.md-code-lang) { color: #8b949e; }
+  :global(:root[data-theme='dark']) .chat-turn-markdown :global(.md-pre code) { color: #e6edf3; }
 
   .chat-turn-markdown :global(.md-link) {
     color: var(--accent-deep);

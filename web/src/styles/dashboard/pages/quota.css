@@ -13,16 +13,18 @@
   gap: 14px;
   padding: 18px;
   border-radius: 14px;
-  background: #f5f8f9;
+  background: var(--db-tint-strong);
   transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 .dashboard-app.dashboard-page-quota .quota-card:hover {
-  background: #eef3f5;
+  background: var(--surface-sunken);
 }
-.dashboard-app.dashboard-page-quota .quota-card.warn { background: #fdf3ee; }
-.dashboard-app.dashboard-page-quota .quota-card.warn:hover { background: #fbe9e0; }
+.dashboard-app.dashboard-page-quota .quota-card.warn { background: var(--db-accent-tint); }
+.dashboard-app.dashboard-page-quota .quota-card.warn:hover { background: var(--db-accent-tint); }
 .dashboard-app.dashboard-page-quota .quota-head { display: flex; align-items: center; gap: 11px; }
 .dashboard-app.dashboard-page-quota .quota-head .course-copy { flex: 1; min-width: 0; }
+/* Provider logo (same asset pipeline as the Providers page) inside the card head icon. */
+.dashboard-app.dashboard-page-quota .quota-head .course-icon img { display: block; width: 100%; height: 100%; padding: 5px; object-fit: contain; }
 .dashboard-app.dashboard-page-quota .quota-meters { display: grid; gap: 12px; }
 .dashboard-app.dashboard-page-quota .quota-meter-top {
   display: flex;
@@ -33,12 +35,13 @@
   color: var(--muted);
   font-size: var(--type-meta);
 }
-.dashboard-app.dashboard-page-quota .quota-meter-top strong { color: #3c4652; font-variant-numeric: tabular-nums; }
+.dashboard-app.dashboard-page-quota .quota-meter-top strong { color: var(--ink); font-variant-numeric: tabular-nums; }
 .dashboard-app.dashboard-page-quota .quota-detail { align-self: flex-start; }
 .dashboard-app.dashboard-page-quota .quota-detail-body { display: grid; gap: 14px; }
 .dashboard-app.dashboard-page-quota .quota-detail-row .progress-track { height: 8px; }
-.dashboard-app.dashboard-page-quota .status.error { background: #fdeceb; color: #b84935; }
+.dashboard-app.dashboard-page-quota .status.error { background: var(--db-danger-tint); color: var(--db-danger); }
 .dashboard-app.dashboard-page-quota .mini-add:disabled { opacity: 0.55; cursor: default; }
 @media (max-width: 680px) {
   .dashboard-app.dashboard-page-quota .quota-grid { grid-template-columns: 1fr; }
 }
+

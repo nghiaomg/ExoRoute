@@ -5,25 +5,25 @@
 .prov-select {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid #e9eef0;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background-color: #fff;
-  color: #46515c;
+  background-color: var(--surface);
+  color: var(--muted);
   font-size: var(--type-body);
 }
 .prov-search { width: min(280px, 100%); flex: 1 1 200px; }
 .prov-select { padding-right: 34px; }
 .prov-search:focus,
-.prov-select:focus { outline: 0; border-color: #ea8a75; box-shadow: 0 0 0 3px #ed765e1a; }
+.prov-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .keys-toolbar { align-items: center; }
-.icon-action.danger:hover { color: #b84935; background: #fdf1ef; }
+.icon-action.danger:hover { color: var(--db-danger); background: var(--db-accent-tint); }
 
 .prov-type {
   margin-left: 6px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: #f0f3f5;
-  color: #78838c;
+  background: var(--surface-sunken);
+  color: var(--muted);
   font-size: var(--type-caption);
   font-weight: var(--weight-medium);
   vertical-align: 1px;
@@ -48,15 +48,15 @@
   opacity: 0.72;
 }
 .key-revoked .progress-fill {
-  background: #a8b3bd;
+  background: var(--text-dim);
 }
 
 .key-reveal {
   margin-top: 16px;
   padding: 16px 18px;
   border-radius: 14px;
-  background: #eef4f6;
-  border: 1px dashed #c3d2d8;
+  background: var(--surface-sunken);
+  border: 1px dashed var(--text-dim);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -77,8 +77,8 @@
   min-width: 0;
   padding: 10px 14px;
   border-radius: 10px;
-  background: #fff;
-  border: 1px solid #d9e2e7;
+  background: var(--surface);
+  border: 1px solid var(--text-dim);
   font-size: 13px;
   letter-spacing: 0.02em;
   overflow: hidden;
@@ -97,11 +97,187 @@
 .check-row-inline input {
   width: 16px;
   height: 16px;
-  accent-color: #ed674d;
+  accent-color: var(--accent);
 }
 
 @media (max-width: 1100px) {
   .key-budget {
     min-width: 100px;
+  }
+}
+
+/* The edit form has its own layout so scope controls stay readable instead of
+   inheriting the shared modal's full-row defaults and generic field sizing. */
+.api-key-edit-dialog {
+  width: min(94vw, 680px);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: visible;
+}
+.api-key-edit-card {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  overflow: hidden;
+  padding: 22px 24px;
+}
+.api-key-edit-fields {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1px 3px 3px 1px;
+  align-content: start;
+}
+.api-key-edit-fields > .api-key-edit-section {
+  grid-column: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-sunken);
+}
+.api-key-edit-fields > .api-key-name-field,
+.api-key-edit-fields > .api-key-enabled-field {
+  grid-column: 1 / -1;
+}
+.api-key-edit-fields > .api-key-model-field,
+.api-key-edit-fields > .api-key-provider-field {
+  align-self: start;
+}
+.api-key-edit-fields .api-key-model-field input {
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  outline: 0;
+  background: var(--db-tint);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--type-body);
+}
+.api-key-edit-fields .api-key-model-field input:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
+  box-shadow: 0 0 0 3px var(--db-accent-ring);
+}
+.api-key-provider-field {
+  display: grid;
+  gap: 9px;
+}
+.api-key-provider-field legend {
+  padding: 0;
+  color: var(--muted);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-semibold);
+}
+.api-key-edit-help,
+.api-key-edit-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-meta);
+  line-height: 1.45;
+}
+.api-key-provider-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 7px;
+  max-height: min(220px, 34dvh);
+  overflow-y: auto;
+  padding: 1px 3px 2px 1px;
+}
+.api-key-provider-option {
+  display: flex;
+  min-width: 0;
+  min-height: 38px;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--type-meta);
+  font-weight: var(--weight-medium);
+  line-height: 1.35;
+  cursor: pointer;
+}
+.api-key-provider-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.api-key-provider-option input,
+.api-key-enabled-field > input {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.api-key-provider-option:focus-within,
+.api-key-enabled-field:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.api-key-enabled-field {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  cursor: pointer;
+}
+.api-key-enabled-field > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.api-key-enabled-field strong {
+  color: var(--ink);
+  font-size: var(--type-body);
+}
+.api-key-enabled-field small {
+  color: var(--muted);
+  font-size: var(--type-meta);
+  font-weight: var(--weight-regular);
+  line-height: 1.4;
+}
+.api-key-edit-actions {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .api-key-edit-dialog {
+    width: min(94vw, 480px);
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+  .api-key-edit-card {
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+    gap: 12px;
+    padding: 16px;
+  }
+  .api-key-edit-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .api-key-edit-fields > .api-key-edit-section {
+    grid-column: 1;
+    padding: 12px;
+  }
+  .api-key-provider-list {
+    max-height: min(200px, 30dvh);
+  }
+}
+
+@media (max-height: 560px) {
+  .api-key-provider-list {
+    max-height: 150px;
   }
 }

@@ -15,6 +15,14 @@
 }
 :root[data-theme='dark'] ::selection { color: #ffffff; background: var(--info); }
 
+/* Dashboard shell (sketch-era .dashboard-app) semantic tokens on dark schemes.
+   The shell defines its base --db-* values in sketch/parts/head.html; only the
+   status colors need brighter dark-scheme steps — tints derive via color-mix. */
+:root[data-theme='dark'] .dashboard-app {
+  --db-danger: #f0968a;
+  --db-success: #4cc38a;
+}
+
 /* Dark Palette Custom Scrollbar */
 :root[data-theme='dark'] * {
   scrollbar-color: var(--scrollbar-thumb) transparent;

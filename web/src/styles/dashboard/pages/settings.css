@@ -6,8 +6,8 @@
   align-items: center;
   padding: 5px 12px;
   border-radius: 999px;
-  background: #fdf0ec;
-  color: #c2502f;
+  background: var(--db-accent-tint);
+  color: var(--accent-strong);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -43,13 +43,13 @@
 .dashboard-app.dashboard-page-settings .check-row input {
   width: 16px;
   height: 16px;
-  accent-color: #ed674d;
+  accent-color: var(--accent);
 }
 .dashboard-app.dashboard-page-settings .provd-wide {
   grid-column: 1 / -1;
 }
 .dashboard-app.dashboard-page-settings .readonly-field {
-  background: #f1f5f7;
+  background: var(--surface-sunken);
   color: var(--muted);
 }
 .dashboard-app.dashboard-page-settings .data-actions {
@@ -58,16 +58,16 @@
   gap: 10px;
 }
 .dashboard-app.dashboard-page-settings .settings-danger {
-  border-color: #f3d5cd;
+  border-color: var(--db-accent-line);
 }
 .dashboard-app.dashboard-page-settings .settings-danger .status.error {
-  background: #fdeceb;
-  color: #c0392b;
+  background: var(--db-danger-tint);
+  color: var(--db-danger);
 }
 .dashboard-app.dashboard-page-settings code {
   font-family: ui-monospace, Consolas, monospace;
   font-size: 12px;
-  background: #eef2f4;
+  background: var(--line);
   padding: 1px 6px;
   border-radius: 6px;
 }

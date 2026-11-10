@@ -69,7 +69,7 @@
   <meta name="referrer" content="no-referrer" />
 </svelte:head>
 
-<DashboardAppShell page="docs" activePage="docs" {providerCount} {gatewayAddress} onNavigate={navigateFromShell} {onSignOut}>
+<DashboardAppShell page="docs" activePage="docs" {providerCount} {gatewayAddress} locale={preferences.locale} tr={(key) => t(locale, key)} onLocaleChange={preferences.setLocale} onNavigate={navigateFromShell} {onSignOut}>
   <div class="page-heading docs-route-heading">
     <div class="heading-copy">
       <h1>{heading}</h1>

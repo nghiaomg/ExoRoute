@@ -31,8 +31,8 @@
 
   let overview = $state<Overview | null>(null);
   let stats = $state<RequestStatistics | null>(null);
+  let statisticsError = $state(false);
   let recent = $state<RequestLog[]>([]);
-  let activeKeys = $state(0);
   let loading = $state(true);
   let errorMessage = $state('');
   let generation = 0;
@@ -117,25 +117,25 @@
     errorMessage = '';
     onConnectionChange('loading');
     try {
-      const [summary, statistics, requestPage, keyPage, settings] = await Promise.all([
+      const [summary, statistics, requestPage, settings] = await Promise.all([
         api.overview(),
         api.statistics('1d'),
         api.requests(),
-        api.apiKeys(),
         api.settings(),
       ]);
       if (requestGeneration !== generation) return;
       overview = summary;
       stats = statistics;
+      statisticsError = false;
       recent = requestPage.requests.slice(0, 6);
-      activeKeys = keyPage.api_keys.filter((key) => key.enabled).length;
       keyModelOptions = statistics.models.top.map((m) => m.label).slice(0, 12);
       onGatewayAddressChange(settings.host, settings.port);
       onProviderCountChange(summary.provider_count);
       onConnectionChange('loaded');
     } catch (error) {
       if (requestGeneration !== generation) return;
-      errorMessage = error instanceof Error ? error.message : 'Something went wrong while loading this page.';
+      statisticsError = true;
+      errorMessage = error instanceof Error ? error.message : tr('Something went wrong while loading this page.');
       onConnectionChange('error');
     } finally {
       if (requestGeneration === generation) loading = false;
@@ -151,10 +151,9 @@
       const created = await api.createApiKey(name, scope);
       keySecret = created.key;
       keyWarning = created.warning || '';
-      activeKeys += 1;
-      showDashboardToast(`API key "${name}" created`);
+      showDashboardToast(tr('API key "{name}" created', { name }));
     } catch (error) {
-      showDashboardToast(error instanceof Error ? error.message : 'Failed to create API key');
+      showDashboardToast(error instanceof Error ? error.message : tr('Failed to create API key'));
     } finally {
       keyBusy = false;
     }
@@ -174,13 +173,13 @@
   function onChartMove(event: MouseEvent) {
     const bar = (event.target as HTMLElement).closest('.bar') as HTMLElement | null;
     if (!bar || !chartEl) { chartTooltip = null; return; }
-    const labels: Record<string, string> = { '2xx': '2xx success', '4xx': '4xx client error', '5xx': '5xx server error', 'Other': 'Other' };
+    const labels: Record<string, string> = { '2xx': tr('2xx success'), '4xx': tr('4xx client error'), '5xx': tr('5xx server error'), 'Other': tr('Other') };
     const label = bar.dataset.barLabel ?? '';
     const pct = bar.dataset.barPct ?? '0';
     const count = Number(bar.dataset.barCount ?? 0);
     const rect = chartEl.getBoundingClientRect();
     chartTooltip = {
-      text: `${labels[label] ?? label} — ${pct}% (${formatCount(count, locale)} requests)`,
+      text: tr('{label} — {pct}% ({count} requests)', { label: labels[label] ?? label, pct, count: formatCount(count, locale) }),
       left: Math.min(event.clientX - rect.left + 12, rect.width - 190),
       top: event.clientY - rect.top - 14,
     };
@@ -189,9 +188,9 @@
   async function copyKey() {
     try {
       await navigator.clipboard.writeText(keySecret);
-      showDashboardToast('Key copied to clipboard');
+      showDashboardToast(tr('Key copied to clipboard'));
     } catch {
-      showDashboardToast('Clipboard unavailable');
+      showDashboardToast(tr('Clipboard unavailable'));
     }
   }
 
@@ -205,46 +204,62 @@
 
 <div class="page-heading">
   <div class="heading-copy">
-    <h1>Overview</h1>
-    <p>A clear view of your gateway, at a glance.</p>
+    <h1>{tr('Overview')}</h1>
+    <p>{tr('A clear view of your gateway, at a glance.')}</p>
   </div>
   <div class="heading-actions">
     <button class="action-button primary" type="button" data-open-modal="key-dialog">
       <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
-      <span class="button-label">New API key</span>
+      <span class="button-label">{tr('New API key')}</span>
     </button>
     <button class="action-button import-button" type="button" onclick={() => onNavigate('requests')}>
       <span class="button-icon"><svg class="icon"><use href="#i-import" /></svg></span>
-      <span class="button-label">View requests</span>
+      <span class="button-label">{tr('View requests')}</span>
     </button>
   </div>
 </div>
 
 {#if errorMessage}
-  <section class="course-card surface" aria-label="Load error">
-    <div class="card-title-row"><h2>Could not load overview</h2></div>
+  <section class="course-card surface" aria-label={tr('Load error')}>
+    <div class="card-title-row"><h2>{tr('Could not load overview')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
     <div class="modal-actions" style="padding-top:14px">
-      <button class="page-action primary" type="button" onclick={load}>Retry</button>
+      <button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</button>
     </div>
   </section>
 {:else if loading || !overview || !stats}
-  <section class="stats-grid" aria-label="Loading">
+  <section class="stats-grid" aria-label={tr('Loading')}>
     {#each [0, 1, 2, 3] as i (i)}
       <article class="stat-card surface" style="min-height:132px"></article>
     {/each}
   </section>
 {:else}
   <div class="dashboard-content">
-    <section class="stats-grid" aria-label="Gateway overview">
+    {#if statisticsError || !stats.complete || !stats.aggregation_current || stats.history_truncated || stats.status_history_incomplete || stats.logged_requests < stats.total_requests}
+      <div class="overview-statistics-warning" role="status">
+        <strong>{tr('Statistics are incomplete')}</strong>
+        <span>
+          {#if statisticsError}
+            {tr('Statistics are incomplete')}
+          {:else if !stats.complete}
+            {tr('{count} telemetry events were dropped. Displayed totals and percentages use the events that were saved.', { count: formatCount(stats.dropped_events, locale) })}
+          {:else if !stats.aggregation_current}
+            {tr('The background worker is expiring older minute buckets. Values can temporarily include older traffic.')}
+          {:else}
+            {tr('Statistics are incomplete')}
+          {/if}
+        </span>
+      </div>
+    {/if}
+    <section class="stats-grid" aria-label={tr('Gateway overview')}>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
-          <span class="stat-number">{fmtInt(overview.request_count)}</span>
+          <span class="stat-number">{statisticsError ? '—' : fmtInt(stats.total_requests)}</span>
         </div>
-        <h2>Total Requests</h2>
-        <div class="stat-trend">All time on this instance</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('requests')}>View Requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Requests Today')}</h2>
+        <div class="stat-trend">{tr('Last 24 hours')}</div>
+        <button class="details-link" type="button" onclick={() => onNavigate('requests')}>{tr('View Requests')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
 
       <article class="stat-card surface">
@@ -252,9 +267,9 @@
           <span class="stat-icon"><svg class="icon"><use href="#i-link" /></svg></span>
           <span class="stat-number">{overview.provider_count}</span>
         </div>
-        <h2>Providers</h2>
-        <div class="stat-trend">Configured upstreams</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('providers')}>View Providers <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Providers')}</h2>
+        <div class="stat-trend">{tr('Configured upstreams')}</div>
+        <button class="details-link" type="button" onclick={() => onNavigate('providers')}>{tr('View Providers')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
 
       <article class="stat-card surface">
@@ -262,9 +277,9 @@
           <span class="stat-icon"><svg class="icon"><use href="#i-code" /></svg></span>
           <span class="stat-number">{overview.combo_count}</span>
         </div>
-        <h2>Combos</h2>
-        <div class="stat-trend">Routing rules in place</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('combos')}>View Combos <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Combos')}</h2>
+        <div class="stat-trend">{tr('Routing rules in place')}</div>
+        <button class="details-link" type="button" onclick={() => onNavigate('combos')}>{tr('View Combos')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
 
       <article class="stat-card surface">
@@ -272,19 +287,19 @@
           <span class="stat-icon"><svg class="icon"><use href="#i-trend-up" /></svg></span>
           <span class="stat-number">{successRate === null ? '—' : `${successRate}%`}</span>
         </div>
-        <h2>Success Rate</h2>
-        <div class="stat-trend">Last 24 hours</div>
-        <button class="details-link" type="button" onclick={() => onNavigate('requests')}>View Requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Success Rate')}</h2>
+        <div class="stat-trend">{tr('Last 24 hours')}</div>
+        <button class="details-link" type="button" onclick={() => onNavigate('requests')}>{tr('View Requests')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
     </section>
 
     <div class="middle-grid">
       <section class="chart-card surface" aria-labelledby="status-heading">
         <div class="card-title-row">
-          <h2 id="status-heading">Requests by Status</h2>
+          <h2 id="status-heading">{tr('Requests by Status')}</h2>
         </div>
-        <p class="card-subtitle">HTTP status distribution, last 24 hours</p>
-        <div class="chart-plot" role="img" aria-label="Request distribution by HTTP status" bind:this={chartEl} onmousemove={onChartMove} onmouseleave={() => (chartTooltip = null)}>
+        <p class="card-subtitle">{tr('HTTP status distribution, last 24 hours')}</p>
+        <div class="chart-plot" role="img" aria-label={tr('Request distribution by HTTP status')} bind:this={chartEl} onmousemove={onChartMove} onmouseleave={() => (chartTooltip = null)}>
           {#if chartTooltip}
             <div class="chart-tooltip" style="left:{chartTooltip.left}px;top:{chartTooltip.top}px">{chartTooltip.text}</div>
           {/if}
@@ -307,18 +322,18 @@
 
       <section class="course-card surface" aria-labelledby="recent-heading">
         <div class="card-title-row">
-          <h2 id="recent-heading">Recent Requests</h2>
-          <button class="mini-add" type="button" onclick={() => onNavigate('requests')}>View all</button>
+          <h2 id="recent-heading">{tr('Recent Requests')}</h2>
+          <button class="mini-add" type="button" onclick={() => onNavigate('requests')}>{tr('View all')}</button>
         </div>
         <div class="course-list" aria-live="polite">
           {#if recent.length === 0}
-            <p class="card-subtitle" style="padding:18px 4px">No requests logged yet.</p>
+            <p class="card-subtitle" style="padding:18px 4px">{tr('No requests logged yet.')}</p>
           {:else}
             {#each recent as request (request.id ?? request.request_id ?? request.created_at)}
               <article class="course-row">
                 <span class="course-icon"><svg class="icon"><use href={statusClass(request) === 'complete' ? '#i-play' : statusClass(request) === 'progress' ? '#i-zap' : '#i-x-circle'} /></svg></span>
                 <div class="course-copy">
-                  <strong>{request.model || request.route_alias || 'request'}</strong>
+                  <strong>{request.model || request.route_alias || tr('request')}</strong>
                   <span>{providerLabel(request)}{latencyLabel(request) ? ` · ${latencyLabel(request)}` : ''}</span>
                 </div>
                 <span class="status {statusClass(request)}">{statusLabel(request)}</span>
@@ -331,24 +346,24 @@
 
     <div class="bottom-grid">
       <section class="assignment-card surface" aria-labelledby="success-heading">
-        <h2 id="success-heading">Success Overview</h2>
-        <p class="card-subtitle">Request outcomes and latency, last 24 hours</p>
+        <h2 id="success-heading">{tr('Success Overview')}</h2>
+        <p class="card-subtitle">{tr('Request outcomes and latency, last 24 hours')}</p>
         <div class="assignment-content">
           <div class="legend-list">
             <div class="legend-row">
-              <span class="legend-dot orange"></span><strong>{fmtInt(stats.failures)}</strong><span>Failed Requests</span>
+              <span class="legend-dot orange"></span><strong>{fmtInt(stats.failures)}</strong><span>{tr('Failed Requests')}</span>
             </div>
             <div class="legend-row">
-              <span class="legend-dot ink"></span><strong>{fmtInt(stats.successes)}</strong><span>Successful Requests</span>
+              <span class="legend-dot ink"></span><strong>{fmtInt(stats.successes)}</strong><span>{tr('Successful Requests')}</span>
             </div>
             <div class="legend-row">
-              <span class="legend-dot green"></span><strong>{fmtCompactTokens(totalTokens)}</strong><span>Total Tokens</span>
+              <span class="legend-dot green"></span><strong>{fmtCompactTokens(totalTokens)}</strong><span>{tr('Total Tokens')}</span>
             </div>
             <div class="legend-row">
-              <span class="legend-dot blue"></span><strong>{stats.average_latency_ms ? `${Math.round(stats.average_latency_ms)} ms` : '—'}</strong><span>Average Latency</span>
+              <span class="legend-dot blue"></span><strong>{stats.average_latency_ms ? `${Math.round(stats.average_latency_ms)} ms` : '—'}</strong><span>{tr('Average Latency')}</span>
             </div>
           </div>
-          <svg class="gauge" viewBox="0 0 280 155" role="img" aria-label="{successRate ?? 0} percent of requests successful">
+          <svg class="gauge" viewBox="0 0 280 155" role="img" aria-label={tr('{percent} percent of requests successful', { percent: successRate ?? 0 })}>
             <defs>
               <linearGradient id="gauge-gradient" x1="0" y1="1" x2="1" y2="0">
                 <stop offset="0%" stop-color="#f27b5e" />
@@ -358,7 +373,7 @@
                 <stop offset="100%" stop-color="#9ed1ff" />
               </linearGradient>
             </defs>
-            <path d="M28 142 A112 112 0 0 1 252 142" fill="none" stroke="#edf1f3" stroke-width="17" />
+            <path d="M28 142 A112 112 0 0 1 252 142" fill="none" style="stroke: var(--line)" stroke-width="17" />
             <path
               d="M28 142 A112 112 0 0 1 252 142"
               fill="none"
@@ -367,38 +382,38 @@
               stroke-dasharray={gaugeDash}
               stroke-width="17"
             />
-            <text x="140" y="116" text-anchor="middle" fill="#293341" font-size="31" font-weight="700">{successRate ?? '—'}<tspan font-size="14">%</tspan></text>
-            <text x="140" y="138" text-anchor="middle" fill="#78838c" font-size="9">Request Success</text>
+            <text x="140" y="116" text-anchor="middle" style="fill: var(--ink)" font-size="31" font-weight="700">{successRate ?? '—'}<tspan font-size="14">%</tspan></text>
+            <text x="140" y="138" text-anchor="middle" style="fill: var(--muted)" font-size="9">{tr('Request Success')}</text>
           </svg>
         </div>
       </section>
 
       <section class="community-card surface" aria-labelledby="links-heading">
         <div class="community-heading">
-          <h2 id="links-heading">Quick Links</h2>
-          <button class="icon-button" type="button" aria-label="More links" onclick={() => showDashboardToast('Quick links')}>
+          <h2 id="links-heading">{tr('Quick Links')}</h2>
+          <button class="icon-button" type="button" aria-label={tr('More links')} onclick={() => showDashboardToast(tr('Quick links'))}>
             <svg class="icon"><use href="#i-plus" /></svg>
           </button>
         </div>
         <div class="community-link" role="button" tabindex="0" onclick={openDocs} onkeydown={(e) => e.key === 'Enter' && openDocs()}>
           <span class="community-logo" aria-hidden="true"><svg class="icon"><use href="#i-book" /></svg></span>
           <span class="community-copy">
-            <strong>Documentation</strong>
-            <span>API reference &amp; guides</span>
+            <strong>{tr('Documentation')}</strong>
+            <span>{tr('API reference & guides')}</span>
           </span>
         </div>
         <div class="community-link" role="button" tabindex="0" onclick={() => onNavigate('chat')} onkeydown={(e) => e.key === 'Enter' && onNavigate('chat')}>
           <span class="community-logo discord" aria-hidden="true"><svg class="icon"><use href="#i-video" /></svg></span>
           <span class="community-copy">
-            <strong>Workspace Chat</strong>
-            <span>Try models in-browser</span>
+            <strong>{tr('Workspace Chat')}</strong>
+            <span>{tr('Try models in-browser')}</span>
           </span>
         </div>
         <div class="community-link" role="button" tabindex="0" onclick={() => onNavigate('api-keys')} onkeydown={(e) => e.key === 'Enter' && onNavigate('api-keys')}>
           <span class="community-logo" aria-hidden="true" style="color:#ed674d"><svg class="icon"><use href="#i-key" /></svg></span>
           <span class="community-copy">
-            <strong>API Keys</strong>
-            <span>{activeKeys} active {activeKeys === 1 ? 'key' : 'keys'}</span>
+            <strong>{tr('API Keys')}</strong>
+            <span>{tr('Manage client API keys')}</span>
           </span>
         </div>
       </section>
@@ -413,45 +428,45 @@
   >
     <div class="modal-heading">
       <div>
-        <h2 id="key-dialog-title">New API key</h2>
-        <p>Create a client key for the gateway. The secret is shown once.</p>
+        <h2 id="key-dialog-title">{tr('New API key')}</h2>
+        <p>{tr('Create a client key for the gateway. The secret is shown once.')}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
     </div>
     {#if keySecret}
       <div class="key-reveal">
-        <strong>Your new key</strong>
-        <p>Copy it now — it will not be shown again.{#if keyWarning} {keyWarning}{/if}</p>
+        <strong>{tr('Your new key')}</strong>
+        <p>{tr('Copy it now — it will not be shown again.')}{#if keyWarning} {keyWarning}{/if}</p>
         <div class="key-reveal-row">
           <code>{keySecret}</code>
           <button class="page-action" type="button" onclick={copyKey}>
-            <svg class="icon"><use href="#i-copy" /></svg> Copy
+            <svg class="icon"><use href="#i-copy" /></svg> {tr('Copy')}
           </button>
         </div>
       </div>
       <div class="modal-actions">
-        <button class="page-action primary" type="submit">Done</button>
+        <button class="page-action primary" type="submit">{tr('Done')}</button>
       </div>
     {:else}
       <div class="modal-fields">
         <label class="field">
-          Key name
-          <input bind:value={keyName} type="text" required placeholder="e.g. mobile-app" />
+          {tr('Key name')}
+          <input bind:value={keyName} type="text" required placeholder={tr('e.g. mobile-app')} />
         </label>
         <label class="field">
-          Allowed model
+          {tr('Allowed model')}
           <select bind:value={keyModels}>
-            <option value="all">All models</option>
+            <option value="all">{tr('All models')}</option>
             {#each keyModelOptions as model (model)}
               <option value={model}>{model}</option>
             {/each}
           </select>
         </label>
-        <p class="form-note">Budget and expiry limits are managed on the API keys page.</p>
+        <p class="form-note">{tr('Budget and expiry limits are managed on the API keys page.')}</p>
       </div>
       <div class="modal-actions">
-        <button class="page-action" type="button" data-close-modal>Cancel</button>
-        <button class="page-action primary" type="submit" disabled={keyBusy || !keyName.trim()}>{keyBusy ? 'Creating…' : 'Create key'}</button>
+        <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
+        <button class="page-action primary" type="submit" disabled={keyBusy || !keyName.trim()}>{keyBusy ? tr('Creating…') : tr('Create key')}</button>
       </div>
     {/if}
   </form>

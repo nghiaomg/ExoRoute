@@ -31,7 +31,7 @@
 
   // Pages rendered in the current dashboard shell. Keep the set explicit so a
   // future route can opt into the legacy shell while its feature is migrated.
-  const dashboardShellPages = new Set<DashboardPage>(['overview', 'providers', 'combos', 'quota', 'requests', 'chat', 'api-keys', 'settings', 'help']);
+  const dashboardShellPages = new Set<DashboardPage>(['overview', 'providers', 'combos', 'proxies', 'quota', 'requests', 'chat', 'api-keys', 'settings', 'help']);
   $: useDashboardShell = dashboardPage(currentPage) && dashboardShellPages.has(currentPage);
 
   function handleConnectionChange(state: ConnectionState): void {
@@ -47,6 +47,7 @@
     overview: 'Overview',
     providers: 'Providers',
     combos: 'Combos',
+    proxies: 'Proxies',
     quota: 'Quota',
     requests: 'Requests',
     'api-keys': 'Gateway API keys',
@@ -438,7 +439,7 @@
 {:else if currentPage === 'login'}
   <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
 {:else if useDashboardShell}
-  <DashboardAppShell page={currentPage as DashboardPage} {providerCount} gatewayAddress={gateway.address} onNavigate={(target) => navigateTo(target as DashboardPage)} onSignOut={signOut}>
+  <DashboardAppShell page={currentPage as DashboardPage} {providerCount} gatewayAddress={gateway.address} {tr} {locale} onLocaleChange={changeLocale} onNavigate={(target) => navigateTo(target as DashboardPage)} onSignOut={signOut}>
     {#if providerOAuthNotice}
       <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
         <span>{providerOAuthNotice}</span>
@@ -452,12 +453,18 @@
         <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
       {:else if currentPage === 'combos'}
         <svelte:component this={activeFeature} {tr} {actionRequest} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
+      {:else if currentPage === 'proxies'}
+        <svelte:component this={activeFeature} {tr} {locale} />
       {:else if currentPage === 'quota'}
         <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
       {:else if currentPage === 'requests'}
         <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
-      {:else if currentPage === 'api-keys' || currentPage === 'settings' || currentPage === 'help'}
-        <svelte:component this={activeFeature} {tr} onNavigate={navigateTo} />
+      {:else if currentPage === 'settings'}
+        <svelte:component this={activeFeature} {tr} {theme} {themePreference} onThemeChange={changeTheme} onThemePreferenceChange={changeThemePreference} onNavigate={navigateTo} onAuthenticationReset={handleAuthenticationReset} />
+      {:else if currentPage === 'api-keys'}
+        <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} />
+      {:else if currentPage === 'help'}
+        <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} />
       {:else if currentPage === 'chat'}
         <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
       {/if}
@@ -496,7 +503,7 @@
         {:else if currentPage === 'requests'}
           <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
         {:else if currentPage === 'api-keys'}
-          <svelte:component this={activeFeature} {tr} {locale} {actionRequest} onConnectionChange={handleConnectionChange} />
+          <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} />
         {:else if currentPage === 'settings'}
           <svelte:component this={activeFeature} {tr} {locale} {theme} {themePreference} onThemeChange={changeTheme} onThemePreferenceChange={changeThemePreference} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
         {:else if currentPage === 'chat'}

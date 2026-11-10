@@ -7,6 +7,7 @@
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import type { Provider, ProviderKey, ProviderPreset, UpstreamProtocol } from '../../lib/types';
   import { providerLogo } from './provider-logo';
+  import ProviderDetailsPage from './ProviderDetailsPage.svelte';
   import '../../styles/dashboard/pages/providers.css';
 
   interface Props {
@@ -16,7 +17,7 @@
     onProviderCountChange: (count: number) => void;
   }
 
-  let { tr: _tr, locale: _locale, onConnectionChange, onProviderCountChange }: Props = $props();
+  let { tr, locale, onConnectionChange, onProviderCountChange }: Props = $props();
 
   let providers = $state<Provider[]>([]);
   let presets = $state<ProviderPreset[]>([]);
@@ -52,6 +53,10 @@
   let deleteTarget = $state<Provider | null>(null);
   let deleteBusy = $state(false);
 
+  // Provider detail page: a full-page view addressed by ?id= so a reload or a
+  // shared link reopens the same provider.
+  let detailProviderId = $state<string | null>(null);
+
   // Test-all dialog
   let testDialog = $state<HTMLDialogElement>();
   let testRows = $state<{ id: string; name: string; state: 'pending' | 'testing' | 'ok' | 'fail'; detail: string }[]>([]);
@@ -75,9 +80,43 @@
   const totalModels = $derived(providers.reduce((sum, p) => sum + (p.model_count ?? 0), 0));
   const keylessCount = $derived(providers.filter((p) => p.enabled && !(p.api_key_count ?? 0)).length);
 
+  /** The detail page mirrors the live provider record so edits, key changes,
+      and toggles are reflected without reopening it. */
+  const detailLive = $derived.by(() => {
+    const id = detailProviderId;
+    return id ? providers.find((p) => p.id === id) ?? null : null;
+  });
+
   function providerType(provider: Provider): string {
     return presets.find((p) => p.adapter_id === provider.adapter_id || p.id === provider.adapter_id)?.name ?? provider.adapter_id;
   }
+
+  /** Group order mirrors the preset catalog; adapters without a preset fall into Custom. */
+  const CATEGORY_ORDER = ['cloud_api', 'gateway', 'oauth', 'custom'] as const;
+  type ProviderGroupKey = (typeof CATEGORY_ORDER)[number];
+  const CATEGORY_LABEL_KEYS: Record<ProviderGroupKey, string> = {
+    cloud_api: 'Cloud API',
+    gateway: 'Gateway',
+    oauth: 'OAuth',
+    custom: 'Custom',
+  };
+
+  function providerCategory(provider: Provider): ProviderGroupKey {
+    const preset = presets.find((p) => p.adapter_id === provider.adapter_id || p.id === provider.adapter_id);
+    return preset && (CATEGORY_ORDER as readonly string[]).includes(preset.category)
+      ? (preset.category as ProviderGroupKey)
+      : 'custom';
+  }
+
+  const providerGroups = $derived.by(() => {
+    const buckets: Record<ProviderGroupKey, Provider[]> = { cloud_api: [], gateway: [], oauth: [], custom: [] };
+    for (const provider of filteredProviders) buckets[providerCategory(provider)].push(provider);
+    return CATEGORY_ORDER.map((key) => ({
+      key,
+      label: tr(CATEGORY_LABEL_KEYS[key]),
+      items: buckets[key].sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+  });
 
   async function load(): Promise<void> {
     const gen = ++generation;
@@ -93,7 +132,7 @@
       onConnectionChange('loaded');
     } catch (error) {
       if (gen !== generation) return;
-      errorMessage = error instanceof Error ? error.message : 'Could not load providers.';
+      errorMessage = error instanceof Error ? error.message : tr('Could not load providers.');
       onConnectionChange('error');
     } finally {
       if (gen === generation) loading = false;
@@ -136,8 +175,8 @@
           model_prefix: pfModel.trim() || undefined,
         });
         const failed = res.key_tests.filter((t) => !t.test_passed).length;
-        pfNote = failed ? `${failed} API key test(s) failed; keys were kept.` : '';
-        showDashboardToast(`Provider "${name}" updated`);
+        pfNote = failed ? tr('{failed} API key test(s) failed; keys were kept.', { failed }) : '';
+        showDashboardToast(tr('Provider "{name}" updated', { name }));
       } else {
         const preset = presetById.get(pfPreset) ?? customPreset;
         const keys = pfKey.trim() ? [pfKey.trim()] : [];
@@ -156,13 +195,13 @@
             : ['chat_completions', 'responses', 'messages'],
         });
         const failed = res.key_tests.filter((t) => !t.test_passed).length;
-        pfNote = failed ? `${failed} API key test(s) failed; keys were still saved.` : '';
-        showDashboardToast(`Provider "${name}" created`);
+        pfNote = failed ? tr('{failed} API key test(s) failed; keys were still saved.', { failed }) : '';
+        showDashboardToast(tr('Provider "{name}" created', { name }));
       }
       providerDialog?.close();
       await load();
     } catch (error) {
-      pfError = error instanceof Error ? error.message : 'Could not save provider.';
+      pfError = error instanceof Error ? error.message : tr('Could not save provider.');
     } finally {
       pfBusy = false;
     }
@@ -173,10 +212,10 @@
     providers = providers.map((p) => (p.id === provider.id ? { ...p, enabled: next } : p));
     try {
       await api.updateProvider(provider.id, { enabled: next });
-      showDashboardToast(`${provider.name} ${next ? 'enabled' : 'disabled'}`);
+      showDashboardToast(tr(next ? '{name} enabled' : '{name} disabled', { name: provider.name }));
     } catch (error) {
       providers = providers.map((p) => (p.id === provider.id ? { ...p, enabled: !next } : p));
-      showDashboardToast(error instanceof Error ? error.message : 'Update failed');
+      showDashboardToast(error instanceof Error ? error.message : tr('Update failed'));
     }
   }
 
@@ -190,7 +229,7 @@
       const page = await api.providerKeys(provider.id);
       keys = page.keys;
     } catch (error) {
-      showDashboardToast(error instanceof Error ? error.message : 'Could not load keys');
+      showDashboardToast(error instanceof Error ? error.message : tr('Could not load keys'));
     } finally {
       keysLoading = false;
     }
@@ -203,12 +242,12 @@
     try {
       const res = await api.createProviderKey(keysProvider.id, undefined, value);
       newKey = '';
-      showDashboardToast(res.test_passed ? 'Key added — test passed' : `Key added — test ${res.status ?? 'failed'}`);
+      showDashboardToast(res.test_passed ? tr('Key added — test passed') : tr('Key added — test {status}', { status: res.status ?? 'failed' }));
       const page = await api.providerKeys(keysProvider.id);
       keys = page.keys;
       await load();
     } catch (error) {
-      showDashboardToast(error instanceof Error ? error.message : 'Could not add key');
+      showDashboardToast(error instanceof Error ? error.message : tr('Could not add key'));
     } finally {
       keyBusy = false;
     }
@@ -219,16 +258,57 @@
     try {
       await api.deleteProviderKey(keysProvider.id, key.id);
       keys = keys.filter((k) => k.id !== key.id);
-      showDashboardToast('Key removed');
+      showDashboardToast(tr('Key removed'));
       await load();
     } catch (error) {
-      showDashboardToast(error instanceof Error ? error.message : 'Could not remove key');
+      showDashboardToast(error instanceof Error ? error.message : tr('Could not remove key'));
     }
   }
 
   function openDelete(provider: Provider): void {
     deleteTarget = provider;
     deleteDialog?.showModal();
+  }
+
+  /** Opens the full-page provider detail view and records it in the URL. */
+  function openDetail(provider: Provider): void {
+    detailProviderId = provider.id;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('id', provider.id);
+      window.history.pushState(null, '', url);
+    } catch {
+      // Ignore in sandboxed contexts.
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function closeDetail(): void {
+    detailProviderId = null;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('id');
+      window.history.pushState(null, '', url);
+    } catch {
+      // Ignore in sandboxed contexts.
+    }
+  }
+
+  /** Keeps the detail view in sync with ?id= after reload, back, or forward. */
+  function syncDetailFromUrl(): void {
+    try {
+      const requested = new URL(window.location.href).searchParams.get('id');
+      detailProviderId = requested;
+    } catch {
+      detailProviderId = null;
+    }
+  }
+
+  /** Runs an action from the detail page and leaves it so the target dialog is visible. */
+  function closeDetailThen(action: (provider: Provider) => void): void {
+    const provider = detailLive;
+    closeDetail();
+    if (provider) action(provider);
   }
 
   async function confirmDelete(): Promise<void> {
@@ -238,32 +318,18 @@
       await api.deleteProvider(deleteTarget.id);
       providers = providers.filter((p) => p.id !== deleteTarget?.id);
       onProviderCountChange(providers.length);
-      showDashboardToast(`Provider "${deleteTarget.name}" deleted`);
+      showDashboardToast(tr('Provider "{name}" deleted', { name: deleteTarget.name }));
       deleteDialog?.close();
     } catch (error) {
-      showDashboardToast(error instanceof Error ? error.message : 'Could not delete provider');
+      showDashboardToast(error instanceof Error ? error.message : tr('Could not delete provider'));
     } finally {
       deleteBusy = false;
     }
   }
 
-  async function testProvider(provider: Provider, btn?: HTMLElement): Promise<void> {
-    if (btn) btn.textContent = '…';
-    const started = performance.now();
-    try {
-      await api.providerModels(provider.id, { limit: 1 });
-      const ms = Math.round(performance.now() - started);
-      showDashboardToast(`${provider.name}: OK · ${ms} ms`);
-    } catch (error) {
-      showDashboardToast(`${provider.name}: unreachable — ${error instanceof Error ? error.message : 'error'}`);
-    } finally {
-      if (btn) btn.innerHTML = '<svg class="icon"><use href="#i-wifi" /></svg>';
-    }
-  }
-
   async function syncModels(): Promise<void> {
     const targets = providers.filter((p) => p.enabled);
-    if (!targets.length) { showDashboardToast('No enabled providers to sync'); return; }
+    if (!targets.length) { showDashboardToast(tr('No enabled providers to sync')); return; }
     let imported = 0;
     for (const p of targets) {
       try {
@@ -271,7 +337,7 @@
         imported += res.models?.length ?? 0;
       } catch { /* per-provider failure is non-fatal */ }
     }
-    showDashboardToast(`Model sync complete — ${imported || 'catalog'} refreshed`);
+    showDashboardToast(tr('Model sync complete — {count} refreshed', { count: imported || tr('catalog') }));
     await load();
   }
 
@@ -282,15 +348,18 @@
     testDialog?.showModal();
     for (let i = 0; i < testRows.length; i++) {
       const row = testRows[i];
-      testRows[i] = { ...row, state: 'testing', detail: 'testing…' };
+      testRows[i] = { ...row, state: 'testing', detail: tr('testing…') };
       testRows = [...testRows];
-      const started = performance.now();
       try {
-        await api.providerModels(row.id, { limit: 1 });
-        const ms = Math.round(performance.now() - started);
-        testRows[i] = { ...testRows[i], state: 'ok', detail: `OK · ${100 + ms} ms` };
+        const catalog = await api.providerModels(row.id, { limit: 1 });
+        const count = catalog.models?.length ?? 0;
+        testRows[i] = {
+          ...testRows[i],
+          state: 'ok',
+          detail: count ? `${tr('available')} · ${count} ${tr('models')}` : tr('No models found yet'),
+        };
       } catch {
-        testRows[i] = { ...testRows[i], state: 'fail', detail: 'unreachable' };
+        testRows[i] = { ...testRows[i], state: 'fail', detail: tr('unreachable') };
       }
       testRows = [...testRows];
     }
@@ -306,161 +375,200 @@
 
   function fmtKeys(provider: Provider): string {
     const n = provider.api_key_count ?? 0;
-    return `${n} ${n === 1 ? 'key' : 'keys'}`;
+    return `${n} ${tr(n === 1 ? 'key' : 'keys')}`;
   }
 
   function fmtLastUsed(key: ProviderKey): string {
-    if (!key.last_used_at) return 'never used';
+    if (!key.last_used_at) return tr('never used');
     const diff = Date.now() - new Date(key.last_used_at).getTime();
-    if (diff < 60_000) return 'just now';
-    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-    return `${Math.floor(diff / 86_400_000)}d ago`;
+    if (diff < 60_000) return tr('just now');
+    if (diff < 3_600_000) return tr('{count}m ago', { count: Math.floor(diff / 60_000) });
+    if (diff < 86_400_000) return tr('{count}h ago', { count: Math.floor(diff / 3_600_000) });
+    return tr('{count}d ago', { count: Math.floor(diff / 86_400_000) });
   }
 
-  onMount(() => { void load(); });
+  onMount(() => {
+    // A reload or a shared link carries the provider id in the query string.
+    syncDetailFromUrl();
+    const handlePopState = () => syncDetailFromUrl();
+    window.addEventListener('popstate', handlePopState);
+    void load();
+    return () => window.removeEventListener('popstate', handlePopState);
+  });
   onDestroy(() => { generation += 1; });
 </script>
 
+<div class="providers-view">
+{#if detailLive}
+  <ProviderDetailsPage
+    provider={detailLive}
+    {tr}
+    {locale}
+    onBack={closeDetail}
+    onManageKeys={(provider) => void openKeys(provider)}
+    onProviderChanged={() => void load()}
+    onProviderUpdated={(updated) => { providers = providers.map((p) => (p.id === updated.id ? updated : p)); }}
+    onDelete={(provider) => openDelete(provider)}
+  />
+{:else}
 <div class="page-heading">
   <div class="heading-copy">
-    <h1>Providers</h1>
-    <p>Manage upstream AI providers, credentials, and synced models.</p>
+    <h1>{tr('Providers')}</h1>
+    <p>{tr('Manage upstream AI providers, credentials, and synced models.')}</p>
   </div>
   <div class="heading-actions">
     <button class="action-button" type="button" onclick={runAllTests} disabled={testRunning}>
       <span class="button-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
-      <span class="button-label">Test all</span>
+      <span class="button-label">{tr('Test all')}</span>
     </button>
     <button class="action-button primary" type="button" onclick={() => openProviderDialog(null)}>
       <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
-      <span class="button-label">Add provider</span>
+      <span class="button-label">{tr('Add provider')}</span>
     </button>
   </div>
 </div>
 
 {#if errorMessage}
-  <section class="course-card surface" aria-label="Load error">
-    <div class="card-title-row"><h2>Could not load providers</h2></div>
+  <section class="course-card surface" aria-label={tr('Load error')}>
+    <div class="card-title-row"><h2>{tr('Could not load providers')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
     <div class="modal-actions" style="padding-top:14px">
-      <button class="page-action primary" type="button" onclick={load}>Retry</button>
+      <button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</button>
     </div>
   </section>
 {:else if loading}
-  <section class="stats-grid" aria-label="Loading">
+  <section class="stats-grid" aria-label={tr('Loading')}>
     {#each [0, 1, 2, 3] as i (i)}<article class="stat-card surface" style="min-height:132px"></article>{/each}
   </section>
 {:else}
   <div class="page-surface">
-    <section class="stats-grid" aria-label="Provider overview">
+    <section class="stats-grid" aria-label={tr('Provider overview')}>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-link" /></svg></span>
           <span class="stat-number">{providers.length}</span>
         </div>
-        <h2>Total Providers</h2>
-        <div class="stat-trend">{enabledCount} enabled, {providers.length - enabledCount} disabled</div>
-        <button class="details-link" type="button" onclick={() => (statusFilter = 'all')}>View all <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Total Providers')}</h2>
+        <div class="stat-trend">{tr('{enabled} enabled, {disabled} disabled', { enabled: enabledCount, disabled: providers.length - enabledCount })}</div>
+        <button class="details-link" type="button" onclick={() => (statusFilter = 'all')}>{tr('View all')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
           <span class="stat-number">{enabledCount}</span>
         </div>
-        <h2>Enabled</h2>
-        <div class="stat-trend">Serving live traffic</div>
-        <button class="details-link" type="button" onclick={() => (statusFilter = 'enabled')}>Show enabled only <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Enabled')}</h2>
+        <div class="stat-trend">{tr('Serving live traffic')}</div>
+        <button class="details-link" type="button" onclick={() => (statusFilter = 'enabled')}>{tr('Show enabled only')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-key" /></svg></span>
           <span class="stat-number">{totalKeys}</span>
         </div>
-        <h2>Credentials</h2>
-        <div class="stat-trend">Across {providers.filter((p) => (p.api_key_count ?? 0) > 0).length} providers</div>
-        <button class="details-link" type="button" onclick={() => { if (providers[0]) void openKeys(providers[0]); }}>Manage keys <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Credentials')}</h2>
+        <div class="stat-trend">{tr('Across {count} providers', { count: providers.filter((p) => (p.api_key_count ?? 0) > 0).length })}</div>
+        <button class="details-link" type="button" onclick={() => { if (providers[0]) void openKeys(providers[0]); }}>{tr('Manage keys')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
       <article class="stat-card surface">
         <div class="stat-top">
           <span class="stat-icon"><svg class="icon"><use href="#i-refresh" /></svg></span>
           <span class="stat-number">{totalModels}</span>
         </div>
-        <h2>Synced Models</h2>
-        <div class="stat-trend">{keylessCount ? `${keylessCount} enabled without keys` : 'All enabled providers have keys'}</div>
-        <button class="details-link" type="button" onclick={syncModels}>Sync now <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+        <h2>{tr('Synced Models')}</h2>
+        <div class="stat-trend">{keylessCount ? tr('{count} enabled without keys', { count: keylessCount }) : tr('All enabled providers have keys')}</div>
+        <button class="details-link" type="button" onclick={syncModels}>{tr('Sync now')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
       </article>
     </section>
 
     <section class="course-card surface provider-section" aria-labelledby="providers-heading">
       <div class="card-title-row">
-        <h2 id="providers-heading">Providers</h2>
+        <h2 id="providers-heading">{tr('Providers')}</h2>
         <button class="mini-add" type="button" onclick={syncModels}>
           <svg class="icon"><use href="#i-refresh" /></svg>
-          Sync models
+          {tr('Sync models')}
         </button>
       </div>
-      <p class="card-subtitle">{providers.length} providers · {enabledCount} enabled · {totalKeys} credentials</p>
+      <p class="card-subtitle">{tr('{providers} providers · {enabled} enabled · {keys} credentials', { providers: providers.length, enabled: enabledCount, keys: totalKeys })}</p>
       <div class="page-toolbar provider-toolbar">
-        <input class="prov-search" type="search" placeholder="Search providers..." aria-label="Search providers" bind:value={search} />
-        <select class="prov-select" aria-label="Filter by status" bind:value={statusFilter}>
-          <option value="all">All statuses</option>
-          <option value="enabled">Enabled</option>
-          <option value="disabled">Disabled</option>
+        <input class="prov-search" type="search" placeholder={tr('Search providers...')} aria-label={tr('Search providers')} bind:value={search} />
+        <select class="prov-select" aria-label={tr('Filter by status')} bind:value={statusFilter}>
+          <option value="all">{tr('All statuses')}</option>
+          <option value="enabled">{tr('Enabled')}</option>
+          <option value="disabled">{tr('Disabled')}</option>
         </select>
       </div>
-      <div class="course-list provider-list" aria-live="polite">
-        {#each filteredProviders as provider (provider.id)}
-          {@const logo = providerLogo(provider.logo_url, provider.adapter_id, provider.id, provider.name)}
-          <article class="course-row provider-row" data-status={provider.enabled ? 'enabled' : 'disabled'}>
-            <span class="course-icon provider-logo">
-              {#if logo}
-                <img src={logo} alt="" aria-hidden="true" />
-              {:else}
-                <svg class="icon"><use href="#i-zap" /></svg>
-              {/if}
-            </span>
-            <div class="course-copy">
-              <strong>{provider.name} <span class="prov-type">{providerType(provider)}</span></strong>
-              <span>{provider.base_url} · {fmtKeys(provider)} · {provider.model_count ?? 0} models</span>
-            </div>
-            {#if provider.enabled && !(provider.api_key_count ?? 0)}
-              <span class="status progress prov-toggle" role="switch" aria-checked="true" tabindex="0" onclick={() => toggleProvider(provider)} onkeydown={(e) => e.key === 'Enter' && toggleProvider(provider)}>No keys</span>
-            {:else}
-              <span class="status {provider.enabled ? 'complete' : 'pending'} prov-toggle" role="switch" aria-checked={provider.enabled} tabindex="0" onclick={() => toggleProvider(provider)} onkeydown={(e) => e.key === 'Enter' && toggleProvider(provider)}>{provider.enabled ? 'Enabled' : 'Disabled'}</span>
-            {/if}
-            <div class="course-actions">
-              <button class="icon-action" type="button" title="Edit provider" onclick={() => openProviderDialog(provider)}><svg class="icon"><use href="#i-edit" /></svg></button>
-              <button class="icon-action" type="button" title="Manage API keys" onclick={() => openKeys(provider)}><svg class="icon"><use href="#i-key" /></svg></button>
-              <button class="icon-action" type="button" title="Test connection" onclick={(e) => testProvider(provider, e.currentTarget)}><svg class="icon"><use href="#i-wifi" /></svg></button>
-              <button class="icon-action danger" type="button" title="Delete provider" onclick={() => openDelete(provider)}><svg class="icon"><use href="#i-trash" /></svg></button>
-            </div>
-          </article>
-        {:else}
-          <div class="empty-state">No providers match the current filters.</div>
+      <div class="provider-groups" aria-live="polite">
+        {#each providerGroups as group (group.key)}
+          {#if group.items.length}
+            <section class="provider-group">
+              <h3 class="provider-group-title">
+                {group.label}
+                <span class="provider-group-count">{group.items.length}</span>
+              </h3>
+              <div class="course-list provider-list">
+                {#each group.items as provider (provider.id)}
+                  {@const logo = providerLogo(provider.logo_url, provider.adapter_id, provider.id, provider.name)}
+                  <!-- The whole row is the only affordance: all actions live in the detail sheet. -->
+                  <article class="course-row provider-row provider-row-button" data-status={provider.enabled ? 'enabled' : 'disabled'}>
+                    <button
+                      class="provider-row-trigger"
+                      type="button"
+                      aria-label={tr('Open {name} details', { name: provider.name })}
+                      onclick={() => openDetail(provider)}
+                    >
+                      <span class="course-icon provider-logo">
+                        {#if logo}
+                          <img src={logo} alt="" aria-hidden="true" />
+                        {:else}
+                          <svg class="icon"><use href="#i-zap" /></svg>
+                        {/if}
+                      </span>
+                      <span class="course-copy">
+                        <strong>{provider.name} <span class="prov-type">{providerType(provider)}</span></strong>
+                        <span>{provider.base_url} · {fmtKeys(provider)} · {provider.model_count ?? 0} {tr('models')}</span>
+                      </span>
+                      {#if provider.enabled && !(provider.api_key_count ?? 0)}
+                        <span class="status pending">{tr('No keys')}</span>
+                      {:else}
+                        <span class="status {provider.enabled ? 'complete' : 'pending'}">{provider.enabled ? tr('Enabled') : tr('Disabled')}</span>
+                      {/if}
+                      <span class="detail-hint" aria-hidden="true"><svg class="icon"><use href="#i-arrow-right" /></svg></span>
+                    </button>
+                  </article>
+                {/each}
+              </div>
+            </section>
+          {/if}
         {/each}
+        {#if !filteredProviders.length}
+          <div class="empty-state">{tr('No providers match the current filters.')}</div>
+        {/if}
       </div>
     </section>
   </div>
 {/if}
+{/if}
+</div>
+
 
 <!-- Add / edit provider -->
 <dialog class="modal" bind:this={providerDialog} aria-labelledby="provider-dialog-title" onclose={() => { pfError = ''; pfNote = ''; }}>
   <form class="modal-card" onsubmit={(e) => { e.preventDefault(); void saveProvider(); }}>
     <div class="modal-heading">
       <div>
-        <h2 id="provider-dialog-title">{editingProvider ? 'Edit provider' : 'Add provider'}</h2>
-        <p>{editingProvider ? `Update ${editingProvider.name}` : 'Connect an upstream AI provider.'}</p>
+        <h2 id="provider-dialog-title">{editingProvider ? tr('Edit provider') : tr('Add provider')}</h2>
+        <p>{editingProvider ? tr('Update {name}', { name: editingProvider.name }) : tr('Connect an upstream AI provider.')}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
     </div>
     <div class="modal-fields">
       <label class="field prov-field-wide">
-        Provider name
-        <input bind:value={pfName} maxlength="60" required placeholder="e.g. OpenAI" />
+        {tr('Provider name')}
+        <input bind:value={pfName} maxlength="60" required placeholder={tr('e.g. OpenAI')} />
       </label>
       <label class="field">
-        Type
+        {tr('Type')}
         <select bind:value={pfPreset} onchange={applyPreset} disabled={!!editingProvider}>
           {#each presets as preset (preset.id)}
             <option value={preset.id}>{preset.name}</option>
@@ -468,23 +576,23 @@
         </select>
       </label>
       <label class="field">
-        Base URL
+        {tr('Base URL')}
         <input bind:value={pfUrl} type="url" required placeholder="https://api.example.com/v1" />
       </label>
       <label class="field">
-        API key{editingProvider ? ' (leave blank to keep existing)' : ''}
+        {editingProvider ? tr('API key (leave blank to keep existing)') : tr('API key')}
         <input bind:value={pfKey} type="password" placeholder="sk-..." autocomplete="off" />
       </label>
       <label class="field prov-field-wide">
-        Model prefix (optional)
-        <input bind:value={pfModel} maxlength="120" placeholder="e.g. gpt-4o-mini" />
+        {tr('Model prefix (optional)')}
+        <input bind:value={pfModel} maxlength="120" placeholder={tr('e.g. gpt-4o-mini')} />
       </label>
     </div>
     {#if pfError}<p class="form-error" role="alert">{pfError}</p>{/if}
     {#if pfNote}<p class="form-note">{pfNote}</p>{/if}
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>Cancel</button>
-      <button class="page-action primary" type="submit" disabled={pfBusy}>{pfBusy ? 'Saving…' : 'Save provider'}</button>
+      <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
+      <button class="page-action primary" type="submit" disabled={pfBusy}>{pfBusy ? tr('Saving…') : tr('Save provider')}</button>
     </div>
   </form>
 </dialog>
@@ -494,36 +602,36 @@
   <div class="modal-card">
     <div class="modal-heading">
       <div>
-        <h2 id="keys-dialog-title">API keys</h2>
-        <p>Credentials for <strong>{keysProvider?.name ?? 'provider'}</strong>.</p>
+        <h2 id="keys-dialog-title">{tr('API keys')}</h2>
+        <p>{tr('Credentials for')} <strong>{keysProvider?.name ?? tr('provider')}</strong>.</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
     </div>
     <div class="keys-list">
       {#if keysLoading}
-        <p class="card-subtitle" style="padding:12px 4px">Loading keys…</p>
+        <p class="card-subtitle" style="padding:12px 4px">{tr('Loading keys…')}</p>
       {:else if keys.length === 0}
-        <p class="card-subtitle" style="padding:12px 4px">No keys configured.</p>
+        <p class="card-subtitle" style="padding:12px 4px">{tr('No keys configured.')}</p>
       {:else}
         {#each keys as key (key.id)}
           <div class="key-row">
             <div class="course-copy">
-              <strong>{key.name || 'Unnamed key'} <span class="prov-type">{key.credential_type ?? 'api_key'}</span></strong>
-              <span>{key.enabled ? (key.invalid ? 'marked invalid' : 'healthy') : 'disabled'} · {fmtLastUsed(key)}</span>
+              <strong>{key.name || tr('Unnamed key')} <span class="prov-type">{key.credential_type ?? 'api_key'}</span></strong>
+              <span>{key.enabled ? (key.invalid ? tr('marked invalid') : tr('healthy')) : tr('disabled')} · {fmtLastUsed(key)}</span>
             </div>
             <div class="key-actions">
-              <button class="icon-action danger" type="button" title="Remove key" onclick={() => removeKey(key)}><svg class="icon"><use href="#i-trash" /></svg></button>
+              <button class="icon-action danger" type="button" title={tr('Remove key')} onclick={() => removeKey(key)}><svg class="icon"><use href="#i-trash" /></svg></button>
             </div>
           </div>
         {/each}
       {/if}
     </div>
     <form class="keys-add" onsubmit={(e) => { e.preventDefault(); void addKey(); }}>
-      <input bind:value={newKey} type="password" placeholder="Paste a new API key…" autocomplete="off" />
-      <button class="page-action primary" type="submit" disabled={keyBusy || !newKey.trim()}>{keyBusy ? 'Testing…' : 'Add key'}</button>
+      <input bind:value={newKey} type="password" placeholder={tr('Paste a new API key…')} autocomplete="off" />
+      <button class="page-action primary" type="submit" disabled={keyBusy || !newKey.trim()}>{keyBusy ? tr('Testing…') : tr('Add key')}</button>
     </form>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>Close</button>
+      <button class="page-action" type="button" data-close-modal>{tr('Close')}</button>
     </div>
   </div>
 </dialog>
@@ -533,14 +641,14 @@
   <div class="modal-card">
     <div class="modal-heading">
       <div>
-        <h2 id="delete-dialog-title">Delete provider?</h2>
-        <p>This removes {deleteTarget?.name ?? 'the provider'} and its credentials. Combos referencing it will lose that target.</p>
+        <h2 id="delete-dialog-title">{tr('Delete provider?')}</h2>
+        <p>{tr('This removes {name} and its credentials. Combos referencing it will lose that target.', { name: deleteTarget?.name ?? tr('the provider') })}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
     </div>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>Cancel</button>
-      <button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? 'Deleting…' : 'Delete provider'}</button>
+      <button class="page-action" type="button" data-close-modal>{tr('Cancel')}</button>
+      <button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete provider')}</button>
     </div>
   </div>
 </dialog>
@@ -550,10 +658,10 @@
   <div class="modal-card">
     <div class="modal-heading">
       <div>
-        <h2 id="test-all-title">Connection test</h2>
-        <p>Probing each enabled provider…</p>
+        <h2 id="test-all-title">{tr('Connection test')}</h2>
+        <p>{tr('Test all')}</p>
       </div>
-      <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+      <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
     </div>
     <div class="test-results">
       {#each testRows as row (row.id)}
@@ -564,8 +672,8 @@
       {/each}
     </div>
     <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>Close</button>
-      <button class="page-action primary" type="button" onclick={runAllTests} disabled={testRunning}>{testRunning ? 'Running…' : 'Run again'}</button>
+      <button class="page-action" type="button" data-close-modal>{tr('Close')}</button>
+      <button class="page-action primary" type="button" onclick={runAllTests} disabled={testRunning}>{testRunning ? tr('Running…') : tr('Run again')}</button>
     </div>
   </div>
 </dialog>
