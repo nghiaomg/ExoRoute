@@ -540,6 +540,65 @@ pub(crate) fn split_model_effort_suffix(model: &str) -> Option<(&str, &str)> {
 /// `reasoning_effort` for Chat Completions, `output_config.effort` for
 /// Messages, and `generationConfig.thinkingConfig` for Google — with levels
 /// the protocol cannot express degraded to the closest supported tier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum EffectiveEffort {
+    None,
+    Minimal,
+    Low,
+    Medium,
+    High,
+    XHigh,
+    Max,
+}
+
+impl EffectiveEffort {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Minimal => "minimal",
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+            Self::XHigh => "xhigh",
+            Self::Max => "max",
+        }
+    }
+}
+
+/// Extracts a categorical effort that is explicitly present in the provider-facing body.
+/// Numeric budgets other than the protocol's explicit zero/disabled value do not
+/// imply a categorical tier and are intentionally left unreported.
+pub(crate) fn effective_effort(
+    protocol: UpstreamProtocol,
+    body: &Value,
+) -> Option<EffectiveEffort> {
+    let categorical = match protocol {
+        UpstreamProtocol::Responses => body.get("reasoning")?.get("effort")?.as_str()?,
+        UpstreamProtocol::ChatCompletions => body
+            .get("reasoning_effort")
+            .or_else(|| body.get("reasoning")?.get("effort"))?
+            .as_str()?,
+        UpstreamProtocol::Messages => body.get("output_config")?.get("effort")?.as_str()?,
+        UpstreamProtocol::GoogleGenerateContent => {
+            let config = body.get("generationConfig")?.get("thinkingConfig")?;
+            if config.get("thinkingBudget")?.as_u64()? == 0 {
+                return Some(EffectiveEffort::None);
+            }
+            config.get("thinkingLevel")?.as_str()?
+        }
+    };
+    match categorical.trim().to_ascii_lowercase().as_str() {
+        "none" => Some(EffectiveEffort::None),
+        "minimal" => Some(EffectiveEffort::Minimal),
+        "low" => Some(EffectiveEffort::Low),
+        "medium" => Some(EffectiveEffort::Medium),
+        "high" => Some(EffectiveEffort::High),
+        "xhigh" => Some(EffectiveEffort::XHigh),
+        "max" => Some(EffectiveEffort::Max),
+        _ => None,
+    }
+}
+
 pub(crate) fn apply_model_effort(
     protocol: UpstreamProtocol,
     body: &mut Value,

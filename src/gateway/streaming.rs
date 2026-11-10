@@ -83,6 +83,7 @@ pub(super) struct StreamLog {
     pub(super) provider_credential_id: Option<String>,
     pub(super) client_protocol: Protocol,
     pub(super) upstream_protocol: UpstreamProtocol,
+    pub(super) reasoning_effort: Option<String>,
     pub(super) started: Instant,
     pub(super) run_id: Option<String>,
     pub(super) live: RequestLiveGuard,

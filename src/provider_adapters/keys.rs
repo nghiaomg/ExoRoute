@@ -22,8 +22,10 @@ pub struct ProviderApiKeyCursor {
     recovering: bool,
 }
 
-/// How long an invalidated key must cool down before being eligible for a recovery probe.
-pub const KEY_INVALIDATION_COOLDOWN_SECONDS: u64 = 30;
+/// Delay before retrying an invalid credential. A single probe can recover a
+/// key after transient provider-side rejection without waiting long enough for
+/// the provider to remain unavailable to callers.
+pub const KEY_INVALIDATION_COOLDOWN_SECONDS: u64 = 5;
 
 fn is_key_cooldown_elapsed(record: &Record) -> Result<bool, StorageError> {
     if !record.boolean("invalid")? {

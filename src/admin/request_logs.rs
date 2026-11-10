@@ -163,6 +163,7 @@ pub(super) async fn list_requests(
                             "output_tokens": record.optional_integer("output_tokens")?,
                             "cached_tokens": record.optional_integer("cached_tokens")?,
                             "cache_input_tokens": record.optional_integer("cache_input_tokens")?,
+                            "reasoning_effort": record.optional_text("reasoning_effort")?,
                             "cost_micro_usd": record.optional_integer("cost_micro_usd")?,
                             "error": record.optional_text("error")?,
                             "created_at": created_at
@@ -349,6 +350,7 @@ async fn request_live_event(
             output_tokens,
             cached_tokens,
             cache_input_tokens,
+            reasoning_effort,
         } => request_sse_event(
             "request-updated",
             json!({
@@ -359,6 +361,7 @@ async fn request_live_event(
                 "output_tokens": output_tokens,
                 "cached_tokens": cached_tokens,
                 "cache_input_tokens": cache_input_tokens,
+                "reasoning_effort": reasoning_effort,
             }),
         ),
         RequestLiveEvent::Finished {
@@ -421,6 +424,7 @@ fn request_live_row_value(row: &RequestLiveRow, api_key_name: Option<&str>) -> V
         "output_tokens": row.output_tokens,
         "cached_tokens": row.cached_tokens,
         "cache_input_tokens": row.cache_input_tokens,
+        "reasoning_effort": row.reasoning_effort,
         "cost_micro_usd": null,
         "error": null,
         "created_at": null,
@@ -451,6 +455,7 @@ fn request_log_value(
         "output_tokens": record.output_tokens,
         "cached_tokens": record.cached_tokens,
         "cache_input_tokens": record.cache_input_tokens,
+        "reasoning_effort": record.reasoning_effort,
         "cost_micro_usd": record.cost_micro_usd,
         "error": record.error,
         "created_at": null,

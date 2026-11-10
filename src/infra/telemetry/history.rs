@@ -26,6 +26,9 @@ pub(crate) const MAX_HISTORY_SCAN_ROWS: usize = 100_000;
 pub(crate) const MAX_HISTORY_MODEL_ROWS: usize = 256;
 /// Provider rows kept after grouping.
 pub(crate) const MAX_HISTORY_PROVIDER_ROWS: usize = 64;
+/// Distinct route aliases kept after grouping. Kept separately from models
+/// because a client-selected alias and a serving model are different dimensions.
+pub(crate) const MAX_HISTORY_ROUTE_ROWS: usize = 256;
 /// Distinct status codes kept after grouping.
 pub(crate) const MAX_HISTORY_STATUS_ROWS: usize = 32;
 
@@ -159,6 +162,9 @@ struct LogRow {
 pub(crate) struct HistoryScan {
     pub(crate) models: Vec<serde_json::Value>,
     pub(crate) models_truncated: bool,
+    pub(crate) routes: Vec<serde_json::Value>,
+    pub(crate) routes_truncated: bool,
+    pub(crate) routes_incomplete: bool,
     pub(crate) providers: Vec<serde_json::Value>,
     pub(crate) providers_truncated: bool,
     pub(crate) statuses: Vec<serde_json::Value>,
@@ -183,6 +189,8 @@ pub(crate) fn scan_history(
     series: SeriesSpec,
 ) -> Result<HistoryScan, StorageError> {
     let mut models = BTreeMap::<(String, Option<String>), GroupCounts>::new();
+    let mut routes = BTreeMap::<String, GroupCounts>::new();
+    let mut routes_incomplete = false;
     let mut providers = BTreeMap::<Option<String>, GroupCounts>::new();
     let mut statuses = BTreeMap::<i64, GroupCounts>::new();
     let mut buckets = vec![GroupCounts::default(); series.bucket_count];
@@ -227,6 +235,24 @@ pub(crate) fn scan_history(
             totals.add(&row);
             statuses.entry(row.status).or_default().add(&row);
             providers.entry(row.provider.clone()).or_default().add(&row);
+            if let Some(route_alias) = record
+                .optional_text("route_alias")?
+                .filter(|alias| !alias.is_empty())
+            {
+                if let Some(counts) = routes.get_mut(route_alias) {
+                    counts.add(&row);
+                } else if routes.len() < MAX_HISTORY_ROUTE_ROWS {
+                    routes.insert(route_alias.to_owned(), {
+                        let mut counts = GroupCounts::default();
+                        counts.add(&row);
+                        counts
+                    });
+                } else {
+                    routes_incomplete = true;
+                }
+            } else {
+                routes_incomplete = true;
+            }
             if !row.model.is_empty() {
                 models
                     .entry((row.model.clone(), row.provider.clone()))
@@ -242,6 +268,7 @@ pub(crate) fn scan_history(
     }
 
     let scan_truncated = !reached_cutoff && scanned >= MAX_HISTORY_SCAN_ROWS;
+    let routes_incomplete = routes_incomplete || scan_truncated;
     let (models, models_cut) =
         group_rows(models, MAX_HISTORY_MODEL_ROWS, |(model, provider), c| {
             serde_json::json!({
@@ -255,6 +282,19 @@ pub(crate) fn scan_history(
                 "success_rate": c.success_rate(),
             })
         });
+    let (routes, routes_cut) = group_rows(routes, MAX_HISTORY_ROUTE_ROWS, |route_alias, c| {
+        let mut value = serde_json::json!({
+            "route_alias": route_alias,
+            "requests": c.requests,
+            "successes": c.successes,
+            "failures": c.requests.saturating_sub(c.successes),
+            "success_rate": c.success_rate(),
+        });
+        for (name, field) in c.cost_fields() {
+            value[name] = field;
+        }
+        value
+    });
     let (providers, providers_cut) =
         group_rows(providers, MAX_HISTORY_PROVIDER_ROWS, |provider, c| {
             let mut value = serde_json::json!({
@@ -348,6 +388,9 @@ pub(crate) fn scan_history(
     Ok(HistoryScan {
         models,
         models_truncated: models_cut || scan_truncated,
+        routes,
+        routes_truncated: routes_cut || scan_truncated || routes_incomplete,
+        routes_incomplete,
         providers,
         providers_truncated: providers_cut || scan_truncated,
         statuses,

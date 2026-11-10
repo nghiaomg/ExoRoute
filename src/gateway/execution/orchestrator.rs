@@ -64,14 +64,16 @@ impl Orchestrator {
             client_protocol: self.client_protocol,
             client_headers: self.headers.clone(),
         };
-        let log = RequestLogPayload {
+        let mut log = RequestLogPayload {
             scope: &scope,
             route_alias: &route_alias,
             api_key_id: request_api_key_id.as_deref(),
             started,
+            reasoning_effort: None,
         };
         let mut failures = TargetLoopFailures::new();
         for target in &targets {
+            log.set_reasoning_effort(None);
             let attempt =
                 match target_preparation::prepare_target(&scope, &mut canonical, target, &live)
                     .await
@@ -96,6 +98,7 @@ impl Orchestrator {
                         continue;
                     }
                 };
+            log.set_reasoning_effort(attempt.effective_effort.clone());
             failures.request_encodable = true;
             let mut rotation =
                 match CredentialRotation::start(&scope.state, &attempt.provider).await {

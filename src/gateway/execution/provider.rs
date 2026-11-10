@@ -27,6 +27,7 @@ pub(super) struct Provider {
     pub(super) thinking_mode: String,
     pub(super) thinking_override: Option<String>,
     pub(super) key_strategy: String,
+    pub(super) proxy_id: Option<String>,
 }
 
 #[derive(Clone)]
@@ -235,5 +236,9 @@ pub(super) fn decode_provider(
         thinking_override,
         key_strategy: crate::admin::providers::stored_key_strategy(record)
             .map_err(|error| error.to_string())?,
+        proxy_id: record
+            .optional_text("proxy_id")
+            .map_err(|error| error.to_string())?
+            .map(str::to_owned),
     })
 }

@@ -206,10 +206,8 @@ pub(super) fn request_log_record(
         .with("input_tokens", optional_i64(record.input_tokens))
         .with("output_tokens", optional_i64(record.output_tokens))
         .with("cached_tokens", optional_i64(record.cached_tokens))
-        .with(
-            "cache_input_tokens",
-            optional_i64(record.cache_input_tokens),
-        )
+        .with("cache_input_tokens", optional_i64(record.cache_input_tokens))
+        .with("reasoning_effort", optional_text(&record.reasoning_effort))
         .with("cost_micro_usd", optional_i64(record.cost_micro_usd))
         .with("error", optional_text(&record.error))
         .with("created_at", Field::Text(created_at.to_owned())))

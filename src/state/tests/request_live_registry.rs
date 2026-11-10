@@ -90,6 +90,7 @@ async fn request_live_guard_updates_provider_and_finishes_once() {
     let mut record = live_test_record("request", Some("provider-a"));
     record.cached_tokens = Some(42);
     record.cache_input_tokens = Some(100);
+    record.reasoning_effort = Some("high".to_owned());
     let record_id = record.id.clone();
     guard.update_log(&record);
     assert!(matches!(
@@ -100,8 +101,9 @@ async fn request_live_guard_updates_provider_and_finishes_once() {
             output_tokens: Some(7),
             cached_tokens: Some(42),
             cache_input_tokens: Some(100),
+            reasoning_effort: Some(value),
             ..
-        } if id == record_id
+        } if id == record_id && value == "high"
     ));
     let snapshot = registry.snapshot();
     let row = snapshot
@@ -111,6 +113,7 @@ async fn request_live_guard_updates_provider_and_finishes_once() {
         .expect("active live row in snapshot");
     assert_eq!(row.cached_tokens, Some(42));
     assert_eq!(row.cache_input_tokens, Some(100));
+    assert_eq!(row.reasoning_effort.as_deref(), Some("high"));
     drop(guard);
     assert!(
         matches!(updates.recv().await.expect("finish event"), RequestLiveEvent::Finished { live_id: id, request: Some(record), .. } if id == live_id && record.status == 200 && record.cached_tokens == Some(42))

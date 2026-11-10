@@ -25,6 +25,7 @@ pub(crate) struct RequestLiveRow {
     pub(crate) output_tokens: Option<i64>,
     pub(crate) cached_tokens: Option<i64>,
     pub(crate) cache_input_tokens: Option<i64>,
+    pub(crate) reasoning_effort: Option<String>,
     pub(crate) started_at_ms: i64,
 }
 
@@ -50,6 +51,7 @@ pub(crate) enum RequestLiveEvent {
         output_tokens: Option<i64>,
         cached_tokens: Option<i64>,
         cache_input_tokens: Option<i64>,
+        reasoning_effort: Option<String>,
     },
     Finished {
         live_id: String,
@@ -72,6 +74,7 @@ struct RequestLiveEntry {
     client_protocol: String,
     api_key_id: Option<String>,
     provider_id: Option<String>,
+    reasoning_effort: Option<String>,
     started_at_ms: i64,
     latest: Option<RequestLogRecord>,
 }
@@ -143,6 +146,7 @@ impl RequestLiveRegistry {
                     client_protocol: bounded_string(client_protocol, 64),
                     api_key_id: api_key_id.map(|value| bounded_string(value, 128)),
                     provider_id: None,
+                    reasoning_effort: None,
                     started_at_ms,
                     latest: None,
                 },
@@ -195,6 +199,7 @@ impl RequestLiveRegistry {
                 .latest
                 .as_ref()
                 .and_then(|record| record.cache_input_tokens),
+            reasoning_effort: entry.reasoning_effort.clone(),
         });
     }
 
@@ -205,6 +210,7 @@ impl RequestLiveRegistry {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(entry) = state.entries.get_mut(live_id) {
             entry.latest = Some(record.clone());
+            entry.reasoning_effort = record.reasoning_effort.clone();
             let provider_id = entry.provider_id.clone();
             let latest_log_id = Some(record.id.clone());
             let _ = self.events.send(RequestLiveEvent::Updated {
@@ -215,6 +221,7 @@ impl RequestLiveRegistry {
                 output_tokens: record.output_tokens,
                 cached_tokens: record.cached_tokens,
                 cache_input_tokens: record.cache_input_tokens,
+                reasoning_effort: record.reasoning_effort.clone(),
             });
         }
     }
@@ -294,6 +301,10 @@ impl RequestLiveEntry {
             output_tokens: latest.and_then(|record| record.output_tokens),
             cached_tokens: latest.and_then(|record| record.cached_tokens),
             cache_input_tokens: latest.and_then(|record| record.cache_input_tokens),
+            reasoning_effort: self
+                .reasoning_effort
+                .clone()
+                .or_else(|| latest.and_then(|record| record.reasoning_effort.clone())),
             started_at_ms: self.started_at_ms,
         }
     }

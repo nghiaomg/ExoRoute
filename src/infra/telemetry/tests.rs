@@ -137,6 +137,7 @@ async fn telemetry_persists_log_usage_and_statistics_in_one_backend() {
         output_tokens: Some(4),
         cached_tokens: Some(6),
         cache_input_tokens: Some(10),
+        reasoning_effort: Some("high".to_owned()),
         cost_micro_usd: Some(125_000),
         error: None,
     });
@@ -149,6 +150,10 @@ async fn telemetry_persists_log_usage_and_statistics_in_one_backend() {
         .expect("stored request log");
     assert_eq!(log.text("id").unwrap(), "log-1");
     assert_eq!(log.text("request_id").unwrap(), "request-1");
+    assert_eq!(log.text("reasoning_effort").unwrap(), "high");
+    let previous =
+        crate::infra::storage::Record::new().with("id", Field::Text("old-log".to_owned()));
+    assert_eq!(previous.optional_text("reasoning_effort").unwrap(), None);
     let api_key = database
         .read(|transaction| transaction.get::<Record>(Table::ApiKeys, "key-1"))
         .await
@@ -237,6 +242,7 @@ async fn model_breakdown_splits_one_model_by_serving_provider() {
             output_tokens: Some(1),
             cached_tokens: None,
             cache_input_tokens: None,
+            reasoning_effort: None,
             cost_micro_usd: None,
             error: None,
         });
@@ -310,6 +316,7 @@ async fn statistics_flag_history_that_covers_fewer_requests_than_the_totals() {
         output_tokens: Some(4),
         cached_tokens: None,
         cache_input_tokens: None,
+        reasoning_effort: None,
         cost_micro_usd: None,
         error: None,
     });
@@ -321,6 +328,8 @@ async fn statistics_flag_history_that_covers_fewer_requests_than_the_totals() {
     assert_eq!(snapshot["total_requests"], 3);
     assert_eq!(snapshot["logged_requests"], 1);
     assert_eq!(snapshot["model_breakdown_incomplete"], true);
+    assert_eq!(snapshot["route_breakdown_incomplete"], true);
+    assert_eq!(snapshot["route_breakdown_truncated"], false);
     assert_eq!(snapshot["model_breakdown_truncated"], false);
     assert_eq!(
         snapshot["model_breakdown"][0]["requests"], 1,
@@ -335,6 +344,7 @@ async fn statistics_flag_history_that_covers_fewer_requests_than_the_totals() {
 /// each test only spells out the values it asserts on.
 fn history_row(
     id: &str,
+    route_alias: &str,
     provider_id: Option<&str>,
     api_key_id: Option<&str>,
     status: i64,
@@ -344,7 +354,7 @@ fn history_row(
     RequestLogRecord {
         id: id.to_owned(),
         request_id: format!("request-{id}"),
-        route_alias: "shared-combo".to_owned(),
+        route_alias: route_alias.to_owned(),
         provider_id: provider_id.map(str::to_owned),
         provider_credential_id: None,
         api_key_id: api_key_id.map(str::to_owned),
@@ -357,6 +367,7 @@ fn history_row(
         output_tokens: Some(4),
         cached_tokens: None,
         cache_input_tokens: None,
+        reasoning_effort: None,
         cost_micro_usd,
         error: None,
     }
@@ -368,9 +379,10 @@ async fn history_views_group_retained_rows_by_provider_status_cost_and_latency()
     let telemetry = Telemetry::new(database.clone());
     // Three retained rows: two served by provider-a (one fast, one mid), and one
     // that failed at provider-b after a slow response and reported no cost.
-    for (id, provider, key, status, duration_ms, cost) in [
+    for (id, route_alias, provider, key, status, duration_ms, cost) in [
         (
             "log-a-fast",
+            "shared-combo",
             Some("provider-a"),
             Some("key-1"),
             200,
@@ -379,6 +391,7 @@ async fn history_views_group_retained_rows_by_provider_status_cost_and_latency()
         ),
         (
             "log-a-slow",
+            "shared-combo",
             Some("provider-a"),
             Some("key-1"),
             200,
@@ -387,6 +400,7 @@ async fn history_views_group_retained_rows_by_provider_status_cost_and_latency()
         ),
         (
             "log-b-failed",
+            "shared-combo",
             Some("provider-b"),
             Some("key-2"),
             502,
@@ -394,7 +408,15 @@ async fn history_views_group_retained_rows_by_provider_status_cost_and_latency()
             None,
         ),
     ] {
-        telemetry.enqueue_request_log(history_row(id, provider, key, status, duration_ms, cost));
+        telemetry.enqueue_request_log(history_row(
+            id,
+            route_alias,
+            provider,
+            key,
+            status,
+            duration_ms,
+            cost,
+        ));
     }
     telemetry.flush().await.expect("flush telemetry");
 
@@ -408,6 +430,44 @@ async fn history_views_group_retained_rows_by_provider_status_cost_and_latency()
         "the flag only fires when history covers fewer rows than the totals; here no rollup \
          aggregate was seeded, so it is the totals that cover less"
     );
+    assert_eq!(snapshot["route_breakdown_incomplete"], false);
+    assert_eq!(snapshot["route_breakdown_truncated"], false);
+    let routes = snapshot["route_breakdown"]
+        .as_array()
+        .expect("route breakdown rows");
+    assert_eq!(routes.len(), 1);
+    assert_eq!(routes[0]["route_alias"], "shared-combo");
+    assert_eq!(routes[0]["requests"], 3);
+    assert_eq!(routes[0]["successes"], 2);
+    assert_eq!(routes[0]["failures"], 1);
+    assert!(
+        (routes[0]["success_rate"].as_f64().unwrap_or_default() - 200.0 / 3.0).abs() < f64::EPSILON
+    );
+
+    // Changing the client-visible alias while keeping the serving model fixed
+    // must produce separate route groups, never a model-name collision.
+    telemetry.enqueue_request_log(history_row(
+        "log-other-route",
+        "shared/model",
+        Some("provider-a"),
+        Some("key-1"),
+        503,
+        50,
+        None,
+    ));
+    telemetry.flush().await.expect("flush second route");
+    let route_snapshot = statistics_snapshot(&database, "1d", 1440, &telemetry)
+        .await
+        .expect("statistics with two route aliases");
+    let routes = route_snapshot["route_breakdown"]
+        .as_array()
+        .expect("route breakdown rows");
+    assert_eq!(routes.len(), 2);
+    assert_eq!(routes[0]["route_alias"], "shared-combo");
+    assert_eq!(routes[0]["requests"], 3);
+    assert_eq!(routes[1]["route_alias"], "shared/model");
+    assert_eq!(routes[1]["requests"], 1);
+    assert_eq!(routes[1]["failures"], 1);
 
     // Providers are ranked by request count; a lower-ranked provider keeps its
     // own row instead of being merged into the leader.
@@ -658,6 +718,7 @@ async fn traffic_time_series_reflects_usage_minutes_when_request_logs_are_pruned
         output_tokens: Some(500),
         cached_tokens: None,
         cache_input_tokens: None,
+        reasoning_effort: None,
         cost_micro_usd: None,
         error: None,
     });
@@ -728,6 +789,7 @@ async fn request_logs_survive_telemetry_and_database_restart() {
         output_tokens: None,
         cached_tokens: None,
         cache_input_tokens: None,
+        reasoning_effort: None,
         cost_micro_usd: None,
         error: None,
     });
@@ -1107,6 +1169,7 @@ fn enqueue_request(telemetry: &Telemetry, index: usize) {
         output_tokens: Some(4),
         cached_tokens: Some(6),
         cache_input_tokens: Some(10),
+        reasoning_effort: Some("high".to_owned()),
         cost_micro_usd: Some(125_000),
         error: None,
     });
@@ -1269,6 +1332,7 @@ async fn time_series_matches_usage_minutes_even_when_request_logs_are_pruned() {
         output_tokens: Some(54),
         cached_tokens: None,
         cache_input_tokens: None,
+        reasoning_effort: None,
         cost_micro_usd: None,
         error: None,
     });

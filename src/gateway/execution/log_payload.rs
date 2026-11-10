@@ -12,9 +12,14 @@ pub(super) struct RequestLogPayload<'a> {
     pub(super) route_alias: &'a str,
     pub(super) api_key_id: Option<&'a str>,
     pub(super) started: Instant,
+    pub(super) reasoning_effort: Option<String>,
 }
 
 impl<'a> RequestLogPayload<'a> {
+    pub(super) fn set_reasoning_effort(&mut self, effort: Option<String>) {
+        self.reasoning_effort = effort;
+    }
+
     /// Log for a failure of one specific provider attempt.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn provider_failure<'b>(
@@ -42,6 +47,7 @@ impl<'a> RequestLogPayload<'a> {
             output_tokens: None,
             cached_tokens: None,
             cache_input_tokens: None,
+            reasoning_effort: self.reasoning_effort.clone(),
             error: Some(error),
         }
     }
@@ -76,6 +82,7 @@ impl<'a> RequestLogPayload<'a> {
             output_tokens,
             cached_tokens,
             cache_input_tokens,
+            reasoning_effort: self.reasoning_effort.clone(),
             error: None,
         }
     }

@@ -125,6 +125,19 @@ fn history_fields(
         "model_breakdown_truncated".to_owned(),
         serde_json::json!(scan.models_truncated),
     );
+    fields.insert("route_breakdown".to_owned(), serde_json::json!(scan.routes));
+    fields.insert(
+        "route_breakdown_truncated".to_owned(),
+        serde_json::json!(scan.routes_truncated),
+    );
+    fields.insert(
+        "route_breakdown_incomplete".to_owned(),
+        serde_json::json!(scan.routes_incomplete || scan.logged_requests < summary.requests),
+    );
+    fields.insert(
+        "status_history_incomplete".to_owned(),
+        serde_json::json!(scan.statuses_truncated || scan.logged_requests < summary.requests),
+    );
     fields.insert(
         "logged_requests".to_owned(),
         serde_json::json!(scan.logged_requests),

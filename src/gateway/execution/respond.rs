@@ -118,6 +118,7 @@ pub(super) async fn stream_response(
                 provider_credential_id: failures.selected_credential_id.clone(),
                 client_protocol: scope.client_protocol,
                 upstream_protocol,
+                reasoning_effort: log.reasoning_effort.clone(),
                 started,
                 run_id: None,
                 live: live.clone(),
@@ -333,6 +334,7 @@ pub(super) async fn final_failure_response(
             output_tokens: None,
             cached_tokens: None,
             cache_input_tokens: None,
+            reasoning_effort: None,
             error: Some(&failures.last_error),
         },
     );

@@ -71,6 +71,7 @@ fn log_abandoned_stream(log: &StreamLog) {
             output_tokens: has_usage.then_some(output_tokens),
             cached_tokens: has_cache.then_some(cached_tokens),
             cache_input_tokens: has_cache.then_some(cache_input_tokens),
+            reasoning_effort: log.reasoning_effort.clone(),
             // An abandoned stream never delivered its authoritative total
             // usage event, so the cost stays unknown.
             cost_micro_usd: None,
@@ -123,6 +124,7 @@ pub(crate) async fn log_failed_stream(
             output_tokens,
             cached_tokens,
             cache_input_tokens,
+            reasoning_effort: log.reasoning_effort.clone(),
             cost_micro_usd: None,
             error: Some(error),
         },
@@ -165,6 +167,7 @@ pub(crate) async fn log_completed_stream(
             output_tokens,
             cached_tokens,
             cache_input_tokens,
+            reasoning_effort: log.reasoning_effort.clone(),
             cost_micro_usd,
             error: None,
         },

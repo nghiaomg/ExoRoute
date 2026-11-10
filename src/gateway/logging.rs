@@ -15,6 +15,7 @@ pub struct GatewayRequestLog<'a> {
     pub(super) output_tokens: Option<i64>,
     pub(super) cached_tokens: Option<i64>,
     pub(super) cache_input_tokens: Option<i64>,
+    pub(super) reasoning_effort: Option<String>,
     pub(super) cost_micro_usd: Option<i64>,
     pub(super) error: Option<&'a str>,
 }
@@ -52,6 +53,7 @@ pub fn log_request(
         output_tokens: record.output_tokens,
         cached_tokens: record.cached_tokens,
         cache_input_tokens: record.cache_input_tokens,
+        reasoning_effort: record.reasoning_effort.clone(),
         cost_micro_usd: record.cost_micro_usd,
         error: record
             .error

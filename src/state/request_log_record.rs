@@ -15,6 +15,7 @@ pub struct RequestLogRecord {
     pub output_tokens: Option<i64>,
     pub cached_tokens: Option<i64>,
     pub cache_input_tokens: Option<i64>,
+    pub reasoning_effort: Option<String>,
     pub cost_micro_usd: Option<i64>,
     pub error: Option<String>,
 }

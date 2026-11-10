@@ -39,6 +39,7 @@ pub(super) fn live_test_record(request_id: &str, provider_id: Option<&str>) -> R
         output_tokens: Some(7),
         cached_tokens: None,
         cache_input_tokens: None,
+        reasoning_effort: None,
         cost_micro_usd: None,
         error: None,
     }
