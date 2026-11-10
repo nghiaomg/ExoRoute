@@ -1,5 +1,6 @@
 export const en = {
   'Overview': 'Overview',
+  'credits': 'credits',
   'Quota': 'Quota',
   'Monitor provider quota and local usage from one place.': 'Monitor provider quota and local usage from one place.',
   'Loading quota providers…': 'Loading quota providers…',
@@ -341,6 +342,7 @@ export const en = {
   'Add a provider': 'Add a provider',
   'Remove {name}': 'Remove {name}',
   'Allowed models': 'Allowed models',
+  'Model rules, one per line': 'Model rules, one per line',
   'All providers': 'All providers',
   'All models': 'All models',
   'Leave empty to allow every provider.': 'Leave empty to allow every provider.',

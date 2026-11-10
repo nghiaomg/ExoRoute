@@ -9,6 +9,8 @@
   import type { GatewayApiKey, RequestStatistics } from '../../lib/types';
   import type { Locale } from '../../lib/i18n';
   import ApiKeyDetailSheet from './ApiKeyDetailSheet.svelte';
+  import ApiKeyScopeFields from './ApiKeyScopeFields.svelte';
+  import { modelRulesText, parseModelRules } from './scope';
   import '../../styles/dashboard/pages/api-keys.css';
 
   interface Props {
@@ -104,7 +106,7 @@
     busy = true;
     try {
       const scope = {
-        allowed_models: newModels.split(',').map((s) => s.trim()).filter(Boolean),
+        allowed_models: parseModelRules(newModels),
         allowed_provider_ids: newProviders,
       };
       const created = await api.createApiKey(newName.trim(), scope);
@@ -128,7 +130,7 @@
   function openEdit(key: GatewayApiKey) {
     editTarget = key;
     editName = key.name;
-    editModels = (key.allowed_models ?? []).join(', ');
+    editModels = modelRulesText(key.allowed_models);
     editProviders = [...(key.allowed_provider_ids ?? [])];
     editEnabled = key.enabled;
     editDialog?.showModal();
@@ -141,7 +143,7 @@
       await api.updateApiKey(editTarget.id, {
         name: editName.trim() || undefined,
         enabled: editEnabled,
-        allowed_models: editModels.split(',').map((s) => s.trim()).filter(Boolean),
+        allowed_models: parseModelRules(editModels),
         allowed_provider_ids: editProviders,
       });
       editDialog?.close();
@@ -268,7 +270,7 @@
           items={[{ label: tr('All keys'), value: 'all' }, { label: tr('Active'), value: 'active' }, { label: tr('Disabled'), value: 'disabled' }]}
         />
       </div>
-      <div class="course-list">
+      <div class="api-keys-list">
         {#each visibleKeys as key (key.id)}
           <article class="course-row key-card" class:key-revoked={!key.enabled}>
             <!-- The row opens a full-page detail view; adjacent actions stay independent. -->
@@ -329,21 +331,8 @@
     {:else}
       <div class="modal-fields">
         <label class="field provd-wide">{tr('Key name')}<input type="text" required placeholder={tr('e.g. staging-app')} bind:value={newName} /></label>
-        <label class="field">{tr('Allowed models (comma separated, empty = all)')}<input type="text" placeholder={tr('gpt-4o, claude-*')} bind:value={newModels} /></label>
-        <div class="field provd-wide">
-          {tr('Allowed providers')}
-          <div class="check-row-inline" style="flex-wrap:wrap;gap:8px">
-            {#each providerOptions as p (p.id)}
-              <label style="display:flex;gap:6px;align-items:center;font-weight:400">
-                <input type="checkbox" checked={newProviders.includes(p.id)} onchange={(e) => {
-                  const on = (e.currentTarget as HTMLInputElement).checked;
-                  newProviders = on ? [...newProviders, p.id] : newProviders.filter((id) => id !== p.id);
-                }} />
-                {p.name}
-              </label>
-            {/each}
-            {#if providerOptions.length === 0}<span class="card-subtitle">{tr('No providers configured')}</span>{/if}
-          </div>
+        <div class="field provd-wide api-key-create-scope">
+          <ApiKeyScopeFields modelRulesId="new-api-key-model-rules" {tr} providers={providerOptions} bind:selectedProviderIds={newProviders} bind:modelRules={newModels} />
         </div>
       </div>
       <div class="modal-actions">
@@ -369,29 +358,15 @@
         {tr('Key name')}
         <input type="text" required bind:value={editName} />
       </label>
-      <label class="field api-key-edit-section api-key-model-field">
-        {tr('Allowed models (comma separated, empty = all)')}
-        <input type="text" placeholder={tr('gpt-4o, claude-*')} bind:value={editModels} />
-      </label>
-      <fieldset class="api-key-edit-section api-key-provider-field">
-        <legend>{tr('Allowed providers')}</legend>
-        <p class="api-key-edit-help">{tr('Leave empty to allow every provider.')}</p>
-        {#if providerOptions.length}
-          <div class="api-key-provider-list">
-            {#each providerOptions as p (p.id)}
-              <label class="api-key-provider-option">
-                <input type="checkbox" checked={editProviders.includes(p.id)} onchange={(e) => {
-                  const on = (e.currentTarget as HTMLInputElement).checked;
-                  editProviders = on ? [...editProviders, p.id] : editProviders.filter((id) => id !== p.id);
-                }} />
-                <span>{p.name}</span>
-              </label>
-            {/each}
-          </div>
-        {:else}
-          <p class="api-key-edit-empty">{tr('No providers configured')}</p>
-        {/if}
-      </fieldset>
+      <div class="api-key-edit-section api-key-scope-field">
+        <ApiKeyScopeFields
+          {tr}
+          providers={providerOptions}
+          modelRulesId="edit-api-key-model-rules"
+          bind:selectedProviderIds={editProviders}
+          bind:modelRules={editModels}
+        />
+      </div>
       <label class="api-key-edit-section api-key-enabled-field">
         <input type="checkbox" bind:checked={editEnabled} />
         <span>

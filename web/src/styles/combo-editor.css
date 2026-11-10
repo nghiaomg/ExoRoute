@@ -336,6 +336,7 @@
 .combo-model-field,
 .combo-provider-picker,
 .combo-reference-picker { display: grid; align-content: start; gap: 4px; min-width: 0; }
+.target-model-field { width: 100%; }
 .combo-combobox-control { position: relative; display: flex; align-items: center; min-width: 0; }
 .combo-combobox-input { height: 35px; padding-right: 32px; border-radius: 7px; font-size: 12.5px; }
 .combo-combobox-trigger { position: absolute; right: 8px; display: grid; place-items: center; padding: 2px; border: 0; color: var(--muted); background: transparent; cursor: pointer; }

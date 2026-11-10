@@ -39,6 +39,8 @@
 .dashboard-app.dashboard-page-quota .quota-detail { align-self: flex-start; }
 .dashboard-app.dashboard-page-quota .quota-detail-body { display: grid; gap: 14px; }
 .dashboard-app.dashboard-page-quota .quota-detail-row .progress-track { height: 8px; }
+.dashboard-app.dashboard-page-quota .quota-remaining-track { background: color-mix(in srgb, var(--text-dim) 58%, var(--surface-sunken)); }
+.dashboard-app.dashboard-page-quota .quota-remaining-fill { height: 100%; border-radius: inherit; background: var(--accent); transition: background-size 0.18s ease; }
 .dashboard-app.dashboard-page-quota .status.error { background: var(--db-danger-tint); color: var(--db-danger); }
 .dashboard-app.dashboard-page-quota .mini-add:disabled { opacity: 0.55; cursor: default; }
 @media (max-width: 680px) {

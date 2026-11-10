@@ -1,8 +1,7 @@
 /* requests.html page styles */
 .req-board { display: flex; flex-direction: column; }
 .req-filters { margin-top: 12px; }
-.req-search,
-.req-select {
+.req-search {
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid var(--line);
@@ -12,11 +11,9 @@
   font-size: var(--type-body);
 }
 .req-search { width: min(300px, 100%); flex: 1 1 220px; }
-.req-select { flex: 0 0 auto; padding-right: 34px; }
 .req-filters { gap: 8px; }
 .req-filters:focus-within .req-search,
-.req-search:focus,
-.req-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.req-search:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 
 .switch-inline { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .switch-inline input { position: absolute; opacity: 0; }

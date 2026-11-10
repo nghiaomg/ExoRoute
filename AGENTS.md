@@ -184,3 +184,183 @@ When finishing code work, give a concise, reviewable report that states:
 - Any remaining risks, migrations, platform gaps, or unmeasured performance assumptions.
 
 Never say “production-ready,” “handles millions of requests,” “no vulnerabilities,” or similar without evidence that matches the claim. Do not claim a refactor, test, benchmark, security scan, or build that was not actually completed.
+
+<!-- dsh-openwolf:start -->
+# Code Map
+Generated 2026-11-10T02:49:51.581Z · 835 files · 170507 lines · 3.49s
+
+## ./
+- `Cargo.lock` — 0 lines · [file too large]
+- `Cargo.toml` — 69 lines · [package]
+- `LICENSE` — 21 lines · MIT License
+- `README.md` — 318 lines · <p align="center">
+- `RELEASE_v0.1.1.md` — 127 lines · Second source release of ExoRoute, a local-first AI protocol gateway and model router built with Rust, Axum, LMDB, and Svelte 5.
+- `build.bat` — 48 lines · @echo off
+- `build.rs` — 488 lines · valid_id, valid_model_prefix, valid_default_model, validate_provider_presets, rust_string, rust_string_slice · env, fs,
+- `install.ps1` — 296 lines · $ErrorActionPreference = 'Stop'
+- `install.sh` — 280 lines · set -eu
+
+## assets
+- `assets/cli-demo.webp` — 0 lines · [file too large]
+- `assets/favicon.svg` — 62 lines · <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+- `assets/hero-banner.jpg` — 0 lines · [file too large]
+- `assets/logo-mark.svg` — 68 lines · <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+- `assets/logo.svg` — 70 lines · <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56" fill="none">
+
+## assets/models
+- `assets/models/cerebras.svg` — 6 lines · <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+- `assets/models/claude.svg` — 7 lines · <?xml version="1.0" encoding="UTF-8"?>
+- `assets/models/deepseek.svg` — 13 lines · <?xml version="1.0" encoding="UTF-8"?>
+- `assets/models/devinai.webp` — 0 lines · [binary]
+- `assets/models/fireworks.svg` — 4 lines · <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+- `assets/models/gemini.svg` — 0 lines · <svg height="1em" style="flex:none;line-height:1" viewBox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><title>Gemini</title><p…
+- `assets/models/grok.svg` — 0 lines · <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0.36 0.5 33.33 32"><path d="M13.2371 21.0407L24.3186 12.8506C24.8619 12.4491 25…
+- `assets/models/groq.svg` — 4 lines · <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+- `assets/models/inclusion.svg` — 0 lines · <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" version="1.1"><path d="M 26.882 17.184 C 26.816 17.908, 2…
+- `assets/models/kimi.svg` — 18 lines · <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xodm="http://www.corel.com/coreldraw/odm/2003" xml:…
+- `assets/models/meta.svg` — 0 lines · <svg xmlns="http://www.w3.org/2000/svg" width="1567" height="1041" version="1.2"><defs><linearGradient id="a" x1="332.6" x2="1411" y1="637.7…
+- `assets/models/minimax.svg` — 0 lines · <svg fill="#E73562" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>MiniMax</title><path d="M11.43 3.92a.86.86 0 1 …
+- `assets/models/mistral.svg` — 10 lines · <svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns=…
+- `assets/models/nvidia.svg` — 0 lines · <svg height="1em" style="flex:none;line-height:1" viewBox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><title>Nvidia</title><p…
+- `assets/models/openai.svg` — 9 lines · <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2406 2406">
+- `assets/models/perplexity.svg` — 5 lines · <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+- `assets/models/poolside.svg` — 3 lines · <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+- `assets/models/qwen.svg` — 14 lines · <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="27.55 17.52 147.28 145.51">
+- `assets/models/sakana.svg` — 0 lines · <svg height="1em" style="flex:none;line-height:1" viewBox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><title>sakana.ai</title…
+- `assets/models/tencenthy.svg` — 0 lines · <svg fill="#0052D9" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Tencent Hy</title><path d="M12 0a1 1 0 0 1 0 24…
+- `assets/models/together.svg` — 5 lines · <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+- `assets/models/xiaomi.svg` — 29 lines · <?xml version="1.0" encoding="utf-8"?>
+- `assets/models/z-ai.svg` — 214 lines · <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" x="0px" y="0px" style="enable-background:ne…
+
+## assets/providers
+- `assets/providers/antigravity.webp` — 0 lines · [binary]
+- `assets/providers/cline.webp` — 0 lines · [binary]
+- `assets/providers/codex.webp` — 0 lines · [binary]
+- `assets/providers/commandcode.webp` — 0 lines · [binary]
+- `assets/providers/devinai.webp` — 0 lines · [binary]
+- `assets/providers/freebuff.webp` — 0 lines · [binary]
+- `assets/providers/kilocode.webp` — 0 lines · [binary]
+- `assets/providers/kiro.webp` — 0 lines · [binary]
+- `assets/providers/minimax.webp` — 0 lines · [binary]
+- `assets/providers/nvidia.webp` — 0 lines · [binary]
+- `assets/providers/opencode.webp` — 0 lines · [binary]
+- `assets/providers/openrouter.webp` — 0 lines · [binary]
+
+## data
+- `data/provider-presets.yaml` — 1529 lines · providers:
+
+## docs/design
+- `docs/design/README.md` — 88 lines · This directory is version-controlled on purpose. The rest of `docs/` holds
+- `docs/design/muse-integration-report.md` — 874 lines · Nguồn tham chiếu đã đọc trực tiếp:
+
+## docs/releases
+- `docs/releases/RELEASE_v0.1.2.md` — 118 lines · Release Date: 2026-11-04
+
+## npm
+- `npm/LICENSE` — 21 lines · MIT License
+- `npm/README.md` — 268 lines · [![npm version](https://img.shields.io/npm/v/exoroute.svg)](https://www.npmjs.com/package/exoroute)
+- `npm/package.json` — 25 lines · ExoRoute AI protocol gateway launcher
+
+## npm/bin
+- `npm/bin/exoroute.js` — 40 lines · fs, path, executableName, executablePath, metadata, child · 'use strict';
+
+## npm/scripts
+- `npm/scripts/install.cjs` — 342 lines · crypto, fs, fsp, os, path, execFileAsync · 'use strict';
+
+## scripts
+- `scripts/benchmark.py` — 438 lines · MockProvider, free_port, request_json, admin_request, wait_for_gateway, percentile · Measure local ExoRoute request-path overhead against a deterministic mock.
+- `scripts/check_source_boundaries.mjs` — 149 lines · root, budget, oversizedAllowlist, sourceRoots, extensions, collect · const root = process.cwd();
+- `scripts/split_inventory.py` — 94 lines · name_of, inventory · Inventory a Rust file into top-level chunks (header + items).
+
+## sketch
+- `sketch/build-css.mjs` — 115 lines · require, postcss, here, webStyles, PAGE_IDS, PAGE_ROUTE_IDS · Class names
+- `sketch/build-pages.mjs` — 50 lines · root, read, head, shellTop, shellBottom, pages · const root = dirname(fileURLToPath(import.meta.url));
+- `sketch/main.html` — 0 lines · [file too large]
+
+## sketch/pages
+- `sketch/pages/apikeys.css` — 283 lines · course-row key cards, budget meters, modal fields). */
+- `sketch/pages/apikeys.html` — 388 lines · <div class="page-heading">
+- `sketch/pages/cards.css` — 264 lines · .variants-grid {
+- `sketch/pages/cards.html` — 195 lines · <div class="page-heading">
+- `sketch/pages/chat.css` — 228 lines · .chat-surface { display: flex; flex-direction: column; min-height: 0; }
+- `sketch/pages/chat.html` — 268 lines · <div class="page-heading">
+- `sketch/pages/combos.css` — 144 lines · .combo-board { display: flex; flex-direction: column; }
+- `sketch/pages/combos.html` — 504 lines · <div class="page-heading">
+- `sketch/pages/docs.css` — 257 lines · .docs-layout {
+- `sketch/pages/docs.html` — 203 lines · <div class="page-heading">
+- `sketch/pages/help.css` — 538 lines · reference, and the guide sidebar. */
+- `sketch/pages/help.html` — 170 lines · <div class="page-heading">
+- `sketch/pages/overview.css` — 48 lines · .chart-tooltip {
+- `sketch/pages/overview.html` — 350 lines · <div class="page-heading">
+- `sketch/pages/provider.css` — 265 lines · .back-link {
+- `sketch/pages/provider.html` — 634 lines · <div class="page-heading">
+- `sketch/pages/providers.css` — 217 lines · .provider-section { display: flex; flex-direction: column; }
+- `sketch/pages/providers.html` — 593 lines · <div class="page-heading">
+- `sketch/pages/proxies.css` — 45 lines · .dashboard-app.dashboard-page-proxies .proxy-toolbar { margin: 12px 0 16px; }
+- `sketch/pages/quota.css` — 45 lines · .quota-board { display: flex; flex-direction: column; }
+- `sketch/pages/quota.html` — 316 lines · <div class="page-heading">
+- `sketch/pages/requests.css` — 161 lines · .req-board { display: flex; flex-direction: column; }
+- `sketch/pages/requests.html` — 422 lines · <div class="page-heading">
+- `sketch/pages/settings.css` — 83 lines · .dirty-badge {
+- `sketch/pages/settings.html` — 327 lines · <div class="page-heading">
+- `sketch/pages/stats-cards.css` — 241 lines · .variants-grid {
+- `sketch/pages/stats-cards.html` — 169 lines · <div class="page-heading">
+
+## sketch/parts
+- `sketch/parts/head.html` — 0 lines · [file too large]
+- `sketch/parts/shell-bottom.html` — 108 lines · </div>
+- `sketch/parts/shell-top.html` — 184 lines · <body data-page="{{PAGE_ID}}">
+
+## src
+- `src/main.rs` — 22 lines · admin, app, config, gateway, infra, protocol · 11 modules
+- `src/static_assets.rs` — 68 lines · serve · body::Body,
+
+## src/admin
+- `src/admin/api_keys.rs` — 723 lines · list_api_keys, api_key_json, api_key_request_count, validated_scope, api_key_index_key, api_key_token_index_key · 5 public items, 1 modules
+- `src/admin/auth.rs` — 419 lines · admin_login, parse_auth_json, hash_admin_password, verify_admin_password, is_supported_admin_password_hash, hash_admin_password_async · 6 public items
+- `src/admin/cookie_policy.rs` — 246 lines · cookie_name, refresh_cookie, is_valid_token, cookie_is_secure, trusted_forwarded_scheme, same_origin_rejection · 7 public items
+- `src/admin/database.rs` — 733 lines · RestoredRuntimeSettings, BackupExportError, normalize_provider_defaults, index_provider_record, index_provider_api_key, index_provider_model · 3 public items, 9 modules
+- `src/admin/errors.rs` — 192 lines · fail, internal, internal_message, storage_error_response, resource_id, admin_rate_limited_response · 6 public items, 1 modules
+- `src/admin/gates.rs` — 125 lines · rate_limit_admin_login, require_admin, unauthorized_response · Json,
+- `src/admin/metrics.rs` — 65 lines · prometheus_metrics · pub(crate) async fn prometheus_metrics(State(state): State<AppState>) -> axum::response::Response {
+- `src/admin/mod.rs` — 93 lines · cleanup_stale_database_temp_dirs · 1 public items, 21 modules
+- `src/admin/model_probes.rs` — 763 lines · ModelTestResult, test_models, parse_probe_target, acquire_probe_permit, load_probe_target, ProbeConnectionConfig · 2 public items, 1 modules
+- `src/admin/overview.rs` — 85 lines · overview, overview_snapshot · 1 modules
+- `src/admin/providers.rs` — 97 lines · budgets, crud_create, crud_update, custom_headers, deletion, indexing · 1 modules
+- `src/admin/request_logs.rs` — 807 lines · RequestLogCursor, list_requests, RequestLiveKeyNames, lookup_request_api_key_name, request_events, request_live_snapshot_event · 1 public items, 1 modules
+- `src/admin/router.rs` — 288 lines · provider_auth_callback_routes, provider_routes, combo_routes, proxy_routes, workspace_routes, operations_routes · 1 public items
+- `src/admin/sessions.rs` — 78 lines · IssuedAdminSession, RefreshResult, RotationCommit, token_digest, new_token, db_now_unix_seconds · 6 public items, 1 modules
+- `src/admin/statistics.rs` — 87 lines · default_range, range_window, get_statistics, get_api_key_statistics · 1 public items
+- `src/admin/tests.rs` — 373 lines · provider_preset_catalog_exposes_categories_labels_and_adapter_ids, codex_provider_requires_its_fixed_responses_endpoint_without_api_keys, devin_cli_provider_accepts_the_local_process_endpoint, header_auth_defaults_the_api_key_header_name, provider_model_prefixes_are_normalized_and_bounded, models_url_preserves_existing_v1_or_models_path · AppState, ProviderInput, list_provider_presets, normalized_provider_model_prefix,
+- `src/admin/update_check.rs` — 321 lines · check_for_updates, update_check_unavailable, parse_release_version, parse_release_number, valid_release_identifier, compare_release_versions · 1 modules
+
+## src/admin/combos
+- `src/admin/combos/mod.rs` — 553 lines · yes, priority, all_protocols, list_routes, list_combos, list_provider_options · 4 public items, 4 modules
+- `src/admin/combos/references.rs` — 499 lines · ComboStore, ComboReferences, node_from_targets, ComboNodeReader, ComboNodeReader, ComboNodeReader · 12 public items
+- `src/admin/combos/storage.rs` — 221 lines · route_record, TargetRecordWrite, route_target_records, route_target_prefix, route_target_key, route_name_index_key · 11 public items
+- `src/admin/combos/tests.rs` — 823 lines · combo_with_target_count, reference_target, combo_with_references, provider_target, error_message, assert_ok · ComboReferenceError, ComboReferenceIssue, PendingCombo, validate_pending_combo,
+- `src/admin/combos/validation.rs` — 188 lines · apply_path_id_for_update, validate_saved_combo_models, validate_combo · 2 public items
+
+## src/admin/database
+- `src/admin/database/backup_format.rs` — 273 lines · write_backup_archive, decode_backup_file · 4 public items
+- `src/admin/database/export.rs` — 152 lines · export_database, export_database_inner · Json,
+- `src/admin/database/import.rs` — 229 lines · import_database, receive_import_upload · Json,
+- `src/admin/database/preflight.rs` — 225 lines · preflight_backup_reader · 1 public items
+- `src/admin/database/restore.rs` — 197 lines · spawn_restore_reconciliation_task, restore_application_data_with_runtime, restore_application_data_inner · 1 public items
+- `src/admin/database/temp_dir.rs` — 94 lines · TempDirectory, temp_directory_cleanup_sender, Drop, cleanup_stale_temp_directories, create_private_temp_dir · 3 public items
+- `src/admin/database/validate.rs` — 751 lines · validate_backup_payload, BackupComboGraph, super, null_text_field, null_integer_field, route_target_key_components · 2 public items
+
+## src/admin/database/tests
+- `src/admin/database/tests/format.rs` — 191 lines · backup_header_checks_format_size_and_checksum, streamed_backup_writer_matches_the_in_memory_wire_format, backup_preflight_rejects_forged_lengths_before_deserialization, production_backup_decoder_preflights_forged_record_field_counts_and_lengths, malformed_backup_is_rejected_before_database_changes · fn backup_header_checks_format_size_and_checksum() {
+- `src/admin/database/tests/mod.rs` — 15 lines · format, restore_atomicity, settings, support, tempdir, validation · 6 modules
+- `src/admin/database/tests/restore_atomicity.rs` — 418 lines · backup_restore_rebuilds_secondary_indexes_from_primary_records, backup_restore_rebuilds_pending_provider_deletion_marker, backup_restore_is_atomic_and_excludes_sessions_and_stream_state, restore_worker_reconciles_state_after_its_response_handle_is_dropped · fn backup_restore_rebuilds_secondary_indexes_from_primary_records() {
+- `src/admin/database/tests/settings.rs` — 198 lines · corrupt_output_styles_backup_is_rejected_without_changing_live_state, legacy_backup_without_output_styles_preserves_current_value_and_advances_revision, request_log_snapshot_option_and_key_usage_redaction_are_applied · async fn corrupt_output_styles_backup_is_rejected_without_changing_live_state() {
+- `src/admin/database/tests/support.rs` — 136 lines · temporary_backup_path, test_route_target_key, write_raw_backup_archive, raw_backup_payload, route_backup_fixture · 4 public items
+- `src/admin/database/tests/tempdir.rs` — 49 lines · stale_temp_cleanup_removes_only_owned_backup_directories, temp_directory_drop_queues_cleanup_off_runtime_workers · fn stale_temp_cleanup_removes_only_owned_backup_directories() {
+- `src/admin/database/tests/validation.rs` — 730 lines · backup_route_entry, backup_nested_target_entry · fn backup_route_target_ordinals_respect_the_configured_target_limit() {
+
+## src/admin/provider_api_key_auth
+- `src/admin/provider_api_key_auth/callback.rs` — 278 lines · read_callback_payload, resolve_callback_flow, parse_callback_payload, encrypt_callback_key, callback, preflight · 1 public items
+- `src/admin/provider_api_key_auth/flow.rs` — 154 lines · ApiKeyAuthApplyClaim, claim_api_key_auth_apply, ApiKeyCallbackAcceptance, acce…
+(rendered map truncated at 16384 bytes)
+<!-- dsh-openwolf:end -->

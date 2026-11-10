@@ -507,7 +507,10 @@
                 <td class="req-model">
                   <span class="req-model-cell">
                     {#if modelLogo}<img class="req-model-logo" src={modelLogo} alt="" aria-hidden="true" />{/if}
-                  <span class="req-model-label">{row.route_alias || row.model || '—'}</span>
+                  <span class="req-model-label">{row.model || '—'}</span>
+                  {#if row.route_alias && row.route_alias !== row.model}
+                    <span class="req-combo-chip" title={row.route_alias}>{row.route_alias}</span>
+                  {/if}
                   {#if row.reasoning_effort}
                     <span class="req-effort-chip" title={row.reasoning_effort}>{row.reasoning_effort}</span>
                   {/if}

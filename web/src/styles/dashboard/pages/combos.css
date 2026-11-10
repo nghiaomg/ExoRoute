@@ -3,8 +3,7 @@
 .dashboard-app.dashboard-page-combos .combo-board { display: flex; flex-direction: column; }
 .dashboard-app.dashboard-page-combos .combo-toolbar { margin-top: 12px; }
 
-.dashboard-app.dashboard-page-combos .combo-search,
-  .dashboard-app.dashboard-page-combos .combo-select {
+.dashboard-app.dashboard-page-combos .combo-search {
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid var(--line);
@@ -14,11 +13,11 @@
   font-size: var(--type-body);
 }
 .dashboard-app.dashboard-page-combos .combo-search { width: min(280px, 100%); flex: 1 1 200px; }
-.dashboard-app.dashboard-page-combos .combo-select { padding-right: 34px; }
-.dashboard-app.dashboard-page-combos .combo-search:focus,
-  .dashboard-app.dashboard-page-combos .combo-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.dashboard-app.dashboard-page-combos .combo-search:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.dashboard-app.dashboard-page-combos .combo-toolbar .combo-select .ark-select-trigger { border: 1px solid var(--line); box-shadow: none; }
+.dashboard-app.dashboard-page-combos .combo-toolbar .combo-select .ark-select-trigger:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 
-.dashboard-app.dashboard-page-combos .combo-list { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 14px; }
+.dashboard-app.dashboard-page-combos .combo-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .dashboard-app.dashboard-page-combos .combo-list > .empty-state { grid-column: 1 / -1; width: 100%; }
 .dashboard-app.dashboard-page-combos .combo-card {
   padding: 16px 18px;
@@ -119,10 +118,16 @@
 .dashboard-app.dashboard-page-combos .target-rows { display: grid; gap: 8px; }
 .dashboard-app.dashboard-page-combos .target-row {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 32px;
+  grid-template-columns: minmax(140px, 0.8fr) minmax(180px, 1fr) auto auto 32px;
   gap: 8px;
   align-items: center;
+  min-width: 0;
 }
+.dashboard-app.dashboard-page-combos .target-row > .ark-select-root.target-provider { min-width: 0; }
+.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-trigger { min-height: 36px; padding: 0 32px 0 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: none; }
+.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-trigger:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.dashboard-app.dashboard-page-combos .target-row .target-provider .ark-select-indicators { right: 8px; }
+.dashboard-app.dashboard-page-combos .target-row .ark-select-positioner { z-index: 100000 !important; }
 .dashboard-app.dashboard-page-combos .target-provider,
   .dashboard-app.dashboard-page-combos .target-model {
   min-height: 36px;
@@ -133,15 +138,23 @@
   color: var(--ink);
   font-size: var(--type-body);
 }
-.dashboard-app.dashboard-page-combos .target-provider { padding-right: 34px; }
+.dashboard-app.dashboard-page-combos .target-provider,
+  .dashboard-app.dashboard-page-combos .target-row .target-model-field { min-width: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.dashboard-app.dashboard-page-combos .target-model-field .combo-combobox-input { width: 100%; height: 36px; min-height: 36px; }
+.dashboard-app.dashboard-page-combos .target-model-field .combo-combobox-input:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .dashboard-app.dashboard-page-combos .target-provider:focus,
   .dashboard-app.dashboard-page-combos .target-model:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .dashboard-app.dashboard-page-combos .combo-fields { grid-template-columns: 1fr 1fr; }
 .dashboard-app.dashboard-page-combos .combo-fields .prov-field-wide { grid-column: 1 / -1; }
 .dashboard-app.dashboard-page-combos .page-action.danger { border-color: var(--db-accent-line); color: var(--db-danger); }
 .dashboard-app.dashboard-page-combos .page-action.danger:hover { background: var(--db-accent-tint); }
+@media (max-width: 1100px) {
+  .dashboard-app.dashboard-page-combos .combo-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 680px) {
+  .dashboard-app.dashboard-page-combos .combo-list { grid-template-columns: 1fr; }
   .dashboard-app.dashboard-page-combos .combo-fields { grid-template-columns: 1fr; }
-  .dashboard-app.dashboard-page-combos .target-row { grid-template-columns: 1fr 1fr 32px; }
+  .dashboard-app.dashboard-page-combos .target-rows { overflow-x: auto; }
+  .dashboard-app.dashboard-page-combos .target-row { min-width: 560px; }
 }
 

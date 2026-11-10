@@ -50,7 +50,9 @@
   const incompleteQuotaProviders = $derived(quotaCapableProviders.filter((view) => view.usageIncomplete));
   // Keyless providers cannot report quotas: keep them off the board entirely
   // instead of rendering a placeholder card.
-  const boardViews = $derived(views.filter((v) => exposesUsage(v.provider) && (v.provider.api_key_count ?? 0) > 0));
+  const boardViews = $derived(views.filter((view) =>
+    exposesUsage(view.provider) && (view.provider.api_key_count ?? 0) > 0 && view.hasData,
+  ));
   const avgUtil = $derived.by(() => {
     const values = reporting.flatMap((v) => v.quotas.map((q) => q.used_percent)).filter((n) => Number.isFinite(n));
     if (!values.length) return null;
@@ -98,9 +100,14 @@
     return providerLogo(provider.logo_url, provider.adapter_id, provider.id, provider.name);
   }
 
-  /** Quota text reads as remaining budget; severity colors stay usage-based. */
+  /** Provider data uses used-percent; render the remaining quota from left to right. */
   function remainingPercent(usedPercent: number): number {
     return Math.round(Math.min(100, Math.max(0, 100 - usedPercent)));
+  }
+
+  function quotaBarStyle(usedPercent: number): string {
+    const remaining = Math.min(100, Math.max(0, 100 - usedPercent));
+    return `background: linear-gradient(to right, var(--quota-fill, var(--accent)) 0 ${remaining}%, var(--surface-sunken) ${remaining}% 100%)`;
   }
 
   function quotaValue(quota: ProviderUsageQuota): string {
@@ -114,7 +121,7 @@
 
   function formatAmount(value: number, unit?: string | null): string {
     const formatted = value >= 1000 ? formatCount(Math.round(value), locale) : value.toLocaleString(locale, { maximumFractionDigits: 1 });
-    return unit ? `${formatted} ${unit}` : formatted;
+    return `${formatted} ${unit?.trim() || tr('credits')}`;
   }
 
   function resetLabel(quota: ProviderUsageQuota): string | null {
@@ -315,7 +322,7 @@
                 {#each view.quotas.slice(0, 3) as quota, i (i)}
                   <div class="quota-meter">
                     <div class="quota-meter-top"><span>{quota.label}</span><strong>{quotaValue(quota)}</strong></div>
-                    <div class="progress-track"><div class="progress-fill" class:blue={i === 1} class:green={i === 2} style="width:{Math.min(100, Math.max(0, quota.used_percent))}%"></div></div>
+                    <div class="progress-track quota-remaining-track" role="img" aria-label={tr('{percent}% remaining', { percent: remainingPercent(quota.used_percent) })}><div class="progress-fill quota-remaining-fill" style={quotaBarStyle(quota.used_percent)}></div></div>
                   </div>
                 {/each}
               {:else}
@@ -330,9 +337,10 @@
             </div>
             <button class="details-link quota-detail" type="button" onclick={() => openDetail(view)}>{tr('View details')} <svg class="icon"><use href="#i-arrow-right" /></svg></button>
           </article>
-        {:else}
-          <div class="empty-state">{views.length ? tr('No configured provider reports usage data.') : tr('No providers configured.')}</div>
         {/each}
+        {#if !boardViews.length}
+          <div class="empty-state">{views.length ? tr('No configured provider reports usage data.') : tr('No providers configured.')}</div>
+        {/if}
       </div>
     </section>
   </div>
@@ -357,7 +365,7 @@
               <strong>{quotaValue(quota)}</strong>
             </div>
             <div class="progress-track">
-              <div class="progress-fill" style="width:{Math.min(100, Math.max(0, quota.used_percent))}%"></div>
+              <div class="progress-fill quota-remaining-fill" style={quotaBarStyle(quota.used_percent)}></div>
             </div>
           </div>
         {/each}

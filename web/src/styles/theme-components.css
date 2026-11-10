@@ -9,6 +9,11 @@
 
 :root[data-theme='dark'] .ark-clipboard-check { color: #83d8b8; }
 
+:root[data-theme='dark'] .dashboard-app.dashboard-page-requests .req-combo-chip {
+  border-color: var(--db-accent-line);
+  background: var(--db-tint-strong);
+  color: var(--ink);
+}
 :root[data-theme='dark'] .ark-select-label { color: #d0d2df; }
 :root[data-theme='dark'] .ark-select-trigger { color: #e3e4ee; background: #222330; border-color: #404252; }
 :root[data-theme='dark'] .ark-select-trigger[data-disabled] { background: #1c1d28; }

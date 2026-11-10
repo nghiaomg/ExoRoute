@@ -38,6 +38,8 @@
 .quota-detail { align-self: flex-start; }
 .quota-detail-body { display: grid; gap: 14px; }
 .quota-detail-row .progress-track { height: 8px; }
+.quota-remaining-track { background: color-mix(in srgb, var(--text-dim) 58%, var(--surface-sunken)); }
+.quota-remaining-fill { height: 100%; border-radius: inherit; background: var(--accent); transition: background-size 0.18s ease; }
 .status.error { background: var(--db-danger-tint); color: var(--db-danger); }
 .mini-add:disabled { opacity: 0.55; cursor: default; }
 @media (max-width: 680px) {

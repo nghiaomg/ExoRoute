@@ -17,7 +17,7 @@ export function modelRulesText(rules: string[] | null | undefined): string {
 }
 
 export interface AddableScopeProviders {
-  options: Provider[];
+  options: Array<Pick<Provider, 'id' | 'name'>>;
   truncated: boolean;
 }
 
@@ -26,7 +26,7 @@ export interface AddableScopeProviders {
  * narrowed by a search term and bounded to keep the dropdown small.
  */
 export function addableScopeProviders(
-  providers: Provider[],
+  providers: Array<Pick<Provider, 'id' | 'name'>>,
   selectedProviderIds: string[],
   query: string,
 ): AddableScopeProviders {

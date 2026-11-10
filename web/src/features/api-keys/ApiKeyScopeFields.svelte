@@ -12,9 +12,10 @@
   } from './scope';
 
   export let tr: Translate;
-  export let providers: Provider[] = [];
+  export let providers: Array<Pick<Provider, 'id' | 'name'>> = [];
   export let selectedProviderIds: string[] = [];
   export let modelRules = '';
+  export let modelRulesId = 'api-key-model-rules';
   export let loadingProviders = false;
   export let disabled = false;
 
@@ -49,7 +50,7 @@
 </script>
 
 <div class="scope-fields">
-  <div class="scope-field">
+  <div class="scope-field api-key-scope-providers wide">
     <span class="scope-label">{tr('Allowed providers')}</span>
     <p class="scope-help">
       {#if selectedProviderIds.length}
@@ -138,17 +139,11 @@
     <p class="scope-help">{tr('Leave empty to allow every provider.')}</p>
   </div>
 
-  <div class="scope-field">
-    <label class="scope-label" for="api-key-model-rules">{tr('Allowed models')}</label>
-    <p class="scope-help">
-      {#if ruleCount}
-        {tr('{count} model rules', { count: ruleCount })}
-      {:else}
-        {tr('All models')}
-      {/if}
-    </p>
+  <div class="scope-field api-key-scope-models">
+    <label class="scope-label" for={modelRulesId}>{tr('Model rules, one per line')}</label>
+    <p class="scope-help">{ruleCount ? tr('{count} model rules', { count: ruleCount }) : tr('All models')}</p>
     <textarea
-      id="api-key-model-rules"
+      id={modelRulesId}
       class="ark-field-input scope-rules"
       rows="4"
       placeholder={'gpt-4*\nclaude-3-5-sonnet'}
@@ -171,6 +166,9 @@
     gap: 6px;
     min-width: 0;
   }
+  :global(.api-key-create-scope .scope-fields) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .api-key-scope-providers.wide,
+  .api-key-scope-models { grid-column: 1 / -1; }
   .scope-label {
     color: var(--ink);
     font: 600 12px var(--font-sans);

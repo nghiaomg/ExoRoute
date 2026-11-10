@@ -261,7 +261,7 @@
   </div>
 {/if}
 
-<ArkDialog bind:open={editDialog} wide title={tr(editingId ? 'Edit proxy' : 'Add proxy')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} preventClose={saving} onClose={() => { editDialog = false; }}>
+<ArkDialog bind:open={editDialog} wide class="proxy-edit-dialog" title={tr(editingId ? 'Edit proxy' : 'Add proxy')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} preventClose={saving} onClose={() => { editDialog = false; }}>
   <form class="modal-form proxy-editor" onsubmit={(event) => { event.preventDefault(); void save(); }}>
     <label class="field">{tr('Proxy name')}<input maxlength="256" bind:value={draft.name} placeholder={tr('e.g. Residential pool')} required /></label>
     <label class="field">{tr('Endpoint selection')}<ArkSelect bind:value={draft.strategy} ariaLabel={tr('Endpoint selection')} items={[{ label: tr('Priority order'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]} /></label>

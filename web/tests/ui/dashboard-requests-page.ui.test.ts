@@ -69,7 +69,8 @@ describe('dashboard requests live statistics', () => {
       active_count: 0,
       request: {
         id: `log-${id}`,
-        model: 'probe/model',
+        model: 'upstream/model',
+        route_alias: 'combo/served-model',
         created_at: new Date().toISOString(),
         status: 200,
         duration_ms: duration,
@@ -84,7 +85,8 @@ describe('dashboard requests live statistics', () => {
 
     await waitFor(() => expect(statisticsCalls).toBe(2), { timeout: 6000 });
     await waitFor(() => {
-      const request = screen.getByText('probe/model').closest('tr');
+      const request = screen.getAllByText('upstream/model')[0].closest('tr');
+      expect(request?.querySelector('.req-combo-chip')?.textContent).toBe('combo/served-model');
       expect(request?.querySelector('.req-effort-chip')?.textContent).toBe('high');
       expect(statCardValue(container, 'Avg Latency')).toBe('725 ms');
     });

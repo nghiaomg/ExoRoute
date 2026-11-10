@@ -1,0 +1,22 @@
+Retry until success
+After all targets fail, restart the combo indefinitely. A provider may have processed an earlier attempt. HTTP 400 and 413 stop retries.
+Cloud API
+Custom
+Admin password changed
+Requires your current password.
+Settings overview
+Listen port
+Auth Required
+Admin session enforced
+Resource limits
+Body size, SSE buffers and provider concurrency
+Port
+Bind address and request limits. Bind settings require a restart and are read-only here.
+Auth & security
+Secure
+Admin API throttling and password management.
+Logging & telemetry
+Request log retention stored in LMDB.
+View request logs
+Loading…
+Copy base URL

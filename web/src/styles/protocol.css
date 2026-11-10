@@ -262,6 +262,19 @@
   gap: 10px;
   flex-shrink: 0;
 }
+.detail-hero-actions .primary-button,
+.detail-hero-actions .secondary-button,
+.detail-hero-actions .detail-delete-btn {
+  min-height: 34px;
+  padding: 0 11px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.detail-hero-actions .primary-button svg,
+.detail-hero-actions .secondary-button svg,
+.detail-hero-actions .detail-delete-btn svg { width: 14px; height: 14px; }
 .detail-delete-btn {
   display: inline-flex;
   align-items: center;

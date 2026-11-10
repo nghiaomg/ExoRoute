@@ -107,8 +107,7 @@
 .provider-row .course-copy { flex: 1 1 150px; }
 .provider-row .course-actions { flex: 0 0 auto; }
 
-.prov-search,
-.prov-select {
+.prov-search {
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid var(--line);
@@ -118,9 +117,7 @@
   font-size: var(--type-body);
 }
 .prov-search { width: min(280px, 100%); flex: 1 1 200px; }
-.prov-select { padding-right: 34px; }
-.prov-search:focus,
-.prov-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.prov-search:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .provider-toolbar { align-items: center; }
 
 .prov-type {

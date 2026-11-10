@@ -50,13 +50,34 @@ function renderPage() {
 afterEach(() => vi.restoreAllMocks());
 
 describe('quota status truthfulness', () => {
+  test('uses credits when quota amount has no unit', async () => {
+    vi.spyOn(api, 'providers').mockResolvedValue([provider('provider-a')]);
+    vi.spyOn(api, 'providerUsage').mockResolvedValue({
+      accounts: [{
+        key_id: 'key-a',
+        name: 'Account A',
+        status: 'fresh',
+        snapshot: {
+          limit_reached: false,
+          quotas: [{ id: 'monthly', label: 'Monthly', used_percent: 0, remaining_percent: 100, used_amount: 1000, limit_amount: 1000 }],
+        },
+      }],
+      next_cursor: null,
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('0 credits / 1,000 credits remaining')).toBeTruthy();
+  });
+
   test('does not report healthy when no provider returns quota data', async () => {
     vi.spyOn(api, 'providers').mockResolvedValue([provider('provider-a')]);
     vi.spyOn(api, 'providerUsage').mockResolvedValue({ accounts: [], next_cursor: null });
 
     renderPage();
 
-    expect((await screen.findAllByText('No quota data reported')).length).toBeGreaterThanOrEqual(1);
+    await screen.findByText('No configured provider reports usage data.');
+    expect(document.querySelector('.quota-card')).toBeNull();
     expect(screen.queryByText('All providers healthy')).toBeNull();
   });
 
@@ -77,7 +98,8 @@ describe('quota status truthfulness', () => {
 
     renderPage();
 
-    expect((await screen.findAllByText('No quota data reported')).length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText('Daily')).toBeTruthy();
+    expect(document.querySelector('.quota-card')).toBeTruthy();
     expect(screen.queryByText('All providers healthy')).toBeNull();
   });
 });

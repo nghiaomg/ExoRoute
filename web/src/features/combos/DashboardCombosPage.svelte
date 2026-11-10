@@ -7,6 +7,7 @@
   import { formatCount } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import ArkSelect from '../../components/ArkSelect.svelte';
+  import ComboTargetModelSelect from './ComboTargetModelSelect.svelte';
   import type { ComboProviderOption, GatewayCombo, RouteBreakdown } from '../../lib/types';
   import '../../styles/dashboard/pages/combos.css';
 
@@ -22,6 +23,7 @@
   let { tr: tr, locale, actionRequest, onNavigate, onConnectionChange, onProviderCountChange: _onProviderCountChange }: Props = $props();
 
   interface TargetDraft {
+    key: number;
     providerId: string;
     model: string;
     enabled: boolean;
@@ -49,6 +51,7 @@
   let cfRetryUntilSuccess = $state(false);
   let cfAlias = $state('');
   let cfTargets = $state<TargetDraft[]>([]);
+  let nextTargetKey = 1;
   let cfBusy = $state(false);
   let cfError = $state('');
 
@@ -132,12 +135,14 @@
   function openComboDialog(combo: GatewayCombo | null): void {
     editingCombo = combo;
     cfError = '';
+    nextTargetKey = 1;
     if (combo) {
       cfName = combo.name;
       cfStrategy = combo.strategy;
       cfRetryUntilSuccess = combo.retry_until_success === true;
       cfAlias = combo.name;
       cfTargets = combo.targets.map((t) => ({
+        key: nextTargetKey++,
         providerId: t.provider_id,
         model: t.model,
         enabled: t.enabled,
@@ -147,13 +152,13 @@
       cfStrategy = 'priority';
       cfRetryUntilSuccess = false;
       cfAlias = '';
-      cfTargets = [{ providerId: providerOptions[0]?.id ?? '', model: '', enabled: true }];
+      cfTargets = [{ key: nextTargetKey++, providerId: providerOptions[0]?.id ?? '', model: '', enabled: true }];
     }
     comboDialog?.showModal();
   }
 
   function addTarget(): void {
-    cfTargets = [...cfTargets, { providerId: providerOptions[0]?.id ?? '', model: '', enabled: true }];
+    cfTargets = [...cfTargets, { key: nextTargetKey++, providerId: providerOptions[0]?.id ?? '', model: '', enabled: true }];
   }
 
   function removeTarget(index: number): void {
@@ -356,7 +361,7 @@
                   {#if usage}
                     {formatCount(usage.requests, locale)} {tr('requests')}{pct !== null ? ` · ${tr('{count}% success', { count: pct })}` : ''}
                   {:else}
-                    {routeBreakdownAvailable && !routeBreakdownTruncated && !routeStatisticsUnavailable ? `${tr('no traffic yet')} · ${combo.targets.length} ${tr('targets')}` : `${tr('Statistics are incomplete')} · ${combo.targets.length} ${tr('targets')}`}
+                    {routeBreakdownAvailable && !routeBreakdownTruncated && !routeStatisticsUnavailable ? `${tr('no traffic yet')} · ${combo.targets.length} ${tr('targets')}` : `${combo.targets.length} ${tr('targets')}`}
                   {/if}
                 </span>
               </div>
@@ -421,7 +426,6 @@
         <ArkSelect
           ariaLabel={tr('Strategy')}
           bind:value={cfStrategy}
-          disabled={!!editingCombo}
           items={[{ label: tr('Priority (first healthy wins)'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]}
         />
       </label>
@@ -445,16 +449,25 @@
         <span class="targets-hint">{tr('Tries each target in order on failure.')}</span>
       </div>
       <div class="target-rows">
-        {#each cfTargets as target, i (i)}
+        {#each cfTargets as target, i (target.key)}
           <div class="target-row">
             <ArkSelect
               class="target-provider"
               ariaLabel={tr('Target provider')}
               value={target.providerId}
               items={providerOptions.map((option) => ({ label: `${option.name}${option.enabled ? '' : ` (${tr('disabled')})`}`, value: option.id, disabled: !option.enabled && option.id !== target.providerId }))}
-              onValueChange={(value) => (target.providerId = value)}
+              onValueChange={(value) => {
+                if (!providerOptions.some((option) => option.id === value && option.enabled)) return;
+                target.providerId = value;
+                target.model = '';
+              }}
             />
-            <input class="target-model" value={target.model} oninput={(e) => (target.model = e.currentTarget.value)} placeholder={tr('model id')} aria-label={tr('Target model')} />
+            <ComboTargetModelSelect
+              providerId={target.providerId}
+              value={target.model}
+              {tr}
+              onChange={(model) => (target.model = model)}
+            />
             <label class="switch" title={tr('Target enabled')}>
               <input type="checkbox" bind:checked={target.enabled} />
               <span class="switch-track"><span class="switch-thumb"></span></span>

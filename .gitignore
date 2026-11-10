@@ -13,6 +13,7 @@
 /.freebuff/
 /.vite/
 /.zcode/
+.dshwolf/
 
 # Local application data and databases
 /.exoroute/

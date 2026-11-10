@@ -1,8 +1,7 @@
 /* API Keys page — extends shared design system (stat-cards, surface boards,
    course-row key cards, budget meters, modal fields). */
 
-.prov-search,
-.prov-select {
+.prov-search {
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid var(--line);
@@ -12,10 +11,16 @@
   font-size: var(--type-body);
 }
 .prov-search { width: min(280px, 100%); flex: 1 1 200px; }
-.prov-select { padding-right: 34px; }
-.prov-search:focus,
-.prov-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.prov-search:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .keys-toolbar { align-items: center; }
+.keys-toolbar .prov-select .ark-select-trigger { border: 1px solid var(--line); box-shadow: none; }
+.keys-toolbar .prov-select .ark-select-trigger:focus-visible { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.api-keys-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 10px; margin-top: 14px; }
+.api-keys-list > .key-card { min-width: 0; align-items: flex-start; flex-wrap: wrap; }
+.api-keys-list .key-card-trigger { flex-basis: 100%; }
+.api-keys-list .course-actions { margin-left: auto; }
+@media (max-width: 1100px) { .api-keys-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .api-keys-list { grid-template-columns: minmax(0, 1fr); } }
 .icon-action.danger:hover { color: var(--db-danger); background: var(--db-accent-tint); }
 
 .prov-type {
@@ -140,14 +145,21 @@
   background: var(--surface-sunken);
 }
 .api-key-edit-fields > .api-key-name-field,
-.api-key-edit-fields > .api-key-enabled-field {
+.api-key-edit-fields > .api-key-enabled-field,
+.api-key-edit-fields > .api-key-scope-field {
   grid-column: 1 / -1;
 }
 .api-key-edit-fields > .api-key-model-field,
 .api-key-edit-fields > .api-key-provider-field {
   align-self: start;
 }
-.api-key-edit-fields .api-key-model-field input {
+.api-key-edit-fields > .api-key-scope-field { min-width: 0; padding: 0; border: 0; background: transparent; }
+.api-key-edit-fields > .api-key-scope-field .scope-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.api-key-edit-fields > .api-key-scope-field .api-key-scope-models { grid-column: 1 / -1; }
+.api-key-edit-fields > .api-key-scope-field .api-key-scope-providers { grid-column: 1 / -1; }
+.api-key-edit-fields > .api-key-scope-field .scope-rules { min-height: 106px; }
+.api-key-edit-fields .api-key-model-field input,
+.api-key-edit-fields .api-key-model-field textarea {
   min-width: 0;
   min-height: 38px;
   padding: 8px 10px;
@@ -159,7 +171,8 @@
   font: inherit;
   font-size: var(--type-body);
 }
-.api-key-edit-fields .api-key-model-field input:focus {
+.api-key-edit-fields .api-key-model-field input:focus,
+.api-key-edit-fields .api-key-model-field textarea:focus {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
   box-shadow: 0 0 0 3px var(--db-accent-ring);
 }
@@ -271,6 +284,8 @@
     grid-column: 1;
     padding: 12px;
   }
+  .api-key-edit-fields > .api-key-scope-field .scope-fields { grid-template-columns: 1fr; }
+  .api-key-edit-fields > .api-key-scope-field .api-key-scope-providers { grid-column: 1; }
   .api-key-provider-list {
     max-height: min(200px, 30dvh);
   }

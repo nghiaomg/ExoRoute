@@ -648,7 +648,8 @@
 .provider-model-section-heading h3 { margin: 0 0 3px; color: var(--ink); font: 700 12px var(--font-heading); }
 .provider-model-section-heading p { margin: 0; color: var(--text-dim); font-size: 12px; line-height: 1.5; }
 .provider-model-filter { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.provider-model-filter .search-box { min-width: 0; flex: 1; background: var(--surface-sunken); }
+.provider-model-filter .search-box { min-width: 0; min-height: 44px; flex: 1; background: var(--surface-sunken); }
+.provider-model-filter .provider-model-count { flex: 0 0 auto; line-height: 1.4; }
 /* The box stretches with the row, so the field has to fill what is left of it
    after the icon. Keeping the base fixed width leaves the caret and the text
    sitting in a narrow strip at the left of a full-width frame. */

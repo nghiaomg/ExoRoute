@@ -2,6 +2,7 @@ import type { TranslationKey } from '../i18n';
 
 export const vi: Record<TranslationKey, string> = {
   'Overview': 'Tổng quan',
+  'credits': 'tín dụng',
   'Quota': 'Quota',
   'Monitor provider quota and local usage from one place.': 'Theo dõi quota nhà cung cấp và mức sử dụng cục bộ tại một nơi.',
   'Loading quota providers…': 'Đang tải nhà cung cấp có quota…',
@@ -343,6 +344,7 @@ export const vi: Record<TranslationKey, string> = {
   'Add a provider': 'Thêm nhà cung cấp',
   'Remove {name}': 'Xóa {name}',
   'Allowed models': 'Model được phép',
+  'Model rules, one per line': 'Quy tắc model, mỗi dòng một quy tắc',
   'All providers': 'Tất cả nhà cung cấp',
   'All models': 'Tất cả model',
   'Leave empty to allow every provider.': 'Để trống để cho phép mọi nhà cung cấp.',
