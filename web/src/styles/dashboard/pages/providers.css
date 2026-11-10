@@ -108,8 +108,7 @@
 .dashboard-app.dashboard-page-providers .provider-row .course-copy { flex: 1 1 150px; }
 .dashboard-app.dashboard-page-providers .provider-row .course-actions { flex: 0 0 auto; }
 
-.dashboard-app.dashboard-page-providers .prov-search,
-  .dashboard-app.dashboard-page-providers .prov-select {
+.dashboard-app.dashboard-page-providers .prov-search {
   min-height: 34px;
   padding: 0 12px;
   border: 1px solid var(--line);
@@ -119,9 +118,7 @@
   font-size: var(--type-body);
 }
 .dashboard-app.dashboard-page-providers .prov-search { width: min(280px, 100%); flex: 1 1 200px; }
-.dashboard-app.dashboard-page-providers .prov-select { padding-right: 34px; }
-.dashboard-app.dashboard-page-providers .prov-search:focus,
-  .dashboard-app.dashboard-page-providers .prov-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
+.dashboard-app.dashboard-page-providers .prov-search:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 .dashboard-app.dashboard-page-providers .provider-toolbar { align-items: center; }
 
 .dashboard-app.dashboard-page-providers .prov-type {

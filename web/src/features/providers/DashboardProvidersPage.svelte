@@ -66,13 +66,27 @@
   const presetById = $derived(new Map(presets.map((p) => [p.id, p])));
   const customPreset = $derived(presets.find((p) => p.id === 'custom' || p.adapter_id === 'generic') ?? presets[0] ?? null);
 
+  const providerCatalog = $derived.by(() => {
+    const configuredAdapters = new Set(providers.map((provider) => provider.adapter_id));
+    const entries: Array<{ key: string; preset: ProviderPreset; provider: Provider | null }> = [];
+    for (const provider of providers) {
+      const preset = presets.find((item) => item.adapter_id === provider.adapter_id || item.id === provider.adapter_id);
+      if (preset) entries.push({ key: provider.id, preset, provider });
+    }
+    for (const preset of presets) {
+      if (!configuredAdapters.has(preset.adapter_id)) entries.push({ key: 'preset:' + preset.id, preset, provider: null });
+    }
+    return entries;
+  });
+
   const filteredProviders = $derived.by(() => {
     const q = search.trim().toLowerCase();
-    return providers.filter((p) => {
-      if (statusFilter === 'enabled' && !p.enabled) return false;
-      if (statusFilter === 'disabled' && p.enabled) return false;
+    return providerCatalog.filter(({ preset, provider }) => {
+      if (provider && statusFilter === 'enabled' && !provider.enabled) return false;
+      if (provider && statusFilter === 'disabled' && provider.enabled) return false;
       if (!q) return true;
-      return p.name.toLowerCase().includes(q) || p.base_url.toLowerCase().includes(q) || p.adapter_id.toLowerCase().includes(q);
+      return [preset.name, preset.id, preset.adapter_id, preset.default_base_url ?? '', provider?.name ?? '', provider?.base_url ?? '']
+        .some((value) => value.toLowerCase().includes(q));
     });
   });
 
@@ -92,6 +106,25 @@
     return presets.find((p) => p.adapter_id === provider.adapter_id || p.id === provider.adapter_id)?.name ?? provider.adapter_id;
   }
 
+  function providerTypeLabel(preset: ProviderPreset): string {
+    const labels = preset.labels.map((label) => tr(label)).join(', ');
+    return labels ? labels : tr(CATEGORY_LABEL_KEYS[presetCategory(preset)]);
+  }
+
+  function providerPreset(presetId: string): void {
+    editingProvider = null;
+    pfError = '';
+    pfNote = '';
+    pfBusy = false;
+    pfPreset = presetId;
+    pfName = '';
+    pfUrl = '';
+    pfKey = '';
+    pfModel = '';
+    applyPreset();
+    providerDialog?.showModal();
+  }
+
   /** Group order mirrors the preset catalog; adapters without a preset fall into Custom. */
   const CATEGORY_ORDER = ['cloud_api', 'gateway', 'oauth', 'custom'] as const;
   type ProviderGroupKey = (typeof CATEGORY_ORDER)[number];
@@ -102,20 +135,19 @@
     custom: 'Custom',
   };
 
-  function providerCategory(provider: Provider): ProviderGroupKey {
-    const preset = presets.find((p) => p.adapter_id === provider.adapter_id || p.id === provider.adapter_id);
-    return preset && (CATEGORY_ORDER as readonly string[]).includes(preset.category)
+  function presetCategory(preset: ProviderPreset): ProviderGroupKey {
+    return (CATEGORY_ORDER as readonly string[]).includes(preset.category)
       ? (preset.category as ProviderGroupKey)
       : 'custom';
   }
 
   const providerGroups = $derived.by(() => {
-    const buckets: Record<ProviderGroupKey, Provider[]> = { cloud_api: [], gateway: [], oauth: [], custom: [] };
-    for (const provider of filteredProviders) buckets[providerCategory(provider)].push(provider);
+    const buckets: Record<ProviderGroupKey, typeof filteredProviders> = { cloud_api: [], gateway: [], oauth: [], custom: [] };
+    for (const entry of filteredProviders) buckets[presetCategory(entry.preset)].push(entry);
     return CATEGORY_ORDER.map((key) => ({
       key,
       label: tr(CATEGORY_LABEL_KEYS[key]),
-      items: buckets[key].sort((a, b) => a.name.localeCompare(b.name)),
+      items: buckets[key].sort((a, b) => a.preset.name.localeCompare(b.preset.name)),
     }));
   });
 
@@ -509,35 +541,41 @@
                 <span class="provider-group-count">{group.items.length}</span>
               </h3>
               <div class="course-list provider-list">
-                {#each group.items as provider (provider.id)}
-                  {@const logo = providerLogo(provider.logo_url, provider.adapter_id, provider.id, provider.name)}
-                  <!-- The whole row is the only affordance: all actions live in the detail sheet. -->
-                  <article class="course-row provider-row provider-row-button" data-status={provider.enabled ? 'enabled' : 'disabled'}>
-                    <button
-                      class="provider-row-trigger"
-                      type="button"
-                      aria-label={tr('Open {name} details', { name: provider.name })}
-                      onclick={() => openDetail(provider)}
-                    >
-                      <span class="course-icon provider-logo">
-                        {#if logo}
-                          <img src={logo} alt="" aria-hidden="true" />
+                {#each group.items as entry (entry.key)}
+                  {@const { preset, provider } = entry}
+                  {@const logo = providerLogo(provider?.logo_url ?? preset.default_logo_url, preset.adapter_id, provider?.id ?? preset.id, provider?.name ?? preset.name)}
+                  {#if provider}
+                    <!-- Existing records open the detail page; the trailing hint stays the single action. -->
+                    <article class="course-row provider-row provider-row-button" data-status={provider.enabled ? 'enabled' : 'disabled'}>
+                      <button class="provider-row-trigger" type="button" aria-label={tr('Open {name} details', { name: provider.name })} onclick={() => openDetail(provider)}>
+                        <span class="course-icon provider-logo">
+                          {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
+                        </span>
+                        <span class="course-copy">
+                          <strong>{provider.name} <span class="prov-type">{preset.name}</span></strong>
+                          <span>{provider.base_url} · {fmtKeys(provider)} · {provider.model_count ?? 0} {tr('models')}</span>
+                        </span>
+                        {#if provider.enabled && !(provider.api_key_count ?? 0)}
+                          <span class="status pending">{tr('No keys')}</span>
                         {:else}
-                          <svg class="icon"><use href="#i-zap" /></svg>
+                          <span class="status {provider.enabled ? 'complete' : 'pending'}">{provider.enabled ? tr('Enabled') : tr('Disabled')}</span>
                         {/if}
+                        <span class="detail-hint" aria-hidden="true"><svg class="icon"><use href="#i-arrow-right" /></svg></span>
+                      </button>
+                    </article>
+                  {:else}
+                    <article class="course-row provider-row provider-catalog-row">
+                      <span class="course-icon provider-logo">
+                        {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
                       </span>
                       <span class="course-copy">
-                        <strong>{provider.name} <span class="prov-type">{providerType(provider)}</span></strong>
-                        <span>{provider.base_url} · {fmtKeys(provider)} · {provider.model_count ?? 0} {tr('models')}</span>
+                        <strong>{preset.name} <span class="prov-type">{providerTypeLabel(preset)}</span></strong>
+                        <span>{preset.default_base_url ?? preset.adapter_id}</span>
+                        <small>{preset.description}</small>
                       </span>
-                      {#if provider.enabled && !(provider.api_key_count ?? 0)}
-                        <span class="status pending">{tr('No keys')}</span>
-                      {:else}
-                        <span class="status {provider.enabled ? 'complete' : 'pending'}">{provider.enabled ? tr('Enabled') : tr('Disabled')}</span>
-                      {/if}
-                      <span class="detail-hint" aria-hidden="true"><svg class="icon"><use href="#i-arrow-right" /></svg></span>
-                    </button>
-                  </article>
+                      <button class="secondary-button compact provider-catalog-add" type="button" onclick={() => providerPreset(preset.id)}>{tr('Add provider')}</button>
+                    </article>
+                  {/if}
                 {/each}
               </div>
             </section>
