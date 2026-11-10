@@ -17,7 +17,8 @@
 .combo-search:focus,
 .combo-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 
-.combo-list { gap: 10px; margin-top: 14px; }
+.combo-list { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 14px; }
+.combo-list > .empty-state { grid-column: 1 / -1; width: 100%; }
 .combo-card {
   padding: 16px 18px;
   border-radius: 14px;

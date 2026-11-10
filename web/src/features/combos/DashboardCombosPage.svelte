@@ -6,6 +6,7 @@
   import type { Translate } from '../../lib/format';
   import { formatCount } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
+  import ArkSelect from '../../components/ArkSelect.svelte';
   import type { ComboProviderOption, GatewayCombo, RouteBreakdown } from '../../lib/types';
   import '../../styles/dashboard/pages/combos.css';
 
@@ -335,11 +336,12 @@
       <p class="card-subtitle">{combos.length} {tr('combos')} · {totalTargets} {tr('targets')} · {strategies} {tr('strategies')}</p>
       <div class="page-toolbar combo-toolbar">
         <input class="combo-search" type="search" placeholder={tr('Search combos...')} aria-label={tr('Search combos')} bind:value={search} />
-        <select class="combo-select" aria-label={tr('Filter by strategy')} bind:value={strategyFilter}>
-          <option value="all">{tr('All strategies')}</option>
-          <option value="priority">{tr('Priority')}</option>
-          <option value="round_robin">{tr('Round robin')}</option>
-        </select>
+        <ArkSelect
+          class="combo-select"
+          ariaLabel={tr('Filter by strategy')}
+          bind:value={strategyFilter}
+          items={[{ label: tr('All strategies'), value: 'all' }, { label: tr('Priority'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]}
+        />
       </div>
       <div class="combo-list" aria-live="polite">
         {#each filteredCombos as combo (combo.id)}
@@ -416,10 +418,12 @@
       </label>
       <label class="field">
         {tr('Strategy')}
-        <select bind:value={cfStrategy} disabled={!!editingCombo}>
-          <option value="priority">{tr('Priority (first healthy wins)')}</option>
-          <option value="round_robin">{tr('Round robin')}</option>
-        </select>
+        <ArkSelect
+          ariaLabel={tr('Strategy')}
+          bind:value={cfStrategy}
+          disabled={!!editingCombo}
+          items={[{ label: tr('Priority (first healthy wins)'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]}
+        />
       </label>
       <label class="field">
         {tr('Served model alias')}
@@ -443,11 +447,13 @@
       <div class="target-rows">
         {#each cfTargets as target, i (i)}
           <div class="target-row">
-            <select class="target-provider" value={target.providerId} onchange={(e) => (target.providerId = e.currentTarget.value)} aria-label={tr('Target provider')}>
-              {#each providerOptions as option (option.id)}
-                <option value={option.id} disabled={!option.enabled && option.id !== target.providerId}>{option.name}{option.enabled ? '' : ` (${tr('disabled')})`}</option>
-              {/each}
-            </select>
+            <ArkSelect
+              class="target-provider"
+              ariaLabel={tr('Target provider')}
+              value={target.providerId}
+              items={providerOptions.map((option) => ({ label: `${option.name}${option.enabled ? '' : ` (${tr('disabled')})`}`, value: option.id, disabled: !option.enabled && option.id !== target.providerId }))}
+              onValueChange={(value) => (target.providerId = value)}
+            />
             <input class="target-model" value={target.model} oninput={(e) => (target.model = e.currentTarget.value)} placeholder={tr('model id')} aria-label={tr('Target model')} />
             <label class="switch" title={tr('Target enabled')}>
               <input type="checkbox" bind:checked={target.enabled} />

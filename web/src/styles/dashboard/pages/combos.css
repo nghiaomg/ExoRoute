@@ -18,7 +18,8 @@
 .dashboard-app.dashboard-page-combos .combo-search:focus,
   .dashboard-app.dashboard-page-combos .combo-select:focus { outline: 0; border-color: color-mix(in srgb, var(--accent) 55%, var(--surface)); box-shadow: 0 0 0 3px var(--db-accent-ring); }
 
-.dashboard-app.dashboard-page-combos .combo-list { gap: 10px; margin-top: 14px; }
+.dashboard-app.dashboard-page-combos .combo-list { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 14px; }
+.dashboard-app.dashboard-page-combos .combo-list > .empty-state { grid-column: 1 / -1; width: 100%; }
 .dashboard-app.dashboard-page-combos .combo-card {
   padding: 16px 18px;
   border-radius: 14px;

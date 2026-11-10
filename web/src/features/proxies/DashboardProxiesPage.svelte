@@ -3,6 +3,7 @@
   import { ArrowDown, ArrowUp, GitBranch, Plus, Save, Trash2 } from '@lucide/svelte';
   import ArkCheckbox from '../../components/ArkCheckbox.svelte';
   import ArkDialog from '../../components/ArkDialog.svelte';
+  import ArkSelect from '../../components/ArkSelect.svelte';
   import { proxyApi } from '../../lib/api/proxies';
   import { localizedError } from '../../lib/errors';
   import { showDashboardToast } from '../../lib/dashboard-ui';
@@ -234,9 +235,12 @@
 {:else}
   <div class="proxy-toolbar page-toolbar">
     <input class="prov-search" type="search" bind:value={query} placeholder={tr('Search proxies…')} aria-label={tr('Search proxies')} />
-    <select class="prov-select" bind:value={enabledFilter} aria-label={tr('Filter proxies')}>
-      <option value="all">{tr('All proxies')}</option><option value="enabled">{tr('Enabled')}</option><option value="disabled">{tr('Disabled')}</option>
-    </select>
+    <ArkSelect
+      class="prov-select"
+      bind:value={enabledFilter}
+      ariaLabel={tr('Filter proxies')}
+      items={[{ label: tr('All proxies'), value: 'all' }, { label: tr('Enabled'), value: 'enabled' }, { label: tr('Disabled'), value: 'disabled' }]}
+    />
   </div>
   <div class="proxy-grid">
     {#each filtered as proxy (proxy.id)}
@@ -260,7 +264,7 @@
 <ArkDialog bind:open={editDialog} wide title={tr(editingId ? 'Edit proxy' : 'Add proxy')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} preventClose={saving} onClose={() => { editDialog = false; }}>
   <form class="modal-form proxy-editor" onsubmit={(event) => { event.preventDefault(); void save(); }}>
     <label class="field">{tr('Proxy name')}<input maxlength="256" bind:value={draft.name} placeholder={tr('e.g. Residential pool')} required /></label>
-    <label class="field">{tr('Endpoint selection')}<select bind:value={draft.strategy}><option value="priority">{tr('Priority order')}</option><option value="round_robin">{tr('Round robin')}</option></select></label>
+    <label class="field">{tr('Endpoint selection')}<ArkSelect bind:value={draft.strategy} ariaLabel={tr('Endpoint selection')} items={[{ label: tr('Priority order'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]} /></label>
     <ArkCheckbox checked={draft.enabled} label={tr('Enable this proxy')} onCheckedChange={(checked) => draft.enabled = checked === true} />
     <div class="proxy-endpoints-title"><div><h3>{tr('Endpoints and groups')}</h3><p>{tr('A group expands in place. Fallback happens only when connecting to an endpoint fails.')}</p></div><button class="secondary-button compact" type="button" onclick={addEndpoint} disabled={draft.endpoints.length >= 64}><Plus size={14}/>{tr('Add endpoint')}</button></div>
     <div class="proxy-endpoints-editor">

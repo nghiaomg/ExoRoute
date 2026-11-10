@@ -6,6 +6,7 @@
   import type { Translate } from '../../lib/format';
   import { formatCount, formatCostMicroUsd, formatPercent, formatTokenCount } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
+  import ArkSelect from '../../components/ArkSelect.svelte';
   import type { Overview, RequestLog, RequestStatistics } from '../../lib/types';
   import '../../styles/dashboard/pages/overview.css';
 
@@ -455,12 +456,12 @@
         </label>
         <label class="field">
           {tr('Allowed model')}
-          <select bind:value={keyModels}>
-            <option value="all">{tr('All models')}</option>
-            {#each keyModelOptions as model (model)}
-              <option value={model}>{model}</option>
-            {/each}
-          </select>
+          <ArkSelect
+            ariaLabel={tr('Allowed model')}
+            value={keyModels}
+            items={[{ label: tr('All models'), value: 'all' }, ...keyModelOptions.map((model) => ({ label: model, value: model }))]}
+            onValueChange={(value) => (keyModels = value)}
+          />
         </label>
         <p class="form-note">{tr('Budget and expiry limits are managed on the API keys page.')}</p>
       </div>
