@@ -5,6 +5,7 @@
   import type { Locale } from '../../lib/i18n';
   import type { Translate } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
+  import ArkSelect from '../../components/ArkSelect.svelte';
   import type { Provider, ProviderKey, ProviderPreset, UpstreamProtocol } from '../../lib/types';
   import { providerLogo } from './provider-logo';
   import ProviderDetailsPage from './ProviderDetailsPage.svelte';
@@ -492,11 +493,12 @@
       <p class="card-subtitle">{tr('{providers} providers · {enabled} enabled · {keys} credentials', { providers: providers.length, enabled: enabledCount, keys: totalKeys })}</p>
       <div class="page-toolbar provider-toolbar">
         <input class="prov-search" type="search" placeholder={tr('Search providers...')} aria-label={tr('Search providers')} bind:value={search} />
-        <select class="prov-select" aria-label={tr('Filter by status')} bind:value={statusFilter}>
-          <option value="all">{tr('All statuses')}</option>
-          <option value="enabled">{tr('Enabled')}</option>
-          <option value="disabled">{tr('Disabled')}</option>
-        </select>
+        <ArkSelect
+          class="prov-select"
+          ariaLabel={tr('Filter by status')}
+          bind:value={statusFilter}
+          items={[{ label: tr('All statuses'), value: 'all' }, { label: tr('Enabled'), value: 'enabled' }, { label: tr('Disabled'), value: 'disabled' }]}
+        />
       </div>
       <div class="provider-groups" aria-live="polite">
         {#each providerGroups as group (group.key)}
@@ -569,11 +571,13 @@
       </label>
       <label class="field">
         {tr('Type')}
-        <select bind:value={pfPreset} onchange={applyPreset} disabled={!!editingProvider}>
-          {#each presets as preset (preset.id)}
-            <option value={preset.id}>{preset.name}</option>
-          {/each}
-        </select>
+        <ArkSelect
+          ariaLabel={tr('Type')}
+          bind:value={pfPreset}
+          disabled={!!editingProvider}
+          items={presets.map((preset) => ({ label: preset.name, value: preset.id }))}
+          onValueChange={applyPreset}
+        />
       </label>
       <label class="field">
         {tr('Base URL')}

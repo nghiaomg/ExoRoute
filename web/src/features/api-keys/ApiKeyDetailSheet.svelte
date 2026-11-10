@@ -8,92 +8,77 @@
   import { formatUtcTimestamp } from './format-utc';
 
   interface Props {
-    /** The key being inspected, or null when the sheet is closed. */
-    apiKey: GatewayApiKey | null;
+    /** Key displayed by the full-page detail view. */
+    apiKey: GatewayApiKey;
     tr: Translate;
     locale: Locale;
     /** Called after a scope save so the page can refresh the key list. */
     onUpdated: () => void;
-    onClose: () => void;
+    onBack: () => void;
   }
-  let { apiKey, tr, locale, onUpdated, onClose }: Props = $props();
+  let { apiKey, tr, locale, onUpdated, onBack }: Props = $props();
 
-  let dialog = $state<HTMLDialogElement | null>(null);
   let scopeOpen = $state(false);
 
-  // Opening is driven by the prop so the page owns which key is selected; a
-  // closed sheet reports back through onClose instead of clearing the prop.
-  $effect(() => {
-    const element = dialog;
-    if (!element) return;
-    if (apiKey && !element.open) {
-      element.showModal();
-      scopeOpen = false;
-    } else if (!apiKey && element.open) {
-      element.close();
-    }
-  });
-
-  const createdLabel = $derived(formatUtcTimestamp(apiKey?.created_at, locale));
+  const createdLabel = $derived(formatUtcTimestamp(apiKey.created_at, locale));
   const lastUsedLabel = $derived(
-    apiKey?.last_used_at ? formatUtcTimestamp(apiKey.last_used_at, locale) : null,
+    apiKey.last_used_at ? formatUtcTimestamp(apiKey.last_used_at, locale) : null,
   );
+
 </script>
 
-<dialog class="modal key-detail-modal" bind:this={dialog} aria-labelledby="api-key-detail-title" onclose={onClose}>
-  <div class="modal-card key-detail">
-    {#if apiKey}
-      <div class="modal-heading">
-        <div>
-          <h2 id="api-key-detail-title">{tr('Key details')}</h2>
-          <p>{apiKey.name}</p>
-        </div>
-        <button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</button>
-      </div>
-
-      {#if apiKey.scope_valid === false}
-        <p class="key-alert" role="alert">
-          <ShieldAlert size={14} />
-          {tr('The stored access scope is invalid, so every request with this key is rejected. Save a scope to repair it.')}
-        </p>
-      {/if}
-
-      <dl class="key-facts">
-        <div><dt>{tr('Status')}</dt><dd>{apiKey.enabled ? tr('Enabled') : tr('Disabled')}</dd></div>
-        <div><dt>{tr('API requests')}</dt><dd>{apiKey.request_count ?? 0}</dd></div>
-        <div><dt>{tr('Created')}</dt><dd>{createdLabel ?? apiKey.created_at}</dd></div>
-        <div><dt>{tr('Last used')}</dt><dd>{lastUsedLabel ?? tr('Never used')}</dd></div>
-        <div class="key-facts-id"><dt>{tr('API key ID')}</dt><dd class="mono">{apiKey.id}</dd></div>
-      </dl>
-
-      <!-- The scope summary lives on the toggle itself rather than in the fact
-           grid, so the state and the control that changes it stay together. -->
-      <button
-        class="scope-toggle"
-        type="button"
-        aria-expanded={scopeOpen}
-        aria-controls="api-key-scope-section"
-        onclick={() => (scopeOpen = !scopeOpen)}
-      >
-        <SlidersHorizontal size={14} />
-        {tr('Access scope')}
-        <span class="scope-toggle-hint">{apiKey.scope_restricted ? tr('restricted') : tr('all models')}</span>
+<section class="key-detail-page" aria-labelledby="api-key-detail-title">
+  <div class="page-heading">
+    <div class="heading-copy">
+      <h1 id="api-key-detail-title">{tr('Key details')}</h1>
+      <p>{apiKey.name}</p>
+    </div>
+    <div class="heading-actions">
+      <button class="action-button" type="button" onclick={onBack}>
+        <span class="button-icon"><svg class="icon"><use href="#i-arrow-left" /></svg></span>
+        <span class="button-label">{tr('Back to API keys')}</span>
       </button>
-
-      {#if scopeOpen}
-        <section id="api-key-scope-section" class="scope-section">
-          <ApiKeyScopeEditor {apiKey} {tr} {onUpdated} embedded />
-        </section>
-      {/if}
-
-      <ApiKeyUsagePanel apiKeyId={apiKey.id} {tr} {locale} />
-    {/if}
-
-    <div class="modal-actions">
-      <button class="page-action" type="button" data-close-modal>{tr('Close')}</button>
     </div>
   </div>
-</dialog>
+
+  <div class="page-surface key-detail">
+    {#if apiKey.scope_valid === false}
+      <p class="key-alert" role="alert">
+        <ShieldAlert size={14} />
+        {tr('The stored access scope is invalid, so every request with this key is rejected. Save a scope to repair it.')}
+      </p>
+    {/if}
+
+    <dl class="key-facts">
+      <div><dt>{tr('Status')}</dt><dd>{apiKey.enabled ? tr('Enabled') : tr('Disabled')}</dd></div>
+      <div><dt>{tr('API requests')}</dt><dd>{apiKey.request_count ?? 0}</dd></div>
+      <div><dt>{tr('Created')}</dt><dd>{createdLabel ?? apiKey.created_at}</dd></div>
+      <div><dt>{tr('Last used')}</dt><dd>{lastUsedLabel ?? tr('Never used')}</dd></div>
+      <div class="key-facts-id"><dt>{tr('API key ID')}</dt><dd class="mono">{apiKey.id}</dd></div>
+    </dl>
+
+    <!-- Keep scope summary beside its editing control. -->
+    <button
+      class="scope-toggle"
+      type="button"
+      aria-expanded={scopeOpen}
+      aria-controls="api-key-scope-section"
+      onclick={() => (scopeOpen = !scopeOpen)}
+    >
+      <SlidersHorizontal size={14} />
+      {tr('Access scope')}
+      <span class="scope-toggle-hint">{apiKey.scope_restricted ? tr('restricted') : tr('all models')}</span>
+    </button>
+
+    {#if scopeOpen}
+      <section id="api-key-scope-section" class="scope-section">
+        <ApiKeyScopeEditor {apiKey} {tr} {onUpdated} embedded />
+      </section>
+    {/if}
+
+    <ApiKeyUsagePanel apiKeyId={apiKey.id} {tr} {locale} />
+  </div>
+</section>
 
 <style>
   .key-detail {
@@ -180,9 +165,6 @@
     line-height: 1.45;
   }
 
-  /* The sheet holds facts, scope and a usage panel, so it takes the wide
-     dialog width rather than the design system's 440px default. */
-  :global(.dashboard-app .modal.key-detail-modal) {
-    width: min(94vw, 660px);
-  }
+  .key-detail-page { display: block; }
+  .key-detail-page .page-surface { display: grid; gap: 13px; }
 </style>

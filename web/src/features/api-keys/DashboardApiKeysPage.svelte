@@ -5,6 +5,7 @@
   import { formatCostMicroUsd, type Translate } from '../../lib/format';
   import type { DashboardPage } from '../../lib/navigation';
   import { showDashboardToast } from '../../lib/dashboard-ui';
+  import ArkSelect from '../../components/ArkSelect.svelte';
   import type { GatewayApiKey, RequestStatistics } from '../../lib/types';
   import type { Locale } from '../../lib/i18n';
   import ApiKeyDetailSheet from './ApiKeyDetailSheet.svelte';
@@ -42,7 +43,8 @@
   let confirmTarget = $state<GatewayApiKey | null>(null);
   let confirmMode = $state<'disable' | 'delete'>('disable');
   let busy = $state(false);
-  let detailKey = $state<GatewayApiKey | null>(null);
+  let detailKeyId = $state<string | null>(null);
+  const detailKey = $derived(detailKeyId ? keys.find((key) => key.id === detailKeyId) ?? null : null);
 
   const scopeLabel = (key: GatewayApiKey) => {
     if (!key.scope_restricted) return tr('all models');
@@ -75,12 +77,7 @@
       nextCursor = page.next_cursor ?? null;
       stats = s;
       providerOptions = (provs ?? []).map((p) => ({ id: p.id, name: p.name }));
-      // Keep an open detail sheet on the refreshed record so a scope save or a
-      // toggle is reflected there without closing and reopening it.
-      const openDetailId = detailKey?.id;
-      if (openDetailId) {
-        detailKey = page.api_keys.find((k) => k.id === openDetailId) ?? detailKey;
-      }
+      // The selected detail is derived from this refreshed page of records.
     } catch (cause) {
       error = localizedError(cause, 'Could not load API keys.', tr);
     } finally {
@@ -161,9 +158,13 @@
     confirmMode = mode;
     confirmDialog?.showModal();
   }
-  /** Deletion removes the row, so an open detail sheet is closed first. */
+  /** Deletion removes the row, so leave its detail page first. */
   function openDetail(key: GatewayApiKey) {
-    detailKey = key;
+    detailKeyId = key.id;
+  }
+
+  function closeDetail(): void {
+    detailKeyId = null;
   }
   async function runConfirm() {
     if (!confirmTarget || busy) return;
@@ -171,7 +172,7 @@
     try {
       if (confirmMode === 'delete') {
         await api.deleteApiKey(confirmTarget.id);
-        if (detailKey?.id === confirmTarget.id) detailKey = null;
+        if (detailKey?.id === confirmTarget.id) closeDetail();
         showDashboardToast(tr('Deleted "{name}"', { name: confirmTarget.name }));
       } else {
         await api.updateApiKey(confirmTarget.id, { enabled: false });
@@ -198,6 +199,15 @@
   }
 </script>
 
+{#if detailKey}
+  <ApiKeyDetailSheet
+    apiKey={detailKey}
+    {tr}
+    {locale}
+    onUpdated={() => void load()}
+    onBack={closeDetail}
+  />
+{:else}
 <div class="page-heading">
   <div class="heading-copy">
     <h1>{tr('API keys')}</h1>
@@ -251,17 +261,17 @@
       <p class="card-subtitle">{tr('Showing {count} API keys on this page', { count: keys.length })}{nextCursor ? ` · ${tr('more available')}` : ''}</p>
       <div class="page-toolbar keys-toolbar">
         <input class="prov-search" type="search" placeholder={tr('Search keys…')} aria-label={tr('Search API keys')} bind:value={searchQuery} />
-        <select class="prov-select" aria-label={tr('Filter keys')} bind:value={statusFilter}>
-          <option value="all">{tr('All keys')}</option>
-          <option value="active">{tr('Active')}</option>
-          <option value="disabled">{tr('Disabled')}</option>
-        </select>
+        <ArkSelect
+          class="prov-select"
+          ariaLabel={tr('Filter keys')}
+          bind:value={statusFilter}
+          items={[{ label: tr('All keys'), value: 'all' }, { label: tr('Active'), value: 'active' }, { label: tr('Disabled'), value: 'disabled' }]}
+        />
       </div>
       <div class="course-list">
         {#each visibleKeys as key (key.id)}
           <article class="course-row key-card" class:key-revoked={!key.enabled}>
-            <!-- The row body opens the detail sheet; the actions beside it stay
-                 independent buttons rather than being swallowed by the trigger. -->
+            <!-- The row opens a full-page detail view; adjacent actions stay independent. -->
             <button
               class="key-card-trigger"
               type="button"
@@ -319,7 +329,7 @@
     {:else}
       <div class="modal-fields">
         <label class="field provd-wide">{tr('Key name')}<input type="text" required placeholder={tr('e.g. staging-app')} bind:value={newName} /></label>
-        <label class="field provd-wide">{tr('Allowed models (comma separated, empty = all)')}<input type="text" placeholder={tr('gpt-4o, claude-*')} bind:value={newModels} /></label>
+        <label class="field">{tr('Allowed models (comma separated, empty = all)')}<input type="text" placeholder={tr('gpt-4o, claude-*')} bind:value={newModels} /></label>
         <div class="field provd-wide">
           {tr('Allowed providers')}
           <div class="check-row-inline" style="flex-wrap:wrap;gap:8px">
@@ -415,14 +425,7 @@
   </div>
 </dialog>
 
-<!-- Key detail: facts, access scope and per-key usage in one sheet -->
-<ApiKeyDetailSheet
-  apiKey={detailKey}
-  {tr}
-  {locale}
-  onUpdated={() => void load()}
-  onClose={() => (detailKey = null)}
-/>
+{/if}
 
 <style>
   /* The row's copy cluster is the detail trigger. It is a real button so the

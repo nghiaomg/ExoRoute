@@ -12,7 +12,7 @@
   export let apiKey: GatewayApiKey;
   export let tr: Translate;
   export let onUpdated: () => void;
-  /** Render without the card chrome and heading when hosted inside a dialog. */
+  /** Render without card chrome and heading when embedded on a detail page. */
   export let embedded = false;
 
   let providers: Provider[] = [];
