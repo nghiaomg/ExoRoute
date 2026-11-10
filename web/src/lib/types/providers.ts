@@ -57,6 +57,7 @@ export interface Provider {
   invalid_api_key_count?: number;
   model_count?: number;
   local_rpm_target?: number;
+  proxy_id?: string | null;
   thinking_mode?: ProviderThinkingMode;
   thinking_override?: string | null;
   key_strategy?: ProviderKeyStrategy;

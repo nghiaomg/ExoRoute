@@ -15,6 +15,7 @@ export interface RequestLog {
   output_tokens?: number;
   cached_tokens?: number;
   cache_input_tokens?: number;
+  reasoning_effort?: string | null;
   cost_micro_usd?: number | null;
   error?: string | null;
   created_at: string;
@@ -55,6 +56,7 @@ export type RequestLiveEvent =
       output_tokens?: number | null;
       cached_tokens?: number | null;
       cache_input_tokens?: number | null;
+      reasoning_effort?: string | null;
     }
   | {
       type: 'finished';

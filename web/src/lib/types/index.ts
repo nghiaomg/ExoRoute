@@ -54,6 +54,11 @@ export type {
   ProviderModelImportResult,
 } from './combos';
 export type {
+  ProxyEndpoint,
+  GatewayProxy,
+  ProxyProviderOption,
+} from './proxies';
+export type {
   RequestLog,
   RequestLiveRow,
   RequestLiveConnectionState,
@@ -75,6 +80,7 @@ export type {
   RowsView,
   RequestStatistics,
   GatewayApiKeyStatistics,
+  RouteBreakdown,
   GatewayApiKey,
   GatewayApiKeyPage,
   GatewayApiKeyScopeInput,

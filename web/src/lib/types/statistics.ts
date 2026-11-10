@@ -114,6 +114,12 @@ export interface RequestStatistics {
   models: { top: StatisticsDimension[]; others: number };
   model_breakdown: ModelBreakdown[];
   model_breakdown_truncated: boolean;
+  /** Request-attempt rows grouped by the client-selected route alias. */
+  route_breakdown: RouteBreakdown[];
+  /** True when alias groups or the underlying history scan were truncated. */
+  route_breakdown_truncated: boolean;
+  /** True when retained route logs do not cover the selected statistics range. */
+  route_breakdown_incomplete: boolean;
   /** Request-log rows the retained history covers for this range. */
   logged_requests: number;
   /** True when the retained history covers fewer requests than the totals. */
@@ -128,11 +134,21 @@ export interface RequestStatistics {
   /** Mean time to the first streamed token, or null when nothing streamed. */
   average_time_to_first_token_ms: number | null;
   time_to_first_token_samples: number;
+  /** True when retained status-log rows do not cover the current statistics window. */
+  status_history_incomplete?: boolean;
 }
 
 export interface GatewayApiKeyStatistics extends Omit<RequestStatistics, 'api_keys'> {
   api_key_id: string;
   api_key_name: string;
+}
+
+export interface RouteBreakdown {
+  route_alias: string;
+  requests: number;
+  successes: number;
+  failures: number;
+  success_rate: number;
 }
 
 export interface GatewayApiKey {

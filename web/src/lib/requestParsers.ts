@@ -61,6 +61,7 @@ function parseRequestLogValue(value: unknown, fallbackCreatedAtMs: number): Requ
     output_tokens: optionalSafeInteger(value.output_tokens),
     cached_tokens: optionalSafeInteger(value.cached_tokens),
     cache_input_tokens: optionalSafeInteger(value.cache_input_tokens),
+    reasoning_effort: optionalString(value.reasoning_effort, 16),
     cost_micro_usd: optionalSafeInteger(value.cost_micro_usd) ?? null,
     error: optionalString(value.error, 8 * 1024),
     created_at: createdAt,
@@ -125,6 +126,7 @@ export function parseRequestLiveEvent(eventName: string, data: string): RequestL
         ...(value.output_tokens !== undefined ? { output_tokens: optionalSafeInteger(value.output_tokens) ?? null } : {}),
         ...(value.cached_tokens !== undefined ? { cached_tokens: optionalSafeInteger(value.cached_tokens) ?? null } : {}),
         ...(value.cache_input_tokens !== undefined ? { cache_input_tokens: optionalSafeInteger(value.cache_input_tokens) ?? null } : {}),
+        ...(value.reasoning_effort !== undefined ? { reasoning_effort: optionalString(value.reasoning_effort, 16) ?? null } : {}),
       };
     }
     if (eventName === 'request-finished') {
