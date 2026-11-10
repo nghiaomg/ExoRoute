@@ -120,6 +120,13 @@ pub(super) async fn dispatch_target(
                 return DispatchOutcome::Terminal;
             }
         };
+        let sent_bytes = if attempt.proxy_id.is_some() {
+            serde_json::to_vec(&attempt.upstream_body)
+                .map(|bytes| bytes.len() as u64)
+                .unwrap_or_default()
+        } else {
+            0
+        };
         match send::send_request(
             &mut attempt,
             failures,
@@ -145,6 +152,8 @@ pub(super) async fn dispatch_target(
                     adapter: attempt.adapter,
                     adapter_id: attempt.provider.adapter_id.clone(),
                     provider_id: attempt.provider.id.clone(),
+                    proxy_id: attempt.proxy_id.clone(),
+                    sent_bytes,
                     upstream_protocol: attempt.upstream_protocol,
                     target_model: attempt.target_model.to_owned(),
                 }));

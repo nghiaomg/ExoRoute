@@ -2,6 +2,27 @@ use super::support::*;
 use super::*;
 
 #[tokio::test]
+async fn proxy_traffic_totals_accumulate_and_snapshot_only_existing_ids() {
+    let database = TestDatabase::open().await;
+    let state = AppState::new(database.config(), database.db.clone());
+    state.record_proxy_traffic("proxy-a", 100, 40, 2000).await;
+    state.record_proxy_traffic("proxy-a", 50, 10, 1000).await;
+    state.record_proxy_traffic("proxy-b", 999, 999, 1).await;
+
+    let (stats, truncated) = state.proxy_traffic_snapshot(&["proxy-a".to_owned()]).await;
+    let totals = stats.get("proxy-a").expect("known proxy stats");
+    assert!(!truncated);
+    assert_eq!(totals.received_bytes, 150);
+    assert_eq!(totals.sent_bytes, 50);
+    assert_eq!(totals.requests, 2);
+    assert_eq!(totals.elapsed_millis, 3000);
+    assert!(!stats.contains_key("proxy-b"));
+
+    state.clear_proxy_runtime_state("proxy-a").await;
+    assert!(state.proxy_traffic_snapshot(&["proxy-a".to_owned()]).await.0.is_empty());
+}
+
+#[tokio::test]
 async fn provider_bulkheads_are_bounded_independently() {
     let database = TestDatabase::open().await;
     let state = AppState::new(database.config(), database.db.clone());

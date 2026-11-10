@@ -27,6 +27,7 @@ impl Drop for StreamLog {
         if self.finalized() {
             return;
         }
+        record_proxy_traffic(self);
         log_abandoned_stream(self);
     }
 }
@@ -34,6 +35,22 @@ impl Drop for StreamLog {
 /// Logs a stream that ended without a terminal event: the client disconnected
 /// or cancelled mid-stream, or a gateway shutdown interrupted it. Token counts
 /// stay unknown unless the upstream already reported usage.
+fn record_proxy_traffic(log: &StreamLog) {
+    let (Some(proxy_id), Some(sample)) =
+        (log.proxy_id.as_deref(), log.proxy_traffic_sample.as_ref())
+    else {
+        return;
+    };
+    let received = sample
+        .received_bytes
+        .load(std::sync::atomic::Ordering::Relaxed);
+    let sent = sample.sent_bytes;
+    let elapsed = sample.started.elapsed().as_millis() as u64;
+    let _ = log
+        .state
+        .try_record_proxy_traffic(proxy_id, received, sent, elapsed);
+}
+
 fn log_abandoned_stream(log: &StreamLog) {
     let (status, error) = if log.interrupted_by_shutdown() {
         (
@@ -91,6 +108,7 @@ pub(crate) async fn log_failed_stream(
     cache_input_tokens: Option<i64>,
 ) {
     log.mark_finalized();
+    record_proxy_traffic(&log);
     log.circuit_probe.failed();
     if let Some(run_id) = log.run_id.as_deref()
         && let Err(journal_error) = crate::gateway::continuity::finish_run(
@@ -142,6 +160,7 @@ pub(crate) async fn log_completed_stream(
     cost_micro_usd: Option<i64>,
 ) {
     log.mark_finalized();
+    record_proxy_traffic(&log);
     log.circuit_probe.succeeded();
     if let Some(run_id) = log.run_id.as_deref()
         && let Err(journal_error) =

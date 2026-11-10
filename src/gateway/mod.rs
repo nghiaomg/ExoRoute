@@ -49,7 +49,7 @@ pub(super) use logging::{GatewayRequestLog, log_request};
 use request_preparation::{PreparedGatewayRequest, prepare_gateway_request};
 use retry_policy::{can_fail_over_after_provider_rejection, is_retryable, server_retry_deadline};
 use streaming::{
-    StreamLog, StreamOutcome, StreamTranslationConfig, preflight_stream,
+    StreamLog, StreamOutcome, StreamTranslationConfig, UpstreamChunkStream, preflight_stream,
     stream_translation_from_chunks,
 };
 

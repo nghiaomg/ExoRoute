@@ -44,7 +44,7 @@ use errors::{
     ResponsesTerminal, extract_stream_error, is_responses_terminal_event, responses_terminal_state,
 };
 
-pub(super) type UpstreamChunkStream =
+pub(crate) type UpstreamChunkStream =
     Pin<Box<dyn futures_util::Stream<Item = Result<Bytes, reqwest::Error>> + Send>>;
 
 const STREAM_OUTCOME_COMPLETED: u8 = 1;
@@ -78,6 +78,8 @@ pub(super) struct StreamLog {
     pub(super) request_id: String,
     pub(super) route_alias: String,
     pub(super) provider_id: String,
+    pub(super) proxy_id: Option<String>,
+    pub(super) proxy_traffic_sample: Option<Arc<crate::state::ProxyTrafficSample>>,
     pub(super) model: String,
     pub(super) api_key_id: Option<String>,
     pub(super) provider_credential_id: Option<String>,

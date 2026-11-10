@@ -176,7 +176,9 @@ impl AppState {
     }
 
     pub async fn advance_proxy_endpoint_cursor(&self, proxy_id: &str, len: usize) -> usize {
-        if len == 0 { return 0; }
+        if len == 0 {
+            return 0;
+        }
         let mut cursors = self.gates.proxy_endpoint_cursors.lock().await;
         let cursor = cursors.entry(proxy_id.to_owned()).or_default();
         let current = *cursor % len;
@@ -185,7 +187,88 @@ impl AppState {
     }
 
     pub async fn clear_proxy_runtime_state(&self, proxy_id: &str) {
-        self.gates.proxy_endpoint_cursors.lock().await.remove(proxy_id);
+        self.gates
+            .proxy_endpoint_cursors
+            .lock()
+            .await
+            .remove(proxy_id);
+        self.gates.proxy_traffic.lock().await.entries.remove(proxy_id);
+    }
+
+    pub async fn record_proxy_traffic(
+        &self,
+        proxy_id: &str,
+        received_bytes: u64,
+        sent_bytes: u64,
+        elapsed_millis: u64,
+    ) {
+        let mut traffic = self.gates.proxy_traffic.lock().await;
+        Self::add_proxy_traffic(
+            &mut traffic,
+            proxy_id,
+            received_bytes,
+            sent_bytes,
+            elapsed_millis,
+        );
+    }
+
+    pub(crate) fn try_record_proxy_traffic(
+        &self,
+        proxy_id: &str,
+        received_bytes: u64,
+        sent_bytes: u64,
+        elapsed_millis: u64,
+    ) -> bool {
+        let Ok(mut traffic) = self.gates.proxy_traffic.try_lock() else {
+            return false;
+        };
+        Self::add_proxy_traffic(
+            &mut traffic,
+            proxy_id,
+            received_bytes,
+            sent_bytes,
+            elapsed_millis,
+        );
+        true
+    }
+
+    fn add_proxy_traffic(
+        registry: &mut super::ProxyTrafficRegistry,
+        proxy_id: &str,
+        received_bytes: u64,
+        sent_bytes: u64,
+        elapsed_millis: u64,
+    ) {
+        registry.clock = registry.clock.saturating_add(1);
+        let clock = registry.clock;
+        if !registry.entries.contains_key(proxy_id) {
+            if registry.entries.len() >= super::MAX_TRACKED_PROXY_TRAFFIC {
+                registry.truncated = true;
+                if let Some(stale_id) = registry.entries.iter().min_by_key(|(_, totals)| totals.last_used).map(|(id, _)| id.clone()) {
+                    registry.entries.remove(&stale_id);
+                }
+            }
+            registry.entries.insert(proxy_id.to_owned(), Default::default());
+        }
+        if let Some(totals) = registry.entries.get_mut(proxy_id) {
+            totals.received_bytes = totals.received_bytes.saturating_add(received_bytes);
+            totals.sent_bytes = totals.sent_bytes.saturating_add(sent_bytes);
+            totals.requests = totals.requests.saturating_add(1);
+            totals.elapsed_millis = totals.elapsed_millis.saturating_add(elapsed_millis);
+            totals.last_used = clock;
+        }
+    }
+
+    pub async fn proxy_traffic_snapshot(
+        &self,
+        proxy_ids: &[String],
+    ) -> (std::collections::HashMap<String, super::ProxyTrafficTotals>, bool) {
+        let registry = self.gates.proxy_traffic.lock().await;
+        let stats = proxy_ids
+            .iter()
+            .filter_map(|id| registry.entries.get(id).copied().map(|totals| (id.clone(), totals)))
+            .collect();
+        (stats, registry.truncated)
     }
 
     /// Drop process-local state derived from provider and route records after

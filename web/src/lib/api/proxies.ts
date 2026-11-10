@@ -1,8 +1,9 @@
-import type { Collection, ProxyEndpoint, ProxyProviderOption, GatewayProxy } from '../types';
+import type { Collection, ProxyEndpoint, ProxyProviderOption, GatewayProxy, ProxyTrafficStatsResponse } from '../types';
 import { collection, request } from './core';
 
 export const proxyApi = {
   proxies: async () => collection(await request<Collection<GatewayProxy> | Record<string, unknown>>('/proxies'), 'proxies'),
+  trafficStats: () => request<ProxyTrafficStatsResponse>('/proxies/stats'),
   proxyOptions: async (options: { q?: string; cursor?: string; includeId?: string } = {}) => {
     const query = new URLSearchParams();
     if (options.q) query.set('q', options.q);

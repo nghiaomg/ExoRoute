@@ -27,3 +27,18 @@ export interface ProxyProviderOption {
   name: string;
   enabled: boolean;
 }
+
+export interface ProxyTrafficStats {
+  proxy_id: string;
+  received_bytes: number;
+  sent_bytes: number;
+  total_bytes: number;
+  requests: number;
+  average_bytes_per_second: number | null;
+}
+
+export interface ProxyTrafficStatsResponse {
+  proxies: ProxyTrafficStats[];
+  scope: 'since_startup';
+  truncated: boolean;
+}

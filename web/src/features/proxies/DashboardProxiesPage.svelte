@@ -7,16 +7,32 @@
   import { localizedError } from '../../lib/errors';
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import type { Translate } from '../../lib/format';
-  import type { ProxyEndpoint, GatewayProxy, ProxyProviderOption } from '../../lib/types';
+  import type { ProxyEndpoint, GatewayProxy, ProxyProviderOption, ProxyTrafficStats } from '../../lib/types';
   import BulkProxyImportDialog from './BulkProxyImportDialog.svelte';
   import ProxyEndpointEditor from './ProxyEndpointEditor.svelte';
   import { blankProxy, normalizeProxyDraft } from './proxy.state';
   import '../../styles/dashboard/pages/proxies.css';
 
+  function formatBytes(value: number): string {
+    if (value < 1024) return String(value) + ' B';
+    const units = ['KiB', 'MiB', 'GiB', 'TiB'];
+    let size = value;
+    let unit = -1;
+    do { size /= 1024; unit += 1; } while (size >= 1024 && unit < units.length - 1);
+    return size.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' ' + units[unit];
+  }
+
+  function formatRate(value: number | null): string {
+    return value === null ? '—' : formatBytes(value) + '/s';
+  }
+
   interface Props { tr: Translate; locale: string; }
   let { tr, locale: _locale }: Props = $props();
 
   let proxies = $state<GatewayProxy[]>([]);
+  let trafficStats = $state<ProxyTrafficStats[]>([]);
+  let statsError = $state('');
+  let statsTruncated = $state(false);
   let options = $state<ProxyProviderOption[]>([]);
   let optionsError = $state('');
   let optionsQuery = $state('');
@@ -45,8 +61,20 @@
     });
   });
 
+  async function loadTrafficStats(): Promise<void> {
+    try {
+      const result = await proxyApi.trafficStats();
+      trafficStats = result.proxies;
+      statsTruncated = result.truncated;
+      statsError = '';
+    } catch (cause) {
+      statsError = localizedError(cause, 'Could not load proxy traffic stats.', tr);
+    }
+  }
+
   async function load(): Promise<void> {
     loading = true;
+    void loadTrafficStats();
     error = '';
     try {
       proxies = await proxyApi.proxies();
@@ -171,6 +199,31 @@
     <button class="action-button primary" type="button" onclick={openCreate}><span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span><span class="button-label">{tr('Add proxy')}</span></button>
   </div>
 </div>
+
+{#if !loading}
+  <section class="proxy-traffic-panel course-card surface" aria-labelledby="proxy-traffic-heading">
+    <div class="proxy-traffic-heading">
+      <div><h2 id="proxy-traffic-heading">{tr('Network usage')}</h2><p>{tr('Application payload sent through configured proxy groups since this process started.')}</p></div>
+      <button class="page-action" type="button" onclick={() => void loadTrafficStats()}>{tr('Refresh usage')}</button>
+    </div>
+    {#if statsError}<p class="form-error" role="alert">{statsError}</p>{/if}
+    {#if statsTruncated}<p class="form-help" role="status">{tr('Proxy usage history was shortened because the runtime stats cache reached its limit.')}</p>{/if}
+    <div class="proxy-traffic-grid">
+      {#each proxies as proxy (proxy.id)}
+        {@const stats = trafficStats.find((item) => item.proxy_id === proxy.id)}
+        <article class="proxy-traffic-card" aria-label={proxy.name}>
+          <strong>{proxy.name}</strong>
+          <div><span>{tr('Received')}</span><b>{formatBytes(stats?.received_bytes ?? 0)}</b></div>
+          <div><span>{tr('Sent')}</span><b>{formatBytes(stats?.sent_bytes ?? 0)}</b></div>
+          <div><span>{tr('Total used')}</span><b>{formatBytes(stats?.total_bytes ?? 0)}</b></div>
+          <div><span>{tr('Average speed')}</span><b>{formatRate(stats?.average_bytes_per_second ?? null)}</b></div>
+          <small>{tr('{count} requests', { count: stats?.requests ?? 0 })}</small>
+        </article>
+      {:else}<p class="card-subtitle">{tr('No proxies configured yet.')}</p>{/each}
+    </div>
+    <small class="proxy-traffic-note">{tr('Traffic counts include application payload bytes only, not TLS or network protocol overhead. Runtime totals reset when the gateway restarts. Average speed uses combined request durations; it is not live link speed.')}</small>
+  </section>
+{/if}
 
 {#if error}
   <section class="course-card surface"><div class="card-title-row"><h2>{tr('Could not load proxies')}</h2></div><p class="card-subtitle">{error}</p><button class="page-action" type="button" onclick={() => void load()}>{tr('Retry')}</button></section>

@@ -28,6 +28,7 @@ pub(super) struct RequestScope {
 pub(super) struct AttemptContext<'a> {
     pub(super) scope: &'a RequestScope,
     pub(super) provider: Provider,
+    pub(super) proxy_id: Option<String>,
     pub(super) upstream_protocol: UpstreamProtocol,
     pub(super) adapter: &'static dyn ProviderAdapter,
     pub(super) endpoint: reqwest::Url,
@@ -80,7 +81,10 @@ pub(super) async fn prepare_target<'a>(
                 None
             };
             let proxy_group = if let Some(proxy_id) = proxy_id {
-                Some(crate::admin::load_proxy_endpoint_configs(transaction, &proxy_id)?)
+                Some(crate::admin::load_proxy_endpoint_configs(
+                    transaction,
+                    &proxy_id,
+                )?)
             } else {
                 None
             };
@@ -191,19 +195,25 @@ pub(super) async fn prepare_target<'a>(
             upstream_protocol.as_str()
         )));
     }
-    if let Err(error) =
-        provider_adapters::prepare_request_body(&provider.adapter_id, &mut upstream_body, &scope.adapter_session_id)
-    {
+    if let Err(error) = provider_adapters::prepare_request_body(
+        &provider.adapter_id,
+        &mut upstream_body,
+        &scope.adapter_session_id,
+    ) {
         return Err(TargetPreparationError::Skip(format!(
             "provider '{}' adapter rejected the request: {error}",
             provider.id
         )));
     }
     if let Err(error) =
-        provider_adapters::prepare_provider_images(&provider.adapter_id, state, &mut upstream_body).await
+        provider_adapters::prepare_provider_images(&provider.adapter_id, state, &mut upstream_body)
+            .await
     {
         return Err(TargetPreparationError::SkipWithStatus(
-            format!("provider '{}' could not prepare adapter input: {error}", provider.id),
+            format!(
+                "provider '{}' could not prepare adapter input: {error}",
+                provider.id
+            ),
             StatusCode::BAD_GATEWAY,
         ));
     }
@@ -226,7 +236,8 @@ pub(super) async fn prepare_target<'a>(
         Ok(url) => url,
         Err(error) => return Err(TargetPreparationError::Skip(error)),
     };
-    let streaming = scope.canonical_stream || provider_adapters::wants_event_stream(&provider.adapter_id);
+    let streaming =
+        scope.canonical_stream || provider_adapters::wants_event_stream(&provider.adapter_id);
     let mut proxy_fallbacks = Vec::new();
     let (endpoint, provider_http) = if provider_adapters::uses_local_transport(&provider.adapter_id)
     {
@@ -341,8 +352,12 @@ pub(super) async fn prepare_target<'a>(
             ));
         }
     };
+    let proxy_id = (!provider_adapters::uses_local_transport(&provider.adapter_id))
+        .then(|| provider.proxy_id.clone())
+        .flatten();
     Ok(AttemptContext {
         scope,
+        proxy_id,
         provider,
         upstream_protocol,
         adapter,

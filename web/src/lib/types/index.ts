@@ -57,6 +57,8 @@ export type {
   ProxyEndpoint,
   GatewayProxy,
   ProxyProviderOption,
+  ProxyTrafficStats,
+  ProxyTrafficStatsResponse,
 } from './proxies';
 export type {
   RequestLog,

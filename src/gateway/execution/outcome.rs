@@ -15,6 +15,8 @@ pub(super) struct CompletedUpstream {
     pub(super) adapter: &'static dyn provider_adapters::ProviderAdapter,
     pub(super) adapter_id: String,
     pub(super) provider_id: String,
+    pub(super) proxy_id: Option<String>,
+    pub(super) sent_bytes: u64,
     pub(super) upstream_protocol: UpstreamProtocol,
     /// The model selected from the configured route/combo. This is kept
     /// separate from the model reported by the upstream response so request

@@ -11,28 +11,26 @@ use crate::infra::storage::{Field, Record, StorageError, Table};
 
 type ProxyApiResult<T> = Result<T, (StatusCode, Json<Value>)>;
 
-mod bulk;
 mod backup;
+mod bulk;
 mod gateway;
 mod references;
 mod storage;
 mod validation;
 
+pub(crate) use backup::{validate_backup_proxy_entries, validate_proxy_candidate_and_ancestors};
 use bulk::BulkProxyValidationStore;
+pub(crate) use gateway::{ProxyEndpointConfig, ProxyEndpointGroup, load_proxy_endpoint_configs};
 use references::{
     PendingProxy, ProxyReferences, ensure_reference_graph, referencing_proxy_names,
     validate_proxy_references,
 };
 pub(crate) use references::{ProxyNode, ProxyStore, validate_stored_proxy_graph};
-pub(crate) use backup::{
-    validate_backup_proxy_entries, validate_proxy_candidate_and_ancestors,
-};
-pub(crate) use gateway::{ProxyEndpointConfig, ProxyEndpointGroup, load_proxy_endpoint_configs};
-use storage::{proxy_endpoint_prefix, proxy_endpoint_records, proxy_record, save_proxy};
 pub(crate) use storage::{
     proxy_endpoint_key_components, proxy_endpoint_ref_index_key, proxy_name_index_key,
     proxy_provider_index_key, proxy_provider_index_prefix,
 };
+use storage::{proxy_endpoint_prefix, proxy_endpoint_records, proxy_record, save_proxy};
 pub(crate) use validation::normalize_proxy_url;
 use validation::{apply_path_id_for_update, validate_proxy};
 
@@ -102,7 +100,10 @@ impl ProxyEndpointInput {
         self.username
             .as_deref()
             .is_some_and(|value| !value.trim().is_empty())
-            || self.secret.as_deref().is_some_and(|value| !value.is_empty())
+            || self
+                .secret
+                .as_deref()
+                .is_some_and(|value| !value.is_empty())
     }
 }
 
@@ -154,18 +155,77 @@ pub(super) async fn list_proxies(State(state): State<AppState>) -> ApiResult {
     Ok(Json(json!({ "proxies": proxies })))
 }
 
+pub(super) async fn proxy_traffic_stats(State(state): State<AppState>) -> ApiResult {
+    let proxy_ids = state
+        .db
+        .read(|transaction| {
+            let entries = transaction.scan_prefix_after::<Record>(
+                Table::Proxies,
+                "",
+                None,
+                MAX_PROXY_OPTIONS_SCAN.saturating_add(1),
+            )?;
+            if entries.len() > MAX_PROXY_OPTIONS_SCAN {
+                return Err(StorageError::Busy);
+            }
+            Ok(entries.into_iter().map(|(id, _)| id).collect::<Vec<_>>())
+        })
+        .await
+        .map_err(internal)?;
+    let (stats, truncated) = state.proxy_traffic_snapshot(&proxy_ids).await;
+    let data = proxy_ids
+        .into_iter()
+        .map(|id| {
+            let totals = stats.get(&id).copied().unwrap_or_default();
+            let average_bytes_per_second = if totals.elapsed_millis == 0 {
+                None
+            } else {
+                Some(
+                    (u128::from(totals.received_bytes) + u128::from(totals.sent_bytes))
+                        .saturating_mul(1000)
+                        .checked_div(u128::from(totals.elapsed_millis))
+                        .unwrap_or_default()
+                        .min(u128::from(u64::MAX)) as u64,
+                )
+            };
+            json!({
+                "proxy_id": id,
+                "received_bytes": totals.received_bytes,
+                "sent_bytes": totals.sent_bytes,
+                "total_bytes": totals.received_bytes.saturating_add(totals.sent_bytes),
+                "requests": totals.requests,
+                "average_bytes_per_second": average_bytes_per_second,
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(Json(json!({"proxies": data, "scope": "since_startup", "truncated": truncated})))
+}
+
 pub(super) async fn list_proxy_options(
     State(state): State<AppState>,
     Query(query): Query<ProxyOptionsQuery>,
 ) -> ApiResult {
-    if query.cursor.as_deref().is_some_and(|cursor| cursor.len() > 128) {
-        return Err(fail(StatusCode::BAD_REQUEST, "proxy cursor must not exceed 128 bytes"));
+    if query
+        .cursor
+        .as_deref()
+        .is_some_and(|cursor| cursor.len() > 128)
+    {
+        return Err(fail(
+            StatusCode::BAD_REQUEST,
+            "proxy cursor must not exceed 128 bytes",
+        ));
     }
     if query.q.as_deref().is_some_and(|q| q.len() > 128) {
-        return Err(fail(StatusCode::BAD_REQUEST, "proxy search must not exceed 128 bytes"));
+        return Err(fail(
+            StatusCode::BAD_REQUEST,
+            "proxy search must not exceed 128 bytes",
+        ));
     }
     let cursor = query.cursor;
-    let search = query.q.map(|q| q.trim().to_ascii_lowercase()).unwrap_or_default();
+    let search = query
+        .q
+        .map(|q| q.trim().to_ascii_lowercase())
+        .unwrap_or_default();
     let include_id = query.include_id;
     let search_active = !search.is_empty();
     let (options, next_cursor) = state
@@ -209,7 +269,9 @@ pub(super) async fn list_proxy_options(
         })
         .await
         .map_err(internal)?;
-    Ok(Json(json!({ "proxies": options, "next_cursor": next_cursor })))
+    Ok(Json(
+        json!({ "proxies": options, "next_cursor": next_cursor }),
+    ))
 }
 
 pub(super) async fn create_proxy(
@@ -233,14 +295,28 @@ pub(super) async fn bulk_create_proxies(
             format!("at most {MAX_BULK_PROXIES} proxies may be created at once"),
         ));
     }
-    if input.proxies.iter().any(|proxy| proxy.endpoints.len() > MAX_PROXY_ENDPOINTS)
-        || input.proxies.iter().flat_map(|proxy| &proxy.endpoints).any(|endpoint| {
-            endpoint.secret.as_deref().is_some_and(|secret| secret.len() > crate::admin::proxies::validation::MAX_PROXY_SECRET_BYTES)
-                || endpoint.url.as_deref().is_some_and(|url| url.len() > crate::admin::proxies::validation::MAX_PROXY_ENDPOINT_URL_BYTES)
-                || endpoint.username.as_deref().is_some_and(|username| username.len() > crate::admin::proxies::validation::MAX_PROXY_USERNAME_BYTES)
-        })
+    if input
+        .proxies
+        .iter()
+        .any(|proxy| proxy.endpoints.len() > MAX_PROXY_ENDPOINTS)
+        || input
+            .proxies
+            .iter()
+            .flat_map(|proxy| &proxy.endpoints)
+            .any(|endpoint| {
+                endpoint.secret.as_deref().is_some_and(|secret| {
+                    secret.len() > crate::admin::proxies::validation::MAX_PROXY_SECRET_BYTES
+                }) || endpoint.url.as_deref().is_some_and(|url| {
+                    url.len() > crate::admin::proxies::validation::MAX_PROXY_ENDPOINT_URL_BYTES
+                }) || endpoint.username.as_deref().is_some_and(|username| {
+                    username.len() > crate::admin::proxies::validation::MAX_PROXY_USERNAME_BYTES
+                })
+            })
     {
-        return Err(fail(StatusCode::BAD_REQUEST, "proxy endpoint input exceeds request limits"));
+        return Err(fail(
+            StatusCode::BAD_REQUEST,
+            "proxy endpoint input exceeds request limits",
+        ));
     }
     let mut prepared = Vec::with_capacity(input.proxies.len());
     let mut ids = std::collections::HashSet::with_capacity(input.proxies.len());
@@ -253,7 +329,10 @@ pub(super) async fn bulk_create_proxies(
         }
         validate_proxy(&mut proxy).map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
         if !ids.insert(proxy.id.clone()) {
-            return Err(fail(StatusCode::BAD_REQUEST, "bulk proxy IDs must be unique"));
+            return Err(fail(
+                StatusCode::BAD_REQUEST,
+                "bulk proxy IDs must be unique",
+            ));
         }
         for endpoint in proxy.endpoints.iter_mut() {
             endpoint.secret_ciphertext = crate::security::encrypt_secret(
@@ -286,11 +365,17 @@ pub(super) async fn bulk_create_proxies(
                     &pending_for_validation,
                     &prior_for_validation,
                 );
-                references::validate_pending_proxy(&store, &id_for_validation, &pending_for_validation)
-                    .map_err(|error| match error {
-                        references::ProxyReferenceError::Storage(error) => error,
-                        references::ProxyReferenceError::Issue(issue) => StorageError::Invalid(references::proxy_issue_message(&issue)),
-                    })
+                references::validate_pending_proxy(
+                    &store,
+                    &id_for_validation,
+                    &pending_for_validation,
+                )
+                .map_err(|error| match error {
+                    references::ProxyReferenceError::Storage(error) => error,
+                    references::ProxyReferenceError::Issue(issue) => {
+                        StorageError::Invalid(references::proxy_issue_message(&issue))
+                    }
+                })
             })
             .await
             .map_err(|error| match error {
@@ -316,7 +401,11 @@ pub(super) async fn bulk_create_proxies(
                 transaction.put_if_absent(Table::Proxies, id, record)?;
                 transaction.put_if_absent(Table::ProxyNameIndex, name_index, id)?;
                 for endpoint in endpoints {
-                    transaction.put_if_absent(Table::ProxyEndpoints, &endpoint.endpoint_key, &endpoint.record)?;
+                    transaction.put_if_absent(
+                        Table::ProxyEndpoints,
+                        &endpoint.endpoint_key,
+                        &endpoint.record,
+                    )?;
                     if let Some(reference_index) = endpoint.reference_index.as_deref() {
                         transaction.put(Table::ProxyEndpointRefIndex, reference_index, id)?;
                     }
@@ -327,17 +416,17 @@ pub(super) async fn bulk_create_proxies(
         })
         .await
         .map_err(|error| match error {
-            StorageError::Conflict => fail(StatusCode::CONFLICT, "a proxy in the bulk request already exists"),
+            StorageError::Conflict => fail(
+                StatusCode::CONFLICT,
+                "a proxy in the bulk request already exists",
+            ),
             StorageError::Invalid(message) => fail(StatusCode::BAD_REQUEST, message),
             other => internal(other),
         })?;
     Ok(Json(json!({ "ok": true, "created": count, "ids": ids })))
 }
 
-async fn create_item(
-    state: AppState,
-    mut input: ProxyInput,
-) -> ProxyApiResult<String> {
+async fn create_item(state: AppState, mut input: ProxyInput) -> ProxyApiResult<String> {
     validate_proxy(&mut input).map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
     if input.id.trim().is_empty() {
         input.id = resource_id(&input.name);
@@ -360,11 +449,21 @@ async fn create_item(
     state
         .db
         .write(move |transaction| {
-            if transaction.get::<Record>(Table::Proxies, &write_id)?.is_some() {
+            if transaction
+                .get::<Record>(Table::Proxies, &write_id)?
+                .is_some()
+            {
                 return Err(StorageError::Conflict);
             }
             ensure_reference_graph(&*transaction, &write_id, &pending)?;
-            save_proxy(transaction, &write_id, &proxy, &name_index, &endpoints, false)
+            save_proxy(
+                transaction,
+                &write_id,
+                &proxy,
+                &name_index,
+                &endpoints,
+                false,
+            )
         })
         .await
         .map_err(|error| match error {
@@ -473,7 +572,10 @@ pub(super) async fn delete_proxy(
             StatusCode::CONFLICT,
             "This proxy is bound to a provider. Unbind it before deleting the proxy.",
         )),
-        DeleteOutcome::Deleted => Ok(Json(json!({"ok": true}))),
+        DeleteOutcome::Deleted => {
+            state.clear_proxy_runtime_state(&proxy_id).await;
+            Ok(Json(json!({"ok": true})))
+        }
     }
 }
 
@@ -507,7 +609,9 @@ async fn delete_blocked_error(state: &AppState, proxy_id: &str) -> (StatusCode, 
 }
 
 /// Rebuilds every proxy with its endpoint list in name order.
-fn read_all_proxies(transaction: &crate::infra::storage::ReadTxn<'_, '_>) -> Result<Vec<ProxyView>, StorageError> {
+fn read_all_proxies(
+    transaction: &crate::infra::storage::ReadTxn<'_, '_>,
+) -> Result<Vec<ProxyView>, StorageError> {
     let entries = transaction.scan_prefix_after::<Record>(
         Table::Proxies,
         "",
@@ -580,7 +684,10 @@ pub(crate) fn ensure_proxy_bindable(
     transaction: &crate::infra::storage::ReadTxn<'_, '_>,
     proxy_id: &str,
 ) -> Result<(), StorageError> {
-    if transaction.get::<Record>(Table::Proxies, proxy_id)?.is_none() {
+    if transaction
+        .get::<Record>(Table::Proxies, proxy_id)?
+        .is_none()
+    {
         return Err(StorageError::Invalid(
             "the selected proxy does not exist".to_owned(),
         ));

@@ -1,4 +1,5 @@
 use super::*;
+use futures_util::StreamExt;
 use outcome::CompletedUpstream;
 use provider::ProviderUpstreamResult;
 use target_preparation::RequestScope;
@@ -27,9 +28,18 @@ pub(super) async fn stream_response(
         adapter,
         adapter_id: _,
         provider_id,
+        proxy_id,
+        sent_bytes,
         upstream_protocol,
         target_model,
     } = completed;
+    let proxy_traffic_sample = proxy_id.as_ref().map(|_| {
+        Arc::new(crate::state::ProxyTrafficSample {
+            received_bytes: std::sync::atomic::AtomicU64::new(0),
+            sent_bytes,
+            started,
+        })
+    });
     let upstream_chunks = match result {
         ProviderUpstreamResult::Response(upstream) => {
             if !provider_adapters::accepts_event_stream_response(
@@ -84,6 +94,20 @@ pub(super) async fn stream_response(
         }
     };
 
+    let upstream_chunks = if let Some(sample) = proxy_traffic_sample.as_ref() {
+        let sample = sample.clone();
+        Box::pin(async_stream::stream! {
+            let mut chunks = upstream_chunks;
+            while let Some(chunk) = chunks.next().await {
+                if let Ok(bytes) = &chunk {
+                    sample.received_bytes.fetch_add(bytes.len() as u64, std::sync::atomic::Ordering::Relaxed);
+                }
+                yield chunk;
+            }
+        }) as super::UpstreamChunkStream
+    } else {
+        upstream_chunks
+    };
     let outcome = StreamOutcome::default();
     // The stream log keeps its own handle on the request's usage counters so a
     // stream abandoned before finalization can still record the tokens the
@@ -113,6 +137,8 @@ pub(super) async fn stream_response(
                 request_id: scope.request_id.clone(),
                 route_alias: route_alias.to_owned(),
                 provider_id,
+                proxy_id,
+                proxy_traffic_sample: proxy_traffic_sample.clone(),
                 model: target_model,
                 api_key_id: log.api_key_id.map(str::to_owned),
                 provider_credential_id: failures.selected_credential_id.clone(),
@@ -144,7 +170,7 @@ pub(super) async fn decode_response(
     route_alias: &str,
     live: &RequestLiveGuard,
     log: &RequestLogPayload<'_>,
-    _started: Instant,
+    started: Instant,
     analytics: Option<&RequestAnalytics>,
     failures: &mut TargetLoopFailures,
 ) -> Option<Response> {
@@ -155,10 +181,12 @@ pub(super) async fn decode_response(
         adapter,
         adapter_id,
         provider_id,
+        proxy_id,
+        sent_bytes,
         upstream_protocol,
         target_model,
     } = completed;
-    let upstream_value = match read_upstream_value(
+    let (upstream_value, response_bytes) = match read_upstream_value(
         result,
         adapter,
         &adapter_id,
@@ -223,6 +251,17 @@ pub(super) async fn decode_response(
         );
     }
     circuit_probe.succeeded();
+    if let Some(proxy_id) = proxy_id.as_deref() {
+        scope
+            .state
+            .record_proxy_traffic(
+                proxy_id,
+                response_bytes,
+                sent_bytes,
+                started.elapsed().as_millis() as u64,
+            )
+            .await;
+    }
     log_request(
         &scope.state,
         Some(live),
@@ -268,9 +307,13 @@ async fn read_upstream_value(
     adapter: &'static dyn provider_adapters::ProviderAdapter,
     adapter_id: &str,
     response_limit: usize,
-) -> Result<Value, String> {
+) -> Result<(Value, u64), String> {
     match result {
-        ProviderUpstreamResult::AdapterResponse { value, .. } => Ok(value),
+        ProviderUpstreamResult::AdapterResponse { value, .. } => {
+            let bytes = serde_json::to_vec(&value)
+                .map_err(|_| "provider response could not be measured".to_owned())?;
+            Ok((value, bytes.len() as u64))
+        }
         ProviderUpstreamResult::Response(upstream) if adapter.wants_event_stream() => {
             if !provider_adapters::accepts_event_stream_response(
                 &upstream,
@@ -278,17 +321,25 @@ async fn read_upstream_value(
             ) {
                 return Err("provider adapter returned a non-SSE response".to_owned());
             }
-            provider_adapters::read_adapter_event_stream(adapter_id, upstream, response_limit)
-                .await
-                .map_err(|error| error.message)
+            let length = upstream.content_length();
+            let value =
+                provider_adapters::read_adapter_event_stream(adapter_id, upstream, response_limit)
+                    .await
+                    .map_err(|error| error.message)?;
+            let bytes = length.unwrap_or_else(|| {
+                serde_json::to_vec(&value).map_or(0, |encoded| encoded.len() as u64)
+            });
+            Ok((value, bytes))
         }
         ProviderUpstreamResult::Response(upstream) => {
             let bytes = provider_adapters::read_limited_response(upstream, response_limit)
                 .await
                 .map_err(|error| format!("provider response failed: {error}"))?;
-            serde_json::from_slice::<Value>(&bytes)
+            let byte_count = bytes.len() as u64;
+            let value = serde_json::from_slice::<Value>(&bytes)
                 .map_err(|_| "provider returned invalid JSON".to_owned())
-                .and_then(|value| provider_adapters::normalize_response(adapter_id, value))
+                .and_then(|value| provider_adapters::normalize_response(adapter_id, value))?;
+            Ok((value, byte_count))
         }
         ProviderUpstreamResult::Stream { .. } => {
             Err("preflighted stream result cannot reach non-stream decoding".to_owned())

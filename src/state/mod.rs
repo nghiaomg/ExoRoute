@@ -96,6 +96,7 @@ pub(crate) struct GatewayGates {
     pub(crate) provider_in_flight: Arc<Mutex<HashMap<String, Arc<DynamicSemaphore>>>>,
     pub(crate) round_robin: Arc<Mutex<HashMap<String, usize>>>,
     pub(crate) proxy_endpoint_cursors: Arc<Mutex<HashMap<String, usize>>>,
+    pub(crate) proxy_traffic: Arc<Mutex<ProxyTrafficRegistry>>,
     /// Fallback position that starts the next round-robin request of a provider.
     /// Entries are dropped with the provider or by an atomic restore.
     pub(crate) provider_key_cursors: Arc<Mutex<HashMap<String, String>>>,
@@ -119,6 +120,34 @@ pub(crate) struct ProviderRuntime {
 }
 
 const MAX_ADMIN_ACCESS_TOKENS: usize = 1024;
+pub(crate) const MAX_TRACKED_PROXY_TRAFFIC: usize = 256;
+
+#[derive(Clone, Copy, Default)]
+pub(crate) struct ProxyTrafficTotals {
+    pub received_bytes: u64,
+    pub sent_bytes: u64,
+    pub requests: u64,
+    pub elapsed_millis: u64,
+    pub last_used: u64,
+}
+
+pub(crate) struct ProxyTrafficRegistry {
+    pub entries: HashMap<String, ProxyTrafficTotals>,
+    pub clock: u64,
+    pub truncated: bool,
+}
+
+impl Default for ProxyTrafficRegistry {
+    fn default() -> Self {
+        Self { entries: HashMap::new(), clock: 0, truncated: false }
+    }
+}
+
+pub(crate) struct ProxyTrafficSample {
+    pub received_bytes: AtomicU64,
+    pub sent_bytes: u64,
+    pub started: Instant,
+}
 const MAX_TRACKED_PROVIDER_SEMAPHORES: usize = 256;
 const MAX_PENDING_PROVIDER_AUTH_FLOWS: usize = 16;
 const MAX_PENDING_API_KEY_AUTH_FLOWS: usize = 16;
@@ -322,6 +351,7 @@ impl AppState {
                 provider_in_flight: Arc::new(Mutex::new(HashMap::new())),
                 round_robin: Arc::new(Mutex::new(HashMap::new())),
                 proxy_endpoint_cursors: Arc::new(Mutex::new(HashMap::new())),
+                proxy_traffic: Arc::new(Mutex::new(ProxyTrafficRegistry::default())),
                 provider_key_cursors: Arc::new(Mutex::new(HashMap::new())),
                 circuit_breakers: Arc::new(std::sync::Mutex::new(HashMap::new())),
                 circuit_breaker_settings: Arc::new(StdRwLock::new(CircuitBreakerRuntimeSettings {

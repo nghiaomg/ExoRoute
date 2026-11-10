@@ -168,7 +168,14 @@ fn proxy_routes() -> Router<AppState> {
             "/api/v1/admin/proxies/options",
             get(proxies::list_proxy_options),
         )
-        .route("/api/v1/admin/proxies/bulk", post(proxies::bulk_create_proxies))
+        .route(
+            "/api/v1/admin/proxies/stats",
+            get(proxies::proxy_traffic_stats),
+        )
+        .route(
+            "/api/v1/admin/proxies/bulk",
+            post(proxies::bulk_create_proxies),
+        )
         .route(
             "/api/v1/admin/proxies/{id}",
             put(proxies::update_proxy).delete(proxies::delete_proxy),
