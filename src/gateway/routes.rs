@@ -119,6 +119,17 @@ pub async fn require_api_key(
             } else {
                 None
             };
+            if let Some(permit) = body_processing_permit {
+                let (parts, body) = request.into_parts();
+                let mut chunks = body.into_data_stream();
+                let body_stream = async_stream::stream! {
+                    let _permit = permit;
+                    while let Some(chunk) = chunks.next().await {
+                        yield chunk;
+                    }
+                };
+                request = Request::from_parts(parts, Body::from_stream(body_stream));
+            }
             let analytics = (request.method() == axum::http::Method::POST
                 && matches!(
                     request.uri().path(),
@@ -143,7 +154,6 @@ pub async fn require_api_key(
             };
             let response =
                 attach_rate_limit_headers(response, rate_limit_limit, rate_limit_remaining);
-            drop(body_processing_permit);
             let (mut parts, body) = response.into_parts();
             let live = parts.extensions.remove::<RequestLiveGuard>();
             let body_stream = async_stream::stream! {
