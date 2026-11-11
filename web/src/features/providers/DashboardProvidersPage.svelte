@@ -439,10 +439,10 @@
       class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
       aria-label={tr('Provider overview')}
     >
-      <StatsCard icon="#i-link" value={providers.length} title={tr('Total Providers')} trend={tr('{enabled} enabled, {disabled} disabled', { enabled: enabledCount, disabled: providers.length - enabledCount })} actionLabel={tr('View all')} onAction={ () => (statusFilter = 'all') } />
-      <StatsCard icon="#i-zap" value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} actionLabel={tr('Show enabled only')} onAction={ () => (statusFilter = 'enabled') } />
-      <StatsCard icon="#i-key" value={totalKeys} title={tr('Credentials')} trend={tr('Across {count} providers', { count: providers.filter((p) => (p.api_key_count ?? 0) > 0).length })} actionLabel={tr('Manage keys')} onAction={ () => { if (providers[0]) void openKeys(providers[0]); } } />
-      <StatsCard icon="#i-refresh" value={totalModels} title={tr('Synced Models')} trend={keylessCount ? tr('{count} enabled without keys', { count: keylessCount }) : tr('All enabled providers have keys')} actionLabel={tr('Sync now')} onAction={ syncModels } />
+      <StatsCard eyebrow={tr('Providers')} icon="#i-link" value={providers.length} title={tr('Total Providers')} trend={tr('{enabled} enabled, {disabled} disabled', { enabled: enabledCount, disabled: providers.length - enabledCount })} actionLabel={tr('View all')} onAction={ () => (statusFilter = 'all') } />
+      <StatsCard eyebrow={tr('Providers')} icon="#i-zap" value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} actionLabel={tr('Show enabled only')} onAction={ () => (statusFilter = 'enabled') } />
+      <StatsCard eyebrow={tr('Providers')} icon="#i-key" value={totalKeys} title={tr('Credentials')} trend={tr('Across {count} providers', { count: providers.filter((p) => (p.api_key_count ?? 0) > 0).length })} actionLabel={tr('Manage keys')} onAction={ () => { if (providers[0]) void openKeys(providers[0]); } } />
+      <StatsCard eyebrow={tr('Providers')} icon="#i-refresh" value={totalModels} title={tr('Synced Models')} trend={keylessCount ? tr('{count} enabled without keys', { count: keylessCount }) : tr('All enabled providers have keys')} actionLabel={tr('Sync now')} onAction={ syncModels } />
     </section>
 
     <section class="course-card surface" aria-labelledby="providers-heading">

@@ -253,10 +253,10 @@
   </section>
 {:else if loading || !overview || !stats}
   <section
-    class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
+    class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-3 max-[900px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[480px]:grid-cols-1 max-[680px]:gap-[8px]"
     aria-label={tr('Loading')}
   >
-    {#each [0, 1, 2, 3] as i (i)}
+    {#each [0, 1, 2, 3, 4, 5, 6, 7, 8] as i (i)}
       <StatsCard skeleton />
     {/each}
   </section>
@@ -278,31 +278,24 @@
     </div>
   {/if}
   <!-- dashboard-content: shared base grid rows are overridden per page; the
-       overview rows live here as utilities (auto auto 1.45fr 1fr desktop,
+       overview rows live here as utilities (auto 1.45fr 1fr desktop,
        stacked flex column under 680px). -->
   <div
-    class="grid min-w-0 min-h-0 grid-rows-[auto_auto_1.45fr_1fr] gap-[2.2%] max-[680px]:flex max-[680px]:flex-col max-[680px]:gap-[18px] max-[680px]:overflow-visible"
+    class="grid min-w-0 min-h-0 grid-rows-[auto_1.45fr_1fr] gap-[2.2%] max-[680px]:flex max-[680px]:flex-col max-[680px]:gap-[18px] max-[680px]:overflow-visible"
   >
     <section
-      class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
+      class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-3 max-[900px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[480px]:grid-cols-1 max-[680px]:gap-[8px]"
       aria-label={tr('Gateway overview')}
     >
-      <StatsCard icon="#i-clipboard" value={statisticsError ? '—' : fmtInt(stats.total_requests)} title={tr('Requests Today')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard icon="#i-link" value={overview.provider_count} title={tr('Providers')} trend={tr('Configured upstreams')} actionLabel={tr('View Providers')} onAction={ () => onNavigate('providers') } />
-      <StatsCard icon="#i-code" value={overview.combo_count} title={tr('Combos')} trend={tr('Routing rules in place')} actionLabel={tr('View Combos')} onAction={ () => onNavigate('combos') } />
-      <StatsCard icon="#i-trend-up" value={successRate === null ? '—' : `${successRate}%`} title={tr('Success Rate')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-    </section>
-
-    <!-- Metric strip: 5 cards desktop, 3 at ≤1440px, 2 at ≤680px. -->
-    <section
-      class="mt-[20px] grid min-h-0 grid-cols-[repeat(5,minmax(0,1fr))] gap-[2%] max-[1440px]:grid-cols-[repeat(3,minmax(0,1fr))] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
-      aria-label={tr('Token usage')}
-    >
-      <StatsCard icon="#i-import" value={statisticsError ? '—' : formatCompactTokenTotal(stats.input_tokens, locale)} title={tr('Input tokens')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard icon="#i-export" value={statisticsError ? '—' : formatCompactTokenTotal(stats.output_tokens, locale)} title={tr('Output tokens')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard icon="#i-database" value={statisticsError ? '—' : formatCompactTokenTotal(stats.cached_tokens, locale)} title={tr('Cached tokens')} trend={`${tr('Cache ratio')} ${statisticsError ? '—' : `${Math.round(stats.cache_ratio * 10) / 10}%`}`} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard icon="#i-clock" value={statisticsError || !stats.average_latency_ms ? '—' : `${Math.round(stats.average_latency_ms)} ms`} title={tr('Avg Latency')} trend={tr('p50 {value}', { value: statisticsError || !stats.latency.p50_ms ? '—' : `${Math.round(stats.latency.p50_ms)} ms` })} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard icon="#i-link" value={proxySummary ? formatCount(proxySummary.total, locale) : '—'} title={tr('Proxies')} trend={proxySummary ? tr('{enabled} enabled · {endpoints} endpoints', { enabled: proxySummary.enabled, endpoints: proxySummary.endpoints }) : '—'} actionLabel={tr('View Proxies')} onAction={ () => onNavigate('proxies') } />
+      <StatsCard eyebrow={tr('Traffic summary')} icon="#i-clipboard" value={statisticsError ? '—' : fmtInt(stats.total_requests)} title={tr('Requests Today')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('Providers')} icon="#i-link" value={overview.provider_count} title={tr('Providers')} trend={tr('Configured upstreams')} actionLabel={tr('View Providers')} onAction={ () => onNavigate('providers') } />
+      <StatsCard eyebrow={tr('Routing strategy')} icon="#i-code" value={overview.combo_count} title={tr('Combos')} trend={tr('Routing rules in place')} actionLabel={tr('View Combos')} onAction={ () => onNavigate('combos') } />
+      <StatsCard eyebrow={tr('Success Rate')} icon="#i-trend-up" value={successRate === null ? '—' : `${successRate}%`} title={tr('Success Rate')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('Tokens')} icon="#i-import" value={statisticsError ? '—' : formatCompactTokenTotal(stats.input_tokens, locale)} title={tr('Input tokens')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('Tokens')} icon="#i-export" value={statisticsError ? '—' : formatCompactTokenTotal(stats.output_tokens, locale)} title={tr('Output tokens')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('Cache ratio')} icon="#i-database" value={statisticsError ? '—' : formatCompactTokenTotal(stats.cached_tokens, locale)} title={tr('Cached tokens')} trend={`${tr('Cache ratio')} ${statisticsError ? '—' : `${Math.round(stats.cache_ratio * 10) / 10}%`}`} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('Avg Latency')} icon="#i-clock" value={statisticsError || !stats.average_latency_ms ? '—' : `${Math.round(stats.average_latency_ms)} ms`} title={tr('Avg Latency')} trend={tr('p50 {value}', { value: statisticsError || !stats.latency.p50_ms ? '—' : `${Math.round(stats.latency.p50_ms)} ms` })} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('Egress proxy')} icon="#i-link" value={proxySummary ? formatCount(proxySummary.total, locale) : '—'} title={tr('Proxies')} trend={proxySummary ? tr('{enabled} enabled · {endpoints} endpoints', { enabled: proxySummary.enabled, endpoints: proxySummary.endpoints }) : '—'} actionLabel={tr('View Proxies')} onAction={ () => onNavigate('proxies') } />
     </section>
 
     <div class="grid min-w-0 min-h-0 grid-cols-[1fr_1.02fr] gap-[2%] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[680px]:grid-cols-[minmax(0,1fr)] max-[680px]:gap-[10px]">

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Input from '../../components/Input.svelte';
   import { afterUpdate } from 'svelte';
   import { Check, ChevronsUpDown } from '@lucide/svelte';
   import { Portal } from '@ark-ui/svelte/portal';
@@ -76,7 +77,7 @@
 >
   <Combobox.Label class="combo-field-label">{tr('Provider')}</Combobox.Label>
   <Combobox.Control class="combo-combobox-control">
-    <Combobox.Input class="ark-field-input combo-combobox-input" placeholder={tr('Search providers by name or ID')} autocomplete="off" onfocus={(event) => event.currentTarget.select()} />
+    <Input variant="combobox" class="ark-field-input combo-combobox-input" placeholder={tr('Search providers by name or ID')} autocomplete="off" onfocus={(event) => event.currentTarget.select()} />
     <Combobox.Trigger class="combo-combobox-trigger" aria-label={tr('Search providers by name or ID')}>
       <ChevronsUpDown size={14} />
     </Combobox.Trigger>

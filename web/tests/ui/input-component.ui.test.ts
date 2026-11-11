@@ -1,8 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
 import Input from '../../src/components/Input.svelte';
+import ArkField from '../../src/components/ArkField.svelte';
 
 describe('shared Input', () => {
+  test('preserves the standard aria-label attribute', () => {
+    render(Input, { props: { 'aria-label': 'Gateway name', required: true } });
+    expect(screen.getByRole('textbox', { name: 'Gateway name' }).hasAttribute('required')).toBe(true);
+  });
   test('binds text and number values using native input semantics', async () => {
     const textChange = vi.fn();
     const numberChange = vi.fn();
@@ -36,5 +41,13 @@ describe('shared Input', () => {
     expect(fileInput.type).toBe('file');
     await fireEvent.change(fileInput);
     expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  test('preserves field context, label and input callback', async () => {
+    const onValueChange = vi.fn();
+    render(ArkField, { props: { label: 'Model ID', value: '', onValueChange } });
+    const field = screen.getByRole('textbox', { name: 'Model ID' });
+    await fireEvent.input(field, { target: { value: 'provider/model' } });
+    expect(onValueChange).toHaveBeenCalledWith('provider/model');
   });
 });

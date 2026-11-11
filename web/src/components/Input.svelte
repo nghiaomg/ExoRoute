@@ -51,17 +51,17 @@
 </script>
 
 {#if variant === 'combobox'}
-  <Combobox.Input class={'input-control ' + className} {...attributes} aria-label={ariaLabel} />
+  <Combobox.Input class={'input-control ' + className} {...attributes} aria-label={ariaLabel ?? attributes['aria-label']} {oninput} {onchange} />
 {:else if variant === 'password'}
-  <PasswordInput.Input bind:value class={'input-control ' + className} {...attributes} aria-label={ariaLabel} />
+  <PasswordInput.Input bind:value class={'input-control ' + className} {...attributes} aria-label={ariaLabel ?? attributes['aria-label']} {oninput} {onchange} />
 {:else if variant === 'field'}
-  <Field.Input bind:value {type} class={'input-control ' + className} {...attributes} aria-label={ariaLabel} oninput={handleInput} />
+  <Field.Input bind:value {type} class={'input-control ' + className} {...attributes} aria-label={ariaLabel ?? attributes['aria-label']} oninput={handleInput} {onchange} />
 {:else if type === 'checkbox'}
-  <input bind:this={element} type="checkbox" bind:checked value={value ?? undefined} class={'input-control ' + className} {...attributes} aria-label={ariaLabel} oninput={oninput} onchange={handleChange} />
+  <input bind:this={element} type="checkbox" bind:checked value={value ?? undefined} class={'input-control ' + className} {...attributes} aria-label={ariaLabel ?? attributes['aria-label']} oninput={oninput} onchange={handleChange} />
 {:else if type === 'radio'}
-  <input bind:this={element} type="radio" bind:group value={value ?? undefined} class={'input-control ' + className} {...attributes} aria-label={ariaLabel} oninput={oninput} onchange={forwardChange} />
+  <input bind:this={element} type="radio" bind:group value={value ?? undefined} class={'input-control ' + className} {...attributes} aria-label={ariaLabel ?? attributes['aria-label']} oninput={oninput} onchange={forwardChange} />
 {:else if type === 'file'}
-  <input bind:this={element} type="file" class={'input-control ' + className} {...attributes} aria-label={ariaLabel} oninput={oninput} onchange={forwardChange} />
+  <input bind:this={element} type="file" class={'input-control ' + className} {...attributes} aria-label={ariaLabel ?? attributes['aria-label']} oninput={oninput} onchange={forwardChange} />
 {:else}
-  <input bind:this={element} {type} value={String(value ?? '')} class={'input-control ' + className} {...attributes} aria-label={ariaLabel} oninput={handleInput} onchange={forwardChange} />
+  <input bind:this={element} {type} value={String(value ?? '')} class={'input-control ' + className} {...attributes} aria-label={ariaLabel ?? attributes['aria-label']} oninput={handleInput} onchange={forwardChange} />
 {/if}

@@ -30,9 +30,9 @@ describe('proxy overview cards', () => {
     render(DashboardProxiesPage, { props: { tr, locale: 'en' } });
 
     expect(await screen.findByText('Total proxies')).toBeTruthy();
-    expect(screen.getByText('2', { selector: '.stat-number' })).toBeTruthy();
+    expect(screen.getByText('2', { selector: '[data-stat-value]' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Enabled' })).toBeTruthy();
-    expect(screen.getAllByText('1', { selector: '.stat-number' })).toHaveLength(2);
+    expect(screen.getAllByText('1', { selector: '[data-stat-value]' })).toHaveLength(2);
     expect(screen.getByText('Across 2 proxy groups')).toBeTruthy();
     expect(screen.queryByText('Network usage')).toBeNull();
     expect(trafficStats).not.toHaveBeenCalled();

@@ -4,12 +4,13 @@
    * trend, and an optional `details-link` action. Tailwind utilities reference
    * the theme bridge in styles/tailwind.css; `!` marks utilities that must
    * out-rank unlayered legacy rules (.dashboard-app button color reset, .icon
-   * sizing). The hover layer (gradient wash, icon spin, number pulse) replaces
-   * the old `.stat-card` hover rules in the generated shell stylesheet.
+   * sizing). The KPI uses the approved number-accent hover treatment.
    */
   interface Props {
     /** Sprite id for the icon, with or without the leading `#`. */
     icon?: string;
+    /** Localized category shown above the value. */
+    eyebrow?: string;
     /** Headline value, already formatted by the caller. */
     value?: string | number;
     /** Card heading; only needed when rendering a real card. */
@@ -26,6 +27,7 @@
 
   let {
     icon = '',
+    eyebrow = '',
     value = '',
     title = '',
     trend,
@@ -39,33 +41,31 @@
 
   const focusRing = 'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring';
   const cardBase =
-    'group/stat relative flex min-w-0 flex-col justify-center overflow-hidden rounded-[17px] bg-surface p-6 ' +
-    "after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:bg-[linear-gradient(120deg,transparent_30%,var(--db-accent-ring)_100%)] after:opacity-0 after:transition-opacity after:duration-200 after:content-[''] group-hover/stat:after:opacity-100 " +
+    'stats-card group/stat relative flex min-h-[152px] min-w-0 flex-col rounded-[17px] border border-line bg-surface p-[18px] ' +
     'max-nav:min-h-[116px] max-nav:rounded-[13px] max-nav:p-4';
   const topClass =
-    'flex min-w-0 items-center gap-2.5 @max-[920px]:gap-[7px] max-nav:gap-2';
+    'mb-5 flex min-w-0 items-center justify-between gap-2';
   const iconClass =
-    'grid size-[clamp(29px,3vw,41px)] shrink-0 place-items-center rounded-full bg-db-tint-strong text-muted transition-[background-color,color,transform] duration-200 ' +
-    'group-hover/stat:bg-accent group-hover/stat:text-accent-contrast group-hover/stat:scale-[1.08] group-hover/stat:-rotate-6 ' +
-    '@max-[920px]:size-7 max-nav:size-[34px]';
+    'grid size-5 shrink-0 place-items-center text-muted';
   const numberClass =
-    'overflow-hidden text-ellipsis text-ink text-kpi! font-bold tabular-nums tracking-[-0.035em] leading-none origin-right ' +
-    'transition-[color,transform] duration-200 group-hover/stat:text-accent! group-hover/stat:scale-[1.09]';
+    'stat-value overflow-hidden text-ellipsis text-ink font-bold tabular-nums tracking-[-0.035em] leading-none origin-right ' +
+    'transition-colors duration-200 motion-reduce:transition-none';
   const titleClass =
-    'm-0 mt-2 mb-1 overflow-hidden text-ellipsis text-ink text-label font-semibold tracking-[-0.01em] whitespace-nowrap @max-[920px]:mt-2 @max-[920px]:text-label max-nav:whitespace-normal max-nav:overflow-visible';
+    'stat-title m-0 mt-2 mb-1 overflow-hidden text-ellipsis text-ink font-semibold tracking-[-0.01em] whitespace-nowrap @max-[920px]:mt-2 max-nav:whitespace-normal max-nav:overflow-visible';
   const trendClass =
-    'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-muted text-meta leading-[1.45]';
-  const actionClass = `inline-flex w-fit items-center gap-1 mt-1.5 border-0 bg-transparent p-0 text-ink text-meta font-medium text-left cursor-pointer ${focusRing}`;
+    'stat-meta block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-muted leading-[1.45]';
+  const actionClass = `stat-action stat-meta inline-flex w-fit items-center gap-1 mt-1.5 border-0 bg-transparent p-0 text-ink font-medium text-left cursor-pointer ${focusRing}`;
 </script>
 
 {#if skeleton}
-  <div class={cardBase} style="min-height:{skeletonHeight}px"></div>
+  <div class={cardBase} style="min-height:{skeletonHeight}px" aria-hidden="true"></div>
 {:else}
-  <div class={cardBase}>
+  <article class={cardBase}>
     <div class={topClass}>
-      <span class={iconClass}><svg class="icon size-[47%]!"><use href={iconHref} /></svg></span>
-      <span class={numberClass}>{value}</span>
+      <span class="stat-eyebrow">{eyebrow}</span>
+      <span class={iconClass} aria-hidden="true"><svg class="icon size-full!"><use href={iconHref} /></svg></span>
     </div>
+    <span class={numberClass} data-stat-value>{value}</span>
     <h2 class={titleClass}>{title}</h2>
     {#if trend !== undefined}
       <div class={trendClass}>{trend}</div>
@@ -76,5 +76,23 @@
         <svg class="icon size-[11px]!"><use href="#i-arrow-right" /></svg>
       </button>
     {/if}
-  </div>
+  </article>
 {/if}
+
+<style>
+  .stat-value { font-size: var(--type-kpi, 2rem); }
+  .stat-eyebrow { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-family: var(--font-mono, monospace); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+  .stat-title { font-size: var(--type-label, .875rem); }
+  .stat-meta { font-size: var(--type-meta, .75rem); }
+  .stat-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .stats-card:hover .stat-value { color: var(--accent); }
+  .stats-card { transition: border-color .22s ease, background-color .22s ease; }
+  .stats-card:hover {
+    border-color: transparent;
+    background: linear-gradient(var(--surface), var(--surface)) padding-box,
+      linear-gradient(120deg, var(--accent), #fb923c, #fbbf24, #84cc16, var(--accent)) border-box;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stats-card { transition: none; }
+  }
+</style>

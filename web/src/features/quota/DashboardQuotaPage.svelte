@@ -251,10 +251,10 @@
 {:else}
   <div class="page-surface">
     <section class="stats-grid" aria-label={tr('Quota overview')}>
-      <StatsCard icon="#i-users" value={views.length} title={tr('Providers Monitored')} trend={tr('{reporting} reporting, {missing} missing keys', { reporting: reporting.length, missing: missingKeys.length })} actionLabel={tr('View providers')} onAction={ () => onNavigate('providers') } />
-      <StatsCard icon="#i-chart" value={avgUtil === null ? '—' : `${avgUtil}%`} title={tr('Avg Utilization')} trend={tr('Across reporting providers')} actionLabel={tr('See breakdown')} onAction={ () => document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' }) } />
-      <StatsCard icon="#i-alert" value={nearLimit.length} title={tr('Near Limit')} trend={nearLimitTrend} actionLabel={nearLimit[0] ? tr('Inspect {name}', { name: nearLimit[0].provider.name }) : tr('See breakdown')} onAction={ () => nearLimit[0] ? openDetail(nearLimit[0]) : document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' }) } />
-      <StatsCard icon="#i-cpu" value={localProviders.length} title={tr('Local Providers')} trend={localProviders.map((v) => v.provider.name).join(', ') || tr('None configured')} actionLabel={tr('Open chat')} onAction={ () => onNavigate('chat') } />
+      <StatsCard eyebrow={tr('Quota')} icon="#i-users" value={views.length} title={tr('Providers Monitored')} trend={tr('{reporting} reporting, {missing} missing keys', { reporting: reporting.length, missing: missingKeys.length })} actionLabel={tr('View providers')} onAction={ () => onNavigate('providers') } />
+      <StatsCard eyebrow={tr('Quota')} icon="#i-chart" value={avgUtil === null ? '—' : `${avgUtil}%`} title={tr('Avg Utilization')} trend={tr('Across reporting providers')} actionLabel={tr('See breakdown')} onAction={ () => document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' }) } />
+      <StatsCard eyebrow={tr('Quota')} icon="#i-alert" value={nearLimit.length} title={tr('Near Limit')} trend={nearLimitTrend} actionLabel={nearLimit[0] ? tr('Inspect {name}', { name: nearLimit[0].provider.name }) : tr('See breakdown')} onAction={ () => nearLimit[0] ? openDetail(nearLimit[0]) : document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' }) } />
+      <StatsCard eyebrow={tr('Quota')} icon="#i-cpu" value={localProviders.length} title={tr('Local Providers')} trend={localProviders.map((v) => v.provider.name).join(', ') || tr('None configured')} actionLabel={tr('Open chat')} onAction={ () => onNavigate('chat') } />
     </section>
 
     <section class="course-card surface flex flex-col" id="quota-board" aria-labelledby="quota-heading">

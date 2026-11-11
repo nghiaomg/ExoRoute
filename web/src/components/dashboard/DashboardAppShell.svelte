@@ -6,6 +6,7 @@
   import { DASHBOARD_VERSION } from '../../lib/version';
   import { type Locale } from '../../lib/i18n';
   import LanguageSelect from '../LanguageSelect.svelte';
+  import Input from '../Input.svelte';
   import type { Translate } from '../../lib/format';
   import '../../styles/dashboard/base.css';
 
@@ -263,7 +264,7 @@
           <header class="flex h-full min-w-0 items-center justify-between gap-[18px] rounded-[16px] bg-surface px-[2.3%] max-nav:gap-2 max-nav:rounded-[13px] max-nav:px-[9px]">
             <label class="group/search flex h-[58%] w-[min(43%,370px)] min-w-[120px] items-center gap-2.5 rounded-full bg-db-tint-strong px-[13px] text-text-dim transition-colors duration-200 focus-within:bg-surface-sunken focus-within:ring-3 focus-within:ring-db-accent-ring max-nav:w-[43%] max-nav:min-w-0 max-nav:px-[9px]">
               <svg class="icon size-4! transition-colors duration-200 group-focus-within/search:text-accent" aria-hidden="true"><use href="#i-search" /></svg>
-              <input
+              <Input
                 type="search"
                 placeholder={tr('Search requests...')}
                 aria-label={tr('Search requests')}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Input from '../../components/Input.svelte';
   import { afterUpdate, onDestroy } from 'svelte';
   import { Check, ChevronsUpDown } from '@lucide/svelte';
   import { Portal } from '@ark-ui/svelte/portal';
@@ -142,7 +143,7 @@
     class="combo-target-model-picker"
   >
     <Combobox.Control class="combo-combobox-control">
-      <Combobox.Input
+      <Input variant="combobox"
         class="ark-field-input combo-combobox-input"
         placeholder={providerId ? tr('Search saved models') : (disabledPlaceholder || tr('Choose a provider first.'))}
         aria-label={tr('Target model')}

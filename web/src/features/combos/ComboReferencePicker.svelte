@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Input from '../../components/Input.svelte';
   import { afterUpdate } from 'svelte';
   import { Check, ChevronsUpDown } from '@lucide/svelte';
   import { Portal } from '@ark-ui/svelte/portal';
@@ -80,7 +81,7 @@
 >
   {#if !hideLabel}<Combobox.Label class="combo-field-label">{tr('Combo target')}</Combobox.Label>{/if}
   <Combobox.Control class="combo-combobox-control">
-    <Combobox.Input
+    <Input variant="combobox"
       class="ark-field-input combo-combobox-input"
       placeholder={tr('Search combos by name or ID')}
       aria-label={tr('Combo target')}

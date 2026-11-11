@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from "../../components/Button.svelte";
+  import Input from '../../components/Input.svelte';
   import { untrack } from 'svelte';
   import { api } from '../../lib/api';
   import type { Translate } from '../../lib/format';
@@ -57,12 +58,12 @@
   <section class="detail-card">
     <form class="modal-card" onsubmit={(event) => { event.preventDefault(); void save(); }}>
       <div class="modal-fields">
-        <label class="field prov-field-wide">{tr('Provider name')}<input bind:value={name} maxlength="60" required /></label>
-        <label class="field prov-field-wide">{tr('Base URL')}<input bind:value={baseUrl} type="url" required placeholder="https://api.example.com/v1" /></label>
+        <label class="field prov-field-wide">{tr('Provider name')}<Input bind:value={name} maxlength={60} required /></label>
+        <label class="field prov-field-wide">{tr('Base URL')}<Input bind:value={baseUrl} type="url" required placeholder="https://api.example.com/v1" /></label>
         {#if preset.capabilities.api_keys}
-          <label class="field prov-field-wide">{tr(preset.default_auth_type === 'vertex_service_account' ? 'Service account key' : 'API key')}<input bind:value={apiKey} type="password" autocomplete="off" required={requiresApiKey} /></label>
+          <label class="field prov-field-wide">{tr(preset.default_auth_type === 'vertex_service_account' ? 'Service account key' : 'API key')}<Input bind:value={apiKey} type="password" autocomplete="off" required={requiresApiKey} /></label>
         {/if}
-        <label class="field prov-field-wide">{tr('Model prefix (optional)')}<input bind:value={modelPrefix} maxlength="120" /></label>
+        <label class="field prov-field-wide">{tr('Model prefix (optional)')}<Input bind:value={modelPrefix} maxlength={120} /></label>
       </div>
       {#if error}<p class="form-error" role="alert">{error}</p>{/if}
       <div class="modal-actions"><Button class="page-action" type="button" onclick={onBack}>{tr('Cancel')}</Button><Button class="page-action primary" type="submit" disabled={busy || !name.trim() || !baseUrl.trim()}>{busy ? tr('Creating…') : tr('Save provider')}</Button></div>

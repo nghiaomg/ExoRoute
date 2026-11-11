@@ -58,7 +58,7 @@ describe('dashboard requests live statistics', () => {
     });
 
     await waitFor(() => expect(statisticsCalls).toBe(1));
-    await waitFor(() => expect(container.querySelector('.stat-card h2')?.textContent).toBeTruthy());
+    await waitFor(() => expect(statCardValue(container, 'Requests')).toBe('10'));
     expect(statCardValue(container, 'Avg Latency')).toBe('300 ms');
     expect(statCardValue(container, 'Requests')).toBe('10');
 
@@ -86,14 +86,14 @@ describe('dashboard requests live statistics', () => {
     await waitFor(() => expect(statisticsCalls).toBe(2), { timeout: 6000 });
     await waitFor(() => {
       const request = screen.getAllByText('upstream/model')[0].closest('tr');
-      expect(request?.querySelector('.req-combo-chip')?.textContent).toBe('combo/served-model');
-      expect(request?.querySelector('.req-effort-chip')?.textContent).toBe('high');
+      expect(request?.textContent).toContain('combo/served-model');
+      expect(request?.textContent).toContain('high');
       expect(statCardValue(container, 'Avg Latency')).toBe('725 ms');
     });
     expect(statCardValue(container, 'Requests')).toBe('12');
     expect(statCardValue(container, 'Success Rate')).toBe('83.3%');
     expect(statCardValue(container, 'Failed')).toBe('2');
-    expect(statCardValue(container, 'Input tokens')).toBe('3,100');
+    expect(statCardValue(container, 'Input tokens')).toBe('3.1K');
     expect(statCardValue(container, 'Output tokens')).toBe('650');
     expect(statCardValue(container, 'Cached tokens')).toBe('200');
     expect(statisticsCalls).toBe(2);
@@ -101,7 +101,7 @@ describe('dashboard requests live statistics', () => {
 });
 
 function statCardValue(container: HTMLElement, heading: string): string | undefined {
-  const title = Array.from(container.querySelectorAll('.stat-card h2'))
+  const title = Array.from(container.querySelectorAll('h2'))
     .find((node) => node.textContent?.trim() === heading);
-  return title?.closest('.stat-card')?.querySelector('.stat-number')?.textContent?.trim();
+  return title?.parentElement?.querySelector('[data-stat-value]')?.textContent?.trim();
 }

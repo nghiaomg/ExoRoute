@@ -327,10 +327,10 @@
 {:else}
   <div class="page-surface">
     <section class="stats-grid" aria-label={tr('Combo overview')}>
-      <StatsCard icon="#i-code" value={combos.length} title={tr('Combos')} trend={`${enabledCombos} ${tr('enabled')}, ${combos.length - enabledCombos} ${tr('disabled')}`} actionLabel={tr('View all')} onAction={ () => (strategyFilter = 'all') } />
-      <StatsCard icon="#i-layers" value={totalTargets} title={tr('Targets')} trend={tr('Across {count} providers', { count: providerOptions.length })} actionLabel={tr('View providers')} onAction={ () => onNavigate('providers') } />
-      <StatsCard icon="#i-clipboard" value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.requests, 0), locale) : '—'} title={tr('Requests Routed')} trend={routeWindowTrend} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard icon="#i-alert" value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.failures, 0), locale) : '—'} title={tr('Failures')} trend={routeWindowTrend} actionLabel={tr('Inspect failures')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('Combos')} icon="#i-code" value={combos.length} title={tr('Combos')} trend={`${enabledCombos} ${tr('enabled')}, ${combos.length - enabledCombos} ${tr('disabled')}`} actionLabel={tr('View all')} onAction={ () => (strategyFilter = 'all') } />
+      <StatsCard eyebrow={tr('Combos')} icon="#i-layers" value={totalTargets} title={tr('Targets')} trend={tr('Across {count} providers', { count: providerOptions.length })} actionLabel={tr('View providers')} onAction={ () => onNavigate('providers') } />
+      <StatsCard eyebrow={tr('Combos')} icon="#i-clipboard" value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.requests, 0), locale) : '—'} title={tr('Requests Routed')} trend={routeWindowTrend} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('Combos')} icon="#i-alert" value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.failures, 0), locale) : '—'} title={tr('Failures')} trend={routeWindowTrend} actionLabel={tr('Inspect failures')} onAction={ () => onNavigate('requests') } />
     </section>
 
     <section class="course-card surface flex flex-col" aria-labelledby="combos-heading">

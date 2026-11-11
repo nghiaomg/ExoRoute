@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Portal } from '@ark-ui/svelte/portal';
   import { Select, createListCollection } from '@ark-ui/svelte/select';
-  import { Check, ChevronsUpDown, X } from '@lucide/svelte';
+  import { Check, ChevronDown, X } from '@lucide/svelte';
 
   export interface SelectOption { label: string; value: string; disabled?: boolean; }
   interface Props {
@@ -13,12 +13,13 @@
     groupLabel?: string;
     disabled?: boolean;
     clearable?: boolean;
+    clearLabel?: string;
     noOptionsText?: string;
     class?: string;
     portalContainer?: HTMLElement;
     onValueChange?: (value: string) => void;
   }
-  let { items = [], value = $bindable(''), placeholder = 'Select…', label = '', ariaLabel = '', groupLabel = '', disabled = false, clearable = false, noOptionsText = 'No options', class: className = '', portalContainer, onValueChange }: Props = $props();
+  let { items = [], value = $bindable(''), placeholder = 'Select…', label = '', ariaLabel = '', groupLabel = '', disabled = false, clearable = false, clearLabel = 'Clear selection', noOptionsText = 'No options', class: className = '', portalContainer, onValueChange }: Props = $props();
   let collection = $derived(createListCollection({ items }));
   function toInnerValue(current: string | undefined): string[] {
     if (current) return [current];
@@ -45,8 +46,8 @@
       </Select.ValueText>
     </Select.Trigger>
     <div class="ark-select-indicators">
-      {#if clearable && value}<Select.ClearTrigger class="ark-select-clear-trigger"><X size={14} /></Select.ClearTrigger>{/if}
-      <Select.Indicator class="ark-select-indicator"><ChevronsUpDown size={14} /></Select.Indicator>
+      {#if clearable && value}<Select.ClearTrigger class="ark-select-clear-trigger" aria-label={clearLabel}><X size={14} /></Select.ClearTrigger>{/if}
+      <Select.Indicator class="ark-select-indicator"><ChevronDown size={16} /></Select.Indicator>
     </div>
   </Select.Control>
   <Portal container={portalContainer}>

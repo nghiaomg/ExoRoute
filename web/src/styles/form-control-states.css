@@ -1,11 +1,17 @@
 /* Shared interaction states for editable controls. Geometry stays with each component; color, border and feedback come from the New API key field. */
+.dashboard-app .field input.input-control:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]) {
+  min-height: 44px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: var(--surface);
+}
 :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not(.search-box input), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input) {
   transition: border-color .14s ease, box-shadow .14s ease, background-color .14s ease;
 }
 .search-box:focus-within {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
   outline: 0;
-  box-shadow: 0 0 0 3px var(--db-accent-ring);
+  box-shadow: 0 0 0 3px var(--db-accent-ring, color-mix(in srgb, var(--accent) 13%, transparent));
   background-color: color-mix(in srgb, var(--accent) 3%, var(--surface));
 }
 :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input):not(.search-box input):not(:disabled):not([readonly]):hover {
@@ -17,13 +23,29 @@
   border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
   outline: 0;
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px var(--db-accent-ring);
+  box-shadow: 0 0 0 3px var(--db-accent-ring, color-mix(in srgb, var(--accent) 13%, transparent));
   background-color: color-mix(in srgb, var(--accent) 3%, var(--surface));
 }
 :where(.ark-combobox-root[data-state="open"] .ark-combobox-input, .ark-select-root[data-state="open"] .ark-select-trigger) {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--surface));
-  box-shadow: 0 0 0 3px var(--db-accent-ring);
+  box-shadow: 0 0 0 3px var(--db-accent-ring, color-mix(in srgb, var(--accent) 13%, transparent));
   background-color: color-mix(in srgb, var(--accent) 3%, var(--surface));
+}
+/* Theme-specific control colors must not hide the keyboard focus indicator. */
+:root .ark-select-trigger:focus-visible,
+:root .ark-combobox-input:focus-visible,
+:root .ark-field-input:focus-visible,
+:root .ark-password-input:focus-visible {
+  border-color: var(--accent) !important;
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--db-accent-ring, color-mix(in srgb, var(--accent) 13%, transparent)) !important;
+}
+.dashboard-app .field input.input-control[aria-invalid="true"],
+.input-control[aria-invalid="true"],
+:root .input-control[aria-invalid="true"]:focus-visible {
+  /* Palette rules also set borders with high specificity or !important. */
+  border-color: #b84935 !important;
+  box-shadow: 0 0 0 4px rgb(184 73 53 / 8%) !important;
 }
 :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ark-field-input, .ark-password-input, .ark-select-trigger, .ark-combobox-input):not(.search-box input):active:not(:disabled) {
   border-color: var(--accent);

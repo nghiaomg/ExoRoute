@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Input from '../../components/Input.svelte';
   import Button from "../../components/Button.svelte";
   import { afterUpdate, onDestroy } from 'svelte';
   import { Check, ChevronsUpDown, LoaderCircle } from '@lucide/svelte';
@@ -212,7 +213,7 @@ import { localizedError } from '../../lib/errors';
   >
     <Combobox.Label class="combo-field-label">{tr('Upstream model')}</Combobox.Label>
     <Combobox.Control class="combo-combobox-control">
-      <Combobox.Input class="ark-field-input combo-combobox-input" placeholder={tr(target.providerId ? 'Search saved models' : 'Choose a provider first.')} autocomplete="off" onfocus={handleInputFocus} />
+      <Input variant="combobox" class="ark-field-input combo-combobox-input" placeholder={tr(target.providerId ? 'Search saved models' : 'Choose a provider first.')} autocomplete="off" onfocus={handleInputFocus} />
       <Combobox.Trigger class="combo-combobox-trigger" aria-label={tr('Search saved models')}>
         <ChevronsUpDown size={14} />
       </Combobox.Trigger>

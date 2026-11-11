@@ -133,6 +133,7 @@
   <div class="request-filter-grid">
     <SelectSearch
       label={tr('API key ID')}
+      clearLabel={tr('Clear selection')}
       items={apiKeyItems}
       value={apiKey}
       placeholder={tr('Search API keys by name or ID')}
@@ -143,6 +144,7 @@
     />
     <SelectSearch
       label={tr('Provider ID')}
+      clearLabel={tr('Clear selection')}
       items={providerItems}
       value={providerId}
       placeholder={tr('Search providers by name or ID')}

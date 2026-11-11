@@ -270,6 +270,7 @@
               placeholder={tr('Search proxy groups')}
               noOptionsText={tr(proxyOptionsLoading ? 'Loading…' : 'No proxy groups found')}
               clearable
+              clearLabel={tr('Clear selection')}
               onSearch={(search) => { void loadProxyOptions(search); }}
               onValueChange={(value) => proxyIdDraft = value || null}
             />

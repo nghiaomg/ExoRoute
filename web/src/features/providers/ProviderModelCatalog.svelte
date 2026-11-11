@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Input from '../../components/Input.svelte';
   import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Cpu, Download, LoaderCircle, RefreshCw, Save } from '@lucide/svelte';
@@ -220,7 +221,7 @@ import { localizedError } from '../../lib/errors';
     <Field.Root class="provider-manual-model-field">
       <Field.Label class="ark-field-label">{tr('Model ID')}</Field.Label>
       <div class="provider-manual-model-row">
-        <Field.Input
+        <Input variant="field"
           bind:value={manualModelDraft}
           class="ark-field-input"
           maxlength={256}

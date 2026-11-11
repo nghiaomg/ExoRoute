@@ -234,10 +234,10 @@
     <div class="empty-state">{error} <Button class="mini-add" type="button" onclick={() => load()}>{tr('Retry')}</Button></div>
   {:else}
     <section class="stats-grid" aria-label={tr('API key overview')}>
-      <StatsCard icon="#i-key" value={activeCount} title={tr('Active Keys')} trend={tr('Showing {count} API keys on this page', { count: keys.length })} actionLabel={tr('Show active')} onAction={ () => { statusFilter = 'active'; boardEl?.scrollIntoView({ behavior: 'smooth' }); } } />
-      <StatsCard icon="#i-clipboard" value={stats ? stats.total_requests.toLocaleString() : '—'} title={tr('Requests Today')} trend={tr('Across all keys · 24h')} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard icon="#i-dollar" value={stats ? formatCostMicroUsd(stats.cost.cost_reported_micro_usd) : '—'} title={tr('Spend Today')} trend={tr('Estimated upstream cost')} actionLabel={tr('Check quota')} onAction={ () => onNavigate('quota') } />
-      <StatsCard icon="#i-alert" value={stats ? stats.failures.toLocaleString() : '—'} title={tr('Failures Today')} trend={stats ? `${stats.success_rate.toFixed(1)}% ${tr('success')}` : tr('24h window')} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('API keys')} icon="#i-key" value={activeCount} title={tr('Active Keys')} trend={tr('Showing {count} API keys on this page', { count: keys.length })} actionLabel={tr('Show active')} onAction={ () => { statusFilter = 'active'; boardEl?.scrollIntoView({ behavior: 'smooth' }); } } />
+      <StatsCard eyebrow={tr('API keys')} icon="#i-clipboard" value={stats ? stats.total_requests.toLocaleString() : '—'} title={tr('Requests Today')} trend={tr('Across all keys · 24h')} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard eyebrow={tr('API keys')} icon="#i-dollar" value={stats ? formatCostMicroUsd(stats.cost.cost_reported_micro_usd) : '—'} title={tr('Spend Today')} trend={tr('Estimated upstream cost')} actionLabel={tr('Check quota')} onAction={ () => onNavigate('quota') } />
+      <StatsCard eyebrow={tr('API keys')} icon="#i-alert" value={stats ? stats.failures.toLocaleString() : '—'} title={tr('Failures Today')} trend={stats ? `${stats.success_rate.toFixed(1)}% ${tr('success')}` : tr('24h window')} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
     </section>
 
     <section class="course-card surface keys-board" id="keys-board" bind:this={boardEl} aria-labelledby="keys-heading">

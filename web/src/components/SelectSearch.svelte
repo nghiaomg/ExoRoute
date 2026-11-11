@@ -14,7 +14,7 @@
   import { Portal } from '@ark-ui/svelte/portal';
   import { Combobox, createListCollection } from '@ark-ui/svelte/combobox';
   import Input from './Input.svelte';
-  import { Check, ChevronsUpDown, X } from '@lucide/svelte';
+  import { Check, ChevronDown, X } from '@lucide/svelte';
 
   interface Props {
     items: SelectSearchOption[];
@@ -28,6 +28,7 @@
     ariaLabel?: string;
     /** Show the clear affordance next to the chevron; off when a value is required. */
     clearable?: boolean;
+    clearLabel?: string;
     /** Open the list on click as well as on typing; Ark leaves this off. */
     openOnClick?: boolean;
     /** Text shown when the filter matches nothing. */
@@ -51,6 +52,7 @@
     pill = false,
     ariaLabel = '',
     clearable = true,
+    clearLabel = 'Clear selection',
     openOnClick = true,
     noOptionsText = 'No options',
     class: className = '',
@@ -102,6 +104,7 @@
 
   function clearSelection(event: MouseEvent): void {
     event.preventDefault();
+    if (disabled) return;
     filterQuery = '';
     value = '';
     onValueChange?.('');
@@ -135,21 +138,22 @@
         variant="combobox"
         class="ark-combobox-input"
         {placeholder}
-        aria-label={pill ? ariaLabel || label || placeholder : label || placeholder}
+        aria-label={ariaLabel || label || placeholder}
       />
       <div class="ark-combobox-indicators">
         {#if value && clearable}
           <Button
             class="ark-combobox-clear"
             type="button"
-            aria-label="Clear selection"
+            aria-label={clearLabel}
+            {disabled}
             onclick={clearSelection}
           >
             <X size={13} />
           </Button>
         {/if}
         <span class="ark-combobox-chevron" aria-hidden="true">
-          <ChevronsUpDown size={14} />
+          <ChevronDown size={16} />
         </span>
       </div>
     </Combobox.Control>
