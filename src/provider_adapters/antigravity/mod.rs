@@ -165,7 +165,16 @@ impl ProviderAdapter for AntigravityAdapter {
                     "Antigravity account has no Cloud Code project; reconnect the account after completing Gemini Code Assist onboarding",
                 ));
             };
-            let mut request = std::mem::take(body);
+            let mut request = if body.get("project").is_some()
+                && body.get("userAgent").is_some()
+                && body.get("request").is_some()
+            {
+                body.get_mut("request")
+                    .map(std::mem::take)
+                    .unwrap_or_else(|| std::mem::take(body))
+            } else {
+                std::mem::take(body)
+            };
             let request_object = request.as_object_mut().ok_or_else(|| {
                 AdapterRequestError::new(
                     Some(StatusCode::BAD_REQUEST),

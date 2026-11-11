@@ -241,6 +241,43 @@ pub(in crate::protocol) fn encode_request(
     Ok(body)
 }
 
+fn apply_google_thinking_effort(
+    generation_config: &mut serde_json::Map<String, Value>,
+    effort: &str,
+) {
+    let effort = effort.trim().to_ascii_lowercase();
+    match effort.as_str() {
+        "none" => {
+            generation_config.insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
+        }
+        "minimal" | "low" => {
+            let thinking_config = generation_config
+                .entry("thinkingConfig".to_owned())
+                .or_insert_with(|| json!({}));
+            if let Some(tc) = thinking_config.as_object_mut() {
+                tc.insert("thinkingLevel".to_owned(), json!("low"));
+            }
+        }
+        "medium" => {
+            let thinking_config = generation_config
+                .entry("thinkingConfig".to_owned())
+                .or_insert_with(|| json!({}));
+            if let Some(tc) = thinking_config.as_object_mut() {
+                tc.insert("thinkingLevel".to_owned(), json!("medium"));
+            }
+        }
+        "high" | "xhigh" | "max" | "ultra" => {
+            let thinking_config = generation_config
+                .entry("thinkingConfig".to_owned())
+                .or_insert_with(|| json!({}));
+            if let Some(tc) = thinking_config.as_object_mut() {
+                tc.insert("thinkingLevel".to_owned(), json!("high"));
+            }
+        }
+        _ => {}
+    }
+}
+
 fn apply_google_metadata(
     metadata: &BTreeMap<String, Value>,
     generation_config: &mut serde_json::Map<String, Value>,
@@ -359,22 +396,53 @@ fn apply_google_metadata(
 
             "reasoning_effort" | "reasoningeffort" | "effort" => {
                 if let Some(effort) = value.as_str() {
-                    let effort = effort.trim().to_ascii_lowercase();
-                    match effort.as_str() {
-                        "none" => {
-                            generation_config
-                                .insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
-                        }
-                        "low" | "medium" | "high" => {
-                            let thinking_config = generation_config
-                                .entry("thinkingConfig".to_owned())
-                                .or_insert_with(|| json!({}));
-                            if let Some(tc) = thinking_config.as_object_mut() {
-                                tc.insert("thinkingLevel".to_owned(), json!(effort));
-                            }
-                        }
-                        _ => {}
+                    apply_google_thinking_effort(generation_config, effort);
+                }
+            }
+
+            "reasoning" => {
+                if let Some(effort) = value.as_str() {
+                    apply_google_thinking_effort(generation_config, effort);
+                } else if let Some(obj) = value.as_object() {
+                    if let Some(effort) = obj.get("effort").and_then(Value::as_str) {
+                        apply_google_thinking_effort(generation_config, effort);
+                    } else if let Some(budget) = obj
+                        .get("budget_tokens")
+                        .or_else(|| obj.get("budget"))
+                        .or_else(|| obj.get("max_tokens"))
+                        .and_then(Value::as_u64)
+                    {
+                        generation_config.insert(
+                            "thinkingConfig".to_owned(),
+                            json!({"thinkingBudget": budget}),
+                        );
+                    } else if matches!(
+                        obj.get("type").and_then(Value::as_str),
+                        Some("disabled" | "disable" | "off" | "none")
+                    ) {
+                        generation_config
+                            .insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
                     }
+                } else if let Some(enabled) = value.as_bool()
+                    && !enabled
+                {
+                    generation_config
+                        .insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
+                }
+            }
+
+            "thinking_level" | "thinkinglevel" => {
+                if let Some(level) = value.as_str() {
+                    apply_google_thinking_effort(generation_config, level);
+                }
+            }
+
+            "thinking_budget" | "thinkingbudget" => {
+                if let Some(budget) = value.as_u64() {
+                    generation_config.insert(
+                        "thinkingConfig".to_owned(),
+                        json!({"thinkingBudget": budget}),
+                    );
                 }
             }
 
@@ -389,16 +457,22 @@ fn apply_google_metadata(
 
             "thinking" => {
                 if let Some(obj) = value.as_object() {
-                    if let Some(budget) = obj
+                    if let Some(effort) = obj.get("effort").and_then(Value::as_str) {
+                        apply_google_thinking_effort(generation_config, effort);
+                    } else if let Some(budget) = obj
                         .get("budget_tokens")
                         .or_else(|| obj.get("budget"))
+                        .or_else(|| obj.get("max_tokens"))
                         .and_then(Value::as_u64)
                     {
                         generation_config.insert(
                             "thinkingConfig".to_owned(),
                             json!({"thinkingBudget": budget}),
                         );
-                    } else if obj.get("type").and_then(Value::as_str) == Some("disabled") {
+                    } else if matches!(
+                        obj.get("type").and_then(Value::as_str),
+                        Some("disabled" | "disable" | "off" | "none")
+                    ) {
                         generation_config
                             .insert("thinkingConfig".to_owned(), json!({"thinkingBudget": 0}));
                     }

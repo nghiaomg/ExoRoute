@@ -335,6 +335,92 @@ fn translates_supported_google_metadata() {
 }
 
 #[test]
+fn translates_reasoning_and_thinking_metadata_options() {
+    // 1. String effort in "reasoning"
+    let mut req1 = request(vec![message(
+        Role::User,
+        vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+    )]);
+    req1.metadata
+        .insert("reasoning".to_owned(), json!("medium"));
+    let enc1 = encode_request(&req1, "gemini-2.5-flash").expect("enc1");
+    assert_eq!(
+        enc1["generationConfig"]["thinkingConfig"]["thinkingLevel"],
+        json!("medium")
+    );
+
+    // 2. Object with effort in "reasoning"
+    let mut req2 = request(vec![message(
+        Role::User,
+        vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+    )]);
+    req2.metadata.insert(
+        "reasoning".to_owned(),
+        json!({"effort": "high", "summary": "auto"}),
+    );
+    let enc2 = encode_request(&req2, "gemini-2.5-flash").expect("enc2");
+    assert_eq!(
+        enc2["generationConfig"]["thinkingConfig"]["thinkingLevel"],
+        json!("high")
+    );
+
+    // 3. Object with budget_tokens in "reasoning"
+    let mut req3 = request(vec![message(
+        Role::User,
+        vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+    )]);
+    req3.metadata
+        .insert("reasoning".to_owned(), json!({"budget_tokens": 4096}));
+    let enc3 = encode_request(&req3, "gemini-2.5-flash").expect("enc3");
+    assert_eq!(
+        enc3["generationConfig"]["thinkingConfig"]["thinkingBudget"],
+        json!(4096)
+    );
+
+    // 4. Disabled effort in "reasoning"
+    let mut req4 = request(vec![message(
+        Role::User,
+        vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+    )]);
+    req4.metadata
+        .insert("reasoning".to_owned(), json!({"effort": "none"}));
+    let enc4 = encode_request(&req4, "gemini-2.5-flash").expect("enc4");
+    assert_eq!(
+        enc4["generationConfig"]["thinkingConfig"]["thinkingBudget"],
+        json!(0)
+    );
+
+    // 5. Native thinking_level and thinking_budget options
+    let mut req5 = request(vec![message(
+        Role::User,
+        vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+    )]);
+    req5.metadata
+        .insert("thinking_level".to_owned(), json!("low"));
+    req5.metadata
+        .insert("thinking_budget".to_owned(), json!(1024));
+    let enc5 = encode_request(&req5, "gemini-2.5-flash").expect("enc5");
+    assert_eq!(
+        enc5["generationConfig"]["thinkingConfig"]["thinkingLevel"],
+        json!("low")
+    );
+    assert_eq!(
+        enc5["generationConfig"]["thinkingConfig"]["thinkingBudget"],
+        json!(1024)
+    );
+}
+
+#[test]
 fn translates_json_schema_response_format() {
     let mut req = request(vec![message(
         Role::User,

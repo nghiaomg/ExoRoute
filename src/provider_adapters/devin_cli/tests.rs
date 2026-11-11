@@ -364,7 +364,7 @@ async fn an_exited_child_becomes_a_stream_error_frame() {
 }
 
 #[test]
-fn flatten_rejects_media_and_client_tools_but_renders_tool_results() {
+fn flatten_formats_caller_tools_response_format_and_tool_results() {
     let text = flatten_chat_messages(&serde_json::json!({
         "messages": [
             {"role": "system", "content": "be brief"},
@@ -390,12 +390,47 @@ fn flatten_rejects_media_and_client_tools_but_renders_tool_results() {
     .unwrap_err();
     assert!(image.contains("image"), "got: {image}");
 
-    let tools = flatten_chat_messages(&serde_json::json!({
+    let with_tools = flatten_chat_messages(&serde_json::json!({
         "messages": [{"role": "user", "content": "hi"}],
-        "tools": [{"type": "function", "function": {"name": "f"}}],
+        "tools": [
+            {"type": "function", "function": {"name": "lookup_weather"}},
+            {"type": "function", "function": {"name": ""}},
+            {"name": "anthropic_tool"}
+        ],
     }))
-    .unwrap_err();
-    assert!(tools.contains("tool-less"), "got: {tools}");
+    .unwrap();
+    assert!(with_tools.contains(
+        "[System]\nCaller-side tools are available externally: lookup_weather, anthropic_tool."
+    ));
+    assert!(
+        with_tools.contains("Do not call those tools yourself. Answer in assistant text only.")
+    );
+    assert!(with_tools.contains("[User]\nhi"));
+
+    let with_json = flatten_chat_messages(&serde_json::json!({
+        "messages": [{"role": "user", "content": "hi"}],
+        "response_format": {"type": "json_object"},
+    }))
+    .unwrap();
+    assert!(with_json.contains("[System]\nReturn only valid JSON."));
+
+    let with_schema = flatten_chat_messages(&serde_json::json!({
+        "messages": [{"role": "user", "content": "hi"}],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"schema": {"type": "object", "properties": {"city": {"type": "string"}}}}
+        },
+    }))
+    .unwrap();
+    assert!(with_schema.contains("[System]\nReturn only valid JSON matching this schema:"));
+    assert!(with_schema.contains("\"city\""));
+
+    assert!(super::prompt::has_client_tools(&serde_json::json!({
+        "tools": [{"type": "function", "function": {"name": "f"}}]
+    })));
+    assert!(!super::prompt::has_client_tools(&serde_json::json!({
+        "messages": [{"role": "user", "content": "hi"}]
+    })));
 }
 
 #[test]

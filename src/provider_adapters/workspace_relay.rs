@@ -56,6 +56,8 @@ impl AdapterWorkspaceChatOutcome {
 async fn prepare_workspace_request<A: ProviderAdapter + ?Sized>(
     adapter: &A,
     request: &AdapterWorkspaceChatRequest<'_>,
+    body: &Value,
+    preparation: &AdapterRequestPreparation,
     streaming: bool,
     proxy: Option<&ProxyEgress>,
 ) -> Result<reqwest::RequestBuilder, AdapterRequestError> {
@@ -111,8 +113,13 @@ async fn prepare_workspace_request<A: ProviderAdapter + ?Sized>(
     };
     let mut provider_request = client
         .post(endpoint)
-        .json(&request.body)
+        .json(body)
         .header("x-request-id", request.provider_id);
+    if adapter.wants_event_stream()
+        || (streaming && request.upstream_protocol == UpstreamProtocol::GoogleGenerateContent)
+    {
+        provider_request = provider_request.header("Accept", "text/event-stream");
+    }
     provider_request = apply_custom_headers(provider_request, request.custom_headers)
         .map_err(|message| AdapterRequestError::new(None, None, message))?;
     if request.upstream_protocol == UpstreamProtocol::Messages {
@@ -120,6 +127,9 @@ async fn prepare_workspace_request<A: ProviderAdapter + ?Sized>(
     }
     let empty_client_headers = HeaderMap::new();
     provider_request = adapter.apply_client_headers(provider_request, &empty_client_headers);
+    for (name, value) in &preparation.headers {
+        provider_request = provider_request.header(name, value);
+    }
     provider_request = adapter
         .apply_upstream_request_auth(
             provider_request,
@@ -130,7 +140,7 @@ async fn prepare_workspace_request<A: ProviderAdapter + ?Sized>(
                 oauth_auth: request.oauth_auth,
                 session_id: "workspace-chat",
                 protocol: request.upstream_protocol,
-                model: None,
+                model: Some(request.model),
             },
         )
         .map_err(|message| AdapterRequestError::new(None, None, message))?;
@@ -183,10 +193,33 @@ async fn send_local_workspace_request<A: ProviderAdapter + ?Sized>(
         .settings
         .request_timeout;
     let request_id = uuid::Uuid::new_v4().to_string();
+    let mut body = request.body.clone();
+    let _ = adapter
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: request.state,
+                base_url: request.base_url,
+                adapter_base_url_override: None,
+                model: request.model,
+                request_id: &request_id,
+                streaming,
+                auth: UpstreamAuthContext {
+                    auth_type: request.auth_type,
+                    auth_header: request.auth_header,
+                    secret: request.secret,
+                    oauth_auth: request.oauth_auth,
+                    session_id: "workspace-chat",
+                    protocol: request.upstream_protocol,
+                    model: Some(request.model),
+                },
+            },
+            &mut body,
+        )
+        .await?;
     send_local_upstream_request(
         request.state,
         adapter.adapter_id(),
-        &request.body,
+        &body,
         request.model,
         &request_id,
         streaming,
@@ -215,11 +248,37 @@ async fn send_workspace_request_with_fallbacks<A: ProviderAdapter + ?Sized>(
     if uses_local_transport(adapter.adapter_id()) {
         return send_local_workspace_request(adapter, request, streaming).await;
     }
+    let request_id = request.provider_id.to_string();
+    let mut body = request.body.clone();
+    let preparation = adapter
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: request.state,
+                base_url: request.base_url,
+                adapter_base_url_override: None,
+                model: request.model,
+                request_id: &request_id,
+                streaming,
+                auth: UpstreamAuthContext {
+                    auth_type: request.auth_type,
+                    auth_header: request.auth_header,
+                    secret: request.secret,
+                    oauth_auth: request.oauth_auth,
+                    session_id: "workspace-chat",
+                    protocol: request.upstream_protocol,
+                    model: Some(request.model),
+                },
+            },
+            &mut body,
+        )
+        .await?;
     let mut attempt = 0usize;
     loop {
         let provider_request = prepare_workspace_request(
             adapter,
             request,
+            &body,
+            &preparation,
             streaming,
             request.proxy_endpoints.get(attempt),
         )

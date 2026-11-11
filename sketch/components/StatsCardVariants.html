@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StatsCardVariants · ExoRoute</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui'] } } } };</script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .mono { font-family: 'DM Mono', monospace; }
+    .stat-card { min-width: 0; min-height: 152px; padding: 18px; border-radius: 17px; transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease, background-color .22s ease; }
+    .stat-card:focus-visible { outline: 2px solid #f97316; outline-offset: 3px; }
+    .stat-card:hover { border-color: transparent; background: linear-gradient(white, white) padding-box, linear-gradient(120deg, #f97316 0%, #fb923c 28%, #fbbf24 52%, #84cc16 76%, #f97316 100%) border-box; }
+    .kpi { transition: color .2s ease; }
+    .stat-card:hover .kpi { color: #f97316; }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body class="min-h-screen bg-[#f6f7fb] text-[#222538] selection:bg-orange-200 selection:text-[#222538]">
+  <main class="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-12">
+    <header class="mb-8 flex flex-col gap-5 border-b border-[#e9eaf0] pb-7 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <div class="mono mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[.22em] text-[#f97316]"><span class="h-2 w-2 rounded-full bg-[#f97316]"></span> EXOROUTE / COMPONENT LAB</div>
+        <h1 class="text-4xl font-semibold tracking-[-.055em] sm:text-5xl">StatsCardVariants<span class="text-[#f97316]">.</span></h1>
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-[#646b80]">Chín chỉ số gateway trong cùng một khung card. Hover chỉ đổi màu KPI — biến thể 06 đã chọn.</p>
+      </div>
+      <div class="mono text-xs uppercase tracking-wider text-[#646b80]">9 METRICS · 06 NUMBER ACCENT</div>
+    </header>
+    <section aria-label="Chín thẻ thống kê gateway" class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>01 / TRAFFIC</span><span class="rounded-full bg-[#347d46]/10 px-2 py-1 tracking-normal text-[#347d46]">+12.8%</span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">12,847</div><h2 class="mt-2 text-sm font-semibold">Requests Today</h2><div class="mt-1 text-xs text-[#646b80]">All keys and providers</div></article>
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>02 / NETWORK</span><span class="h-2 w-2 rounded-full bg-[#347d46] ring-4 ring-[#347d46]/10"></span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">6</div><h2 class="mt-2 text-sm font-semibold">Providers</h2><div class="mt-1 text-xs text-[#646b80]">4 enabled · 2 disabled</div></article>
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>03 / ROUTING</span><span class="rounded-md bg-[#f1f2f7] px-2 py-1 tracking-normal text-[#646b80]">3 enabled</span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">4</div><h2 class="mt-2 text-sm font-semibold">Combos</h2><div class="mt-1 text-xs text-[#646b80]">Routing rules configured</div></article>
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>04 / RELIABILITY</span><span class="text-[#347d46]">● HEALTHY</span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">98.2<span class="ml-0.5 text-xl font-semibold">%</span></div><h2 class="mt-2 text-sm font-semibold">Success Rate</h2><div class="mt-1 text-xs text-[#646b80]">Successful requests · last 24h</div></article>
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>05 / TOKENS</span><span class="text-[#646b80]">TODAY</span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">18.42<span class="ml-1 text-xl font-semibold">M</span></div><h2 class="mt-2 text-sm font-semibold">Input tokens</h2><div class="mt-1 text-xs text-[#646b80]">Prompt tokens received</div></article>
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>06 / TOKENS</span><span class="text-[#646b80]">TODAY</span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">7.86<span class="ml-1 text-xl font-semibold">M</span></div><h2 class="mt-2 text-sm font-semibold">Output tokens</h2><div class="mt-1 text-xs text-[#646b80]">Completion tokens returned</div></article>
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>07 / EFFICIENCY</span><span class="rounded-full bg-[#347d46]/10 px-2 py-1 tracking-normal text-[#347d46]">CACHE HIT</span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">3.24<span class="ml-1 text-xl font-semibold">M</span></div><h2 class="mt-2 text-sm font-semibold">Cached tokens</h2><div class="mt-1 text-xs text-[#646b80]">Reused from provider cache</div></article>
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>08 / PERFORMANCE</span><span class="text-[#347d46]">↓ 18 ms</span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">184<span class="ml-1 text-xl font-semibold text-[#646b80]">ms</span></div><h2 class="mt-2 text-sm font-semibold">Avg Latency</h2><div class="mt-1 text-xs text-[#646b80]">Gateway request average</div></article>
+      <article tabindex="0" class="stat-card border border-[#e9eaf0] bg-white"><div class="mono mb-5 flex items-center justify-between text-[10px] uppercase tracking-[.16em] text-[#646b80]"><span>09 / EGRESS</span><span class="rounded-full bg-[#347d46]/10 px-2 py-1 tracking-normal text-[#347d46]">ACTIVE</span></div><div class="kpi text-[32px] font-bold leading-none tracking-[-.055em]">3</div><h2 class="mt-2 text-sm font-semibold">Proxies</h2><div class="mt-1 text-xs text-[#646b80]">Configured gateway routes</div></article>
+    </section>
+    <footer class="mono mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9eaf0] pt-5 text-[10px] uppercase tracking-[.12em] text-[#646b80]"><span>One shared card treatment · Tailwind CSS</span><span>Hover a card to accent its KPI</span></footer>
+  </main>
+</body>
+</html>

@@ -2,6 +2,7 @@ use super::*;
 use std::time::Duration;
 
 mod acp;
+mod prompt;
 #[cfg(test)]
 mod tests;
 

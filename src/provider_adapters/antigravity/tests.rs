@@ -129,6 +129,36 @@ async fn wraps_google_request_with_cloud_code_envelope() {
     assert!(ANTIGRAVITY_ADAPTER.is_key_rejection_status(StatusCode::CONFLICT));
     assert!(ANTIGRAVITY_ADAPTER.is_key_rejection_status(StatusCode::TOO_MANY_REQUESTS));
     assert!(!ANTIGRAVITY_ADAPTER.is_key_rejection_status(StatusCode::INTERNAL_SERVER_ERROR));
+
+    // Calling prepare_upstream_request a second time (e.g. during credential rotation)
+    // must be idempotent and not create nested `{"request": {"request": ...}}` envelopes.
+    ANTIGRAVITY_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: &state,
+                base_url: antigravity_oauth::RUNTIME_BASE_URL,
+                adapter_base_url_override: None,
+                model: "ag/gemini-3.7-flash",
+                request_id: "request-2",
+                streaming: true,
+                auth: UpstreamAuthContext {
+                    auth_type: "antigravity_oauth",
+                    auth_header: None,
+                    secret: None,
+                    oauth_auth: Some(&auth),
+                    session_id: "session-2",
+                    protocol: UpstreamProtocol::GoogleGenerateContent,
+                    model: Some("ag/gemini-3.7-flash"),
+                },
+            },
+            &mut body,
+        )
+        .await
+        .expect("Cloud Code re-wrap is idempotent");
+
+    assert_eq!(body["requestId"], "request-2");
+    assert!(body["request"]["contents"].is_array());
+    assert!(body["request"]["request"].is_null());
 }
 
 #[test]
