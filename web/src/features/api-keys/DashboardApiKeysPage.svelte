@@ -14,7 +14,6 @@
   import ApiKeyDetailSheet from './ApiKeyDetailSheet.svelte';
   import ApiKeyScopeFields from './ApiKeyScopeFields.svelte';
   import { modelRulesText, parseModelRules } from './scope';
-  import '../../styles/dashboard/pages/api-keys.css';
 
   interface Props {
     tr: Translate;
@@ -244,8 +243,8 @@
     <section class="course-card surface keys-board" id="keys-board" bind:this={boardEl} aria-labelledby="keys-heading">
       <div class="card-title-row"><h2 id="keys-heading">{tr('Keys')}</h2></div>
       <p class="card-subtitle">{tr('Showing {count} API keys on this page', { count: keys.length })}{nextCursor ? ` · ${tr('more available')}` : ''}</p>
-      <div class="page-toolbar keys-toolbar">
-        <Input class="prov-search" type="search" placeholder={tr('Search keys…')} aria-label={tr('Search API keys')} bind:value={searchQuery} />
+      <div class="page-toolbar items-center [&_.ark-select-trigger]:border! [&_.ark-select-trigger]:border-line! [&_.ark-select-trigger]:shadow-none! [&_.ark-select-trigger:focus-visible]:outline-0! [&_.ark-select-trigger:focus-visible]:ring-3! [&_.ark-select-trigger:focus-visible]:ring-db-accent-ring!">
+        <Input class="min-h-[34px]! w-[min(280px,100%)]! flex-[1_1_200px] rounded-[10px]! border-line! bg-surface! px-3! text-muted! text-dash-body! focus:outline-none! focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))]! focus:ring-3! focus:ring-db-accent-ring!" type="search" placeholder={tr('Search keys…')} aria-label={tr('Search API keys')} bind:value={searchQuery} />
         <SelectOptions
           class="prov-select"
           ariaLabel={tr('Filter keys')}
@@ -253,9 +252,9 @@
           items={[{ label: tr('All keys'), value: 'all' }, { label: tr('Active'), value: 'active' }, { label: tr('Disabled'), value: 'disabled' }]}
         />
       </div>
-      <div class="api-keys-list">
+      <div class="mt-3.5 grid grid-cols-[repeat(3,minmax(0,1fr))] items-start gap-2.5 max-[1100px]:grid-cols-2 max-nav:grid-cols-1">
         {#each visibleKeys as key (key.id)}
-          <article class="course-row key-card" class:key-revoked={!key.enabled}>
+          <article class="course-row key-card min-w-0 items-start flex-wrap {!key.enabled ? 'opacity-72' : ''}">
             <!-- The row opens a full-page detail view; adjacent actions stay independent. -->
             <Button
               class="key-card-trigger"
@@ -265,7 +264,7 @@
             >
               <span class="course-icon"><svg class="icon"><use href="#i-key" /></svg></span>
               <span class="course-copy">
-                <strong>{key.name} <span class="prov-type">{scopeLabel(key)}</span></strong>
+                <strong>{key.name} <span class="ms-1.5 px-[7px] py-0.5 rounded-full bg-surface-sunken text-muted text-caption font-medium align-[1px]">{scopeLabel(key)}</span></strong>
                 <span>{key.id.slice(0, 8)}… · {key.last_used_at ? tr('Used {date}', { date: key.last_used_at }) : tr('Never used')} · {key.request_count ?? 0} {tr('requests')}</span>
               </span>
             </Button>
@@ -273,9 +272,9 @@
             <div class="course-actions">
               <Button class="icon-action" type="button" title={tr('Edit key')} onclick={() => openEdit(key)}><svg class="icon"><use href="#i-edit" /></svg></Button>
               {#if key.enabled}
-                <Button class="icon-action danger" type="button" title={tr('Disable key')} onclick={() => askConfirm(key, 'disable')}><svg class="icon"><use href="#i-x-circle" /></svg></Button>
+                <Button class="icon-action danger hover:text-db-danger! hover:bg-db-accent-tint!" type="button" title={tr('Disable key')} onclick={() => askConfirm(key, 'disable')}><svg class="icon"><use href="#i-x-circle" /></svg></Button>
               {:else}
-                <Button class="icon-action danger" type="button" title={tr('Delete permanently')} onclick={() => askConfirm(key, 'delete')}><svg class="icon"><use href="#i-trash" /></svg></Button>
+                <Button class="icon-action danger hover:text-db-danger! hover:bg-db-accent-tint!" type="button" title={tr('Delete permanently')} onclick={() => askConfirm(key, 'delete')}><svg class="icon"><use href="#i-trash" /></svg></Button>
               {/if}
             </div>
           </article>
@@ -301,10 +300,10 @@
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     {#if createdKey}
-      <div class="key-reveal">
+      <div class="mt-4 flex flex-col gap-1.5 rounded-[14px] border border-dashed border-text-dim bg-surface-sunken px-[18px] py-4">
         <strong>{createdKey.name}</strong>
-        <div class="key-reveal-row">
-          <code>{createdKey.key}</code>
+        <div class="mt-1 flex items-center gap-2.5">
+          <code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-text-dim bg-surface px-3.5 py-2.5 text-[13px] tracking-[0.02em] select-all">{createdKey.key}</code>
           <Button class="page-action" type="button" onclick={() => copyText(createdKey!.key, tr('API key'))}><svg class="icon"><use href="#i-copy" /></svg> {tr('Copy')}</Button>
         </div>
       </div>
@@ -327,8 +326,8 @@
 </dialog>
 
 <!-- Edit key -->
-<dialog class="modal modal-wide api-key-edit-dialog" bind:this={editDialog} aria-labelledby="edit-dialog-title">
-  <form class="modal-card api-key-edit-card" onsubmit={submitEdit}>
+<dialog class="modal modal-wide w-[min(94vw,680px)]! max-h-[calc(100dvh-32px)]! overflow-visible! max-[640px]:w-[min(94vw,480px)]! max-[640px]:max-h-[calc(100dvh-20px)]!" bind:this={editDialog} aria-labelledby="edit-dialog-title">
+  <form class="modal-card max-h-[calc(100dvh-32px)]! gap-4! overflow-hidden! rounded-[inherit] [grid-template-rows:auto_minmax(0,1fr)_auto]! px-6! py-[22px]! max-[640px]:max-h-[calc(100dvh-20px)]! max-[640px]:gap-3! max-[640px]:px-4! max-[640px]:py-4!" onsubmit={submitEdit}>
     <div class="modal-heading">
       <div>
         <h2 id="edit-dialog-title">{tr('Edit API key')}</h2>
@@ -336,12 +335,12 @@
       </div>
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
-    <div class="modal-fields api-key-edit-fields">
-      <label class="field api-key-edit-section api-key-name-field">
+    <div class="modal-fields grid-cols-[minmax(0,1fr)_minmax(0,1fr)]! gap-3.5! min-h-0 overflow-y-auto pt-px pr-[3px] pb-1 pl-px content-start max-[640px]:grid-cols-1! max-[640px]:gap-2.5!">
+      <label class="field col-span-full min-w-0 m-0 rounded-xl border border-line bg-surface-sunken p-3.5 max-[640px]:p-3">
         {tr('Key name')}
         <Input type="text" required bind:value={editName} />
       </label>
-      <div class="api-key-edit-section api-key-scope-field">
+      <div class="col-span-full min-w-0 m-0 rounded-xl border border-line bg-surface-sunken p-3.5 max-[640px]:p-3 max-[640px]:col-span-1 [&_.scope-fields]:grid-cols-2! max-[640px]:[&_.scope-fields]:grid-cols-1! [&_.api-key-scope-models]:col-span-full! [&_.api-key-scope-providers]:col-span-full! [&_.scope-rules]:min-h-[106px]!">
         <ApiKeyScopeFields
           {tr}
           providers={providerOptions}
@@ -350,14 +349,14 @@
           bind:modelRules={editModels}
         />
       </div>
-      <label class="api-key-edit-section api-key-enabled-field">
+      <label class="col-span-full flex min-w-0 m-0 items-center gap-[11px] rounded-xl border border-line bg-surface-sunken p-3.5 cursor-pointer max-[640px]:p-3 focus-within:outline-2 focus-within:outline-accent focus-within:outline-offset-2">
         <Input type="checkbox" bind:checked={editEnabled} />
         <span>
           <strong>{tr('Key enabled')}</strong>
         </span>
       </label>
     </div>
-    <div class="modal-actions api-key-edit-actions">
+    <div class="modal-actions pt-3 border-t border-line">
       <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
       <Button class="page-action primary" type="submit" disabled={busy}>{tr('Save')}</Button>
     </div>

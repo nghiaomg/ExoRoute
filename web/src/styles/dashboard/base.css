@@ -63,32 +63,6 @@
         color: inherit;
       }
 
-      .dashboard-app .poster {
-        position: relative;
-        min-height: 100svh;
-        background: var(--db-tint-strong);
-      }
-
-      .dashboard-app .dashboard-card {
-        position: relative;
-        width: 100%;
-        min-height: 100svh;
-        padding: 0;
-        background: var(--db-tint-strong);
-        container-type: inline-size;
-      }
-
-      .dashboard-app .app-layout {
-        --shell-header-row: 68px;
-        display: grid;
-        width: 100%;
-        height: 100svh;
-        min-height: max(700px, 100svh);
-        min-width: 0;
-        grid-template-columns: 20.4% minmax(0, 1fr);
-        gap: 1.5%;
-      }
-
       .dashboard-app .icon-library {
         position: absolute;
         width: 0;
@@ -108,71 +82,13 @@
         stroke-width: 1.8;
       }
 
-      .dashboard-app .sidebar {
-        display: grid;
-        width: auto;
-        height: auto;
-        min-width: 0;
-        min-height: 0;
-        padding: 0;
-        grid-template-rows: var(--shell-header-row) minmax(0, 1fr);
-        gap: clamp(10px, 1.32vw, 18px);
-      }
-
-      .dashboard-app .brand-card,
-  .dashboard-app .side-panel,
-  .dashboard-app .topbar,
-  .dashboard-app .surface {
+      .dashboard-app .surface {
         border: 0;
         background: var(--surface);
         box-shadow: none;
       }
 
-      .dashboard-app .brand-card {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 8%;
-        border-radius: 15px;
-      }
-
-      .dashboard-app .brand {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 7px;
-        color: var(--ink);
-        font-size: var(--type-section-title);
-        font-weight: var(--weight-bold);
-        letter-spacing: var(--tracking-tight);
-      }
-
-      .dashboard-app .brand-mark {
-        width: clamp(25px, 2.05vw, 29px);
-        height: clamp(25px, 2.05vw, 29px);
-        flex: 0 0 auto;
-        overflow: visible;
-      }
-
-      .dashboard-app .brand-version {
-        flex: 0 0 auto;
-        align-self: center;
-        margin-left: 2px;
-        padding: 3px 5px;
-        border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
-        border-radius: 4px;
-        background: color-mix(in srgb, var(--accent) 8%, transparent);
-        color: var(--accent-strong);
-        font-size: 12px;
-        font-weight: var(--weight-bold);
-        letter-spacing: 0.3px;
-        line-height: 1;
-        white-space: nowrap;
-      }
-
-      .dashboard-app .collapse-button,
-  .dashboard-app .icon-button {
+      .dashboard-app .icon-button {
         display: inline-grid;
         width: clamp(29px, 2.8vw, 38px);
         height: clamp(29px, 2.8vw, 38px);
@@ -184,29 +100,6 @@
         color: var(--muted);
       }
 
-      .dashboard-app .collapse-button {
-        width: 25px;
-        height: 25px;
-        color: var(--text-dim);
-      }
-
-      .dashboard-app .collapse-button .icon {
-        width: 13px;
-        height: 13px;
-      }
-
-      .dashboard-app .side-panel {
-        display: flex;
-        min-height: 0;
-        flex-direction: column;
-        padding: 5.8% 6.5%;
-        border-radius: 17px;
-      }
-
-      .dashboard-app .nav-section + .nav-section {
-        margin-top: 5.5%;
-      }
-
       .dashboard-app .eyebrow {
         margin: 0 0 8px 7px;
         color: var(--muted);
@@ -214,165 +107,6 @@
         font-weight: var(--weight-semibold);
         letter-spacing: var(--tracking-caps);
         text-transform: uppercase;
-      }
-
-      .dashboard-app .nav-list {
-        display: grid;
-        gap: 2px;
-      }
-
-      .dashboard-app .nav-button {
-        position: relative;
-        display: flex;
-        width: 100%;
-        min-width: 0;
-        min-height: clamp(32px, 3.45vw, 46px);
-        align-items: center;
-        gap: 9px;
-        padding: 0 7px;
-        border: 0;
-        border-radius: 999px;
-        background: transparent;
-        color: var(--ink);
-        cursor: pointer;
-        text-align: left;
-      }
-
-      .dashboard-app .nav-button:hover {
-        background: var(--db-tint-strong);
-      }
-
-      .dashboard-app .nav-button.active {
-        background: linear-gradient(90deg, var(--db-accent-tint), var(--db-accent-tint));
-        color: var(--accent-strong);
-      }
-
-      .dashboard-app .nav-icon {
-        display: grid;
-        width: clamp(27px, 2.55vw, 35px);
-        height: clamp(27px, 2.55vw, 35px);
-        flex: 0 0 auto;
-        place-items: center;
-        border-radius: 50%;
-        background: var(--line);
-        color: var(--muted);
-      }
-
-      .dashboard-app .nav-button.active .nav-icon {
-        background: var(--accent);
-        color: var(--accent-contrast);
-      }
-
-      .dashboard-app .nav-icon .icon {
-        width: 53%;
-        height: 53%;
-      }
-
-      .dashboard-app .nav-label {
-        overflow: hidden;
-        font-size: var(--type-body);
-        font-weight: var(--weight-medium);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .dashboard-app .nav-count {
-        display: grid;
-        min-width: 19px;
-        height: 19px;
-        flex: 0 0 auto;
-        margin-left: auto;
-        /* Declared here so the legacy global .nav-count padding (2px 7px)
-           cannot shrink the content box and push multi-digit counts off center. */
-        padding: 0 4px;
-        place-items: center;
-        border-radius: 999px;
-        background: var(--ink);
-        color: var(--canvas);
-        font-size: var(--type-caption);
-        font-weight: var(--weight-semibold);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .dashboard-app .nav-button.active .nav-count {
-        background: var(--accent);
-      }
-
-      .dashboard-app .logout {
-        margin-top: 3.5%;
-        color: var(--accent);
-      }
-
-      .dashboard-app .logout .nav-icon {
-        background: var(--accent);
-        color: var(--accent-contrast);
-      }
-
-      .dashboard-app .mobile-ad {
-        position: relative;
-        display: flex;
-        min-height: 68px;
-        flex-direction: column;
-        justify-content: space-between;
-        overflow: hidden;
-        margin-top: auto;
-        padding: 9px 11px;
-        border-radius: 12px;
-        background:
-          linear-gradient(132deg, transparent 57%, #2b1715 57.5%, #50201a 100%),
-          linear-gradient(110deg, #612317, #a43b22 58%, #762a1b);
-        color: var(--accent-contrast);
-      }
-
-      .dashboard-app .mobile-ad::after {
-        position: absolute;
-        right: -23px;
-        bottom: -48px;
-        width: 120px;
-        height: 105px;
-        transform: rotate(-32deg);
-        border: 1px solid #ffb09222;
-        border-radius: 50%;
-        content: "";
-      }
-
-      .dashboard-app .mobile-ad strong {
-        max-width: 160px;
-        font-size: var(--type-section-title);
-        font-weight: var(--weight-medium);
-        line-height: 1.1;
-      }
-
-      .dashboard-app .mobile-ad button {
-        z-index: 1;
-        width: fit-content;
-        padding: 5px 13px;
-        border: 0;
-        border-radius: 999px;
-        background: var(--accent);
-        color: white;
-        font-size: var(--type-caption);
-        font-weight: var(--weight-semibold);
-      }
-
-      .dashboard-app .main-area {
-        display: grid;
-        width: auto;
-        min-width: 0;
-        min-height: 0;
-        grid-template-rows: var(--shell-header-row) minmax(0, 1fr);
-        gap: 1.8%;
-      }
-
-      .dashboard-app .topbar {
-        display: flex;
-        height: 100%;
-        min-width: 0;
-        align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        padding: 0 2.3%;
-        border-radius: 16px;
       }
 
       .dashboard-app .search-box {
@@ -408,13 +142,6 @@
         color: var(--muted);
       }
 
-      .dashboard-app .top-actions {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: clamp(8px, 1.2vw, 17px);
-      }
-
       .dashboard-app .top-actions .icon-button {
         position: relative;
         width: clamp(30px, 3vw, 42px);
@@ -438,72 +165,6 @@
       .dashboard-app .lang-select:focus-visible {
         outline: 0;
         box-shadow: 0 0 0 3px var(--db-accent-ring);
-      }
-
-      .dashboard-app .top-actions .icon {
-        width: 46%;
-        height: 46%;
-      }
-
-      .dashboard-app .notification-dot {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 6px;
-        height: 6px;
-        border: 1px solid white;
-        border-radius: 50%;
-        background: var(--accent);
-      }
-
-      .dashboard-app .top-divider {
-        width: 1px;
-        height: 24px;
-        background: var(--line);
-      }
-
-      .dashboard-app .profile {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .dashboard-app .avatar {
-        width: clamp(32px, 3.1vw, 43px);
-        height: clamp(32px, 3.1vw, 43px);
-        flex: 0 0 auto;
-        overflow: hidden;
-        border: 2px solid var(--line);
-        border-radius: 50%;
-        background: linear-gradient(140deg, var(--text-dim), var(--text-dim));
-      }
-
-      .dashboard-app .profile-copy {
-        display: grid;
-        gap: 3px;
-        line-height: 1.15;
-        white-space: nowrap;
-      }
-
-      .dashboard-app .profile-copy strong {
-        overflow: hidden;
-        font-size: var(--type-label);
-        font-weight: var(--weight-semibold);
-        text-overflow: ellipsis;
-      }
-
-      .dashboard-app .profile-copy span {
-        color: var(--muted);
-        font-size: var(--type-meta);
-      }
-
-      .dashboard-app .content {
-        display: grid;
-        min-width: 0;
-        min-height: 0;
-        grid-template-rows: 7.4% minmax(0, 1fr);
-        gap: 1.8%;
       }
 
       .dashboard-app .page-heading {
@@ -588,14 +249,6 @@
         height: 54%;
       }
 
-      .dashboard-app .dashboard-content {
-        display: grid;
-        min-width: 0;
-        min-height: 0;
-        grid-template-rows: 0.76fr 1.45fr 1fr;
-        gap: 2.2%;
-      }
-
       .dashboard-app .stats-grid {
         display: grid;
         min-height: 0;
@@ -603,68 +256,9 @@
         gap: 2%;
       }
 
-      .dashboard-app .stat-card {
-        display: flex;
-        min-width: 0;
-        flex-direction: column;
-        justify-content: center;
-        padding: 24px;
-        border-radius: 17px;
-      }
-
-      .dashboard-app .stat-top {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .dashboard-app .stat-icon {
-        display: grid;
-        width: clamp(29px, 3vw, 41px);
-        height: clamp(29px, 3vw, 41px);
-        flex: 0 0 auto;
-        place-items: center;
-        border-radius: 50%;
-        background: var(--db-tint-strong);
-        color: var(--muted);
-      }
-
       .dashboard-app .stat-icon .icon {
         width: 47%;
         height: 47%;
-      }
-
-      .dashboard-app .stat-number {
-        overflow: hidden;
-        color: var(--ink);
-        font-size: var(--type-kpi);
-        font-weight: var(--weight-bold);
-        font-variant-numeric: tabular-nums;
-        letter-spacing: var(--tracking-tight);
-        line-height: 1;
-        text-overflow: ellipsis;
-      }
-
-      .dashboard-app .stat-card h2 {
-        overflow: hidden;
-        margin: 8px 0 4px;
-        color: var(--ink);
-        font-size: var(--type-label);
-        font-weight: var(--weight-semibold);
-        letter-spacing: var(--tracking-label);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .dashboard-app .stat-trend {
-        display: block;
-        min-width: 0;
-        overflow: hidden;
-        color: var(--muted);
-        font-size: var(--type-meta);
-        line-height: var(--leading-body);
-        white-space: nowrap;
       }
 
       .dashboard-app .stat-trend .icon {
@@ -693,14 +287,6 @@
         height: 11px;
       }
 
-      .dashboard-app .middle-grid {
-        display: grid;
-        min-width: 0;
-        min-height: 0;
-        grid-template-columns: 1fr 1.02fr;
-        gap: 2%;
-      }
-
       .dashboard-app .surface {
         min-width: 0;
         min-height: 0;
@@ -708,10 +294,7 @@
         border-radius: 17px;
       }
 
-      .dashboard-app .chart-card,
-  .dashboard-app .course-card,
-  .dashboard-app .assignment-card,
-  .dashboard-app .community-card {
+      .dashboard-app .course-card {
         padding: 24px;
       }
 
@@ -742,85 +325,6 @@
         line-height: var(--leading-body);
         text-overflow: ellipsis;
         white-space: nowrap;
-      }
-
-      .dashboard-app .chart-plot {
-        display: grid;
-        min-height: 0;
-        height: calc(100% - 48px);
-        grid-template-columns: 35px minmax(0, 1fr);
-        grid-template-rows: minmax(0, 1fr) 17px;
-        column-gap: 7px;
-      }
-
-      .dashboard-app .y-axis {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        padding: 2px 0 1px;
-        color: var(--muted);
-        font-size: var(--type-caption);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .dashboard-app .bar-chart {
-        position: relative;
-        display: flex;
-        min-height: 0;
-        align-items: end;
-        justify-content: space-around;
-        gap: 14px;
-        padding: 8px 12px 0;
-        background: repeating-linear-gradient(
-          to bottom,
-          transparent 0,
-          transparent calc(25% - 1px),
-          var(--line) calc(25% - 1px),
-          var(--line) 25%
-        );
-      }
-
-      .dashboard-app .bar {
-        position: relative;
-        display: flex;
-        width: 22%;
-        height: 100%;
-        align-items: end;
-        justify-content: center;
-      }
-
-      .dashboard-app .bar span {
-        width: 100%;
-        height: var(--bar);
-        border-radius: 5px 5px 0 0;
-        background: var(--mint);
-      }
-
-      .dashboard-app .bar:nth-child(2) span {
-        background: var(--accent);
-      }
-
-      .dashboard-app .bar:nth-child(3) span {
-        background: var(--info);
-      }
-
-      .dashboard-app .bar-value {
-        position: absolute;
-        bottom: calc(var(--bar) + 4px);
-        color: var(--ink);
-        font-size: var(--type-caption);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .dashboard-app .bar-labels {
-        display: flex;
-        grid-column: 2;
-        align-items: end;
-        justify-content: space-around;
-        color: var(--muted);
-        font-size: var(--type-caption);
-        line-height: var(--leading-tight);
-        text-align: center;
       }
 
       .dashboard-app .course-card {
@@ -934,107 +438,6 @@
         color: var(--muted);
       }
 
-      .dashboard-app .bottom-grid {
-        display: grid;
-        min-width: 0;
-        min-height: 0;
-        grid-template-columns: 3fr 1fr;
-        gap: 2%;
-      }
-
-      .dashboard-app .assignment-card {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .dashboard-app .assignment-card h2,
-  .dashboard-app .community-card h2 {
-        overflow: hidden;
-        margin: 0;
-        color: var(--ink);
-        font-size: var(--type-section-title);
-        font-weight: var(--weight-semibold);
-        letter-spacing: var(--tracking-tight);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .dashboard-app .assignment-content {
-        display: grid;
-        min-height: 0;
-        flex: 1;
-        grid-template-columns: 1fr 1.22fr;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .dashboard-app .legend-list {
-        display: grid;
-        gap: 8px;
-        padding-top: 5px;
-      }
-
-      .dashboard-app .legend-row {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 8px;
-        color: var(--muted);
-        font-size: var(--type-meta);
-        white-space: nowrap;
-      }
-
-      .dashboard-app .legend-row strong {
-        color: var(--ink);
-        font-size: var(--type-label);
-        font-weight: var(--weight-semibold);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .dashboard-app .legend-dot {
-        width: 10px;
-        height: 10px;
-        flex: 0 0 auto;
-        border-radius: 1px;
-      }
-
-      .dashboard-app .legend-dot.orange {
-        background: var(--accent);
-      }
-
-      .dashboard-app .legend-dot.ink {
-        background: var(--ink);
-      }
-
-      .dashboard-app .legend-dot.green {
-        background: var(--mint);
-      }
-
-      .dashboard-app .legend-dot.blue {
-        background: var(--info);
-      }
-
-      .dashboard-app .gauge {
-        display: block;
-        width: 100%;
-        max-width: 310px;
-        max-height: 100%;
-        justify-self: center;
-      }
-
-      .dashboard-app .community-card {
-        display: flex;
-        flex-direction: column;
-        gap: 9px;
-      }
-
-      .dashboard-app .community-heading {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-      }
-
       .dashboard-app .community-heading .icon-button {
         width: 26px;
         height: 26px;
@@ -1046,139 +449,9 @@
         height: 13px;
       }
 
-      .dashboard-app .community-link {
-        display: flex;
-        min-width: 0;
-        flex: 1;
-        align-items: center;
-        gap: 9px;
-        padding: 7px;
-        border-radius: 10px;
-        background: var(--db-tint-strong);
-      }
-
-      .dashboard-app .community-logo {
-        display: grid;
-        width: 35px;
-        height: 35px;
-        flex: 0 0 auto;
-        place-items: center;
-        border-radius: 9px;
-        background: var(--surface);
-        color: var(--mint);
-        font-size: 20px;
-        font-weight: 700;
-      }
-
-      .dashboard-app .community-logo.discord {
-        color: var(--info);
-        font-size: 16px;
-      }
-
-      .dashboard-app .community-copy {
-        display: grid;
-        min-width: 0;
-        gap: 3px;
-      }
-
-      .dashboard-app .community-copy strong {
-        overflow: hidden;
-        color: var(--ink);
-        font-size: var(--type-meta);
-        font-weight: var(--weight-semibold);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .dashboard-app .community-copy span {
-        overflow: hidden;
-        color: var(--muted);
-        font-size: var(--type-caption);
-        line-height: var(--leading-body);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
       @container (max-width: 920px) {
-        .dashboard-app .app-layout {
-          gap: 12px;
-        }
 
-        .dashboard-app .sidebar {
-          grid-template-rows: var(--shell-header-row) minmax(0, 1fr);
-        }
-
-        .dashboard-app .side-panel {
-          padding: 9px;
-        }
-
-        .dashboard-app .brand {
-          font-size: var(--type-section-title);
-        }
-
-        .dashboard-app .brand > span:not(.brand-version) {
-          min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .dashboard-app .brand-version { display: none; }
-
-        .dashboard-app .nav-section + .nav-section {
-          margin-top: 9px;
-        }
-
-        .dashboard-app .nav-button {
-          min-height: 30px;
-          gap: 6px;
-          padding: 0 4px;
-        }
-
-        .dashboard-app .nav-icon {
-          width: 26px;
-          height: 26px;
-        }
-
-        .dashboard-app .nav-label {
-          font-size: var(--type-body);
-        }
-
-        .dashboard-app .nav-count {
-          min-width: 16px;
-          height: 16px;
-          padding: 0 3px;
-          font-size: var(--type-caption);
-        }
-
-        .dashboard-app .mobile-ad {
-          min-height: 62px;
-        }
-
-        .dashboard-app .stat-card {
-          padding: 24px;
-        }
-
-        .dashboard-app .stat-top {
-          gap: 7px;
-        }
-
-        .dashboard-app .stat-icon {
-          width: 28px;
-          height: 28px;
-        }
-
-        .dashboard-app .stat-number {
-          font-size: var(--type-kpi);
-        }
-
-        .dashboard-app .stat-card h2 {
-          margin-top: 8px;
-          font-size: var(--type-label);
-        }
-
-        .dashboard-app .stat-trend,
-  .dashboard-app .details-link {
+        .dashboard-app .details-link {
           font-size: var(--type-meta);
         }
 
@@ -1187,8 +460,7 @@
           padding: 5px 6px;
         }
 
-        .dashboard-app .course-icon,
-  .dashboard-app .community-logo {
+        .dashboard-app .course-icon {
           width: 27px;
           height: 27px;
         }
@@ -1206,16 +478,11 @@
           font-size: var(--type-caption);
         }
 
-        .dashboard-app .chart-card,
-  .dashboard-app .course-card,
-  .dashboard-app .assignment-card,
-  .dashboard-app .community-card {
+        .dashboard-app .course-card {
           padding: 24px;
         }
 
-        .dashboard-app .card-title-row h2,
-  .dashboard-app .assignment-card h2,
-  .dashboard-app .community-card h2 {
+        .dashboard-app .card-title-row h2 {
           font-size: var(--type-section-title);
         }
 
@@ -1223,139 +490,9 @@
           margin-bottom: 7px;
           font-size: var(--type-meta);
         }
-
-        .dashboard-app .legend-list {
-          gap: 5px;
-        }
-
-        .dashboard-app .legend-row {
-          gap: 5px;
-          font-size: var(--type-meta);
-        }
-
-        .dashboard-app .legend-row strong {
-          font-size: var(--type-label);
-        }
-
-        .dashboard-app .legend-dot {
-          width: 7px;
-          height: 7px;
-        }
-
-        .dashboard-app .community-card {
-          gap: 6px;
-        }
-
-        .dashboard-app .community-link {
-          gap: 5px;
-          padding: 5px;
-        }
-
-        .dashboard-app .community-copy strong {
-          font-size: var(--type-meta);
-        }
-
-        .dashboard-app .community-copy span {
-          font-size: var(--type-caption);
-        }
       }
 
       @media (max-width: 680px) {
-        .dashboard-app .poster {
-          display: block;
-          min-height: 100svh;
-          overflow: visible;
-          padding: 0;
-        }
-
-        .dashboard-app .dashboard-card {
-          position: relative;
-          top: auto;
-          left: auto;
-          width: 100%;
-          height: auto;
-          min-height: 100svh;
-          aspect-ratio: auto;
-          margin: 0;
-          padding: 12px;
-          transform: none;
-        }
-
-        .dashboard-app .app-layout {
-          height: auto;
-          min-height: 100svh;
-          grid-template-columns: minmax(0, 1fr);
-          gap: 10px;
-        }
-
-        .dashboard-app .sidebar {
-          grid-template-rows: 54px auto;
-          gap: 9px;
-        }
-
-        .dashboard-app .brand-card {
-          padding: 0 14px;
-        }
-
-        .dashboard-app .brand {
-          font-size: var(--type-section-title);
-        }
-
-        .dashboard-app .brand-mark {
-          width: 27px;
-          height: 27px;
-        }
-
-        .dashboard-app .side-panel {
-          display: block;
-          padding: 10px;
-        }
-
-        .dashboard-app .nav-section + .nav-section {
-          margin-top: 10px;
-        }
-
-        .dashboard-app .nav-list {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 3px;
-        }
-
-        .dashboard-app .nav-button {
-          min-height: 38px;
-          gap: 7px;
-          padding: 0 6px;
-        }
-
-        .dashboard-app .nav-icon {
-          width: 29px;
-          height: 29px;
-        }
-
-        .dashboard-app .nav-label {
-          font-size: var(--type-body);
-        }
-
-        .dashboard-app .nav-count {
-          min-width: 18px;
-          height: 18px;
-          padding: 0 3px;
-          font-size: var(--type-caption);
-        }
-
-        .dashboard-app .mobile-ad {
-          display: none;
-        }
-
-        .dashboard-app .main-area {
-          grid-template-rows: 56px auto;
-          gap: 10px;
-        }
-
-        .dashboard-app .topbar {
-          gap: 8px;
-          padding: 0 9px;
-          border-radius: 13px;
-        }
 
         .dashboard-app .search-box {
           width: 43%;
@@ -1367,40 +504,9 @@
           font-size: var(--type-body);
         }
 
-        .dashboard-app .top-actions {
-          gap: 6px;
-        }
-
         .dashboard-app .top-actions .icon-button {
           width: 30px;
           height: 30px;
-        }
-
-        .dashboard-app .top-divider {
-          height: 20px;
-        }
-
-        .dashboard-app .profile {
-          gap: 6px;
-        }
-
-        .dashboard-app .avatar {
-          width: 31px;
-          height: 31px;
-        }
-
-        .dashboard-app .profile-copy strong {
-          max-width: 78px;
-          font-size: var(--type-label);
-        }
-
-        .dashboard-app .profile-copy span {
-          font-size: var(--type-meta);
-        }
-
-        .dashboard-app .content {
-          grid-template-rows: auto auto;
-          gap: 12px;
         }
 
         .dashboard-app .page-heading {
@@ -1438,44 +544,9 @@
           display: none;
         }
 
-        .dashboard-app .dashboard-content {
-          grid-template-rows: auto auto auto;
-          gap: 10px;
-        }
-
         .dashboard-app .stats-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 8px;
-        }
-
-        .dashboard-app .stat-card {
-          min-height: 116px;
-          padding: 16px;
-          border-radius: 13px;
-        }
-
-        .dashboard-app .stat-top {
-          gap: 9px;
-        }
-
-        .dashboard-app .stat-icon {
-          width: 34px;
-          height: 34px;
-        }
-
-        .dashboard-app .stat-number {
-          font-size: var(--type-kpi);
-        }
-
-        .dashboard-app .stat-card h2 {
-          margin: 8px 0 4px;
-          font-size: var(--type-label);
-          overflow: visible;
-          white-space: normal;
-        }
-
-        .dashboard-app .stat-trend {
-          font-size: var(--type-meta);
         }
 
         .dashboard-app .details-link {
@@ -1483,41 +554,19 @@
           font-size: var(--type-meta);
         }
 
-        .dashboard-app .middle-grid,
-  .dashboard-app .bottom-grid {
-          grid-template-columns: minmax(0, 1fr);
-          gap: 10px;
-        }
-
-        .dashboard-app .chart-card,
-  .dashboard-app .course-card,
-  .dashboard-app .assignment-card,
-  .dashboard-app .community-card {
+        .dashboard-app .course-card {
           min-height: 250px;
           padding: 16px;
           border-radius: 13px;
         }
 
-        .dashboard-app .card-title-row h2,
-  .dashboard-app .assignment-card h2,
-  .dashboard-app .community-card h2 {
+        .dashboard-app .card-title-row h2 {
           font-size: var(--type-section-title);
         }
 
         .dashboard-app .card-subtitle {
           margin-bottom: 10px;
           font-size: var(--type-meta);
-        }
-
-        .dashboard-app .chart-plot {
-          height: 180px;
-          grid-template-columns: 40px minmax(0, 1fr);
-          grid-template-rows: minmax(0, 1fr) 18px;
-        }
-
-        .dashboard-app .y-axis,
-  .dashboard-app .bar-labels {
-          font-size: var(--type-caption);
         }
 
         .dashboard-app .course-card {
@@ -1555,62 +604,6 @@
           padding: 5px 8px;
           font-size: var(--type-caption);
         }
-
-        .dashboard-app .assignment-card {
-          min-height: 225px;
-        }
-
-        .dashboard-app .assignment-content {
-          grid-template-columns: 1fr 1fr;
-        }
-
-        .dashboard-app .legend-list {
-          gap: 9px;
-        }
-
-        .dashboard-app .legend-row {
-          gap: 7px;
-          font-size: var(--type-meta);
-        }
-
-        .dashboard-app .legend-row strong {
-          font-size: var(--type-label);
-        }
-
-        .dashboard-app .legend-dot {
-          width: 8px;
-          height: 8px;
-        }
-
-        .dashboard-app .community-card {
-          min-height: 180px;
-        }
-
-        .dashboard-app .community-link {
-          gap: 9px;
-          padding: 8px;
-        }
-
-        .dashboard-app .community-logo {
-          width: 36px;
-          height: 36px;
-        }
-
-        .dashboard-app .community-copy strong {
-          font-size: var(--type-meta);
-        }
-
-        .dashboard-app .community-copy span {
-          font-size: var(--type-caption);
-        }
-      }
-
-      @media (prefers-reduced-motion: no-preference) {
-        .dashboard-app .nav-button {
-          transition:
-            background-color 140ms ease,
-            color 140ms ease;
-        }
       }
 
       .dashboard-app [hidden] {
@@ -1636,21 +629,6 @@
         gap: 13px;
         overflow: auto;
         padding: 2px 1px 4px;
-      }
-
-      .dashboard-app .page-intro {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      .dashboard-app .page-intro p {
-        margin: 0;
-        color: var(--muted);
-        font-size: var(--type-body);
-        line-height: var(--leading-body);
       }
 
       .dashboard-app .page-toolbar {
@@ -2113,27 +1091,7 @@
         padding-top: 3px;
       }
 
-      .dashboard-app .toast {
-        position: fixed;
-        z-index: 20;
-        right: 20px;
-        bottom: 20px;
-        max-width: min(380px, calc(100vw - 40px));
-        padding: 12px 16px;
-        border: 1px solid var(--ink);
-        border-radius: 12px;
-        background: var(--ink);
-        box-shadow: 0 10px 30px #0003;
-        color: var(--canvas);
-        font-size: var(--type-body);
-        line-height: 1.4;
-      }
-
       @media (max-width: 680px) {
-        .dashboard-app .page-intro {
-          align-items: flex-start;
-          flex-direction: column;
-        }
 
         .dashboard-app .page-toolbar {
           width: 100%;
@@ -2209,195 +1167,21 @@
       /* overview.html additions on top of the shared main.html design system */
       .dashboard-app .status.error { background: var(--db-danger-tint); color: var(--db-danger); }
       .dashboard-app .community-logo .icon { width: 55%; height: 55%; }
-      .dashboard-app .community-logo svg { display: block; }
-      .dashboard-app .nav-button[aria-current="page"] { cursor: default; }
-
-      /* Fixed sidebar (desktop): pinned to the viewport edge — the card
-         carries no padding — while .main-area takes the remaining width. */
-      @media (min-width: 681px) {
-        .dashboard-app .app-layout {
-          display: block;
-          height: 100svh;
-          min-height: max(700px, 100svh);
-          min-width: 0;
-        }
-        .dashboard-app .sidebar {
-          position: fixed;
-          top: 0;
-          bottom: 0;
-          left: 0;
-          width: calc(100vw * 0.204);
-          z-index: 40;
-          transition: width 0.22s ease;
-        }
-        .dashboard-app .main-area {
-          height: 100%;
-          min-height: 0;
-          min-width: 0;
-          margin-left: calc(100vw * 0.219);
-          display: grid;
-          grid-template-rows: var(--shell-header-row) minmax(0, 1fr);
-          gap: 1.8%;
-        }
-      }
-      .dashboard-app .side-panel { overflow-y: auto; }
-      .dashboard-app .mobile-menu-btn { display: none; }
-
-      /* Collapsed rail (desktop only) */
-      @media (min-width: 681px) {
-        .dashboard-app .app-layout.collapsed { --shell-header-row: 80px; }
-        .dashboard-app .app-layout.collapsed .sidebar {
-          width: 78px;
-          grid-template-rows: var(--shell-header-row) minmax(0, 1fr);
-        }
-        .dashboard-app .app-layout.collapsed .main-area {
-          margin-left: calc(78px + 14px);
-          grid-template-rows: var(--shell-header-row) minmax(0, 1fr);
-        }
-        .dashboard-app .app-layout.collapsed .brand-card {
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 4px;
-        }
-        .dashboard-app .app-layout.collapsed .brand { justify-content: center; }
-        .dashboard-app .app-layout.collapsed .brand span,
-  .dashboard-app .app-layout.collapsed .eyebrow,
-  .dashboard-app .app-layout.collapsed .nav-label,
-  .dashboard-app .app-layout.collapsed .nav-count,
-  .dashboard-app .app-layout.collapsed .logout .nav-label { display: none; }
-        .dashboard-app .app-layout.collapsed .side-panel {
-          padding: 10px 8px;
-          align-items: center;
-        }
-        .dashboard-app .app-layout.collapsed .nav-list { justify-items: center; }
-        .dashboard-app .app-layout.collapsed .nav-button {
-          justify-content: center;
-          min-height: 40px;
-          padding: 0;
-        }
-        .dashboard-app .app-layout.collapsed .nav-icon { width: 34px; height: 34px; }
-        .dashboard-app .app-layout.collapsed .collapse-button .icon { transform: rotate(180deg); }
-      }
-
-      /* Mobile: sidebar becomes an off-canvas drawer toggled from the topbar */
-      @media (max-width: 680px) {
-        .dashboard-app .app-layout { height: auto; min-height: 100svh; }
-        .dashboard-app .sidebar {
-          position: fixed;
-          top: 12px;
-          bottom: 12px;
-          left: 12px;
-          width: min(300px, 84vw);
-          height: auto;
-          z-index: 50;
-          transform: translateX(-115%);
-          transition: transform 0.24s ease;
-        }
-        .dashboard-app .sidebar.open { transform: none; }
-        .dashboard-app .sidebar-backdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 45;
-          background: #12182066;
-          backdrop-filter: blur(2px);
-        }
-        .dashboard-app .main-area {
-          height: auto;
-          min-height: 100svh;
-          margin-left: 0;
-        }
-        .dashboard-app .mobile-menu-btn {
-          display: inline-grid;
-          place-items: center;
-          width: 38px;
-          height: 38px;
-          flex: 0 0 auto;
-          border: 0;
-          border-radius: 50%;
-          background: var(--db-tint-strong);
-          color: var(--muted);
-        }
-        .dashboard-app .side-panel { display: flex; flex-direction: column; }
-        .dashboard-app .nav-list { grid-template-columns: minmax(0, 1fr); }
-        .dashboard-app .collapse-button { display: none; }
-      }
-
-      /* Custom slim scrollbars for the scrollable regions */
-      .dashboard-app .content,
-  .dashboard-app .side-panel {
-        scrollbar-width: thin;
-        scrollbar-color: var(--text-dim) transparent;
-      }
-      .dashboard-app .content::-webkit-scrollbar,
-  .dashboard-app .side-panel::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      .dashboard-app .content::-webkit-scrollbar-track,
-  .dashboard-app .side-panel::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .dashboard-app .content::-webkit-scrollbar-thumb,
-  .dashboard-app .side-panel::-webkit-scrollbar-thumb {
-        border: 2px solid transparent;
-        border-radius: 999px;
-        background: var(--text-dim);
-        background-clip: padding-box;
-      }
-      .dashboard-app .content::-webkit-scrollbar-thumb:hover,
-  .dashboard-app .side-panel::-webkit-scrollbar-thumb:hover {
-        background: var(--text-dim);
-        background-clip: padding-box;
-      }
-      .dashboard-app .content::-webkit-scrollbar-corner,
-  .dashboard-app .side-panel::-webkit-scrollbar-corner {
-        background: transparent;
-      }
 
       /* Desktop: the whole content column (page heading + dashboard) scrolls
          together; rows size to their content instead of fixed viewport
          fractions, so nothing is clipped. */
       @media (min-width: 681px) {
-        .dashboard-app .content {
-          display: flex;
-          flex-direction: column;
-          gap: 1.8%;
-          height: 100%;
-          min-height: 0;
-          overflow-y: auto;
-          scrollbar-width: thin;
-        }
         /* Flex items must not shrink below their content: the container
            scrolls instead of compressing the dashboard rows into each other. */
-        .dashboard-app .content > * { flex-shrink: 0; }
-        .dashboard-app .dashboard-content {
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-          overflow: visible;
-        }
-        .dashboard-app .dashboard-content > * { min-width: 0; flex-shrink: 0; }
-        .dashboard-app .chart-plot { height: 230px; }
-        .dashboard-app .chart-card { min-height: 290px; }
         .dashboard-app .course-card { min-height: 260px; }
-        .dashboard-app .bottom-grid { align-items: stretch; }
-        .dashboard-app .assignment-card,
-  .dashboard-app .community-card { min-height: 0; }
       }
 
       /* Hover states across overview components */
-      .dashboard-app .stat-card,
-  .dashboard-app .chart-card,
-  .dashboard-app .course-card,
-  .dashboard-app .assignment-card,
-  .dashboard-app .community-card {
+      .dashboard-app .course-card {
         transition:
           transform 0.18s ease,
           box-shadow 0.18s ease;
-      }
-      .dashboard-app .stat-card:hover {
-        transform: translateY(-2px);
       }
 
       .dashboard-app .action-button {
@@ -2425,16 +1209,12 @@
       }
       .dashboard-app .course-row:hover { background: var(--surface-sunken); }
 
-      .dashboard-app .community-link { transition: background-color 0.15s ease; }
-      .dashboard-app .community-link:hover { background: var(--surface-sunken); }
-
       .dashboard-app .icon-button { transition: background-color 0.15s ease, color 0.15s ease; }
       .dashboard-app .top-actions .icon-button:hover,
   .dashboard-app .community-heading .icon-button:hover {
         background: var(--line);
         color: var(--muted);
       }
-      .dashboard-app .collapse-button:hover { background: var(--line); color: var(--text-dim); }
 
       .dashboard-app .search-box { transition: background-color 0.15s ease; }
       .dashboard-app .search-box:focus-within { background: var(--surface-sunken); }
@@ -2443,70 +1223,18 @@
       .dashboard-app .status.progress:hover { filter: saturate(1.15); }
       .dashboard-app .status.error:hover { filter: saturate(1.15); }
 
-      .dashboard-app .nav-button:active { transform: scale(0.98); }
-      .dashboard-app a.nav-button {
-        font: inherit;
-        text-decoration: none;
-        cursor: pointer;
-      }
-
       /* ── Richer hover layer ─────────────────────────────────────────── */
-      .dashboard-app .stat-card {
-        position: relative;
-        overflow: hidden;
-      }
-      .dashboard-app .stat-card::after {
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        background: linear-gradient(120deg, transparent 30%, var(--db-accent-ring) 100%);
-        opacity: 0;
-        transition: opacity 0.25s ease;
-        pointer-events: none;
-        content: "";
-      }
-      .dashboard-app .stat-card:hover::after { opacity: 1; }
-      .dashboard-app .stat-card .stat-icon {
-        transition:
-          background-color 0.2s ease,
-          color 0.2s ease,
-          transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      .dashboard-app .stat-card:hover .stat-icon {
-        background: var(--accent);
-        color: var(--accent-contrast);
-        transform: scale(1.08) rotate(-6deg);
-      }
       /* Variant 05 · Number pulse — metric scales & glows on hover */
-      .dashboard-app .stat-card .stat-number {
-        transform-origin: right center;
-        transition:
-          color 0.2s ease,
-          transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-          text-shadow 0.28s ease;
-      }
-      .dashboard-app .stat-card:hover .stat-number {
-        color: var(--accent);
-        transform: scale(1.09);
-        text-shadow: 0 0 18px rgba(237, 103, 77, 0.4);
-      }
 
-      .dashboard-app .chart-card,
-  .dashboard-app .course-card,
-  .dashboard-app .assignment-card,
-  .dashboard-app .community-card {
+      .dashboard-app .course-card {
         position: relative;
       }
       .dashboard-app .chart-card:hover .card-title-row h2,
-  .dashboard-app .course-card:hover .card-title-row h2,
-  .dashboard-app .assignment-card:hover h2,
-  .dashboard-app .community-card:hover h2 {
+  .dashboard-app .course-card:hover .card-title-row h2 {
         color: var(--accent);
         transition: color 0.2s ease;
       }
-      .dashboard-app .card-title-row h2,
-  .dashboard-app .assignment-card h2,
-  .dashboard-app .community-card h2 { transition: color 0.2s ease; }
+      .dashboard-app .card-title-row h2 { transition: color 0.2s ease; }
 
       .dashboard-app .action-button {
         position: relative;
@@ -2562,7 +1290,6 @@
       .dashboard-app .course-row,
   .dashboard-app .combo-card,
   .dashboard-app .quota-card,
-  .dashboard-app .community-link,
   .dashboard-app .help-link,
   .dashboard-app .docs-link {
         transition: background 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -2570,7 +1297,6 @@
       .dashboard-app .course-row .course-copy,
   .dashboard-app .combo-card .course-copy,
   .dashboard-app .quota-card .course-copy,
-  .dashboard-app .community-copy,
   .dashboard-app .key-row-copy,
   .dashboard-app .help-link > span:nth-child(2),
   .dashboard-app .docs-link {
@@ -2586,7 +1312,6 @@
       .dashboard-app .course-row:hover .course-copy,
   .dashboard-app .combo-card:hover .course-copy,
   .dashboard-app .quota-card:hover .course-copy,
-  .dashboard-app .community-link:hover .community-copy,
   .dashboard-app .key-row:hover .key-row-copy,
   .dashboard-app .help-link:hover > span:nth-child(2),
   .dashboard-app .docs-link:hover {
@@ -2595,12 +1320,10 @@
       .dashboard-app .course-row .course-copy strong,
   .dashboard-app .combo-card .course-copy strong,
   .dashboard-app .quota-card .course-copy strong,
-  .dashboard-app .community-copy strong,
   .dashboard-app .key-row-copy strong { transition: color 0.15s ease; }
       .dashboard-app .course-row:hover .course-copy strong,
   .dashboard-app .combo-card:hover .course-copy strong,
   .dashboard-app .quota-card:hover .course-copy strong,
-  .dashboard-app .community-link:hover .community-copy strong,
   .dashboard-app .key-row:hover .key-row-copy strong,
   .dashboard-app .help-link:hover strong,
   .dashboard-app .docs-link:hover { color: var(--accent); }
@@ -2609,12 +1332,6 @@
   .dashboard-app .help-link:hover .help-arrow { transform: translateX(5px); color: var(--accent); }
       .dashboard-app .req-row .req-model { transition: transform 0.2s ease, color 0.15s ease; }
       .dashboard-app .req-row:hover .req-model { transform: translateX(5px); }
-      .dashboard-app .community-link .community-logo {
-        transition:
-          transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-          background-color 0.2s ease;
-      }
-      .dashboard-app .community-link:hover .community-logo { transform: scale(1.12) rotate(-6deg); }
 
       .dashboard-app .icon-button { position: relative; overflow: hidden; }
       .dashboard-app .icon-button::after {
@@ -2632,9 +1349,6 @@
       .dashboard-app .icon-button:hover::after { opacity: 1; transform: scale(1); }
       .dashboard-app .icon-button .icon { transition: transform 0.25s ease; }
       .dashboard-app .top-actions .icon-button:hover .icon { transform: scale(1.15); }
-      .dashboard-app .collapse-button .icon { transition: transform 0.25s ease; }
-      .dashboard-app .collapse-button:hover .icon { transform: translateX(-2px); }
-      .dashboard-app .app-layout.collapsed .collapse-button:hover .icon { transform: translateX(2px) rotate(180deg); }
 
       .dashboard-app .search-box {
         box-shadow: 0 0 0 0 transparent;
@@ -2648,31 +1362,4 @@
       }
       .dashboard-app .search-box .icon { transition: color 0.18s ease; }
       .dashboard-app .search-box:focus-within .icon { color: var(--accent); }
-
-      .dashboard-app .bar span {
-        transition:
-          filter 0.18s ease,
-          transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-        transform-origin: bottom;
-      }
-      .dashboard-app .bar:hover span {
-        filter: brightness(1.12) saturate(1.15);
-        transform: scaleY(1.03);
-      }
-      .dashboard-app .bar-value { transition: color 0.18s ease; }
-      .dashboard-app .bar:hover .bar-value { color: var(--accent); }
-
-      .dashboard-app .legend-row { transition: transform 0.18s ease; }
-      .dashboard-app .legend-row:hover { transform: translateX(3px); }
-      .dashboard-app .legend-dot { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
-      .dashboard-app .legend-row:hover .legend-dot { transform: scale(1.35) rotate(45deg); }
-
-      .dashboard-app .mobile-menu-btn:hover { background: var(--line); color: var(--muted); }
-      .dashboard-app .mobile-menu-btn .icon { transition: transform 0.25s ease; }
-      .dashboard-app .mobile-menu-btn:hover .icon { transform: scale(1.1); }
-
-      .dashboard-app .profile-copy strong { transition: color 0.15s ease; }
-      .dashboard-app .profile:hover .profile-copy strong { color: var(--accent); }
-      .dashboard-app .avatar { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
-      .dashboard-app .profile:hover .avatar { transform: scale(1.06); }
     

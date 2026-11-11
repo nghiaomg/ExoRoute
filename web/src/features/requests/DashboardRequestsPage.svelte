@@ -29,7 +29,6 @@
     type HiddenRequestColumns,
   } from './request.visibility';
   import { createStatisticsLiveRefresher } from './request.stats.refresh';
-  import '../../styles/dashboard/pages/requests.css';
 
   interface Props {
     tr: Translate;
@@ -371,10 +370,10 @@
     <p>{tr('Inspect gateway traffic and debug failures.')}</p>
   </div>
   <div class="heading-actions">
-    <label class="switch switch-inline" title={tr('Stream live requests')}>
+    <label class="switch inline-flex items-center gap-2 cursor-pointer" title={tr('Stream live requests')}>
       <Input type="checkbox" bind:checked={autoRefresh} />
       <span class="switch-track"><span class="switch-thumb"></span></span>
-      <span class="switch-label">{tr('Live')}{liveActive ? ` · ${liveActive}` : ''}</span>
+      <span class="text-muted text-meta font-medium">{tr('Live')}{liveActive ? ` · ${liveActive}` : ''}</span>
     </label>
     <Button class="action-button" type="button" onclick={exportCsv}>
       <span class="button-icon"><svg class="icon"><use href="#i-download" /></svg></span>
@@ -408,19 +407,19 @@
       <StatsCard icon="#i-database" value={stats ? formatCompactTokenTotal(stats.cached_tokens, locale) : '—'} title={tr('Cached tokens')} trend={`${tr('Cache ratio')} ${stats ? `${Math.round(stats.cache_ratio * 10) / 10}%` : '—'}`} actionLabel={tr('Browse table')} onAction={ () => document.getElementById('req-board')?.scrollIntoView({ behavior: 'smooth' }) } />
     </section>
 
-    <p class="req-collection-note">
+    <p class="m-0 text-muted text-meta">
       {tr('Data collected since')} <strong>{formatTimestamp(stats?.collection_started_at ?? null)}</strong>
       <span aria-hidden="true"> · </span>
       {tr('Last aggregate update')} <strong>{formatTimestamp(stats?.as_of ?? null)}</strong>
     </p>
 
-    <section class="course-card surface req-board" id="req-board" aria-labelledby="requests-heading">
+    <section class="course-card surface flex flex-col" id="req-board" aria-labelledby="requests-heading">
       <div class="card-title-row">
         <h2 id="requests-heading">{tr('Requests')}</h2>
       </div>
       <p class="card-subtitle">{tr('Showing {count} of {total} requests', { count: visibleRows.length, total: stats ? formatCount(stats.total_requests, locale) : '—' })}{metrics.successRate !== null ? ` · ${tr('page success {percent}%', { percent: Math.round(metrics.successRate) })}` : ''}</p>
-      <div class="page-toolbar req-filters">
-        <Input class="req-search" type="search" placeholder={tr('Search model, key, provider…')} aria-label={tr('Search requests')} bind:value={search} />
+      <div class="page-toolbar mt-3 gap-2">
+        <Input class="min-h-[34px]! w-[min(300px,100%)]! flex-[1_1_220px] rounded-[10px]! border-line! bg-surface! px-3! text-muted! text-dash-body! focus:outline-none! focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))]! focus:ring-3! focus:ring-db-accent-ring!" type="search" placeholder={tr('Search model, key, provider…')} aria-label={tr('Search requests')} bind:value={search} />
         <SelectOptions
           class="req-select"
           ariaLabel={tr('Filter by status')}
@@ -434,74 +433,79 @@
           items={[{ label: tr('All providers'), value: 'all' }, ...providers.map((provider) => ({ label: provider.name, value: provider.id }))]}
           onValueChange={() => { cursorStack = []; void loadPage(null, false); }}
         />
-        <div class="req-range" role="group" aria-label={tr('Statistics time range')}>
+        <div class="inline-flex shrink-0 gap-0.5 rounded-[10px] border border-line bg-surface p-[3px]" role="group" aria-label={tr('Statistics time range')}>
           {#each RANGE_OPTIONS as range (range)}
-            <Button type="button" stateClasses={{ active: rangeFilter === range }} aria-pressed={rangeFilter === range} onclick={() => (rangeFilter = range)}>{tr(RANGE_LABEL[range])}</Button>
+            <button
+              type="button"
+              aria-pressed={rangeFilter === range}
+              onclick={() => (rangeFilter = range)}
+              class="min-h-7 rounded-[7px] border-0 bg-transparent px-3 text-muted text-dash-body font-medium cursor-pointer transition-colors duration-150 hover:bg-db-tint-strong focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {rangeFilter === range ? 'bg-ink text-canvas' : ''}"
+            >{tr(RANGE_LABEL[range])}</button>
           {/each}
         </div>
         <RequestColumnVisibilityMenu tr={tr} hiddenColumns={hiddenColumns} onToggleColumn={toggleVisibleColumn} />
       </div>
 
-      <div class="req-table-wrap">
-        <table class="req-table">
+      <div class="mt-3.5 overflow-x-auto rounded-[13px] border border-line bg-db-tint">
+        <table class="w-full border-collapse min-w-[940px]">
           <thead>
             <tr>
-              <th>{tr('Time')}</th>
-              <th>{tr('Status')}</th>
-              <th>{tr('Model')}</th>
-              {#if !hiddenColumns.provider}<th>{tr('Provider')}</th>{/if}
-              {#if !hiddenColumns.key}<th>{tr('Key')}</th>{/if}
-              <th class="num">{tr('Latency')}</th>
-              <th class="num">{tr('Tokens')}</th>
-              <th class="num">{tr('Cost')}</th>
+              <th class="border-b border-line bg-db-tint px-3.5 py-[11px] text-left text-muted text-caption font-semibold tracking-[0.04em] whitespace-nowrap">{tr('Time')}</th>
+              <th class="border-b border-line bg-db-tint px-3.5 py-[11px] text-left text-muted text-caption font-semibold tracking-[0.04em] whitespace-nowrap">{tr('Status')}</th>
+              <th class="border-b border-line bg-db-tint px-3.5 py-[11px] text-left text-muted text-caption font-semibold tracking-[0.04em] whitespace-nowrap">{tr('Model')}</th>
+              {#if !hiddenColumns.provider}<th class="border-b border-line bg-db-tint px-3.5 py-[11px] text-left text-muted text-caption font-semibold tracking-[0.04em] whitespace-nowrap">{tr('Provider')}</th>{/if}
+              {#if !hiddenColumns.key}<th class="border-b border-line bg-db-tint px-3.5 py-[11px] text-left text-muted text-caption font-semibold tracking-[0.04em] whitespace-nowrap">{tr('Key')}</th>{/if}
+              <th class="border-b border-line bg-db-tint px-3.5 py-[11px] text-right text-muted text-caption font-semibold tracking-[0.04em] whitespace-nowrap tabular-nums">{tr('Latency')}</th>
+              <th class="border-b border-line bg-db-tint px-3.5 py-[11px] text-right text-muted text-caption font-semibold tracking-[0.04em] whitespace-nowrap tabular-nums">{tr('Tokens')}</th>
+              <th class="border-b border-line bg-db-tint px-3.5 py-[11px] text-right text-muted text-caption font-semibold tracking-[0.04em] whitespace-nowrap tabular-nums">{tr('Cost')}</th>
             </tr>
           </thead>
           <tbody>
             {#each visibleRows as row (isLiveRequest(row) ? row.live_id : requestIdentity(row))}
               {@const modelLogo = modelLogoSrc(row.model)}
               {@const proxyLabel = row.proxy_name?.trim() || row.proxy_id?.trim() || ''}
-              <tr class="req-row" class:req-live={isLiveRequest(row)} onclick={() => openDetail(row)}>
-                <td class="req-time">{#if isLiveRequest(row)}<span class="live-dot"></span>{/if}{timeLabel(row)}</td>
-                <td><span class="status {statusClass(row)}">{statusText(row)}</span></td>
-                <td class="req-model">
-                  <span class="req-model-cell">
-                    {#if modelLogo}<img class="req-model-logo" src={modelLogo} alt="" aria-hidden="true" />{/if}
-                  <span class="req-model-label">{row.model || '—'}</span>
+              <tr class:req-live={isLiveRequest(row)} onclick={() => openDetail(row)} class="group/row cursor-pointer transition-colors duration-150 hover:bg-db-tint-strong {isLiveRequest(row) ? 'bg-db-accent-tint hover:bg-db-accent-tint' : ''}">
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap tabular-nums group-hover/row:text-ink [[tbody_tr:last-child_&]]:border-b-0 {isLiveRequest(row) ? 'text-db-danger! font-semibold' : ''}">{#if isLiveRequest(row)}<span class="me-1.5 inline-block size-2 rounded-full bg-accent align-[1px] animate-req-pulse"></span>{/if}{timeLabel(row)}</td>
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0"><span class="status {statusClass(row)}">{statusText(row)}</span></td>
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0">
+                  <span class="inline-flex min-w-0 items-center gap-2">
+                    {#if modelLogo}<img class="block w-5 h-5 shrink-0 object-contain" src={modelLogo} alt="" aria-hidden="true" />{/if}
+                  <span class="text-ink font-medium transition-colors duration-150 group-hover/row:text-accent">{row.model || '—'}</span>
                   {#if row.route_alias && row.route_alias !== row.model && !hiddenColumns.combo}
-                    <span class="req-combo-chip" title={row.route_alias}>{row.route_alias}</span>
+                    <span class="inline-flex items-center max-w-[150px] overflow-hidden px-[7px] py-0.5 rounded-full border border-db-accent-line bg-db-tint-strong text-ink text-caption font-semibold leading-[1.25] whitespace-nowrap" title={row.route_alias}>{row.route_alias}</span>
                   {/if}
                   {#if row.reasoning_effort}
-                    <span class="req-effort-chip" title={row.reasoning_effort}>{row.reasoning_effort}</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full border border-db-accent-line bg-db-accent-tint text-accent-strong text-caption font-semibold leading-[1.25] uppercase" title={row.reasoning_effort}>{row.reasoning_effort}</span>
                   {/if}
                   {#if proxyLabel}
-                    <span class="req-proxy-chip" title={proxyLabel}><Network size={10} aria-hidden="true" />{proxyLabel}</span>
+                    <span class="inline-flex items-center gap-1 max-w-[150px] overflow-hidden px-[7px] py-0.5 rounded-full border border-[color-mix(in_srgb,var(--info)_30%,var(--surface))] bg-[color-mix(in_srgb,var(--info)_10%,var(--surface))] text-[var(--info)] text-caption font-semibold leading-[1.25] whitespace-nowrap [&_svg]:shrink-0 [html[data-theme=dark]_&]:border-[color-mix(in_srgb,var(--info)_35%,transparent)] [html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--info)_20%,#1a1b2e)] [html[data-theme=dark]_&]:text-[var(--info-soft)]" title={proxyLabel}><Network size={10} aria-hidden="true" />{proxyLabel}</span>
                   {/if}
                   </span>
                 </td>
-                {#if !hiddenColumns.provider}<td>{providerLabel(row)}</td>{/if}
-                {#if !hiddenColumns.key}<td>{row.api_key_name || '—'}</td>{/if}
-                <td class="num">{durationLabel(row)}</td>
-                <td class="num tok-cell">
-                  <span class="req-token-input">{formatCount(row.input_tokens ?? 0, locale)}</span>
-                  <span class="req-token-separator">/</span>
-                  <span class="req-token-output">{formatCount(row.output_tokens ?? 0, locale)}</span>
+                {#if !hiddenColumns.provider}<td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0">{providerLabel(row)}</td>{/if}
+                {#if !hiddenColumns.key}<td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0">{row.api_key_name || '—'}</td>{/if}
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">{durationLabel(row)}</td>
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">
+                  <span class="text-[#d97706]! font-semibold">{formatCount(row.input_tokens ?? 0, locale)}</span>
+                  <span class="mx-1 text-text-dim">/</span>
+                  <span class="text-[#9333ea]! font-semibold">{formatCount(row.output_tokens ?? 0, locale)}</span>
                   {#if cacheTokens(row) !== null}
-                    <span class="req-token-cache-chip">{tr('Cache: {count}', { count: formatCount(cacheTokens(row) ?? 0, locale) })}</span>
+                    <span class="inline-flex ms-[7px] px-[7px] py-0.5 rounded-full bg-chart-good/12! text-chart-good! text-caption font-semibold">{tr('Cache: {count}', { count: formatCount(cacheTokens(row) ?? 0, locale) })}</span>
                   {/if}
                 </td>
-                <td class="num">{formatCostMicroUsd(row.cost_micro_usd) || '—'}</td>
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">{formatCostMicroUsd(row.cost_micro_usd) || '—'}</td>
               </tr>
             {:else}
-              <tr><td colspan={tableColumnCount}><div class="empty-state">{tr('No requests match the current filters.')}</div></td></tr>
+              <tr><td colspan={tableColumnCount} class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body [[tbody_tr:last-child_&]]:border-b-0"><div class="empty-state">{tr('No requests match the current filters.')}</div></td></tr>
             {/each}
           </tbody>
         </table>
       </div>
 
-      <div class="req-pager">
-        <Button class="page-action" type="button" onclick={prevPage} disabled={!cursorStack.length || loadingMore}>← {tr('Prev')}</Button>
-        <span class="req-page-info">{loadingMore ? tr('Loading…') : tr('{count} rows', { count: visibleRows.length })}</span>
-        <Button class="page-action" type="button" onclick={nextPage} disabled={!nextCursor || loadingMore}>{tr('Next')} →</Button>
+      <div class="mt-3.5 flex items-center justify-center gap-3.5">
+        <Button class="page-action disabled:opacity-55" type="button" onclick={prevPage} disabled={!cursorStack.length || loadingMore}>← {tr('Prev')}</Button>
+        <span class="text-muted text-meta">{loadingMore ? tr('Loading…') : tr('{count} rows', { count: visibleRows.length })}</span>
+        <Button class="page-action disabled:opacity-55" type="button" onclick={nextPage} disabled={!nextCursor || loadingMore}>{tr('Next')} →</Button>
       </div>
     </section>
   </div>
@@ -520,38 +524,41 @@
     {#if detailRow}
       {@const live = isLiveRequest(detailRow)}
       {@const status = live ? 'LIVE' : String(detailRow.status ?? '—')}
-      <div class="req-detail">
-        <section class="req-detail-overview" aria-label={tr('Request summary')}>
-          <span class="req-detail-status" class:live class:success={!live && (detailRow.status ?? 0) >= 200 && (detailRow.status ?? 0) < 300} class:failure={!live && (detailRow.status ?? 0) >= 400} aria-label={tr('Status')}>{status}</span>
-          <div class="req-detail-title">
-            <strong>{detailRow.route_alias || detailRow.model || tr('request')}</strong>
-            <span>{providerLabel(detailRow)}{detailRow.model && detailRow.route_alias ? ` · ${detailRow.model}` : ''}</span>
+      <div class="grid gap-[18px]">
+        <section class="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-line bg-db-tint px-3.5 py-3 max-nav:flex-wrap" aria-label={tr('Request summary')}>
+          <span
+            class="shrink-0 rounded-lg px-[9px] py-[5px] text-meta font-bold {live || (!live && (detailRow.status ?? 0) >= 200 && (detailRow.status ?? 0) < 300) ? '' : (!live && (detailRow.status ?? 0) >= 400 ? 'bg-[color-mix(in_srgb,var(--db-danger)_10%,var(--surface))] text-db-danger' : 'bg-db-accent-tint text-accent-strong')} {!live && (detailRow.status ?? 0) >= 200 && (detailRow.status ?? 0) < 300 ? 'bg-[color-mix(in_srgb,var(--chart-good)_12%,var(--surface))] text-chart-good' : ''}"
+            aria-label={tr('Status')}
+          >{status}</span>
+          <div class="grid min-w-0 gap-[3px]">
+            <strong class="text-ink text-label [overflow-wrap:anywhere]">{detailRow.route_alias || detailRow.model || tr('request')}</strong>
+            <span class="text-muted text-meta">{providerLabel(detailRow)}{detailRow.model && detailRow.route_alias ? ` · ${detailRow.model}` : ''}</span>
           </div>
-          <span class="req-detail-latency">{durationLabel(detailRow)}</span>
+          <span class="ms-auto text-ink font-mono text-label tabular-nums">{durationLabel(detailRow)}</span>
         </section>
 
-        <section class="req-detail-section" aria-labelledby="req-detail-usage">
-          <h3 id="req-detail-usage">{tr('Token usage')}</h3>
-          <div class="req-detail-usage">
-            <div class="req-usage-metric input"><span>{tr('Tokens in')}</span><strong>{formatCount(detailRow.input_tokens ?? 0, locale)}</strong></div>
-            <div class="req-usage-metric output"><span>{tr('Tokens out')}</span><strong>{formatCount(detailRow.output_tokens ?? 0, locale)}</strong></div>
-            <div class="req-usage-metric cache"><span>{tr('Cache read')}</span><strong>{formatCount(detailRow.cached_tokens ?? detailRow.cache_input_tokens ?? 0, locale)}</strong></div>
+        <section class="grid gap-2" aria-labelledby="req-detail-usage">
+          <h3 id="req-detail-usage" class="m-0 text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Token usage')}</h3>
+          <div class="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 max-nav:grid-cols-1">
+            <div class="grid gap-[7px] rounded-[11px] border border-line border-t-2 border-t-[#d97706] bg-surface p-3"><span class="text-muted text-caption">{tr('Tokens in')}</span><strong class="text-[#d97706]! font-mono! text-[17px] tabular-nums">{formatCount(detailRow.input_tokens ?? 0, locale)}</strong></div>
+            <div class="grid gap-[7px] rounded-[11px] border border-line border-t-2 border-t-[#9333ea] bg-surface p-3"><span class="text-muted text-caption">{tr('Tokens out')}</span><strong class="text-[#9333ea]! font-mono! text-[17px] tabular-nums">{formatCount(detailRow.output_tokens ?? 0, locale)}</strong></div>
+            <div class="grid gap-[7px] rounded-[11px] border border-line border-t-2 border-t-chart-good bg-surface p-3"><span class="text-muted text-caption">{tr('Cache read')}</span><strong class="text-chart-good! font-mono! text-[17px] tabular-nums">{formatCount(detailRow.cached_tokens ?? detailRow.cache_input_tokens ?? 0, locale)}</strong></div>
           </div>
         </section>
 
-        <section class="req-detail-section" aria-labelledby="req-detail-info">
-          <h3 id="req-detail-info">{tr('Request info')}</h3>
-          <dl class="req-detail-grid">
-            <div><dt>{tr('Route alias')}</dt><dd>{detailRow.route_alias || '—'}</dd></div>
-            <div><dt>{tr('Provider')}</dt><dd>{providerLabel(detailRow)}</dd></div>
-            <div><dt>{tr('API key')}</dt><dd>{detailRow.api_key_name || '—'}</dd></div>
-            <div><dt>{tr('Cost')}</dt><dd>{formatCostMicroUsd(detailRow.cost_micro_usd) || '—'}</dd></div>
-            <div><dt>{tr('Time')}</dt><dd>{timeLabel(detailRow)}{detailRow.created_at ? ` · ${new Date(detailRow.created_at).toLocaleString(locale)}` : ''}</dd></div>
-            <div><dt>{tr('Protocols')}</dt><dd>{detailRow.client_protocol || '—'} → {detailRow.upstream_protocol || '—'}</dd></div>
+        <section class="grid gap-2" aria-labelledby="req-detail-info">
+          <h3 id="req-detail-info" class="m-0 text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Request info')}</h3>
+          <dl class="m-0 grid grid-cols-2 gap-x-4 gap-y-0 border-t border-line max-nav:grid-cols-1">
+            <div class="min-w-0 border-b border-line py-2.5"><dt class="text-muted text-caption">{tr('Route alias')}</dt><dd class="mt-1 mb-0 text-ink text-meta font-medium [overflow-wrap:anywhere]">{detailRow.route_alias || '—'}</dd></div>
+            <div class="min-w-0 border-b border-line py-2.5"><dt class="text-muted text-caption">{tr('Provider')}</dt><dd class="mt-1 mb-0 text-ink text-meta font-medium [overflow-wrap:anywhere]">{providerLabel(detailRow)}</dd></div>
+            <div class="min-w-0 border-b border-line py-2.5"><dt class="text-muted text-caption">{tr('API key')}</dt><dd class="mt-1 mb-0 text-ink text-meta font-medium [overflow-wrap:anywhere]">{detailRow.api_key_name || '—'}</dd></div>
+            <div class="min-w-0 border-b border-line py-2.5"><dt class="text-muted text-caption">{tr('Cost')}</dt><dd class="mt-1 mb-0 text-ink text-meta font-medium [overflow-wrap:anywhere]">{formatCostMicroUsd(detailRow.cost_micro_usd) || '—'}</dd></div>
+            <div class="min-w-0 border-b border-line py-2.5"><dt class="text-muted text-caption">{tr('Time')}</dt><dd class="mt-1 mb-0 text-ink text-meta font-medium [overflow-wrap:anywhere]">{timeLabel(detailRow)}{detailRow.created_at ? ` · ${new Date(detailRow.created_at).toLocaleString(locale)}` : ''}</dd></div>
+            <div class="min-w-0 border-b border-line py-2.5"><dt class="text-muted text-caption">{tr('Protocols')}</dt><dd class="mt-1 mb-0 text-ink text-meta font-medium [overflow-wrap:anywhere]">{detailRow.client_protocol || '—'} → {detailRow.upstream_protocol || '—'}</dd></div>
           </dl>
         </section>
         {#if detailRow.error}<div class="req-error-note" role="alert">{detailRow.error}</div>{/if}
-        {#if detailRow.request_id}<p class="form-note req-detail-id">{tr('Request ID')}: <code>{detailRow.request_id}</code></p>{/if}
+        {#if detailRow.request_id}<p class="form-note m-0 [overflow-wrap:anywhere]">{tr('Request ID')}: <code class="text-ink text-caption">{detailRow.request_id}</code></p>{/if}
       </div>
     {/if}
     <div class="modal-actions">
@@ -560,77 +567,3 @@
   </div>
 </dialog>
 
-<style>
-  .req-range {
-    display: inline-flex;
-    flex: 0 0 auto;
-    gap: 2px;
-    padding: 3px;
-    border: 1px solid #e9eef0;
-    border-radius: 10px;
-    background: #fff;
-  }
-
-  .req-range :global(.shared-button) {
-    min-height: 28px;
-    padding: 0 12px;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
-    color: #59646e;
-    font-size: var(--type-body);
-    font-weight: var(--weight-medium);
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
-  }
-
-  .req-range :global(.shared-button:hover) {
-    background: #f5f8f9;
-  }
-
-  .req-range :global(.shared-button.active) {
-    background: #293341;
-    color: #fff;
-  }
-
-  .req-collection-note {
-    margin: 0;
-    color: var(--muted);
-    font-size: var(--type-meta);
-  }
-
-  .req-collection-note strong {
-    color: var(--ink);
-    font-weight: var(--weight-semibold);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Egress-proxy chip, shaped like the effort chip but tinted with the info
-     colour so it never reads as the accent combo chip or the green cache chip. */
-  .req-proxy-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    max-width: 150px;
-    overflow: hidden;
-    padding: 2px 7px;
-    border: 1px solid color-mix(in srgb, var(--info) 30%, var(--surface));
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--info) 10%, var(--surface));
-    color: var(--info);
-    font-size: var(--type-caption);
-    font-weight: var(--weight-semibold);
-    line-height: 1.25;
-    white-space: nowrap;
-  }
-
-  .req-proxy-chip :global(svg) {
-    flex: 0 0 auto;
-  }
-
-  :global(:root[data-theme='dark']) .req-proxy-chip {
-    border-color: color-mix(in srgb, var(--info) 35%, transparent);
-    background: color-mix(in srgb, var(--info) 20%, #1a1b2e);
-    color: var(--info-soft);
-  }
-</style>

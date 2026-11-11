@@ -13,7 +13,6 @@
   import { providerLogo } from './provider-logo';
   import ProviderDetailsPage from './ProviderDetailsPage.svelte';
   import ProviderPresetSetupPage from './ProviderPresetSetupPage.svelte';
-  import '../../styles/dashboard/pages/providers.css';
 
   interface Props {
     tr: Translate;
@@ -424,23 +423,29 @@
     <div class="card-title-row"><h2>{tr('Could not load providers')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
     <div class="modal-actions" style="padding-top:14px">
-      <Button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</Button>
+      <Button class="page-action primary disabled:opacity-55 disabled:cursor-default" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   </section>
 {:else if loading}
-  <section class="stats-grid" aria-label={tr('Loading')}>
+  <section
+    class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
+    aria-label={tr('Loading')}
+  >
     {#each [0, 1, 2, 3] as i (i)}<StatsCard skeleton />{/each}
   </section>
 {:else}
   <div class="page-surface">
-    <section class="stats-grid" aria-label={tr('Provider overview')}>
+    <section
+      class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
+      aria-label={tr('Provider overview')}
+    >
       <StatsCard icon="#i-link" value={providers.length} title={tr('Total Providers')} trend={tr('{enabled} enabled, {disabled} disabled', { enabled: enabledCount, disabled: providers.length - enabledCount })} actionLabel={tr('View all')} onAction={ () => (statusFilter = 'all') } />
       <StatsCard icon="#i-zap" value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} actionLabel={tr('Show enabled only')} onAction={ () => (statusFilter = 'enabled') } />
       <StatsCard icon="#i-key" value={totalKeys} title={tr('Credentials')} trend={tr('Across {count} providers', { count: providers.filter((p) => (p.api_key_count ?? 0) > 0).length })} actionLabel={tr('Manage keys')} onAction={ () => { if (providers[0]) void openKeys(providers[0]); } } />
       <StatsCard icon="#i-refresh" value={totalModels} title={tr('Synced Models')} trend={keylessCount ? tr('{count} enabled without keys', { count: keylessCount }) : tr('All enabled providers have keys')} actionLabel={tr('Sync now')} onAction={ syncModels } />
     </section>
 
-    <section class="course-card surface provider-section" aria-labelledby="providers-heading">
+    <section class="course-card surface" aria-labelledby="providers-heading">
       <div class="card-title-row">
         <h2 id="providers-heading">{tr('Providers')}</h2>
         <Button class="mini-add" type="button" onclick={() => void load()} disabled={loading}>
@@ -449,8 +454,8 @@
         </Button>
       </div>
       <p class="card-subtitle">{tr('{providers} providers · {enabled} enabled · {keys} credentials', { providers: providers.length, enabled: enabledCount, keys: totalKeys })}</p>
-      <div class="page-toolbar provider-toolbar">
-        <Input class="prov-search" type="search" placeholder={tr('Search providers...')} aria-label={tr('Search providers')} bind:value={search} />
+      <div class="page-toolbar provider-toolbar mt-3 items-center">
+        <Input class="min-h-[34px]! w-[min(280px,100%)]! flex-[1_1_200px] rounded-[10px]! border-line! bg-surface! px-3! text-muted! text-dash-body! focus:outline-none! focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))]! focus:ring-3! focus:ring-db-accent-ring!" type="search" placeholder={tr('Search providers...')} aria-label={tr('Search providers')} bind:value={search} />
         <SelectOptions
           class="prov-select"
           ariaLabel={tr('Filter by status')}
@@ -458,27 +463,27 @@
           items={[{ label: tr('All statuses'), value: 'all' }, { label: tr('Enabled'), value: 'enabled' }, { label: tr('Disabled'), value: 'disabled' }]}
         />
       </div>
-      <div class="provider-groups" aria-live="polite">
+      <div class="grid gap-[18px] mt-[16px]" aria-live="polite">
         {#each providerGroups as group (group.key)}
           {#if group.items.length}
             <section class="provider-group">
-              <h3 class="provider-group-title">
+              <h3 class="flex items-center gap-[7px] m-0 mb-[8px] text-muted text-caption font-bold uppercase [letter-spacing:var(--tracking-caps)]">
                 {group.label}
-                <span class="provider-group-count">{group.items.length}</span>
+                <span class="rounded-full bg-surface-sunken px-[7px] py-[1px] text-muted text-meta font-bold">{group.items.length}</span>
               </h3>
-              <div class="course-list provider-list">
+              <div class="course-list mt-3! grid! grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))]! content-start! gap-3!">
                 {#each group.items as entry (entry.key)}
                   {@const { preset, provider } = entry}
                   {@const logo = providerLogo(provider?.logo_url ?? preset.default_logo_url, preset.adapter_id, provider?.id ?? preset.id, provider?.name ?? preset.name)}
                   {#if provider}
                     <!-- Existing records open the detail page; the trailing hint stays the single action. -->
-                    <article class="course-row provider-row provider-row-button" data-status={provider.enabled ? 'enabled' : 'disabled'}>
-                      <Button class="provider-row-trigger" type="button" aria-label={tr('Open {name} details', { name: provider.name })} onclick={() => openDetail(provider)}>
+                    <article class="course-row min-h-[88px]! gap-3! rounded-[11px]! border! border-line! bg-surface! p-0! cursor-pointer! transition-colors! hover:bg-db-tint-strong!" data-status={provider.enabled ? 'enabled' : 'disabled'}>
+                      <Button class="provider-row-trigger group flex w-full min-w-0 items-center gap-3 rounded-[inherit] border-0 bg-transparent p-[13px] text-left text-inherit cursor-pointer focus-visible:outline-2 focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,var(--surface))] focus-visible:outline-offset-[-2px] [&_.course-copy]:grid [&_.course-copy]:gap-0.5 [&_.course-copy]:min-w-0 max-nav:flex-wrap max-nav:[&_.course-copy]:flex-[1_1_calc(100%-60px)] max-nav:[&_.status]:order-3 max-nav:[&>div]:order-4 max-nav:[&>div]:ms-auto" type="button" aria-label={tr('Open {name} details', { name: provider.name })} onclick={() => openDetail(provider)}>
                         <span class="course-icon provider-logo">
                           {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
                         </span>
                         <span class="course-copy">
-                          <strong>{provider.name} <span class="prov-type">{preset.name}</span></strong>
+                          <strong>{provider.name} <span class="ml-[6px] rounded-full bg-surface-sunken px-[7px] py-[2px] text-muted text-caption font-medium [vertical-align:1px]">{preset.name}</span></strong>
                           <span>{provider.base_url} · {fmtKeys(provider)} · {provider.model_count ?? 0} {tr('models')}</span>
                         </span>
                         {#if provider.enabled && !(provider.api_key_count ?? 0)}
@@ -486,24 +491,24 @@
                         {:else}
                           <span class="status {provider.enabled ? 'complete' : 'pending'}">{provider.enabled ? tr('Enabled') : tr('Disabled')}</span>
                         {/if}
-                        <span class="detail-hint" aria-hidden="true"><svg class="icon"><use href="#i-arrow-right" /></svg></span>
+                        <span class="grid w-[22px] h-[22px] shrink-0 place-items-center rounded-full bg-surface-sunken text-text-dim group-hover:bg-accent group-hover:text-accent-contrast" aria-hidden="true"><svg class="icon w-[12px] h-[12px]"><use href="#i-arrow-right" /></svg></span>
                       </Button>
                     </article>
                   {:else}
                     <!-- A catalog preset is a single click target, like an existing provider. -->
-                    <article class="course-row provider-row provider-row-button">
-                      <Button class="provider-row-trigger" type="button" aria-label={tr('Open {name} details', { name: preset.name })} disabled={creatingPresetId !== null} onclick={() => void providerPreset(preset.id)}>
+                    <article class="course-row min-h-[88px]! gap-3! rounded-[11px]! border! border-line! bg-surface! p-0! cursor-pointer! transition-colors! hover:bg-db-tint-strong!">
+                      <Button class="provider-row-trigger group flex w-full min-w-0 items-center gap-3 rounded-[inherit] border-0 bg-transparent p-[13px] text-left text-inherit cursor-pointer focus-visible:outline-2 focus-visible:outline-[color-mix(in_srgb,var(--accent)_55%,var(--surface))] focus-visible:outline-offset-[-2px] [&_.course-copy]:grid [&_.course-copy]:gap-0.5 [&_.course-copy]:min-w-0 max-nav:flex-wrap max-nav:[&_.course-copy]:flex-[1_1_calc(100%-60px)] max-nav:[&_.status]:order-3 max-nav:[&>div]:order-4 max-nav:[&>div]:ms-auto" type="button" aria-label={tr('Open {name} details', { name: preset.name })} disabled={creatingPresetId !== null} onclick={() => void providerPreset(preset.id)}>
                         <span class="course-icon provider-logo">
                           {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
                         </span>
                         <span class="course-copy">
-                          <strong>{preset.name} <span class="prov-type">{providerTypeLabel(preset)}</span></strong>
+                          <strong>{preset.name} <span class="ml-[6px] rounded-full bg-surface-sunken px-[7px] py-[2px] text-muted text-caption font-medium [vertical-align:1px]">{providerTypeLabel(preset)}</span></strong>
                           <span>{preset.default_base_url ?? preset.adapter_id}</span>
                         </span>
                         {#if creatingPresetId === preset.id}
                           <span class="status progress">{tr('Creating…')}</span>
                         {:else}
-                          <span class="detail-hint" aria-hidden="true"><svg class="icon"><use href="#i-arrow-right" /></svg></span>
+                          <span class="grid w-[22px] h-[22px] shrink-0 place-items-center rounded-full bg-surface-sunken text-text-dim group-hover:bg-accent group-hover:text-accent-contrast" aria-hidden="true"><svg class="icon w-[12px] h-[12px]"><use href="#i-arrow-right" /></svg></span>
                         {/if}
                       </Button>
                     </article>
@@ -525,7 +530,7 @@
 
 
 <!-- Manage API keys -->
-<dialog class="modal modal-wide" bind:this={keysDialog} aria-labelledby="keys-dialog-title">
+<dialog class="modal modal-wide w-[min(94vw,560px)]!" bind:this={keysDialog} aria-labelledby="keys-dialog-title">
   <div class="modal-card">
     <div class="modal-heading">
       <div>
@@ -534,31 +539,31 @@
       </div>
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
-    <div class="keys-list">
+    <div class="grid max-h-60 gap-2 overflow-y-auto">
       {#if keysLoading}
         <p class="card-subtitle" style="padding:12px 4px">{tr('Loading keys…')}</p>
       {:else if keys.length === 0}
         <p class="card-subtitle" style="padding:12px 4px">{tr('No keys configured.')}</p>
       {:else}
         {#each keys as key (key.id)}
-          <div class="key-row">
+          <div class="flex items-center justify-between gap-2.5 rounded-[11px] border border-line bg-db-tint px-3 py-[9px] [&_code]:text-ink! [&_code]:text-meta!">
             <div class="course-copy">
-              <strong>{key.name || tr('Unnamed key')} <span class="prov-type">{key.credential_type ?? 'api_key'}</span></strong>
+              <strong>{key.name || tr('Unnamed key')} <span class="ml-[6px] rounded-full bg-surface-sunken px-[7px] py-[2px] text-muted text-caption font-medium [vertical-align:1px]">{key.credential_type ?? 'api_key'}</span></strong>
               <span>{key.enabled ? (key.invalid ? tr('marked invalid') : tr('healthy')) : tr('disabled')} · {fmtLastUsed(key)}</span>
             </div>
-            <div class="key-actions">
+            <div class="flex gap-1.5">
               <Button class="icon-action danger" type="button" title={tr('Remove key')} onclick={() => removeKey(key)}><svg class="icon"><use href="#i-trash" /></svg></Button>
             </div>
           </div>
         {/each}
       {/if}
     </div>
-    <form class="keys-add" onsubmit={(e) => { e.preventDefault(); void addKey(); }}>
+    <form class="flex gap-2 [&_input]:min-h-[38px]! [&_input]:flex-1! [&_input]:rounded-[10px]! [&_input]:border! [&_input]:border-line! [&_input]:bg-db-tint! [&_input]:px-3! [&_input]:text-ink! [&_input]:text-dash-body! [&_input:focus]:outline-0! [&_input:focus]:ring-3! [&_input:focus]:ring-db-accent-ring!" onsubmit={(e) => { e.preventDefault(); void addKey(); }}>
       <Input bind:value={newKey} type="password" placeholder={tr('Paste a new API key…')} autocomplete="off" />
-      <Button class="page-action primary" type="submit" disabled={keyBusy || !newKey.trim()}>{keyBusy ? tr('Testing…') : tr('Add key')}</Button>
+      <Button class="page-action primary disabled:opacity-55 disabled:cursor-default" type="submit" disabled={keyBusy || !newKey.trim()}>{keyBusy ? tr('Testing…') : tr('Add key')}</Button>
     </form>
     <div class="modal-actions">
-      <Button class="page-action" type="button" data-close-modal>{tr('Close')}</Button>
+      <Button class="page-action disabled:opacity-55 disabled:cursor-default" type="button" data-close-modal>{tr('Close')}</Button>
     </div>
   </div>
 </dialog>
@@ -574,7 +579,7 @@
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     <div class="modal-actions">
-      <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
+      <Button class="page-action disabled:opacity-55 disabled:cursor-default" type="button" data-close-modal>{tr('Cancel')}</Button>
       <Button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete provider')}</Button>
     </div>
   </div>
@@ -590,17 +595,22 @@
       </div>
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
-    <div class="test-results">
+    <div class="grid gap-[8px]">
       {#each testRows as row (row.id)}
-        <div class="test-row" data-state={row.state}>
-          <span class="test-name">{row.name}</span>
-          <span class="test-state">{row.detail}</span>
+        <div
+          class="flex items-center justify-between rounded-[11px] border border-line bg-db-tint px-[13px] py-[10px] text-dash-body"
+          data-state={row.state}
+        >
+          <span class="text-ink font-medium">{row.name}</span>
+          <span
+            class="text-muted text-meta [[data-state=ok]_&]:text-db-success [[data-state=fail]_&]:text-db-danger [[data-state=ok]_&]:font-semibold [[data-state=fail]_&]:font-semibold [[data-state=pending]_&]:after:content-[''] [[data-state=pending]_&]:after:inline-block [[data-state=pending]_&]:after:w-[10px] [[data-state=pending]_&]:after:h-[10px] [[data-state=pending]_&]:after:ml-[6px] [[data-state=pending]_&]:after:rounded-full [[data-state=pending]_&]:after:border-2 [[data-state=pending]_&]:after:border-text-dim [[data-state=pending]_&]:after:border-t-accent [[data-state=pending]_&]:after:animate-spin [[data-state=pending]_&]:after:[vertical-align:-1px]"
+          >{row.detail}</span>
         </div>
       {/each}
     </div>
     <div class="modal-actions">
-      <Button class="page-action" type="button" data-close-modal>{tr('Close')}</Button>
-      <Button class="page-action primary" type="button" onclick={runAllTests} disabled={testRunning}>{testRunning ? tr('Running…') : tr('Run again')}</Button>
+      <Button class="page-action disabled:opacity-55 disabled:cursor-default" type="button" data-close-modal>{tr('Close')}</Button>
+      <Button class="page-action primary disabled:opacity-55 disabled:cursor-default" type="button" onclick={runAllTests} disabled={testRunning}>{testRunning ? tr('Running…') : tr('Run again')}</Button>
     </div>
   </div>
 </dialog>

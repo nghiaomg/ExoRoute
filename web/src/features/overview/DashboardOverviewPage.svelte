@@ -12,7 +12,6 @@
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import SelectOptions from '../../components/SelectOptions.svelte';
   import type { Overview, RequestLog, RequestStatistics } from '../../lib/types';
-  import '../../styles/dashboard/pages/overview.css';
 
   interface Props {
     tr: Translate;
@@ -194,7 +193,9 @@
   }
 
   function onChartMove(event: MouseEvent) {
-    const bar = (event.target as HTMLElement).closest('.bar') as HTMLElement | null;
+    // The bar class was migrated to Tailwind utilities; the tooltip targets
+    // the data attribute so the JS contract survives markup changes.
+    const bar = (event.target as HTMLElement).closest('[data-bar-label]') as HTMLElement | null;
     if (!bar || !chartEl) { chartTooltip = null; return; }
     const labels: Record<string, string> = { '2xx': tr('2xx success'), '4xx': tr('4xx client error'), '5xx': tr('5xx server error'), 'Other': tr('Other') };
     const label = bar.dataset.barLabel ?? '';
@@ -251,7 +252,10 @@
     </div>
   </section>
 {:else if loading || !overview || !stats}
-  <section class="stats-grid" aria-label={tr('Loading')}>
+  <section
+    class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
+    aria-label={tr('Loading')}
+  >
     {#each [0, 1, 2, 3] as i (i)}
       <StatsCard skeleton />
     {/each}
@@ -273,15 +277,27 @@
       </span>
     </div>
   {/if}
-  <div class="dashboard-content">
-    <section class="stats-grid" aria-label={tr('Gateway overview')}>
+  <!-- dashboard-content: shared base grid rows are overridden per page; the
+       overview rows live here as utilities (auto auto 1.45fr 1fr desktop,
+       stacked flex column under 680px). -->
+  <div
+    class="grid min-w-0 min-h-0 grid-rows-[auto_auto_1.45fr_1fr] gap-[2.2%] max-[680px]:flex max-[680px]:flex-col max-[680px]:gap-[18px] max-[680px]:overflow-visible"
+  >
+    <section
+      class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
+      aria-label={tr('Gateway overview')}
+    >
       <StatsCard icon="#i-clipboard" value={statisticsError ? '—' : fmtInt(stats.total_requests)} title={tr('Requests Today')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
       <StatsCard icon="#i-link" value={overview.provider_count} title={tr('Providers')} trend={tr('Configured upstreams')} actionLabel={tr('View Providers')} onAction={ () => onNavigate('providers') } />
       <StatsCard icon="#i-code" value={overview.combo_count} title={tr('Combos')} trend={tr('Routing rules in place')} actionLabel={tr('View Combos')} onAction={ () => onNavigate('combos') } />
       <StatsCard icon="#i-trend-up" value={successRate === null ? '—' : `${successRate}%`} title={tr('Success Rate')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
     </section>
 
-    <section class="stats-grid metric-grid" aria-label={tr('Token usage')}>
+    <!-- Metric strip: 5 cards desktop, 3 at ≤1440px, 2 at ≤680px. -->
+    <section
+      class="mt-[20px] grid min-h-0 grid-cols-[repeat(5,minmax(0,1fr))] gap-[2%] max-[1440px]:grid-cols-[repeat(3,minmax(0,1fr))] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
+      aria-label={tr('Token usage')}
+    >
       <StatsCard icon="#i-import" value={statisticsError ? '—' : formatCompactTokenTotal(stats.input_tokens, locale)} title={tr('Input tokens')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
       <StatsCard icon="#i-export" value={statisticsError ? '—' : formatCompactTokenTotal(stats.output_tokens, locale)} title={tr('Output tokens')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
       <StatsCard icon="#i-database" value={statisticsError ? '—' : formatCompactTokenTotal(stats.cached_tokens, locale)} title={tr('Cached tokens')} trend={`${tr('Cache ratio')} ${statisticsError ? '—' : `${Math.round(stats.cache_ratio * 10) / 10}%`}`} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
@@ -289,28 +305,59 @@
       <StatsCard icon="#i-link" value={proxySummary ? formatCount(proxySummary.total, locale) : '—'} title={tr('Proxies')} trend={proxySummary ? tr('{enabled} enabled · {endpoints} endpoints', { enabled: proxySummary.enabled, endpoints: proxySummary.endpoints }) : '—'} actionLabel={tr('View Proxies')} onAction={ () => onNavigate('proxies') } />
     </section>
 
-    <div class="middle-grid">
-      <section class="chart-card surface" aria-labelledby="status-heading">
+    <div class="grid min-w-0 min-h-0 grid-cols-[1fr_1.02fr] gap-[2%] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[680px]:grid-cols-[minmax(0,1fr)] max-[680px]:gap-[10px]">
+      <section
+        class="min-w-0 min-h-0 overflow-hidden rounded-[17px] border-0 bg-surface shadow-none p-6 min-[681px]:min-h-[290px] max-[680px]:min-h-[250px] max-[680px]:rounded-[13px] max-[680px]:p-4 max-[680px]:shrink-0"
+        aria-labelledby="status-heading"
+      >
         <div class="card-title-row">
           <h2 id="status-heading">{tr('Requests by Status')}</h2>
         </div>
         <p class="card-subtitle">{tr('HTTP status distribution, last 24 hours')}</p>
-        <div class="chart-plot" role="img" aria-label={tr('Request distribution by HTTP status')} bind:this={chartEl} onmousemove={onChartMove} onmouseleave={() => (chartTooltip = null)}>
+        <div
+          class="relative grid min-h-0 h-[calc(100%-48px)] grid-cols-[35px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)_17px] gap-x-[7px] max-[680px]:h-[180px] max-[680px]:grid-cols-[40px_minmax(0,1fr)] max-[680px]:grid-rows-[minmax(0,1fr)_18px]"
+          role="img"
+          aria-label={tr('Request distribution by HTTP status')}
+          bind:this={chartEl}
+          onmousemove={onChartMove}
+          onmouseleave={() => (chartTooltip = null)}
+        >
           {#if chartTooltip}
-            <div class="chart-tooltip" style="left:{chartTooltip.left}px;top:{chartTooltip.top}px">{chartTooltip.text}</div>
+            <div
+              class="pointer-events-none absolute z-[5] rounded-[9px] bg-ink text-canvas text-caption font-medium whitespace-nowrap px-[11px] py-[7px] [box-shadow:0_8px_20px_#1d273340]"
+              style="left:{chartTooltip.left}px;top:{chartTooltip.top}px"
+            >{chartTooltip.text}</div>
           {/if}
-          <div class="y-axis" aria-hidden="true">
+          <div
+            class="flex flex-col justify-between pt-[2px] pb-[1px] text-muted text-caption [font-variant-numeric:tabular-nums]"
+            aria-hidden="true"
+          >
             <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
           </div>
-          <div class="bar-chart" aria-hidden="true">
+          <div
+            class="relative flex min-h-0 items-end justify-around gap-[14px] px-[12px] pt-[8px] [background:repeating-linear-gradient(to_bottom,transparent_0,transparent_calc(25%_-_1px),var(--line)_calc(25%_-_1px),var(--line)_25%)]"
+            aria-hidden="true"
+          >
             {#each statusBars as bar, i (bar.label)}
-              <div class="bar" data-bar-index={i} data-bar-label={bar.label} data-bar-pct={bar.value} data-bar-count={bar.count}>
-                <strong class="bar-value">{bar.value}%</strong>
-                <span style="--bar: {bar.value}%"></span>
+              <div
+                class="group relative flex w-[22%] h-full items-end justify-center"
+                data-bar-index={i}
+                data-bar-label={bar.label}
+                data-bar-pct={bar.value}
+                data-bar-count={bar.count}
+              >
+                <strong class="absolute bottom-[calc(var(--bar)+4px)] text-ink text-caption [font-variant-numeric:tabular-nums] [transition:color_0.18s_ease] min-[681px]:group-hover:text-accent">{bar.value}%</strong>
+                <span
+                  class="w-full h-[var(--bar)] origin-bottom rounded-t-[5px] [transition:filter_0.18s_ease,transform_0.25s_cubic-bezier(0.34,1.56,0.64,1)] {i === 1 ? 'bg-accent' : i === 2 ? 'bg-info' : 'bg-mint'} min-[681px]:group-hover:[filter:brightness(1.12)_saturate(1.15)] min-[681px]:group-hover:[transform:scaleY(1.03)]"
+                  style="--bar: {bar.value}%"
+                ></span>
               </div>
             {/each}
           </div>
-          <div class="bar-labels" aria-hidden="true">
+          <div
+            class="flex col-start-2 items-end justify-around text-center text-muted text-caption [line-height:var(--leading-tight)]"
+            aria-hidden="true"
+          >
             {#each statusBars as bar (bar.label)}<span>{bar.label}</span>{/each}
           </div>
         </div>
@@ -340,26 +387,32 @@
       </section>
     </div>
 
-    <div class="bottom-grid">
-      <section class="assignment-card surface" aria-labelledby="success-heading">
-        <h2 id="success-heading">{tr('Success Overview')}</h2>
+    <div class="grid min-w-0 min-h-0 grid-cols-[3fr_1fr] gap-[2%] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[680px]:grid-cols-[minmax(0,1fr)] max-[680px]:gap-[10px]">
+      <section
+        class="flex flex-col min-w-0 min-h-0 overflow-hidden rounded-[17px] border-0 bg-surface shadow-none p-6 max-[680px]:min-h-[225px] max-[680px]:rounded-[13px] max-[680px]:p-4 max-[680px]:shrink-0"
+        aria-labelledby="success-heading"
+      >
+        <h2
+          id="success-heading"
+          class="overflow-hidden m-0 text-ink text-section-title font-semibold [letter-spacing:var(--tracking-tight)] text-ellipsis whitespace-nowrap"
+        >{tr('Success Overview')}</h2>
         <p class="card-subtitle">{tr('Request outcomes and latency, last 24 hours')}</p>
-        <div class="assignment-content">
-          <div class="legend-list">
-            <div class="legend-row">
-              <span class="legend-dot orange"></span><strong>{fmtInt(stats.failures)}</strong><span>{tr('Failed Requests')}</span>
+        <div class="grid min-h-0 flex-1 grid-cols-[1fr_1.22fr] items-center gap-[10px] max-[680px]:grid-cols-[1fr_1fr]">
+          <div class="grid gap-[8px] pt-[5px] max-[920px]:gap-[5px] max-[680px]:gap-[9px]">
+            <div class="group flex min-w-0 items-center gap-[8px] text-muted text-meta whitespace-nowrap [transition:transform_0.18s_ease] min-[681px]:hover:translate-x-[3px] max-[920px]:gap-[5px] max-[680px]:gap-[7px]">
+              <span class="w-[10px] h-[10px] shrink-0 rounded-[1px] bg-accent [transition:transform_0.25s_cubic-bezier(0.34,1.56,0.64,1)] min-[681px]:group-hover:scale-[1.35] min-[681px]:group-hover:rotate-45 max-[920px]:w-[7px] max-[920px]:h-[7px] max-[680px]:w-[8px] max-[680px]:h-[8px]"></span><strong class="text-ink text-label font-semibold tabular-nums">{fmtInt(stats.failures)}</strong><span>{tr('Failed Requests')}</span>
             </div>
-            <div class="legend-row">
-              <span class="legend-dot ink"></span><strong>{fmtInt(stats.successes)}</strong><span>{tr('Successful Requests')}</span>
+            <div class="group flex min-w-0 items-center gap-[8px] text-muted text-meta whitespace-nowrap [transition:transform_0.18s_ease] min-[681px]:hover:translate-x-[3px] max-[920px]:gap-[5px] max-[680px]:gap-[7px]">
+              <span class="w-[10px] h-[10px] shrink-0 rounded-[1px] bg-ink [transition:transform_0.25s_cubic-bezier(0.34,1.56,0.64,1)] min-[681px]:group-hover:scale-[1.35] min-[681px]:group-hover:rotate-45 max-[920px]:w-[7px] max-[920px]:h-[7px] max-[680px]:w-[8px] max-[680px]:h-[8px]"></span><strong class="text-ink text-label font-semibold tabular-nums">{fmtInt(stats.successes)}</strong><span>{tr('Successful Requests')}</span>
             </div>
-            <div class="legend-row">
-              <span class="legend-dot green"></span><strong>{fmtCompactTokens(totalTokens)}</strong><span>{tr('Total Tokens')}</span>
+            <div class="group flex min-w-0 items-center gap-[8px] text-muted text-meta whitespace-nowrap [transition:transform_0.18s_ease] min-[681px]:hover:translate-x-[3px] max-[920px]:gap-[5px] max-[680px]:gap-[7px]">
+              <span class="w-[10px] h-[10px] shrink-0 rounded-[1px] bg-mint [transition:transform_0.25s_cubic-bezier(0.34,1.56,0.64,1)] min-[681px]:group-hover:scale-[1.35] min-[681px]:group-hover:rotate-45 max-[920px]:w-[7px] max-[920px]:h-[7px] max-[680px]:w-[8px] max-[680px]:h-[8px]"></span><strong class="text-ink text-label font-semibold tabular-nums">{fmtCompactTokens(totalTokens)}</strong><span>{tr('Total Tokens')}</span>
             </div>
-            <div class="legend-row">
-              <span class="legend-dot blue"></span><strong>{stats.average_latency_ms ? `${Math.round(stats.average_latency_ms)} ms` : '—'}</strong><span>{tr('Average Latency')}</span>
+            <div class="group flex min-w-0 items-center gap-[8px] text-muted text-meta whitespace-nowrap [transition:transform_0.18s_ease] min-[681px]:hover:translate-x-[3px] max-[920px]:gap-[5px] max-[680px]:gap-[7px]">
+              <span class="w-[10px] h-[10px] shrink-0 rounded-[1px] bg-info [transition:transform_0.25s_cubic-bezier(0.34,1.56,0.64,1)] min-[681px]:group-hover:scale-[1.35] min-[681px]:group-hover:rotate-45 max-[920px]:w-[7px] max-[920px]:h-[7px] max-[680px]:w-[8px] max-[680px]:h-[8px]"></span><strong class="text-ink text-label font-semibold tabular-nums">{stats.average_latency_ms ? `${Math.round(stats.average_latency_ms)} ms` : '—'}</strong><span>{tr('Average Latency')}</span>
             </div>
           </div>
-          <svg class="gauge" viewBox="0 0 280 155" role="img" aria-label={tr('{percent} percent of requests successful', { percent: successRate ?? 0 })}>
+          <svg class="block w-full max-w-[310px] max-h-full justify-self-center" viewBox="0 0 280 155" role="img" aria-label={tr('{percent} percent of requests successful', { percent: successRate ?? 0 })}>
             <defs>
               <linearGradient id="gauge-gradient" x1="0" y1="1" x2="1" y2="0">
                 <stop offset="0%" stop-color="#f27b5e" />
@@ -384,32 +437,56 @@
         </div>
       </section>
 
-      <section class="community-card surface" aria-labelledby="links-heading">
+      <section
+        class="flex flex-col gap-[9px] min-w-0 min-h-0 overflow-hidden rounded-[17px] border-0 bg-surface shadow-none p-6 max-[920px]:gap-[6px] max-[680px]:min-h-[180px] max-[680px]:rounded-[13px] max-[680px]:p-4 max-[680px]:shrink-0"
+        aria-labelledby="links-heading"
+      >
         <div class="community-heading">
-          <h2 id="links-heading">{tr('Quick Links')}</h2>
+          <h2
+            id="links-heading"
+            class="overflow-hidden m-0 text-ink text-section-title font-semibold [letter-spacing:var(--tracking-tight)] text-ellipsis whitespace-nowrap"
+          >{tr('Quick Links')}</h2>
           <Button class="icon-button" type="button" aria-label={tr('More links')} onclick={() => showDashboardToast(tr('Quick links'))}>
             <svg class="icon"><use href="#i-plus" /></svg>
           </Button>
         </div>
-        <div class="community-link" role="button" tabindex="0" onclick={openDocs} onkeydown={(e) => e.key === 'Enter' && openDocs()}>
-          <span class="community-logo" aria-hidden="true"><svg class="icon"><use href="#i-book" /></svg></span>
-          <span class="community-copy">
-            <strong>{tr('Documentation')}</strong>
-            <span>{tr('API reference & guides')}</span>
+        <div
+          class="flex min-w-0 flex-1 items-center gap-[9px] rounded-[10px] bg-db-tint-strong p-[7px] [transition:background-color_0.15s_ease] min-[681px]:hover:bg-surface-sunken max-[920px]:gap-[5px] max-[920px]:p-[5px] max-[680px]:gap-[9px] max-[680px]:p-[8px]"
+          role="button"
+          tabindex="0"
+          onclick={openDocs}
+          onkeydown={(e) => e.key === 'Enter' && openDocs()}
+        >
+          <span class="grid w-[35px] h-[35px] shrink-0 place-items-center rounded-[9px] bg-surface text-mint text-[20px] font-bold max-[920px]:w-[27px] max-[920px]:h-[27px] max-[680px]:w-[27px] max-[680px]:h-[27px]" aria-hidden="true"><svg class="icon"><use href="#i-book" /></svg></span>
+          <span class="grid min-w-0 gap-[3px]">
+            <strong class="overflow-hidden text-ink text-meta font-semibold text-ellipsis whitespace-nowrap">{tr('Documentation')}</strong>
+            <span class="overflow-hidden text-muted text-caption [line-height:var(--leading-body)] text-ellipsis whitespace-nowrap">{tr('API reference & guides')}</span>
           </span>
         </div>
-        <div class="community-link" role="button" tabindex="0" onclick={() => onNavigate('chat')} onkeydown={(e) => e.key === 'Enter' && onNavigate('chat')}>
-          <span class="community-logo discord" aria-hidden="true"><svg class="icon"><use href="#i-video" /></svg></span>
-          <span class="community-copy">
-            <strong>{tr('Workspace Chat')}</strong>
-            <span>{tr('Try models in-browser')}</span>
+        <div
+          class="flex min-w-0 flex-1 items-center gap-[9px] rounded-[10px] bg-db-tint-strong p-[7px] [transition:background-color_0.15s_ease] min-[681px]:hover:bg-surface-sunken max-[920px]:gap-[5px] max-[920px]:p-[5px] max-[680px]:gap-[9px] max-[680px]:p-[8px]"
+          role="button"
+          tabindex="0"
+          onclick={() => onNavigate('chat')}
+          onkeydown={(e) => e.key === 'Enter' && onNavigate('chat')}
+        >
+          <span class="grid w-[35px] h-[35px] shrink-0 place-items-center rounded-[9px] bg-surface text-info text-[16px] font-bold max-[920px]:w-[27px] max-[920px]:h-[27px] max-[680px]:w-[27px] max-[680px]:h-[27px]" aria-hidden="true"><svg class="icon"><use href="#i-video" /></svg></span>
+          <span class="grid min-w-0 gap-[3px]">
+            <strong class="overflow-hidden text-ink text-meta font-semibold text-ellipsis whitespace-nowrap">{tr('Workspace Chat')}</strong>
+            <span class="overflow-hidden text-muted text-caption [line-height:var(--leading-body)] text-ellipsis whitespace-nowrap">{tr('Try models in-browser')}</span>
           </span>
         </div>
-        <div class="community-link" role="button" tabindex="0" onclick={() => onNavigate('api-keys')} onkeydown={(e) => e.key === 'Enter' && onNavigate('api-keys')}>
-          <span class="community-logo" aria-hidden="true" style="color:#ed674d"><svg class="icon"><use href="#i-key" /></svg></span>
-          <span class="community-copy">
-            <strong>{tr('API Keys')}</strong>
-            <span>{tr('Manage client API keys')}</span>
+        <div
+          class="flex min-w-0 flex-1 items-center gap-[9px] rounded-[10px] bg-db-tint-strong p-[7px] [transition:background-color_0.15s_ease] min-[681px]:hover:bg-surface-sunken max-[920px]:gap-[5px] max-[920px]:p-[5px] max-[680px]:gap-[9px] max-[680px]:p-[8px]"
+          role="button"
+          tabindex="0"
+          onclick={() => onNavigate('api-keys')}
+          onkeydown={(e) => e.key === 'Enter' && onNavigate('api-keys')}
+        >
+          <span class="grid w-[35px] h-[35px] shrink-0 place-items-center rounded-[9px] bg-surface text-[20px] font-bold max-[920px]:w-[27px] max-[920px]:h-[27px] max-[680px]:w-[27px] max-[680px]:h-[27px]" aria-hidden="true" style="color:#ed674d"><svg class="icon"><use href="#i-key" /></svg></span>
+          <span class="grid min-w-0 gap-[3px]">
+            <strong class="overflow-hidden text-ink text-meta font-semibold text-ellipsis whitespace-nowrap">{tr('API Keys')}</strong>
+            <span class="overflow-hidden text-muted text-caption [line-height:var(--leading-body)] text-ellipsis whitespace-nowrap">{tr('Manage client API keys')}</span>
           </span>
         </div>
       </section>
@@ -430,13 +507,13 @@
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     {#if keySecret}
-      <div class="key-reveal">
-        <strong>{tr('Your new key')}</strong>
-        <p>{tr('Copy it now — it will not be shown again.')}{#if keyWarning} {keyWarning}{/if}</p>
-        <div class="key-reveal-row">
-          <code>{keySecret}</code>
+      <div class="grid gap-[8px] rounded-[12px] border border-db-accent-line bg-db-accent-tint px-[15px] py-[13px]">
+        <strong class="text-accent-deep text-label">{tr('Your new key')}</strong>
+        <p class="m-0 text-muted text-meta">{tr('Copy it now — it will not be shown again.')}{#if keyWarning} {keyWarning}{/if}</p>
+        <div class="mt-[4px] flex items-center gap-[10px]">
+          <code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[9px] border border-db-accent-line bg-surface px-[12px] py-[9px] text-ink text-meta">{keySecret}</code>
           <Button class="page-action" type="button" onclick={copyKey}>
-            <svg class="icon"><use href="#i-copy" /></svg> {tr('Copy')}
+            <svg class="icon w-[14px] h-[14px]"><use href="#i-copy" /></svg> {tr('Copy')}
           </Button>
         </div>
       </div>

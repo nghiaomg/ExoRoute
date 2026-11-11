@@ -60,17 +60,17 @@
   <Button class={buttonClass} type="button" onclick={() => open = true}><span class="button-icon"><svg class="icon"><use href="#i-import" /></svg></span><span class="button-label">{tr('Bulk add')}</span></Button>
 
 <ArkDialog bind:open wide title={tr('Bulk add proxies')} kicker={tr('Import proxy endpoints')} closeLabel={tr('Close dialog')} preventClose={busy} onClose={close}>
-  <form class="modal-form bulk-proxy-import" onsubmit={(event) => { event.preventDefault(); void importAll(); }}>
+  <form class="modal-form gap-3.5" onsubmit={(event) => { event.preventDefault(); void importAll(); }}>
     <p class="modal-description">{tr('Paste one proxy address per line. Bare host:port uses HTTP; http:// and https:// are also accepted. Lines beginning with # are ignored.')}</p>
     <ArkField label={tr('Proxy name prefix')} bind:value={namePrefix} maxlength={80} disabled={busy} placeholder={tr('Proxy pool')} />
-    <label class="field">{tr('Proxy list')}<textarea bind:value={text} rows="9" placeholder={'10.0.0.1:8080\nhttps://proxy.example:8443 # backup'} spellcheck="false" disabled={busy}></textarea></label>
+    <label class="field">{tr('Proxy list')}<textarea class="w-full min-h-[170px] resize-y rounded-[10px] border border-line bg-surface p-3 font-mono! text-xs! leading-relaxed text-ink placeholder:text-muted focus:outline-none focus:border-accent" bind:value={text} rows="9" placeholder={'10.0.0.1:8080\nhttps://proxy.example:8443 # backup'} spellcheck="false" disabled={busy}></textarea></label>
     {#if parsed.errors.length}
-      <div class="bulk-proxy-errors" role="alert"><AlertTriangle size={14}/><ul>{#each parsed.errors as item (item)}<li>{item}</li>{/each}</ul></div>
+      <div class="flex gap-2 rounded-[10px] border border-db-danger/40 bg-db-danger/10 p-2.5 text-caption text-db-danger" role="alert"><AlertTriangle size={14}/><ul class="m-0 grid content-start gap-1 pl-[18px]">{#each parsed.errors as item (item)}<li>{item}</li>{/each}</ul></div>
     {:else}
-      <p class="form-note">{tr('{count} valid endpoints will create individual proxy groups.', { count: parsed.endpoints.length })}</p>
+      <p class="m-0 text-meta text-muted">{tr('{count} valid endpoints will create individual proxy groups.', { count: parsed.endpoints.length })}</p>
     {/if}
     {#if error}<div class="form-error" role="alert">{error}</div>{/if}
-    {#if completed !== null}<div class="bulk-proxy-success" role="status"><Check size={14}/>{tr('Created {count} proxies.', { count: completed })}</div>{/if}
+    {#if completed !== null}<div class="flex items-center gap-[7px] text-caption text-db-success" role="status"><Check size={14}/>{tr('Created {count} proxies.', { count: completed })}</div>{/if}
     <div class="modal-actions"><Button class="secondary-button" type="button" onclick={close}>{tr('Cancel')}</Button><Button class="primary-button" type="submit" disabled={busy || !parsed.endpoints.length || parsed.errors.length > 0}>{#if busy}<LoaderCircle size={14} class="spin"/>{tr('Importing…')}{:else}<Save size={14}/>{tr('Create {count} proxies', { count: parsed.endpoints.length })}{/if}</Button></div>
   </form>
 </ArkDialog>

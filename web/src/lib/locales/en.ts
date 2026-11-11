@@ -1950,6 +1950,7 @@ export const en = {
   "All keys": "All keys",
   "All providers healthy": "All providers healthy",
   "All statuses": "All statuses",
+  "{proxies} proxies · {endpoints} endpoints · {providers} providers": "{proxies} proxies · {endpoints} endpoints · {providers} providers",
   "All strategies": "All strategies",
   "All time on this instance": "All time on this instance",
   "Allowed model": "Allowed model",

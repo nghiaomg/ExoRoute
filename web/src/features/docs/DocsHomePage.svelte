@@ -57,7 +57,7 @@
     {/each}
   </section>
 
-  <section class="docs-section docs-architecture-section">
+  <section class="docs-section docs-architecture-section scroll-mt-5 [&_h2]:text-[19px]! [&_a]:text-accent [&_a]:font-semibold hover:[&_a]:underline [&_p.card-subtitle]:m-0 [&_p.card-subtitle]:mb-3.5">
     <div class="docs-section-heading"><span class="docs-kicker">{copy.home.eyebrow}</span><h2>{copy.home.architectureTitle}</h2><p>{copy.home.architectureIntro}</p></div>
     <div class="docs-flow">
       {#each copy.home.flow as item, index}

@@ -15,7 +15,7 @@
     <p>{copy.quickstart.intro}</p>
   </header>
 
-  <div class="docs-steps">
+  <div class="mt-3.5 grid grid-cols-[repeat(3,minmax(0,1fr))] gap-3 max-[1100px]:grid-cols-1">
     {#each copy.quickstart.steps as step}
       <article class="docs-step-card">
         <div class="docs-step-number">{step.number}</div>

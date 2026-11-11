@@ -14,6 +14,8 @@
   export let targetKey: number;
   /** Compact rows render the picker without its field label. */
   export let hideLabel = false;
+  /** Popups must portal into the hosting modal dialog, or the top layer makes them inert. */
+  export let portalContainer: HTMLElement | undefined = undefined;
   export let tr: Translate;
   export let onComboChange: (targetKey: number, comboId: string) => void;
 
@@ -89,7 +91,7 @@
       <ChevronsUpDown size={14} />
     </Combobox.Trigger>
   </Combobox.Control>
-  <Portal>
+  <Portal container={portalContainer}>
     <Combobox.Positioner class="ark-select-positioner">
       <Combobox.Content class="ark-select-content combo-combobox-content">
         <Combobox.List class="ark-select-item-group">

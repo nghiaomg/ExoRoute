@@ -1,8 +1,6 @@
 <script lang="ts">
-  import Button from "../Button.svelte";
   import type { Snippet } from 'svelte';
   import DashboardIconSprite from './DashboardIconSprite.svelte';
-  import Input from '../Input.svelte';
   import { dashboardToast, submitTopSearch } from '../../lib/dashboard-ui';
   import { getStoredSidebarCollapsed, saveSidebarCollapsed } from '../../lib/sidebar';
   import { DASHBOARD_VERSION } from '../../lib/version';
@@ -137,19 +135,49 @@
       mq.removeEventListener('change', onMq);
     };
   });
+
+  /* Shared shell utility strings. Breakpoints: `nav:` = >=681px (desktop
+     fixed sidebar), `max-nav:` = <=680px (mobile drawer), `@max-[920px]:` =
+     the dashboard-card container query. Colors come from the @theme bridge in
+     styles/tailwind.css, which references the live theme custom properties.
+     `!` marks utilities that must out-rank the unlayered legacy resets
+     (`.dashboard-app button { color: inherit }`, `.icon` sizing). */
+  const focusRing = 'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring';
+
+  const layoutClass = $derived(`grid min-w-0 max-nav:h-auto max-nav:min-h-[100svh] max-nav:grid-cols-[minmax(0,1fr)] max-nav:gap-2.5 nav:block nav:h-[100svh] nav:min-h-[max(700px,100svh)] @max-[920px]:gap-3 [--shell-header-row:68px] ${collapsed ? 'nav:[--shell-header-row:80px]' : ''}`);
+
+  const sidebarClass = $derived(`grid min-w-0 min-h-0 max-nav:fixed max-nav:top-3 max-nav:bottom-3 max-nav:left-3 max-nav:z-50 max-nav:w-[min(300px,84vw)] max-nav:h-auto max-nav:gap-[9px] max-nav:[grid-template-rows:54px_auto] max-nav:transition-transform max-nav:duration-200 ${mobileOpen ? 'max-nav:translate-x-0' : 'max-nav:-translate-x-[115%]'} nav:fixed nav:inset-y-0 nav:left-0 nav:z-40 nav:transition-[width] nav:duration-200 nav:gap-[clamp(10px,1.32vw,18px)] nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] ${collapsed ? 'nav:w-[78px]' : 'nav:w-[calc(100vw*0.204)]'}`);
+
+  const brandCardClass = $derived(`flex min-w-0 items-center justify-between rounded-[15px] bg-surface max-nav:px-3.5 nav:px-[8%] ${collapsed ? 'nav:flex-col nav:justify-start nav:gap-2 nav:px-1 nav:py-2' : ''}`);
+
+  const brandClass = $derived(`flex min-w-0 items-center gap-[7px] text-ink text-section-title font-bold tracking-[-0.035em] ${collapsed ? 'nav:justify-center' : ''}`);
+
+  const sidePanelClass = $derived(`flex min-h-0 flex-col overflow-y-auto rounded-[17px] bg-surface px-[6.5%] py-[5.8%] max-nav:p-2.5 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent] @max-[920px]:p-[9px] ${collapsed ? 'nav:px-2 nav:py-2.5 nav:items-center' : ''}`);
+
+  function navButtonClass(active: boolean): string {
+    return `relative flex w-full min-w-0 min-h-[clamp(32px,3.45vw,46px)] items-center justify-start gap-2.5 rounded-full border-0 px-[7px] text-left cursor-pointer ${focusRing} @max-[920px]:min-h-[30px] @max-[920px]:gap-1.5 @max-[920px]:px-1 max-nav:min-h-[38px] max-nav:gap-[7px] max-nav:px-1.5 ${collapsed ? 'nav:justify-center nav:min-h-10 nav:px-0' : ''} ${active ? 'bg-db-accent-tint text-accent-strong!' : 'bg-transparent text-ink hover:bg-db-tint-strong'} [aria-current='page']:cursor-default`;
+  }
+
+  function navIconClass(active: boolean): string {
+    return `grid size-[clamp(27px,2.55vw,35px)] shrink-0 place-items-center rounded-full @max-[920px]:size-[26px] max-nav:size-[29px] ${collapsed ? 'nav:size-[34px]' : ''} ${active ? 'bg-accent text-accent-contrast' : 'bg-line text-muted'}`;
+  }
+
+  function navCountClass(active: boolean): string {
+    return `grid ms-auto h-[19px] min-w-[19px] shrink-0 place-items-center rounded-full px-1 text-caption font-semibold tabular-nums @max-[920px]:h-4 @max-[920px]:min-w-4 @max-[920px]:px-[3px] max-nav:h-[18px] max-nav:min-w-[18px] ${collapsed ? 'nav:hidden' : ''} ${active ? 'bg-accent text-accent-contrast' : 'bg-ink text-canvas'}`;
+  }
 </script>
 
 <svelte:window onclick={onShellClick} />
 
 <div class="dashboard-app dashboard-page-{page}">
   <DashboardIconSprite />
-  <main class="poster">
-    <section class="dashboard-card" aria-label="ExoRoute dashboard">
-      <div class="app-layout" class:collapsed>
-        <aside class="sidebar" class:open={mobileOpen}>
-          <div class="brand-card">
-            <div class="brand">
-              <svg class="brand-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <main class="poster relative min-h-[100svh] bg-db-tint-strong max-nav:block max-nav:overflow-visible">
+    <section class="dashboard-card relative w-full min-h-[100svh] bg-db-tint-strong @container max-nav:p-3" aria-label="ExoRoute dashboard">
+      <div class={layoutClass}>
+        <aside class={sidebarClass} class:open={mobileOpen}>
+          <div class={brandCardClass}>
+            <div class={brandClass}>
+              <svg class="w-[clamp(25px,2.05vw,29px)] h-[clamp(25px,2.05vw,29px)] shrink-0 overflow-visible max-nav:size-[27px]" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                 <defs>
                   <linearGradient id="compBodyGrad" x1="12" y1="46" x2="56" y2="16" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: var(--accent-deep)"></stop><stop offset="50%" style="stop-color: var(--accent)"></stop><stop offset="100%" style="stop-color: var(--accent-glow)"></stop></linearGradient>
                   <linearGradient id="compBellyGrad" x1="16" y1="44" x2="52" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: color-mix(in srgb, var(--accent) 45%, black)"></stop><stop offset="60%" style="stop-color: var(--accent-deep)"></stop><stop offset="100%" style="stop-color: var(--accent-soft)"></stop></linearGradient>
@@ -175,82 +203,83 @@
                 <circle cx="48.5" cy="19.8" r="1.1" style="fill: var(--accent-deep)"></circle>
                 <circle cx="54" cy="18" r="1" style="fill: var(--accent-soft)"></circle>
               </svg>
-              <span>ExoRoute</span>
-              <span class="brand-version">{DASHBOARD_VERSION}</span>
+              <span class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap {collapsed ? 'nav:hidden' : ''}">ExoRoute</span>
+              <span class="shrink-0 self-center ms-0.5 rounded border px-[5px] py-[3px] text-[12px] font-bold leading-none tracking-[0.3px] whitespace-nowrap border-[color-mix(in_srgb,var(--accent)_15%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] text-accent-strong @max-[920px]:hidden {collapsed ? 'nav:hidden' : ''}">{DASHBOARD_VERSION}</span>
             </div>
-            <Button class="collapse-button" type="button" aria-label={tr('Collapse sidebar')} onclick={toggleCollapse}>
-              <svg class="icon"><use href="#i-chevron" /></svg>
-            </Button>
+            <button type="button" aria-label={tr('Collapse sidebar')} onclick={toggleCollapse} class="group/collapse inline-grid size-[25px] shrink-0 place-items-center rounded-full border-0 bg-db-tint-strong p-0 text-text-dim cursor-pointer transition-colors {focusRing} max-nav:hidden">
+              <svg class="icon size-[13px]! transition-transform duration-200 group-hover/collapse:-translate-x-0.5 {collapsed ? 'nav:rotate-180 nav:group-hover/collapse:translate-x-0.5' : ''}"><use href="#i-chevron" /></svg>
+            </button>
           </div>
 
-          <nav class="side-panel" aria-label={tr('Main navigation')}>
-            <div class="nav-section">
-              <p class="eyebrow">{tr('Menu')}</p>
-              <div class="nav-list">
+          <nav class={sidePanelClass} aria-label={tr('Main navigation')}>
+            <div>
+              <p class="m-0 mb-2 ms-[7px] text-caption font-semibold tracking-[0.04em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('Menu')}</p>
+              <div class="grid gap-0.5 {collapsed ? 'nav:justify-items-center' : ''}">
                 {#each menuItems as item (item.id)}
-                  <Button
-                    class="nav-button" stateClasses={{ active: navPage === item.id }}
-
+                  {@const active = navPage === item.id}
+                  <button
                     type="button"
-                    aria-current={navPage === item.id ? 'page' : undefined}
+                    aria-current={active ? 'page' : undefined}
                     onclick={() => handleNav(item.id)}
+                    class={navButtonClass(active)}
                   >
-                    <span class="nav-icon"><svg class="icon"><use href="#{item.icon}" /></svg></span>
-                    <span class="nav-label">{item.label}</span>
-                    {#if item.count}<span class="nav-count">{item.count}</span>{/if}
-                  </Button>
+                    <span class={navIconClass(active)}><svg class="icon size-[53%]!"><use href="#{item.icon}" /></svg></span>
+                    <span class="overflow-hidden text-ellipsis whitespace-nowrap text-dash-body font-medium {collapsed ? 'nav:hidden' : ''}">{item.label}</span>
+                    {#if item.count}<span class={navCountClass(active)}>{item.count}</span>{/if}
+                  </button>
                 {/each}
               </div>
             </div>
 
-            <div class="nav-section">
-              <p class="eyebrow">{tr('General')}</p>
-              <div class="nav-list">
+            <div class="mt-[5.5%] max-nav:mt-2.5">
+              <p class="m-0 mb-2 ms-[7px] text-caption font-semibold tracking-[0.04em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('General')}</p>
+              <div class="grid gap-0.5 {collapsed ? 'nav:justify-items-center' : ''}">
                 {#each generalItems as item (item.id)}
-                  <Button
-                    class="nav-button" stateClasses={{ active: navPage === item.id }}
-
+                  {@const active = navPage === item.id}
+                  <button
                     type="button"
                     onclick={() => handleNav(item.id)}
+                    class={navButtonClass(active)}
                   >
-                    <span class="nav-icon"><svg class="icon"><use href="#{item.icon}" /></svg></span>
-                    <span class="nav-label">{item.label}</span>
-                  </Button>
+                    <span class={navIconClass(active)}><svg class="icon size-[53%]!"><use href="#{item.icon}" /></svg></span>
+                    <span class="overflow-hidden text-ellipsis whitespace-nowrap text-dash-body font-medium {collapsed ? 'nav:hidden' : ''}">{item.label}</span>
+                  </button>
                 {/each}
               </div>
             </div>
 
             {#if onSignOut}
-              <Button class="nav-button logout" type="button" onclick={handleSignOut}>
-                <span class="nav-icon"><svg class="icon"><use href="#i-logout" /></svg></span>
-                <span class="nav-label">{tr('Log Out')}</span>
-              </Button>
+              <button type="button" onclick={handleSignOut} class="mt-[3.5%] text-accent! {navButtonClass(false)}">
+                <span class={navIconClass(true)}><svg class="icon size-[53%]!"><use href="#i-logout" /></svg></span>
+                <span class="overflow-hidden text-ellipsis whitespace-nowrap text-dash-body font-medium {collapsed ? 'nav:hidden' : ''}">{tr('Log Out')}</span>
+              </button>
             {/if}
           </nav>
         </aside>
         <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-        <div class="sidebar-backdrop" hidden={!mobileOpen} onclick={() => setMobileOpen(false)}></div>
+        <div class="max-nav:fixed max-nav:inset-0 max-nav:z-[45] max-nav:bg-[#12182066] max-nav:backdrop-blur-[2px]" hidden={!mobileOpen} onclick={() => setMobileOpen(false)}></div>
 
-        <section class="main-area">
-          <header class="topbar">
-            <label class="search-box">
-              <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
-              <Input
+        <section class="grid min-w-0 min-h-0 max-nav:min-h-[100svh] max-nav:[grid-template-rows:56px_auto] max-nav:gap-2.5 nav:h-full nav:ml-[calc(100vw*0.219)] nav:gap-[1.8%] nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] {collapsed ? 'nav:ml-[92px]' : ''}">
+          <header class="flex h-full min-w-0 items-center justify-between gap-[18px] rounded-[16px] bg-surface px-[2.3%] max-nav:gap-2 max-nav:rounded-[13px] max-nav:px-[9px]">
+            <label class="group/search flex h-[58%] w-[min(43%,370px)] min-w-[120px] items-center gap-2.5 rounded-full bg-db-tint-strong px-[13px] text-text-dim transition-colors duration-200 focus-within:bg-surface-sunken focus-within:ring-3 focus-within:ring-db-accent-ring max-nav:w-[43%] max-nav:min-w-0 max-nav:px-[9px]">
+              <svg class="icon size-4! transition-colors duration-200 group-focus-within/search:text-accent" aria-hidden="true"><use href="#i-search" /></svg>
+              <input
                 type="search"
                 placeholder={tr('Search requests...')}
                 aria-label={tr('Search requests')}
                 bind:value={searchQuery}
                 onkeydown={(e) => { if (e.key === 'Enter') handleTopSearch(); }}
+                class="w-full min-w-0 border-0 bg-transparent p-0 text-ink text-dash-body outline-none placeholder:text-muted"
               />
             </label>
-            <div class="top-actions">
-              <Button class="icon-button mobile-menu-btn" type="button" aria-label={tr('Toggle navigation')} aria-expanded={mobileOpen} onclick={() => setMobileOpen(!mobileOpen)}>
-                <svg class="icon"><use href="#i-menu" /></svg>
-              </Button>
+            <div class="flex min-w-0 items-center gap-[clamp(8px,1.2vw,17px)] max-nav:gap-1.5">
+              <button type="button" aria-label={tr('Toggle navigation')} aria-expanded={mobileOpen} onclick={() => setMobileOpen(!mobileOpen)} class="group/menu inline-grid size-[38px] shrink-0 place-items-center rounded-full border-0 bg-db-tint-strong p-0 text-muted transition-colors cursor-pointer hover:bg-line {focusRing} nav:hidden">
+                <svg class="icon transition-transform duration-200 group-hover/menu:scale-110"><use href="#i-menu" /></svg>
+              </button>
               <LanguageSelect {locale} {tr} onLocaleChange={onLocaleChange} />
-              <span class="top-divider" aria-hidden="true"></span>
-              <div class="profile">
-                <svg class="avatar" viewBox="0 0 44 44" role="img" aria-label={tr('ExoRoute Admin')}>
+              <span class="w-px h-6 bg-line max-nav:h-5" aria-hidden="true"></span>
+              <div class="group/profile flex min-w-0 items-center gap-2.5 max-nav:gap-1.5">
+                <svg class="size-[clamp(32px,3.1vw,43px)] shrink-0 overflow-hidden rounded-full border-2 border-line max-nav:size-[31px] transition-transform duration-200 group-hover/profile:scale-[1.06]" viewBox="0 0 44 44" role="img" aria-label={tr('ExoRoute Admin')}>
                   <defs>
                     <linearGradient id="avatar-bg" x1="0" y1="0" x2="1" y2="1">
                       <stop stop-color="#d6e1e3" />
@@ -264,16 +293,16 @@
                   <path d="M19 22h.2m7.4 0h.2" stroke="#29323a" stroke-width="1.4" stroke-linecap="round" />
                   <path d="M20 26c1.5 1.1 3.4 1.1 4.9 0" fill="none" stroke="#855c4d" stroke-width="1.2" stroke-linecap="round" />
                 </svg>
-                <div class="profile-copy">
-                  <strong>{tr('ExoRoute Admin')}</strong>
-                  <span>{gatewayAddress}</span>
+                <div class="grid gap-[3px] whitespace-nowrap leading-[1.15]">
+                  <strong class="overflow-hidden text-ellipsis text-label font-semibold transition-colors duration-150 group-hover/profile:text-accent max-nav:max-w-[78px]">{tr('ExoRoute Admin')}</strong>
+                  <span class="text-muted text-meta">{gatewayAddress}</span>
                 </div>
               </div>
             </div>
           </header>
 
           <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-          <div class="content" onclick={onDialogClick}>
+          <div class="grid min-w-0 min-h-0 gap-[1.8%] max-nav:gap-3 max-nav:[grid-template-rows:auto_auto] nav:flex nav:flex-col nav:h-full nav:min-h-0 nav:overflow-y-auto nav:[&>*]:shrink-0 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent]" onclick={onDialogClick}>
             {@render children?.()}
           </div>
         </section>
@@ -282,6 +311,6 @@
   </main>
 
   {#if $dashboardToast}
-    <div class="toast" role="status" aria-live="polite">{$dashboardToast.message}</div>
+    <div class="fixed right-5 bottom-5 z-20 max-w-[min(380px,calc(100vw-40px))] rounded-xl border border-ink bg-ink px-4 py-3 text-canvas text-dash-body leading-[1.4] shadow-[0_10px_30px_#0003]" role="status" aria-live="polite">{$dashboardToast.message}</div>
   {/if}
 </div>

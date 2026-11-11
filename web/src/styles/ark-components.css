@@ -18,6 +18,10 @@
 /* Ark Checkbox */
 .ark-checkbox-root { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }
 .ark-checkbox-root[data-disabled] { cursor: not-allowed; opacity: .55; }
+/* ArkDialog renders into a portal, so the legacy `.modal-form label`
+   (display: grid) rule still applies inside dialogs and stacks the control
+   above its label; restore the inline row with a higher-specificity rule. */
+.modal-form label.ark-checkbox-root { display: inline-flex; align-items: center; gap: 9px; }
 .ark-checkbox-control { display: grid; place-items: center; width: 17px; height: 17px; border-radius: var(--radius-xs); border: var(--nb-border); background: var(--surface); color: var(--accent-contrast); transition: .14s ease; flex: 0 0 17px; }
 .ark-checkbox-root:hover:not([data-disabled]) .ark-checkbox-control { border-color: var(--accent); }
 .ark-checkbox-root[data-state="checked"] .ark-checkbox-control,

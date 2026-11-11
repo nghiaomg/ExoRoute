@@ -23,7 +23,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const webStyles = join(here, '..', 'web', 'src', 'styles', 'dashboard');
 mkdirSync(join(webStyles, 'pages'), { recursive: true });
 
-const PAGE_IDS = ['apikeys', 'chat', 'combos', 'docs', 'help', 'overview', 'providers', 'proxies', 'quota', 'requests', 'settings'];
+const PAGE_IDS = [];
 // Sketch page id -> dashboard route id when the two differ. DashboardAppShell
 // scopes each page stylesheet with `dashboard-page-<route id>`, so the emitted
 // scope and filename must use the route id, not the sketch id.

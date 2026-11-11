@@ -1,6 +1,9 @@
 import { mount } from 'svelte';
 import App from './App.svelte';
 import './styles.css';
+// Tailwind entry (no preflight — see the file header) sits right after the
+// legacy global sheet so migrated utilities win over it in the cascade.
+import './styles/tailwind.css';
 import './styles/theme.css';
 // Imported after the theme files so the dark-mode flattening rules are
 // injected last in the production CSS order.

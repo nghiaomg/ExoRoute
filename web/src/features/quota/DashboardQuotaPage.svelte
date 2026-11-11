@@ -10,7 +10,6 @@
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import { providerLogo } from '../providers/provider-logo';
   import type { Provider, ProviderUsageAccount, ProviderUsageQuota } from '../../lib/types';
-  import '../../styles/dashboard/pages/quota.css';
 
   interface Props {
     tr: Translate;
@@ -258,22 +257,26 @@
       <StatsCard icon="#i-cpu" value={localProviders.length} title={tr('Local Providers')} trend={localProviders.map((v) => v.provider.name).join(', ') || tr('None configured')} actionLabel={tr('Open chat')} onAction={ () => onNavigate('chat') } />
     </section>
 
-    <section class="course-card surface quota-board" id="quota-board" aria-labelledby="quota-heading">
+    <section class="course-card surface flex flex-col" id="quota-board" aria-labelledby="quota-heading">
       <div class="card-title-row">
         <h2 id="quota-heading">{tr('Quota by provider')}</h2>
-        <Button class="mini-add" type="button" onclick={refresh} disabled={refreshing}>
+        <Button class="mini-add disabled:opacity-55 disabled:cursor-default" type="button" onclick={refresh} disabled={refreshing}>
           <svg class="icon"><use href="#i-refresh" /></svg>
           {refreshing ? tr('Refreshing…') : tr('Refresh')}
         </Button>
       </div>
       <p class="card-subtitle">{tr('Upstream quotas are informational — they never change provider routing.')}</p>
-      <div class="quota-grid">
+      <div class="mt-3.5 grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 max-nav:grid-cols-1">
         {#each boardViews as view (view.provider.id)}
-      <article class="quota-card" class:warn={(view.maxUsed ?? 0) >= 90} class:pending={view.usageIncomplete} id="quota-card-{view.provider.id}">
-            <div class="quota-head">
+      <article
+        class="flex min-w-0 flex-col gap-3.5 rounded-[14px] bg-db-tint-strong p-[18px] transition-[background-color,transform,box-shadow] duration-200 hover:bg-surface-sunken {(view.maxUsed ?? 0) >= 90 ? 'bg-db-accent-tint hover:bg-db-accent-tint' : ''}"
+        class:pending={view.usageIncomplete}
+        id="quota-card-{view.provider.id}"
+      >
+            <div class="flex items-center gap-[11px]">
               <span class="course-icon">
                 {#if providerCardLogo(view.provider)}
-                  <img src={providerCardLogo(view.provider)} alt="" aria-hidden="true" />
+                  <img src={providerCardLogo(view.provider)} alt="" aria-hidden="true" class="block size-full p-[5px] object-contain" />
                 {:else}
                   <svg class="icon"><use href="#{providerIcon(view.provider)}" /></svg>
                 {/if}
@@ -284,25 +287,25 @@
               </div>
               <span class="status {statusClass(view)}" title={tr('Remaining quota')}>{view.maxUsed === null ? '—' : `${remainingPercent(view.maxUsed)}%`}</span>
             </div>
-            <div class="quota-meters">
+            <div class="grid gap-3">
               {#if view.quotas.length}
                 {#each view.quotas.slice(0, 3) as quota, i (i)}
-                  <div class="quota-meter">
-                    <div class="quota-meter-top"><span>{quota.label}</span><strong>{quotaValue(quota)}</strong></div>
-                    <div class="progress-track quota-remaining-track" role="img" aria-label={tr('{percent}% remaining', { percent: remainingPercent(quota.used_percent) })}><div class="progress-fill quota-remaining-fill" style={quotaBarStyle(quota.used_percent)}></div></div>
+                  <div>
+                    <div class="mb-1.5 flex items-center justify-between gap-2 text-muted text-meta"><span>{quota.label}</span><strong class="text-ink tabular-nums">{quotaValue(quota)}</strong></div>
+                    <div class="progress-track bg-[color-mix(in_srgb,var(--text-dim)_58%,var(--surface-sunken))]!" role="img" aria-label={tr('{percent}% remaining', { percent: remainingPercent(quota.used_percent) })}><div class="progress-fill h-full rounded-[inherit] bg-accent! transition-[background-size] duration-200" style={quotaBarStyle(quota.used_percent)}></div></div>
                   </div>
                 {/each}
               {:else}
-                <div class="quota-meter">
-                  <div class="quota-meter-top">
+                <div>
+                  <div class="mb-1.5 flex items-center justify-between gap-2 text-muted text-meta">
                     <span>{tr('Status')}</span>
-                    <strong>{view.error ? view.error : tr('No quota data reported')}</strong>
+                    <strong class="text-ink tabular-nums">{view.error ? view.error : tr('No quota data reported')}</strong>
                   </div>
                   <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
                 </div>
               {/if}
             </div>
-            <Button class="details-link quota-detail" type="button" onclick={() => openDetail(view)}>{tr('View details')} <svg class="icon"><use href="#i-arrow-right" /></svg></Button>
+            <Button class="details-link self-start" type="button" onclick={() => openDetail(view)}>{tr('View details')} <svg class="icon"><use href="#i-arrow-right" /></svg></Button>
           </article>
         {/each}
         {#if !boardViews.length}
@@ -323,16 +326,16 @@
       </div>
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
-    <div class="quota-detail-body">
+    <div class="grid gap-3.5">
       {#if detailView?.quotas.length}
         {#each detailView.quotas as quota, i (i)}
-          <div class="quota-detail-row">
-            <div class="quota-meter-top">
+          <div>
+            <div class="mb-1.5 flex items-center justify-between gap-2 text-muted text-meta">
               <span>{quota.label}{resetLabel(quota) ? ` · ${resetLabel(quota)}` : ''}</span>
-              <strong>{quotaValue(quota)}</strong>
+              <strong class="text-ink tabular-nums">{quotaValue(quota)}</strong>
             </div>
             <div class="progress-track">
-              <div class="progress-fill quota-remaining-fill" style={quotaBarStyle(quota.used_percent)}></div>
+              <div class="progress-fill h-full rounded-[inherit] bg-accent! transition-[background-size] duration-200" style={quotaBarStyle(quota.used_percent)}></div>
             </div>
           </div>
         {/each}
@@ -341,12 +344,12 @@
       {/if}
       {#each detailView?.accounts ?? [] as account (account.key_id)}
         {#if account.local_meter}
-          <div class="quota-detail-row">
-            <div class="quota-meter-top"><span>{tr('Local usage · {name}', { name: account.name || tr('key') })}</span><strong>{tr('{count} windows', { count: Object.keys(account.local_meter.windows).length })}</strong></div>
+          <div>
+            <div class="mb-1.5 flex items-center justify-between gap-2 text-muted text-meta"><span>{tr('Local usage · {name}', { name: account.name || tr('key') })}</span><strong class="text-ink tabular-nums">{tr('{count} windows', { count: Object.keys(account.local_meter.windows).length })}</strong></div>
             {#each Object.entries(account.local_meter.windows) as [window, data] (window)}
-              <div class="quota-meter-top" style="padding-left:14px">
+              <div class="mb-1.5 flex items-center justify-between gap-2 ps-3.5 text-muted text-meta">
                 <span>{window} · {tr('{count} requests', { count: data.requests })} · {tr('{count} tokens', { count: formatCount(data.input_tokens + data.output_tokens, locale) })}</span>
-                <strong>{data.cost_micro_usd != null ? `$${(data.cost_micro_usd / 1_000_000).toFixed(2)}` : '—'}</strong>
+                <strong class="text-ink tabular-nums">{data.cost_micro_usd != null ? `$${(data.cost_micro_usd / 1_000_000).toFixed(2)}` : '—'}</strong>
               </div>
             {/each}
           </div>

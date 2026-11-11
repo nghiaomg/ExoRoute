@@ -17,9 +17,11 @@
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tailwindcss/vite": "^4.3.5",
     "@testing-library/svelte": "^5.4.2",
     "jsdom": "^26.1.0",
     "svelte-check": "^4.1.1",
+    "tailwindcss": "^4.3.5",
     "tsx": "^4.23.13",
     "typescript": "~5.7.2",
     "vite": "^6.0.5",

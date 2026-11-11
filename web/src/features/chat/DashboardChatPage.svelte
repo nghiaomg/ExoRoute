@@ -13,7 +13,6 @@
     WorkspaceChatInput,
     WorkspaceChatModelOption,
   } from '../../lib/types';
-  import '../../styles/dashboard/pages/chat.css';
 
   interface Props {
     tr: Translate;
@@ -57,7 +56,11 @@
   let systemPrompt = $state('You are a concise assistant testing the ExoRoute gateway.');
   let streamEnabled = $state(true);
   let pendingAttachments = $state<ChatAttachmentInput[]>([]);
-  let fileInput = $state<HTMLInputElement>();
+  // Initialize with null, never undefined: `Input.element` declares a fallback
+  // (`$bindable(null)`), and Svelte 5 throws props_invalid_value when a bind
+  // passes `undefined` to a prop that has one — which crashed the whole chat
+  // page at mount, leaving the shell skeleton stuck.
+  let fileInput = $state<HTMLInputElement | null>(null);
 
   const activeSession = $derived(sessions.find((s) => s.id === activeSessionId) ?? null);
   const messages = $derived(activeSession?.messages ?? []);
@@ -306,29 +309,33 @@
   </div>
 </div>
 
-<div class="page-surface chat-surface">
-  <div class="chat-layout surface">
-    <aside class="chat-side">
-      <Button class="chat-new-btn" type="button" onclick={newChat}>
+<div class="page-surface flex flex-col min-h-0">
+  <div class="surface grid grid-cols-[230px_minmax(0,1fr)] gap-3.5 min-h-[480px] h-[calc(100svh-320px)] p-3.5 max-nav:grid-cols-1 max-nav:h-auto max-nav:min-h-0">
+    <aside class="flex flex-col gap-2.5 min-h-0 max-nav:order-2">
+      <Button class="flex items-center justify-center gap-[7px] min-h-[38px] rounded-xl border border-dashed border-text-dim! bg-db-tint! text-muted! text-dash-body font-medium cursor-pointer transition-colors duration-150 hover:border-accent! hover:text-accent! hover:bg-db-accent-tint! focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={newChat}>
         <svg class="icon"><use href="#i-plus" /></svg>
         {tr('New conversation')}
       </Button>
-      <div class="chat-sessions">
+      <div class="grid gap-1.5 overflow-y-auto content-start">
         {#each sessions as session (session.id)}
-          <Button class="chat-session" stateClasses={{ active: session.id === activeSessionId }}  type="button" onclick={() => selectSession(session.id)}>
-            <strong>{session.title}</strong>
-            <span>{tr('{label} · {count} messages', { label: session.modelLabel || tr('no model'), count: session.messages.length })}</span>
-          </Button>
+          <button
+            type="button"
+            onclick={() => selectSession(session.id)}
+            class="grid gap-[3px] rounded-[11px] border bg-transparent py-2.5 px-3 text-left cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {session.id === activeSessionId ? 'bg-db-accent-tint border-db-accent-line' : 'border-transparent hover:bg-db-tint-strong'}"
+          >
+            <strong class="overflow-hidden text-ellipsis whitespace-nowrap text-ink text-label font-semibold">{session.title}</strong>
+            <span class="text-muted text-caption">{tr('{label} · {count} messages', { label: session.modelLabel || tr('no model'), count: session.messages.length })}</span>
+          </button>
         {:else}
           <p class="card-subtitle" style="padding:10px 4px">{tr('No conversations yet.')}</p>
         {/each}
       </div>
     </aside>
 
-    <section class="chat-main">
-      <div class="chat-model-bar">
-        <span class="chat-model-label">{tr('Model')}</span>
-        <div class="chat-model-combobox">
+    <section class="flex min-w-0 min-h-0 flex-col overflow-hidden rounded-[13px] bg-db-tint-strong max-nav:min-h-[60svh]">
+      <div class="flex items-center gap-2.5 bg-line px-3.5 py-2.5">
+        <span class="text-muted text-caption font-semibold uppercase tracking-[0.04em]">{tr('Model')}</span>
+        <div class="flex-[1_1_auto] min-w-[180px] max-w-[430px] [&_.ark-combobox-input]:min-h-8! [&_.ark-combobox-input]:h-8! [&_.ark-combobox-input]:text-meta!">
           <SelectSearch
             items={modelItems}
             value={selectedModel}
@@ -343,36 +350,36 @@
           />
         </div>
         {#if pendingAttachments.length}
-          <span class="chat-via">{tr('{count} attachments queued', { count: pendingAttachments.length })}</span>
+          <span class="ms-auto text-muted text-caption">{tr('{count} attachments queued', { count: pendingAttachments.length })}</span>
         {/if}
       </div>
 
-      <div class="chat-messages" bind:this={messagesEl} aria-live="polite">
+      <div class="flex-1 min-h-0 overflow-y-auto p-[18px] flex flex-col gap-3 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent]" bind:this={messagesEl} aria-live="polite">
         {#if messages.length === 0}
-          <div class="chat-empty">
-            <svg class="icon chat-empty-icon"><use href="#i-video" /></svg>
-            <strong>{tr('Start a conversation')}</strong>
-            <p>{tr('Messages are routed through the gateway exactly like production traffic.')}</p>
-            <div class="chat-suggestions">
-              <Button class="chat-suggestion" type="button" onclick={() => void send('Summarize this text in 3 bullets: ExoRoute is a protocol gateway that normalizes client and provider formats, adds retries, combos, quota tracking, and per-key scoping.')}>{tr('Summarize this text in 3 bullets')}</Button>
-              <Button class="chat-suggestion" type="button" onclick={() => void send('Write a Python retry decorator with exponential backoff')}>{tr('Write a Python retry decorator')}</Button>
-              <Button class="chat-suggestion" type="button" onclick={() => void send('Explain SSE vs WebSocket for LLM streaming')}>{tr('Explain SSE vs WebSocket')}</Button>
+          <div class="m-auto grid justify-items-center gap-2 px-5 py-[30px] text-center text-muted">
+            <svg class="icon size-[34px]! text-text-dim!"><use href="#i-video" /></svg>
+            <strong class="text-ink text-section-title">{tr('Start a conversation')}</strong>
+            <p class="m-0 mb-2 text-dash-body">{tr('Messages are routed through the gateway exactly like production traffic.')}</p>
+            <div class="flex flex-wrap justify-center gap-2">
+              <Button class="rounded-full border border-line! bg-surface! px-[13px] py-2 text-muted! text-meta cursor-pointer transition-[border-color,color,transform] duration-150 hover:border-accent! hover:text-accent! hover:-translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={() => void send('Summarize this text in 3 bullets: ExoRoute is a protocol gateway that normalizes client and provider formats, adds retries, combos, quota tracking, and per-key scoping.')}>{tr('Summarize this text in 3 bullets')}</Button>
+              <Button class="rounded-full border border-line! bg-surface! px-[13px] py-2 text-muted! text-meta cursor-pointer transition-[border-color,color,transform] duration-150 hover:border-accent! hover:text-accent! hover:-translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={() => void send('Write a Python retry decorator with exponential backoff')}>{tr('Write a Python retry decorator')}</Button>
+              <Button class="rounded-full border border-line! bg-surface! px-[13px] py-2 text-muted! text-meta cursor-pointer transition-[border-color,color,transform] duration-150 hover:border-accent! hover:text-accent! hover:-translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={() => void send('Explain SSE vs WebSocket for LLM streaming')}>{tr('Explain SSE vs WebSocket')}</Button>
             </div>
           </div>
         {/if}
         {#each messages as message (message.id)}
-          <div class="chat-msg {message.role}" class:error={message.error}>
-            <div class="chat-bubble" class:streaming={message.streaming}>{message.text}{#if message.streaming}<span class="chat-cursor"></span>{/if}</div>
+          <div class="flex {message.role === 'user' ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-[min(78%,640px)] rounded-[15px] px-[15px] py-[11px] text-dash-body leading-[1.45] whitespace-pre-wrap [word-break:break-word] {message.role === 'user' ? 'bg-ink text-canvas rounded-br-[5px]' : 'bg-surface text-ink border border-line rounded-bl-[5px]'}">{message.text}{#if message.streaming}<span class="inline-block w-2 h-3.5 ms-0.5 rounded-[2px] bg-accent align-[-2px] animate-chat-blink"></span>{/if}</div>
           </div>
         {/each}
       </div>
 
-      <form class="chat-composer" onsubmit={(e) => { e.preventDefault(); void send(); }}>
+      <form class="flex items-end gap-2 bg-db-tint px-3.5 py-3 border-t border-surface-sunken" onsubmit={(e) => { e.preventDefault(); void send(); }}>
         <Button class="icon-action" type="button" title={tr('Attach image')} onclick={() => fileInput?.click()}>
           <svg class="icon"><use href="#i-paperclip" /></svg>
         </Button>
         <Input bind:element={fileInput} type="file" accept="image/*" hidden onchange={onAttach} />
-        <textarea
+        <textarea class="flex-1 min-h-10 max-h-[140px] rounded-xl border border-line bg-surface px-[13px] py-2.5 text-ink text-dash-body leading-[1.45] resize-none outline-none focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))] focus:ring-3 focus:ring-db-accent-ring"
           bind:this={inputEl}
           bind:value={composerText}
           rows="1"
@@ -383,11 +390,11 @@
           disabled={streaming}
         ></textarea>
         {#if streaming}
-          <Button class="chat-stop" type="button" title={tr('Stop generating')} onclick={stop}>
+          <Button class="grid size-10! shrink-0 place-items-center rounded-xl! border-0! bg-db-danger! text-canvas! cursor-pointer transition-colors duration-150 hover:bg-accent-deep! disabled:opacity-55 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[14px]!" type="button" title={tr('Stop generating')} onclick={stop}>
             <svg class="icon"><use href="#i-stop" /></svg>
           </Button>
         {:else}
-          <Button class="chat-send" type="submit" title={tr('Send')} disabled={!composerText.trim() || !selectedModel}>
+          <Button class="grid size-10! shrink-0 place-items-center rounded-xl! border-0! bg-ink! text-canvas! cursor-pointer transition-colors duration-150 hover:bg-accent! disabled:opacity-55 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[17px]!" type="submit" title={tr('Send')} disabled={!composerText.trim() || !selectedModel}>
             <svg class="icon"><use href="#i-send" /></svg>
           </Button>
         {/if}
@@ -406,11 +413,11 @@
       </div>
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
-    <div class="modal-fields chat-settings-fields">
+    <div class="modal-fields grid-cols-2! max-nav:grid-cols-1!">
       <label class="field">
         {tr('Temperature')}
-        <Input type="range" min="0" max="2" step="0.1" bind:value={temperature} />
-        <span class="range-value">{temperature.toFixed(1)}</span>
+        <Input class="w-full! accent-accent!" type="range" min="0" max="2" step="0.1" bind:value={temperature} />
+        <span class="text-muted text-meta tabular-nums">{temperature.toFixed(1)}</span>
       </label>
       <label class="field">
         {tr('Max tokens')}
@@ -420,7 +427,7 @@
         {tr('System prompt')}
         <textarea rows="3" placeholder={tr('You are a helpful routing assistant…')} bind:value={systemPrompt}></textarea>
       </label>
-      <label class="field chat-check">
+      <label class="field flex! flex-row! items-center gap-2 text-muted text-dash-body!">
         <Input type="checkbox" bind:checked={streamEnabled} />
         {tr('Stream response (SSE)')}
       </label>

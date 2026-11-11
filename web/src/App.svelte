@@ -479,8 +479,8 @@
         </div>
       </section>
     {:else}
-      <section class="stats-grid" role="status" aria-label={tr('Loading {page}…', { page: pageTitles[currentPage] })}>
-        {#each [0, 1, 2, 3] as i (i)}<article class="stat-card surface" style="min-height:132px"></article>{/each}
+      <section class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-nav:grid-cols-2 max-nav:gap-2" role="status" aria-label={tr('Loading {page}…', { page: pageTitles[currentPage] })}>
+        {#each [0, 1, 2, 3] as i (i)}<div class="flex min-w-0 flex-col justify-center overflow-hidden rounded-[17px] bg-surface p-6" style="min-height:132px"></div>{/each}
       </section>
     {/if}
   </DashboardAppShell>

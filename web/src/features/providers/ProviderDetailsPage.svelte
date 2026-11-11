@@ -77,32 +77,32 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
   }
 </script>
 
-<div class="provider-detail-page">
+<div class="flex w-full flex-col gap-[20px]">
   <!-- Top Navigation & Header -->
-  <div class="detail-page-nav">
+  <div class="flex items-center">
     <Button type="button" class="back-link-btn" onclick={onBack}>
       <ArrowLeft size={16} />
       <span>{tr('Back to providers')}</span>
     </Button>
   </div>
 
-  <header class="detail-hero-banner">
-    <div class="detail-hero-main">
-      <div class="detail-avatar-wrap">
+  <header class="flex flex-wrap items-center justify-between gap-[20px] rounded-[14px] bg-surface px-[28px] py-[24px] max-[860px]:flex-col max-[860px]:items-start [&_.codex-oauth-remote-help]:mt-[4px] [&_.codex-oauth-remote-help]:w-full [&_.codex-oauth-remote-help]:[flex-basis:100%]">
+    <div class="flex min-w-0 flex-1 items-center gap-[20px]">
+      <div class="shrink-0 grow-0 basis-[60px]">
         <ProviderAvatar name={provider.name} logoUrl={provider.logo_url} adapterId={provider.adapter_id} providerId={provider.id} className="detail-avatar" />
       </div>
 
-      <div class="detail-hero-info">
-        <div class="detail-title-row">
-          <h1 class="detail-title">{provider.name}</h1>
-          <code class="detail-id-chip">{provider.id}</code>
+      <div class="grid min-w-0 flex-1 gap-[7px]">
+        <div class="flex flex-wrap items-center gap-[12px]">
+          <h1 class="m-0 text-[22px] font-bold leading-[1.2] text-ink [font-family:var(--font-heading)]">{provider.name}</h1>
+          <code class="rounded-[6px] px-[8px] py-[3px] text-[12px] text-accent-strong [background:color-mix(in_srgb,var(--accent)_10%,var(--surface))] [font-family:var(--font-mono)]">{provider.id}</code>
           <span class="state-label" class:enabled={provider.enabled}>
             <i></i>{tr(provider.enabled ? 'Enabled' : 'Disabled')}
           </span>
         </div>
 
-        <div class="detail-url-row">
-          <span class="detail-url-text" title={provider.base_url}>{provider.base_url}</span>
+        <div class="flex min-w-0 items-center gap-[10px]">
+          <span class="max-w-[500px] truncate text-[12px] text-muted" title={provider.base_url}>{provider.base_url}</span>
           <Button
             type="button"
             class="detail-copy-btn"
@@ -119,13 +119,13 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
           </Button>
         </div>
 
-        <div class="detail-tags-row">
+        <div class="mt-[2px] flex flex-wrap items-center gap-[8px]">
           <span class="protocol-pill {protocolBadgeClass(provider.preferred_protocol)}">{labelProtocol(provider.preferred_protocol, tr)}</span>
-          <span class="detail-meta-pill">{labelAuthType(provider.auth_type || 'none', tr)}</span>
-          <span class="detail-meta-pill">
+          <span class="inline-flex max-w-full items-center gap-[5px] rounded-[6px] bg-surface-sunken px-[8px] py-[3px] text-[12px] text-muted">{labelAuthType(provider.auth_type || 'none', tr)}</span>
+          <span class="inline-flex max-w-full items-center gap-[5px] rounded-[6px] bg-surface-sunken px-[8px] py-[3px] text-[12px] text-muted">
             {provider.api_key_count ?? (provider.api_key ? 1 : 0)} {tr(isOAuthProvider && provider.capabilities?.api_keys ? 'Credentials' : isOAuthProvider ? 'Connected accounts' : 'API keys')}
           </span>
-          <span class="detail-meta-pill">
+          <span class="inline-flex max-w-full items-center gap-[5px] rounded-[6px] bg-surface-sunken px-[8px] py-[3px] text-[12px] text-muted">
             {tr('Model prefix')}: <code>{provider.model_prefix ?? provider.id}</code>
           </span>
           {#if provider.invalid_api_key_count}
@@ -189,12 +189,12 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
   {/if}
 
   <!-- Main Body Grid -->
-  <div class="detail-page-grid">
+  <div class="grid grid-cols-[1fr] items-start gap-[20px]">
     <!-- Column: Saved Models, Credentials / Connected Accounts & Testing Bench -->
-    <div class="detail-col-models">
+    <div class="flex min-w-0 min-h-0 flex-col gap-[20px] [&_.provider-model-list]:max-h-[min(55vh,520px)] [&_.provider-model-list]:overflow-y-auto [&_.provider-model-list]:overscroll-contain">
       {#if isOAuthProvider && authPanel?.oauth && authPanel.accounts}
-        <section class="detail-card">
-          <div class="detail-oauth-body">
+        <section class="flex min-h-0 flex-col gap-[16px] rounded-[14px] bg-surface px-[24px] py-[22px]">
+          <div class="grid gap-[12px]">
             <svelte:component
               this={authPanel.oauth}
               providerId={provider.id}
@@ -218,17 +218,17 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
       {/if}
 
       {#if provider.capabilities?.api_keys === true}
-        <section class="detail-card">
+        <section class="flex min-h-0 flex-col gap-[16px] rounded-[14px] bg-surface px-[24px] py-[22px]">
           <ProviderKeysCard {provider} {tr} {locale} refreshToken={keysRefresh} onProviderChanged={handleProviderChanged} />
         </section>
       {/if}
 
-      <section class="detail-card">
+      <section class="flex min-h-0 flex-col gap-[16px] rounded-[14px] bg-surface px-[24px] py-[22px]">
         <ProviderModelCatalog {provider} open={true} {tr} onProviderChanged={onProviderChanged} />
       </section>
 
       {#if showModelRouting}
-        <section class="detail-card">
+        <section class="flex min-h-0 flex-col gap-[16px] rounded-[14px] bg-surface px-[24px] py-[22px]">
           <ProviderModelRouting {provider} {tr} />
         </section>
       {/if}

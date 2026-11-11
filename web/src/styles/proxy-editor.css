@@ -1,0 +1,6 @@
+/* Proxy edit dialog: the two-column editor needs more room than the shared
+   `wide-modal` (550px). This rule must stay global — ArkDialog portals to
+   document.body, so page-scoped dashboard CSS never matches here.
+   Everything else on the proxies page is styled with Tailwind utilities
+   (src/styles/tailwind.css token bridge). */
+.modal-card.proxy-edit-dialog { width: min(100%, 940px); }

@@ -1862,6 +1862,7 @@ export const vi: Record<TranslationKey, string> = {
   "All keys": "Tất cả khoá",
   "All providers healthy": "Mọi nhà cung cấp đều khoẻ mạnh",
   "All statuses": "Mọi trạng thái",
+  "{proxies} proxies · {endpoints} endpoints · {providers} providers": "{proxies} proxy · {endpoints} điểm kết nối · {providers} nhà cung cấp",
   "All strategies": "Mọi chiến lược",
   "All time on this instance": "Toàn bộ thời gian trên máy chủ này",
   "Allowed model": "Mô hình được phép",

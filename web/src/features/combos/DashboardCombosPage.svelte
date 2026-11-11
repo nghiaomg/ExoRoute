@@ -13,7 +13,6 @@
   import ComboReferencePicker from './ComboReferencePicker.svelte';
   import ComboTargetModelSelect from './ComboTargetModelSelect.svelte';
   import type { ComboProviderOption, GatewayCombo, RouteBreakdown } from '../../lib/types';
-  import '../../styles/dashboard/pages/combos.css';
 
   interface Props {
     tr: Translate;
@@ -334,13 +333,13 @@
       <StatsCard icon="#i-alert" value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.failures, 0), locale) : '—'} title={tr('Failures')} trend={routeWindowTrend} actionLabel={tr('Inspect failures')} onAction={ () => onNavigate('requests') } />
     </section>
 
-    <section class="course-card surface combo-board" aria-labelledby="combos-heading">
+    <section class="course-card surface flex flex-col" aria-labelledby="combos-heading">
       <div class="card-title-row">
         <h2 id="combos-heading">{tr('Combos')}</h2>
       </div>
       <p class="card-subtitle">{combos.length} {tr('combos')} · {totalTargets} {tr('targets')} · {strategies} {tr('strategies')}</p>
-      <div class="page-toolbar combo-toolbar">
-        <Input class="combo-search" type="search" placeholder={tr('Search combos...')} aria-label={tr('Search combos')} bind:value={search} />
+      <div class="page-toolbar mt-3 items-center [&_.ark-select-trigger]:border! [&_.ark-select-trigger]:border-line! [&_.ark-select-trigger]:shadow-none! [&_.ark-select-trigger:focus-visible]:outline-0! [&_.ark-select-trigger:focus-visible]:ring-3! [&_.ark-select-trigger:focus-visible]:ring-db-accent-ring!">
+        <Input class="min-h-[34px]! w-[min(280px,100%)]! flex-[1_1_200px] rounded-[10px]! border-line! bg-surface! px-3! text-muted! text-dash-body! focus:outline-none! focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))]! focus:ring-3! focus:ring-db-accent-ring!" type="search" placeholder={tr('Search combos...')} aria-label={tr('Search combos')} bind:value={search} />
         <SelectOptions
           class="combo-select"
           ariaLabel={tr('Filter by strategy')}
@@ -348,15 +347,15 @@
           items={[{ label: tr('All strategies'), value: 'all' }, { label: tr('Priority'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]}
         />
       </div>
-      <div class="combo-list" aria-live="polite">
+      <div class="mt-3.5 grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2.5 max-[1100px]:grid-cols-2 max-nav:grid-cols-1 [&>.empty-state]:col-span-full [&>.empty-state]:w-full" aria-live="polite">
         {#each filteredCombos as combo (combo.id)}
           {@const usage = comboUsage(combo)}
           {@const pct = successPct(combo)}
-          <article class="combo-card" data-status={combo.enabled !== false ? 'enabled' : 'disabled'} data-strategy={combo.strategy}>
-            <div class="combo-head">
+          <article class="rounded-[14px] bg-db-tint-strong p-4 ps-[18px] pe-[18px] transition-[background-color,transform,box-shadow] duration-200 hover:bg-surface-sunken data-[status=disabled]:opacity-62" data-status={combo.enabled !== false ? 'enabled' : 'disabled'} data-strategy={combo.strategy}>
+            <div class="flex items-center gap-[11px] [&_.course-copy]:flex-1 [&_.course-copy]:min-w-0 [&_code]:px-1.5 [&_code]:rounded-md [&_code]:bg-surface-sunken [&_code]:text-muted [&_code]:text-[0.85em]">
               <span class="course-icon"><svg class="icon"><use href={combo.strategy === 'round_robin' ? '#i-layers' : '#i-code'} /></svg></span>
               <div class="course-copy">
-                <strong>{combo.name} <span class="prov-type">{strategyLabel(combo.strategy)}</span></strong>
+                <strong>{combo.name} <span class="ms-1.5 px-[7px] py-0.5 rounded-full bg-surface-sunken text-muted text-caption font-medium align-[1px]">{strategyLabel(combo.strategy)}</span></strong>
                 <span>
                   {#if usage}
                     {formatCount(usage.requests, locale)} {tr('requests')}{pct !== null ? ` · ${tr('{count}% success', { count: pct })}` : ''}
@@ -370,18 +369,18 @@
                 <span class="switch-track"><span class="switch-thumb"></span></span>
               </label>
             </div>
-            <div class="combo-targets">
+            <div class="mt-3 flex flex-wrap gap-[7px]">
               {#each combo.targets.slice(0, 4) as target, i (i)}
-                <span class="combo-target">{targetLabel(target)}</span>
+                <span class="px-2.5 py-[5px] rounded-full bg-surface text-muted text-meta font-medium whitespace-nowrap">{targetLabel(target)}</span>
               {/each}
               {#if combo.targets.length > 5}
-                <span class="combo-target combo-target-more" title={combo.targets.slice(4, -1).map((target) => targetLabel(target)).join(' · ')}>{tr('+{count} more', { count: combo.targets.length - 5 })}</span>
+                <span class="bg-transparent! border border-dashed border-line text-muted" title={combo.targets.slice(4, -1).map((target) => targetLabel(target)).join(' · ')}>{tr('+{count} more', { count: combo.targets.length - 5 })}</span>
               {/if}
               {#if combo.targets.length > 1}
-                <span class="combo-target fallback">{targetLabel(combo.targets[combo.targets.length - 1])}</span>
+                <span class="bg-db-accent-tint! text-accent-strong!">{targetLabel(combo.targets[combo.targets.length - 1])}</span>
               {/if}
             </div>
-            <div class="combo-foot">
+            <div class="mt-3 flex items-center justify-between gap-2.5 pt-[11px] border-t border-line">
               <div class="course-actions">
                 <Button class="icon-action" type="button" title={tr('Edit combo')} onclick={() => openComboDialog(combo)}><svg class="icon"><use href="#i-edit" /></svg></Button>
                 <Button class="icon-action" type="button" title={tr('Duplicate')} onclick={() => duplicateCombo(combo)}><svg class="icon"><use href="#i-copy" /></svg></Button>
@@ -407,7 +406,7 @@
       </div>
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
-    <div class="modal-fields combo-fields">
+    <div class="modal-fields grid-cols-2! max-nav:grid-cols-1!">
       <label class="field prov-field-wide">
         {tr('Combo name')}
         <Input bind:value={cfName} maxlength={60} required placeholder={tr('e.g. smart-default')} />
@@ -416,6 +415,7 @@
         {tr('Strategy')}
         <SelectOptions
           ariaLabel={tr('Strategy')}
+          portalContainer={comboDialog}
           bind:value={cfStrategy}
           items={[{ label: tr('Priority (first healthy wins)'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]}
         />
@@ -434,16 +434,17 @@
     </div>
     <p class="form-note">{tr('The combo name is the model alias clients request.')}</p>
 
-    <div class="targets-editor">
-      <div class="targets-head">
+    <div class="grid gap-2.5 rounded-[13px] border border-line bg-db-tint p-3.5">
+      <div class="flex items-baseline gap-2.5 [&_strong]:text-ink [&_strong]:text-label">
         <strong>{tr('Targets')}</strong>
-        <span class="targets-hint">{tr('Tries each target in order on failure.')}</span>
+        <span class="text-muted text-caption">{tr('Tries each target in order on failure.')}</span>
       </div>
-      <div class="target-rows">
+      <div class="grid gap-2 max-nav:overflow-x-auto">
         {#each cfTargets as target, i (target.key)}
-          <div class="target-row" class:is-combo-mode={target.kind === 'combo'}>
+          <div class="{target.kind === 'combo' ? 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&>.ark-select-root]:min-w-0 [&_.ark-select-trigger]:min-h-9! [&_.ark-select-trigger]:py-0! [&_.ark-select-trigger]:pl-2.5! [&_.ark-select-trigger]:pr-8! [&_.ark-select-trigger]:rounded-[9px]! [&_.ark-select-trigger]:border! [&_.ark-select-trigger]:border-line! [&_.ark-select-trigger]:bg-surface! [&_.ark-select-trigger]:shadow-none! [&_.ark-select-trigger:focus-visible]:outline-0! [&_.ark-select-trigger:focus-visible]:ring-3! [&_.ark-select-trigger:focus-visible]:ring-db-accent-ring! [&_.ark-select-indicators]:right-2! [&_.ark-select-positioner]:z-[100000]! grid-cols-[minmax(110px,0.5fr)_minmax(240px,1fr)_auto_32px]' : 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&>.ark-select-root]:min-w-0 [&_.ark-select-trigger]:min-h-9! [&_.ark-select-trigger]:py-0! [&_.ark-select-trigger]:pl-2.5! [&_.ark-select-trigger]:pr-8! [&_.ark-select-trigger]:rounded-[9px]! [&_.ark-select-trigger]:border! [&_.ark-select-trigger]:border-line! [&_.ark-select-trigger]:bg-surface! [&_.ark-select-trigger]:shadow-none! [&_.ark-select-trigger:focus-visible]:outline-0! [&_.ark-select-trigger:focus-visible]:ring-3! [&_.ark-select-trigger:focus-visible]:ring-db-accent-ring! [&_.ark-select-indicators]:right-2! [&_.ark-select-positioner]:z-[100000]! grid-cols-[minmax(110px,0.5fr)_minmax(140px,0.7fr)_minmax(180px,1fr)_auto_32px]'}">
             <SelectOptions
               class="target-kind"
+              portalContainer={comboDialog}
               ariaLabel={tr('Target type')}
               placeholder={tr('Target type')}
               value={target.kind}
@@ -451,12 +452,13 @@
               onValueChange={(value) => setTargetKind(target, value as TargetKind)}
             />
             {#if target.kind === 'combo'}
-              <div class="combo-model-field target-combo-field">
+              <div class="combo-model-field min-w-0 [&_.combo-combobox-input]:w-full! [&_.combo-combobox-input]:h-9! [&_.combo-combobox-input]:min-h-9! [&_.combo-combobox-input:focus-visible]:outline-0! [&_.combo-combobox-input:focus-visible]:ring-3! [&_.combo-combobox-input:focus-visible]:ring-db-accent-ring!">
                 <ComboReferencePicker
                   combos={nestableCombos}
                   selectedComboId={target.comboId}
                   targetKey={target.key}
                   hideLabel
+                  portalContainer={comboDialog}
                   {tr}
                   onComboChange={(key, comboId) => {
                     const draft = cfTargets.find((t) => t.key === key);
@@ -482,6 +484,7 @@
                 providerId={target.kind === 'provider' ? target.providerId : ''}
                 value={target.model}
                 disabledPlaceholder={target.kind === '' ? tr('Choose a target type first.') : tr('Choose a provider first.')}
+                portalContainer={comboDialog}
                 {tr}
                 onChange={(model) => (target.model = model)}
               />
@@ -520,7 +523,7 @@
     </div>
     <div class="modal-actions">
       <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
-      <Button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete combo')}</Button>
+      <Button class="page-action danger border-db-accent-line! text-db-danger! hover:bg-db-accent-tint!" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete combo')}</Button>
     </div>
   </div>
 </dialog>

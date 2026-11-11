@@ -11,7 +11,6 @@
   import type { Overview, RequestStatistics, PublicSettings } from '../../lib/types';
   import { DASHBOARD_VERSION } from '../../lib/version';
   import { errorCodes, faqTopics, filterHelpItems } from './helpTopics';
-  import '../../styles/dashboard/pages/help.css';
 
   interface Props {
     tr: Translate;
@@ -134,14 +133,14 @@
   </div>
 </div>
 
-<div class="page-surface">
-  <section class="help-lead surface" aria-label={tr('Gateway endpoint')}>
-    <div class="help-lead-mark"><svg class="icon" aria-hidden="true"><use href="#i-wifi" /></svg></div>
-    <div class="help-lead-copy">
-      <div class="help-lead-heading">
-        <strong>{tr('Gateway endpoint')}</strong>
-        <span class="help-live" class:unavailable={gatewayStatus === 'unavailable'}>
-          <span class="status-pulse" aria-hidden="true"></span>
+<div class="page-surface max-nav:max-h-none! max-nav:overflow-visible! max-nav:content-start!">
+  <section class="surface flex gap-[18px] p-4 ps-[22px] pe-[22px] max-[760px]:flex-col max-[760px]:gap-3 max-[760px]:p-4" aria-label={tr('Gateway endpoint')}>
+    <div class="grid size-[42px] shrink-0 place-items-center rounded-[13px] bg-db-accent-tint text-accent [&_.icon]:size-5!"><svg class="icon" aria-hidden="true"><use href="#i-wifi" /></svg></div>
+    <div class="flex min-w-0 flex-1 flex-col gap-1.5 [&>p]:m-0 [&>p]:text-muted [&>p]:text-[12.5px] [&>p]:leading-[1.5]">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <strong class="text-[15px] text-ink">{tr('Gateway endpoint')}</strong>
+        <span class="inline-flex items-center gap-1.5 rounded-full ps-[7px] pe-[9px] py-0.5 text-caption font-semibold {gatewayStatus === 'unavailable' ? 'bg-db-danger-tint text-db-danger' : 'bg-db-success-tint text-db-success'}">
+          <span class="size-[7px] shrink-0 rounded-full bg-current {gatewayStatus === 'unavailable' ? '' : 'animate-[help-pulse_2.2s_ease-in-out_infinite]'}" aria-hidden="true"></span>
           {gatewayStatus === 'running'
             ? tr('Running')
             : gatewayStatus === 'unavailable'
@@ -150,13 +149,13 @@
         </span>
       </div>
       <p>{tr('Point any OpenAI- or Anthropic-compatible client at this base URL, then send the matching protocol path.')}</p>
-      <div class="help-endpoint-row">
-        <code class="help-endpoint">{endpointUrl}</code>
+      <div class="mt-0.5 flex flex-wrap items-center gap-2.5">
+        <code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-line bg-db-tint-strong px-[13px] py-[9px] font-mono text-ink text-[12.5px]">{endpointUrl}</code>
         <Button class="mini-add" type="button" onclick={() => void copyText(endpointUrl, tr('Endpoint copied'))}>
           <svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>{tr('Copy')}
         </Button>
       </div>
-      <div class="help-path-list">
+      <div class="mt-1.5 grid gap-[5px] grid-cols-[repeat(auto-fit,minmax(230px,1fr))] [&>span]:flex [&>span]:min-w-0 [&>span]:items-center [&>span]:gap-2 [&>span]:text-muted [&>span]:text-caption [&_code]:shrink-0 [&_code]:font-mono [&_code]:text-ink [&_code]:text-[11.5px]">
         <span><code>POST /v1/chat/completions</code>{tr('Chat Completions')}</span>
         <span><code>POST /v1/responses</code>{tr('Responses')}</span>
         <span><code>POST /v1/messages</code>{tr('Anthropic Messages')}</span>
@@ -165,44 +164,44 @@
     </div>
   </section>
 
-  <section class="help-facts" aria-label={tr('System info')}>
-    <article class="surface help-fact">
-      <span class="help-fact-label">{tr('Uptime')}</span>
+  <section class="grid grid-cols-[repeat(6,minmax(0,1fr))] gap-2.5 max-[1280px]:grid-cols-3 max-[760px]:grid-cols-2" aria-label={tr('System info')}>
+    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
+      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Uptime')}</span>
       <strong>{overview ? formatUptime(overview.uptime_seconds, tr) : '—'}</strong>
       <small>{tr('Current process')}</small>
     </article>
-    <article class="surface help-fact">
-      <span class="help-fact-label">{tr('Requests')}</span>
+    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
+      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Requests')}</span>
       <strong>{overview ? overview.request_count.toLocaleString() : '—'}</strong>
       <small>{tr('Request log retention stored in LMDB.')}</small>
     </article>
-    <article class="surface help-fact">
-      <span class="help-fact-label">{tr('Success rate')}</span>
+    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
+      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Success rate')}</span>
       <strong>{successRate}</strong>
       <small>{tr('Last 24 hours')}</small>
     </article>
-    <article class="surface help-fact">
-      <span class="help-fact-label">{tr('Average latency')}</span>
+    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
+      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Average latency')}</span>
       <strong>{latency}</strong>
       <small>{tr('Last 24 hours')}</small>
     </article>
-    <article class="surface help-fact">
-      <span class="help-fact-label">{tr('Providers')}</span>
+    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
+      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Providers')}</span>
       <strong>{overview ? overview.provider_count : '—'}</strong>
       <small>{overview ? tr('{count} combos configured', { count: overview.combo_count }) : tr('Configured upstreams')}</small>
     </article>
-    <article class="surface help-fact">
-      <span class="help-fact-label">{tr('Storage')}</span>
+    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
+      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Storage')}</span>
       <strong>LMDB</strong>
       <small>{tr('Local embedded environment')}</small>
     </article>
   </section>
 
-  <div class="help-layout">
-    <section class="course-card surface help-reference" aria-labelledby="help-reference-heading">
+  <div class="grid grid-cols-[minmax(0,1.62fr)_minmax(0,1fr)] gap-[18px] items-start max-[1100px]:grid-cols-1">
+    <section class="course-card surface flex flex-col max-[760px]:[&_.card-title-row]:flex-col! max-[760px]:[&_.card-title-row]:items-start!" aria-labelledby="help-reference-heading">
       <div class="card-title-row">
         <h2 id="help-reference-heading">{tr('Troubleshooting')}</h2>
-        <label class="help-search">
+        <label class="flex min-w-[min(260px,46%)] items-center gap-[7px] rounded-full border border-line bg-db-tint-strong px-[11px] py-[7px] text-muted [&_.icon]:size-3.5! [&_.icon]:shrink-0 max-[760px]:w-full max-[760px]:min-w-0">
           <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
           <Input
             type="search"
@@ -211,7 +210,7 @@
             aria-label={tr('Search help topics')}
           />
           {#if query}
-            <Button class="help-search-clear" type="button" aria-label={tr('Clear search')} onclick={() => (query = '')}>
+            <Button class="grid size-[18px]! shrink-0 place-items-center rounded-full! border-0! p-0! bg-transparent! text-muted! cursor-pointer hover:bg-line! hover:text-ink! [&_.icon]:size-[11px]!" type="button" aria-label={tr('Clear search')} onclick={() => (query = '')}>
               <svg class="icon" aria-hidden="true"><use href="#i-close" /></svg>
             </Button>
           {/if}
@@ -224,21 +223,21 @@
       </p>
 
       {#if matchCount === 0}
-        <div class="help-empty">
+        <div class="flex flex-col items-center gap-2 px-4 pt-[30px] pb-[26px] text-center [&>.icon]:size-6! [&>.icon]:text-muted">
           <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
-          <strong>{tr('No topic matches that search.')}</strong>
-          <span>{tr('Try a status code, a provider name, or a feature such as backup.')}</span>
+          <strong class="text-ink text-[13.5px]">{tr('No topic matches that search.')}</strong>
+          <span class="max-w-[340px] text-muted text-[12.5px] leading-[1.5]">{tr('Try a status code, a provider name, or a feature such as backup.')}</span>
           <Button class="page-action" type="button" onclick={() => (query = '')}>{tr('Clear search')}</Button>
         </div>
       {:else}
         {#if visibleTopics.length > 0}
-          <h3 class="help-group-heading">{tr('Questions')}</h3>
+          <h3 class="mt-3.5 mb-0.5 text-muted text-caption font-bold tracking-[0.04em] uppercase">{tr('Questions')}</h3>
           <div class="faq-list">
             {#each visibleTopics as topic (topic.id)}
               {@const target = topic.target}
-              <details class="faq-item">
-                <summary>{topic.title}</summary>
-                <div class="faq-body">
+              <details class="group/faq border-b border-line last:border-b-0">
+                <summary class="flex items-center justify-between gap-3 px-1 py-3 text-ink text-[13.5px] font-semibold cursor-pointer list-none transition-colors duration-150 hover:text-accent [&::-webkit-details-marker]:hidden">{topic.title}<span class="size-2 shrink-0 border-e-2 border-b-2 border-muted rotate-45 transition-transform duration-200 group-open/faq:-rotate-[135deg]"></span></summary>
+                <div class="flex flex-col items-start gap-1.5 px-1 pb-3.5 [&>p]:m-0 [&>p]:text-muted [&>p]:text-[12.5px] [&>p]:leading-[1.6] [&_.details-link]:mt-0">
                   <p>{topic.body}</p>
                   {#if target}
                     <Button class="details-link" type="button" onclick={() => onNavigate(target)}>
@@ -252,15 +251,15 @@
         {/if}
 
         {#if visibleCodes.length > 0}
-          <h3 class="help-group-heading">{tr('Status codes')}</h3>
-          <dl class="help-codes">
+          <h3 class="mt-3.5 mb-0.5 text-muted text-caption font-bold tracking-[0.04em] uppercase">{tr('Status codes')}</h3>
+          <dl class="mt-1 mb-0 flex flex-col">
             {#each visibleCodes as code (code.status)}
-              <div class="help-code">
-                <dt>
-                  <span class="help-code-status" class:critical={statusTone(code.status) === 'critical'} class:warn={statusTone(code.status) === 'warn'}>{code.status}</span>
-                  <span class="help-code-reason">{code.reason}</span>
+              <div class="flex items-baseline gap-3.5 border-b border-line py-[9px] px-1 last:border-b-0 max-[760px]:flex-col max-[760px]:items-start max-[760px]:gap-1">
+                <dt class="flex min-w-[132px] shrink-0 items-center gap-2 max-[760px]:min-w-0">
+                  <span class="inline-grid min-w-[38px] place-items-center rounded-[7px] px-[7px] py-0.5 font-mono text-[11.5px] font-bold {statusTone(code.status) === 'critical' ? 'bg-db-danger-tint text-db-danger' : statusTone(code.status) === 'warn' ? 'bg-db-accent-tint text-accent-strong' : 'bg-db-tint-strong text-muted'}">{code.status}</span>
+                  <span class="text-ink text-[12.5px] font-semibold">{code.reason}</span>
                 </dt>
-                <dd>{code.detail}</dd>
+                <dd class="m-0 text-muted text-[12.5px] leading-[1.55]">{code.detail}</dd>
               </div>
             {/each}
           </dl>
@@ -268,36 +267,36 @@
       {/if}
     </section>
 
-    <div class="help-side">
-      <section class="course-card surface help-card">
+    <div class="flex flex-col gap-[18px]">
+      <section class="course-card surface flex flex-col gap-0.5">
         <div class="card-title-row"><h2>{tr('Common tasks')}</h2></div>
-        <div class="help-links">
+        <div class="mt-1.5 mb-0 flex flex-col">
           {#each guides as guide (guide.title)}
-            <Button class="help-link" type="button" onclick={() => onNavigate(guide.page)}>
-              <span class="help-link-icon"><svg class="icon"><use href={`#${guide.icon}`} /></svg></span>
-              <span><strong>{guide.title}</strong><small>{guide.hint}</small></span>
-              <svg class="icon help-arrow"><use href="#i-arrow-right" /></svg>
+            <Button class="group/hlink flex min-w-0 items-center gap-2.5 rounded-xl! border-0! bg-transparent! p-[9px] ps-2 pe-2 text-ink! text-left cursor-pointer font-inherit no-underline transition-colors duration-150 hover:bg-db-tint-strong! focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&>span:nth-child(2)]:flex [&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:flex-col [&>span:nth-child(2)]:gap-px [&_.help-arrow]:text-muted! [&_.help-arrow]:transition-[color,transform] [&_.help-arrow]:duration-150 hover:[&_.help-arrow]:text-accent! hover:[&_.help-arrow]:translate-x-1" type="button" onclick={() => onNavigate(guide.page)}>
+              <span class="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-db-accent-tint text-accent transition-colors duration-200 group-hover/hlink:bg-accent group-hover/hlink:text-accent-contrast [&_.icon]:size-[17px]!"><svg class="icon"><use href={`#${guide.icon}`} /></svg></span>
+              <span><strong class="text-[13px] leading-[1.35]">{guide.title}</strong><small class="text-muted text-[11.5px] leading-[1.35]">{guide.hint}</small></span>
+              <svg class="icon help-arrow size-[15px]!"><use href="#i-arrow-right" /></svg>
             </Button>
           {/each}
         </div>
       </section>
 
-      <section class="course-card surface help-card">
+      <section class="course-card surface flex flex-col gap-0.5">
         <div class="card-title-row"><h2>{tr('Documentation')}</h2></div>
-        <div class="help-links">
+        <div class="mt-1.5 mb-0 flex flex-col">
           {#each docsLinks as link (link.title)}
-            <a class="help-link" href={link.href}>
-              <span class="help-link-icon warn"><svg class="icon"><use href={`#${link.icon}`} /></svg></span>
-              <span><strong>{link.title}</strong><small>{link.hint}</small></span>
-              <svg class="icon help-arrow"><use href="#i-arrow-right" /></svg>
+            <a class="group/hlink flex min-w-0 items-center gap-2.5 rounded-xl border-0 bg-transparent p-[9px] ps-2 pe-2 text-ink text-left no-underline transition-colors duration-150 hover:bg-db-tint-strong [&>span:nth-child(2)]:flex [&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:flex-col [&>span:nth-child(2)]:gap-px [&_.help-arrow]:text-muted [&_.help-arrow]:transition-[color,transform] [&_.help-arrow]:duration-150 hover:[&_.help-arrow]:text-accent hover:[&_.help-arrow]:translate-x-1" href={link.href}>
+              <span class="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-db-accent-tint text-accent-strong transition-colors duration-200 group-hover/hlink:bg-accent group-hover/hlink:text-accent-contrast [&_.icon]:size-[17px]!"><svg class="icon"><use href={`#${link.icon}`} /></svg></span>
+              <span><strong class="text-[13px] leading-[1.35]">{link.title}</strong><small class="text-muted text-[11.5px] leading-[1.35]">{link.hint}</small></span>
+              <svg class="icon help-arrow size-[15px]!"><use href="#i-arrow-right" /></svg>
             </a>
           {/each}
         </div>
       </section>
 
-      <section class="course-card surface help-card help-sysinfo">
+      <section class="course-card surface flex flex-col gap-0.5 [&_.page-action]:self-start">
         <div class="card-title-row"><h2>{tr('System info')}</h2></div>
-        <dl class="sysinfo">
+        <dl class="mt-1.5 mb-2.5 flex flex-col gap-[7px] [&>div]:flex [&>div]:justify-between [&>div]:gap-3 [&>div]:rounded-[10px] [&>div]:bg-db-tint-strong [&>div]:px-[11px] [&>div]:py-2 [&>div]:text-[12.5px] [&_dt]:text-muted [&_dd]:m-0 [&_dd]:overflow-hidden [&_dd]:text-ink [&_dd]:font-mono [&_dd]:text-[11.5px] [&_dd]:font-semibold [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap">
           <div><dt>{tr('Version')}</dt><dd>{DASHBOARD_VERSION}</dd></div>
           <div><dt>{tr('Endpoint')}</dt><dd>{endpointBase}</dd></div>
           <div><dt>{tr('Protocols')}</dt><dd>OpenAI · Anthropic</dd></div>

@@ -16,7 +16,6 @@
   import GatewayResourceLimitsPanel from './GatewayResourceLimitsPanel.svelte';
   import OperationalSettingsPanel from './OperationalSettingsPanel.svelte';
   import OutputStylesPanel from './OutputStylesPanel.svelte';
-  import '../../styles/dashboard/pages/settings.css';
 
   interface Props {
     tr: Translate;
@@ -140,12 +139,12 @@
   </div>
 
   {#if error}
-    <section class="course-card surface settings-card" role="alert">
+    <section class="course-card surface flex flex-col" role="alert">
       <div class="card-title-row"><h2>{error}</h2></div>
       <Button class="page-action" type="button" onclick={() => void loadPublicSettings()}>{tr('Retry')}</Button>
     </section>
   {:else if loading}
-    <section class="course-card surface settings-card"><div class="empty-state">{tr('Loading…')}</div></section>
+    <section class="course-card surface flex flex-col"><div class="empty-state">{tr('Loading…')}</div></section>
   {:else}
     {#if activeTab === 'server'}
       <section class="stats-grid" aria-label={tr('Settings overview')}>
@@ -155,39 +154,39 @@
         <StatsCard icon="#i-database" value="LMDB" title={tr('Storage')} trend={dbPath.split(/[\\/]/).pop()} actionLabel={tr('Database backup')} onAction={ () => selectTab('backup') } />
       </section>
 
-      <div class="settings-grid">
-        <section class="course-card surface settings-card" id="sec-server">
+      <div class="grid grid-cols-2 gap-[18px] max-[1100px]:grid-cols-1">
+        <section class="course-card surface flex flex-col" id="sec-server">
           <div class="card-title-row"><h2>{tr('Server')}</h2><span class="status complete">{tr('Running')}</span></div>
           <p class="card-subtitle">{tr('Bind address and request limits. Bind settings require a restart and are read-only here.')}</p>
-          <div class="settings-fields">
-            <label class="field">{tr('Host')}<Input type="text" value={host} readonly class="readonly-field" /></label>
-            <label class="field">{tr('Port')}<Input type="text" value={port} readonly class="readonly-field" /></label>
-            <label class="field provd-wide">{tr('database_path')}<Input type="text" value={dbPath} readonly class="readonly-field" /></label>
+          <div class="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-3.5 max-nav:grid-cols-1">
+            <label class="field">{tr('Host')}<Input type="text" value={host} readonly class="bg-surface-sunken! text-muted!" /></label>
+            <label class="field">{tr('Port')}<Input type="text" value={port} readonly class="bg-surface-sunken! text-muted!" /></label>
+            <label class="field col-span-full">{tr('database_path')}<Input type="text" value={dbPath} readonly class="bg-surface-sunken! text-muted!" /></label>
           </div>
         </section>
 
-        <section class="course-card surface settings-card" id="sec-auth">
+        <section class="course-card surface flex flex-col" id="sec-auth">
           <div class="card-title-row"><h2>{tr('Auth & security')}</h2><span class="status complete">{tr('Secure')}</span></div>
           <p class="card-subtitle">{tr('Admin API throttling and password management.')}</p>
-          <div class="settings-fields">
-            <div class="provd-wide">
+          <div class="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-3.5 max-nav:grid-cols-1">
+            <div class="col-span-full">
               <Button class="page-action" type="button" onclick={() => pwDialog?.showModal()}><svg class="icon"><use href="#i-shield" /></svg> {tr('Change admin password')}</Button>
             </div>
-            <div class="provd-wide">
+            <div class="col-span-full">
               <Button class="page-action" type="button" onclick={() => selectTab('operational')}><svg class="icon"><use href="#i-arrow-right" /></svg> {tr('Operational settings')}</Button>
             </div>
           </div>
         </section>
 
-        <section class="course-card surface settings-card" id="sec-logging">
+        <section class="course-card surface flex flex-col" id="sec-logging">
           <div class="card-title-row"><h2>{tr('Logging & telemetry')}</h2></div>
           <p class="card-subtitle">{tr('Request log retention stored in LMDB.')}</p>
-          <div class="settings-fields">
-            <div class="provd-wide">
+          <div class="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-3.5 max-nav:grid-cols-1">
+            <div class="col-span-full">
               <Button class="page-action" type="button" onclick={() => selectTab('operational')}><svg class="icon"><use href="#i-arrow-right" /></svg> {tr('Operational settings')}</Button>
               <Button class="page-action" type="button" onclick={() => onNavigate('requests')}><svg class="icon"><use href="#i-clipboard" /></svg> {tr('View request logs')}</Button>
             </div>
-            <div class="provd-wide">
+            <div class="col-span-full">
               <Button class="page-action danger" type="button" onclick={deleteLogs}>{tr('Delete all request logs')}</Button>
             </div>
           </div>
@@ -215,8 +214,8 @@
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     <div class="modal-fields">
-      <label class="field provd-wide">{tr('Current password')}<Input type="password" required autocomplete="current-password" bind:value={pwCurrent} /></label>
-      <label class="field provd-wide">{tr('New password')}<Input type="password" required autocomplete="new-password" bind:value={pwNew} /></label>
+      <label class="field col-span-full">{tr('Current password')}<Input type="password" required autocomplete="current-password" bind:value={pwCurrent} /></label>
+      <label class="field col-span-full">{tr('New password')}<Input type="password" required autocomplete="new-password" bind:value={pwNew} /></label>
     </div>
     <div class="modal-actions">
       <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>

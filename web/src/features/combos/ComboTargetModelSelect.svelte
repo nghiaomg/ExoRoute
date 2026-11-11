@@ -10,6 +10,8 @@
   export let value: string;
   /** Shown while disabled when no provider is chosen yet; defaults to the provider prompt. */
   export let disabledPlaceholder = '';
+  /** Popups must portal into the hosting modal dialog, or the top layer makes them inert. */
+  export let portalContainer: HTMLElement | undefined = undefined;
   export let tr: Translate;
   export let onChange: (model: string) => void;
 
@@ -151,7 +153,7 @@
         <ChevronsUpDown size={14} />
       </Combobox.Trigger>
     </Combobox.Control>
-    <Portal>
+    <Portal container={portalContainer}>
       <Combobox.Positioner class="ark-select-positioner">
         <Combobox.Content class="ark-select-content combo-combobox-content">
           <Combobox.List class="ark-select-item-group">
