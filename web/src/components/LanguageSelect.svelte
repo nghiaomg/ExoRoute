@@ -21,7 +21,7 @@
      h-9!/rounded-lg! match the topbar pill controls; ! out-ranks the unlayered
      legacy resets. -->
 <select
-  class="h-9! w-auto! max-w-[160px]! rounded-lg! border! border-line! bg-surface! px-3! pr-8! text-sm! font-semibold! text-ink! outline-none! cursor-pointer! focus:border-accent! focus:ring-3! focus:ring-accent/15!"
+  class="h-8! w-auto! max-w-[160px]! rounded-lg! border! border-line! bg-surface! px-2.5! pr-7! text-[13px]! font-medium! text-ink! outline-none! cursor-pointer! focus:border-accent! focus:ring-3! focus:ring-accent/15! [background-size:11px_11px]!"
   aria-label={tr('Language')}
   title={tr('Language')}
   value={locale}

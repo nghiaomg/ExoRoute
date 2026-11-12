@@ -132,7 +132,7 @@
         aria-selected={activeTab === tab.id}
         onclick={() => selectTab(tab.id)}
       >
-        <tab.icon size={15} />
+        <tab.icon size={14} />
         <span>{tr(tab.label)}</span>
       </Button>
     {/each}

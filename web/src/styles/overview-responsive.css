@@ -270,7 +270,7 @@
 .inline-loading { display: flex; align-items: center; gap: 8px; min-height: 110px; justify-content: center; color: var(--muted); font-size: 12px; }.spin { animation: spin 1s linear infinite; }
 @keyframes shimmer { to { background-position: -220% 0; } } @keyframes spin { to { transform: rotate(360deg); } }
 
-.empty-state { min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 35px 20px; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface); text-align: center; }
+.empty-state { min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 35px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-align: center; }
 .empty-illustration { position: relative; display: grid; place-items: center; width: 58px; height: 58px; margin-bottom: 17px; border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--surface)); border-radius: 18px; color: var(--accent); background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), color-mix(in srgb, var(--accent) 14%, var(--surface))); box-shadow: 0 9px 25px color-mix(in srgb, var(--accent-strong) 8%, transparent); }
 .empty-orbit { position: absolute; inset: -9px; border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--surface)); border-radius: 21px; transform: rotate(10deg); }
 .empty-state h2 { margin: 0 0 7px; color: var(--ink); font: 700 14px var(--font-heading); }

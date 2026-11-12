@@ -374,7 +374,7 @@
                 <span class="px-2.5 py-[5px] rounded-full bg-surface text-muted text-meta font-medium whitespace-nowrap">{targetLabel(target)}</span>
               {/each}
               {#if combo.targets.length > 5}
-                <span class="bg-transparent! border border-dashed border-line text-muted" title={combo.targets.slice(4, -1).map((target) => targetLabel(target)).join(' · ')}>{tr('+{count} more', { count: combo.targets.length - 5 })}</span>
+                <span class="bg-transparent! border border-line text-muted" title={combo.targets.slice(4, -1).map((target) => targetLabel(target)).join(' · ')}>{tr('+{count} more', { count: combo.targets.length - 5 })}</span>
               {/if}
               {#if combo.targets.length > 1}
                 <span class="bg-db-accent-tint! text-accent-strong!">{targetLabel(combo.targets[combo.targets.length - 1])}</span>

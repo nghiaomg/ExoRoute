@@ -365,7 +365,6 @@ button.upstream-node:hover .upstream-mini-chip {
 .upstream-mini-chip.empty-chip {
   font-size: 12px;
   color: var(--muted);
-  border-style: dashed;
   background: rgba(255, 255, 255, 0.4);
 }
 .chip-name {

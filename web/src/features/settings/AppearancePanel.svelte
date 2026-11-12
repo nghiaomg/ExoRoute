@@ -144,7 +144,7 @@
   }
 
   :global(.appearance-theme-card.system-choice) {
-    border-style: dashed;
+    border-style: solid;
   }
 
   .system-theme-preview {

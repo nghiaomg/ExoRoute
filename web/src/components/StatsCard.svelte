@@ -47,7 +47,7 @@
     'transition-[transform,box-shadow,border-color,background-color] duration-200 ' +
     'hover:border-transparent! hover:bg-[linear-gradient(var(--surface),var(--surface))_padding-box,linear-gradient(120deg,var(--accent)_0%,var(--accent-glow)_35%,var(--accent-soft)_70%,var(--accent)_100%)_border-box]';
   const kickerClass =
-    'mb-5 flex min-w-0 items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted';
+    'mb-5 flex min-w-0 items-center justify-between gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted';
   const kpiClass =
     'block overflow-hidden text-ellipsis text-[32px] font-bold leading-none tracking-[-0.055em] text-ink transition-colors duration-200 group-hover/stat:text-accent!';
 </script>
@@ -73,9 +73,9 @@
       {/if}
     </div>
     <span class={kpiClass}>{value}{#if unit}<span class="ms-1 text-xl font-semibold text-muted">{unit}</span>{/if}</span>
-    <h2 class="stat-title m-0 mt-2 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-ink">{title}</h2>
+    <h2 class="stat-title m-0 mt-2 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-ink">{title}</h2>
     {#if trend !== undefined}
-      <div class="mt-1 block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-muted">{trend}</div>
+      <div class="mt-1 block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-normal text-muted">{trend}</div>
     {/if}
   </div>
 {/if}

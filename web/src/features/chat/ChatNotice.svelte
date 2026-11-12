@@ -29,7 +29,7 @@
     margin: 10px auto 0;
     max-width: 760px;
     padding: 8px 12px;
-    border: 2px dashed var(--ink);
+    border: 1px solid var(--line);
     border-radius: 12px;
     color: var(--muted);
     font-size: 12px;

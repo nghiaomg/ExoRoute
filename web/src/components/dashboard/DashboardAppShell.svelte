@@ -61,9 +61,9 @@
 
   const bottomItems = $derived([
     { id: 'overview', label: tr('Overview'), icon: 'i-grid' },
-    { id: 'providers', label: tr('Providers'), icon: 'i-link' },
+    { id: 'providers', label: tr('Providers'), shortLabel: tr('Providers compact'), icon: 'i-link' },
     { id: 'requests', label: tr('Requests'), icon: 'i-clipboard' },
-    { id: 'chat', label: tr('Chat'), icon: 'i-video' },
+    { id: 'chat', label: tr('Chat'), shortLabel: tr('Chat compact'), icon: 'i-video' },
     { id: 'more', label: tr('More'), icon: 'i-menu' },
   ]);
 
@@ -153,29 +153,29 @@
      (`.dashboard-app button { color: inherit }`, `.icon` sizing). */
   const focusRing = 'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring';
 
-  const layoutClass = $derived(`grid min-w-0 max-nav:h-auto max-nav:min-h-[100svh] max-nav:grid-cols-[minmax(0,1fr)] max-nav:gap-2.5 nav:block nav:h-[100svh] nav:min-h-[max(700px,100svh)] @max-[920px]:gap-3 [--shell-header-row:68px] ${collapsed ? 'nav:[--shell-header-row:80px]' : ''}`);
+  const layoutClass = $derived(`grid min-w-0 max-nav:h-auto max-nav:min-h-[100svh] max-nav:grid-cols-[minmax(0,1fr)] max-nav:gap-2.5 nav:block nav:h-[100svh] nav:min-h-[max(700px,100svh)] @max-[920px]:gap-3 [--shell-header-row:60px] ${collapsed ? 'nav:[--shell-header-row:72px]' : ''}`);
 
-  const sidebarClass = $derived(`grid min-w-0 min-h-0 max-nav:fixed max-nav:top-3 max-nav:bottom-3 max-nav:left-3 max-nav:z-50 max-nav:w-[min(300px,84vw)] max-nav:h-auto max-nav:gap-[9px] max-nav:[grid-template-rows:54px_auto] max-nav:transition-transform max-nav:duration-200 ${mobileOpen ? 'max-nav:translate-x-0' : 'max-nav:-translate-x-[115%]'} nav:fixed nav:inset-y-0 nav:left-0 nav:z-40 nav:transition-[width] nav:duration-200 nav:gap-[clamp(10px,1.32vw,18px)] nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] ${collapsed ? 'nav:w-[78px]' : 'nav:w-[calc(100vw*0.204)]'}`);
+  const sidebarClass = $derived(`grid min-w-0 min-h-0 max-nav:fixed max-nav:top-3 max-nav:bottom-3 max-nav:left-3 max-nav:z-50 max-nav:w-[min(300px,84vw)] max-nav:h-auto max-nav:gap-[9px] max-nav:[grid-template-rows:54px_auto] max-nav:transition-transform max-nav:duration-200 ${mobileOpen ? 'max-nav:translate-x-0' : 'max-nav:-translate-x-[115%]'} nav:fixed nav:inset-y-0 nav:left-0 nav:z-40 nav:transition-[width] nav:duration-200 nav:gap-[clamp(10px,1.32vw,18px)] nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] ${collapsed ? 'nav:w-[78px]' : 'nav:w-[232px]'}`);
 
   const brandCardClass = $derived(`flex min-w-0 items-center justify-between rounded-[15px] bg-surface max-nav:px-3.5 nav:px-[8%] ${collapsed ? 'nav:flex-col nav:justify-start nav:gap-2 nav:px-1 nav:py-2' : ''}`);
 
   const brandClass = $derived(`flex min-w-0 items-center gap-[7px] text-ink text-section-title font-bold tracking-[-0.035em] ${collapsed ? 'nav:justify-center' : ''}`);
 
-  const sidePanelClass = $derived(`flex min-h-0 flex-col overflow-y-auto rounded-[17px] bg-surface px-[6.5%] py-[5.8%] max-nav:p-2.5 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent] @max-[920px]:p-[9px] ${collapsed ? 'nav:px-2 nav:py-2.5 nav:items-center' : ''}`);
+  const sidePanelClass = $derived(`flex min-h-0 flex-col overflow-y-auto rounded-[17px] bg-surface px-[6%] py-[4%] max-nav:p-2.5 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent] @max-[920px]:p-[9px] ${collapsed ? 'nav:px-2 nav:py-2.5 nav:items-center' : ''}`);
 
   function navButtonClass(active: boolean): string {
-    return `relative flex w-full min-w-0 min-h-[clamp(32px,3.45vw,46px)] items-center justify-start gap-2.5 rounded-full border-0 px-[7px] text-left cursor-pointer ${focusRing} @max-[920px]:min-h-[30px] @max-[920px]:gap-1.5 @max-[920px]:px-1 max-nav:min-h-[38px] max-nav:gap-[7px] max-nav:px-1.5 ${collapsed ? 'nav:justify-center nav:min-h-10 nav:px-0' : ''} ${active ? 'bg-db-accent-tint text-accent-strong!' : 'bg-transparent text-ink hover:bg-db-tint-strong'} [aria-current='page']:cursor-default`;
+    return `relative flex w-full min-w-0 min-h-[clamp(30px,2.7vw,38px)] items-center justify-start gap-2 rounded-full border-0 px-[7px] text-left cursor-pointer ${focusRing} @max-[920px]:min-h-[30px] @max-[920px]:gap-1.5 @max-[920px]:px-1 max-nav:min-h-[38px] max-nav:gap-[7px] max-nav:px-1.5 ${collapsed ? 'nav:justify-center nav:min-h-10 nav:px-0' : ''} ${active ? 'bg-db-accent-tint text-accent-strong!' : 'bg-transparent text-ink hover:bg-db-tint-strong'} [aria-current='page']:cursor-default`;
   }
 
   function navIconClass(active: boolean): string {
-    return `grid size-[clamp(27px,2.55vw,35px)] shrink-0 place-items-center rounded-full @max-[920px]:size-[26px] max-nav:size-[29px] ${collapsed ? 'nav:size-[34px]' : ''} ${active ? 'bg-accent text-accent-contrast' : 'bg-line text-muted'}`;
+    return `grid size-[clamp(24px,2.3vw,30px)] shrink-0 place-items-center rounded-full @max-[920px]:size-[24px] max-nav:size-[29px] ${collapsed ? 'nav:size-[30px]' : ''} ${active ? 'bg-accent text-accent-contrast' : 'bg-line text-muted'}`;
   }
 
   function navCountClass(active: boolean): string {
-    // leading-none keeps the digits inside the pill: the inherited body
-    // line-height (~1.45) makes a 13px caption line taller than the fixed
-    // 19px/16px height, so multi-digit counts spilled past the rounded edge.
-    return `grid ms-auto h-[19px] min-w-[19px] shrink-0 place-items-center rounded-full px-1 text-caption leading-none whitespace-nowrap font-semibold tabular-nums @max-[920px]:h-4 @max-[920px]:min-w-4 @max-[920px]:px-[3px] max-nav:h-[18px] max-nav:min-w-[18px] ${collapsed ? 'nav:hidden' : ''} ${active ? 'bg-accent text-accent-contrast' : 'bg-ink text-canvas'}`;
+    // leading-none + a fixed-height pill keeps the digits centered: the
+    // inherited body line-height (~1.45) made caption-size digits spill past
+    // the rounded edge at larger font sizes.
+    return `grid ms-auto h-5 min-w-5 shrink-0 place-items-center rounded-full px-2 text-[11px] leading-none whitespace-nowrap font-semibold tabular-nums @max-[920px]:h-4 @max-[920px]:min-w-4 @max-[920px]:px-1 @max-[920px]:text-[10px] max-nav:h-[18px] max-nav:min-w-[18px] max-nav:px-1.5 max-nav:text-[10px] ${collapsed ? 'nav:hidden' : ''} ${active ? 'bg-accent text-accent-contrast' : 'bg-ink text-canvas'}`;
   }
 </script>
 
@@ -183,7 +183,7 @@
 
 <div class="dashboard-app dashboard-page-{page}">
   <DashboardIconSprite />
-  <main class="poster relative min-h-[100svh] bg-db-tint-strong max-nav:block max-nav:overflow-visible">
+  <main class="poster relative min-h-[100svh] bg-db-tint-strong max-nav:block max-nav:h-[100svh] max-nav:overflow-y-auto max-nav:overflow-x-hidden max-nav:[-webkit-overflow-scrolling:touch]">
     <section class="dashboard-card relative w-full min-h-[100svh] bg-db-tint-strong @container max-nav:p-3" aria-label="ExoRoute dashboard">
       <div class={layoutClass}>
         <aside class={sidebarClass} class:open={mobileOpen}>
@@ -225,7 +225,7 @@
 
           <nav class={sidePanelClass} aria-label={tr('Main navigation')}>
             <div>
-              <p class="m-0 mb-2 ms-[7px] text-[11px] font-medium tracking-[0.03em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('Menu')}</p>
+              <p class="m-0 mb-1.5 ms-[7px] text-[11px] font-medium tracking-[0.03em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('Menu')}</p>
               <div class="grid gap-0.5 {collapsed ? 'nav:justify-items-center' : ''}">
                 {#each menuItems as item (item.id)}
                   {@const active = navPage === item.id}
@@ -243,8 +243,8 @@
               </div>
             </div>
 
-            <div class="mt-[5.5%] max-nav:mt-2.5">
-              <p class="m-0 mb-2 ms-[7px] text-[11px] font-medium tracking-[0.03em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('General')}</p>
+            <div class="mt-4 max-nav:mt-2.5">
+              <p class="m-0 mb-1.5 ms-[7px] text-[11px] font-medium tracking-[0.03em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('General')}</p>
               <div class="grid gap-0.5 {collapsed ? 'nav:justify-items-center' : ''}">
                 {#each generalItems as item (item.id)}
                   {@const active = navPage === item.id}
@@ -261,7 +261,7 @@
             </div>
 
             {#if onSignOut}
-              <button type="button" onclick={handleSignOut} class="mt-[3.5%] text-accent! {navButtonClass(false)}">
+              <button type="button" onclick={handleSignOut} class="mt-3 text-accent! {navButtonClass(false)}">
                 <span class={navIconClass(true)}><svg class="icon size-[53%]!"><use href="#i-logout" /></svg></span>
                 <span class="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-normal {collapsed ? 'nav:hidden' : ''}">{tr('Log Out')}</span>
               </button>
@@ -271,10 +271,10 @@
         <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
         <div class="max-nav:fixed max-nav:inset-0 max-nav:z-[45] max-nav:bg-[#12182066] max-nav:backdrop-blur-[2px]" hidden={!mobileOpen} onclick={() => setMobileOpen(false)}></div>
 
-        <section class="grid min-w-0 min-h-0 max-nav:min-h-[100svh] max-nav:[grid-template-rows:56px_auto] max-nav:gap-2.5 nav:h-full nav:ml-[calc(100vw*0.219)] nav:gap-[1.8%] nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] {collapsed ? 'nav:ml-[92px]' : ''}">
+        <section class="grid min-w-0 min-h-0 max-nav:min-h-[100svh] max-nav:[grid-template-rows:56px_auto] max-nav:gap-2.5 nav:h-full nav:ml-[252px] nav:gap-[1.8%] nav:pe-6 nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] {collapsed ? 'nav:ml-[92px]' : ''}">
           <header class="flex h-full min-w-0 items-center justify-between gap-[18px] rounded-[16px] bg-surface px-[2.3%] max-nav:gap-2 max-nav:rounded-[13px] max-nav:px-[9px]">
-            <label class="group/search hidden w-[min(43%,370px)] min-w-[120px] items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-3 text-text-dim transition-[border-color,box-shadow] duration-150 focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15 nav:flex">
-              <svg class="icon size-4! transition-colors duration-200 group-focus-within/search:text-accent" aria-hidden="true"><use href="#i-search" /></svg>
+            <label class="group/search hidden w-[min(43%,370px)] min-w-[120px] items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2 text-text-dim transition-[border-color,box-shadow] duration-150 focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15 nav:flex">
+              <svg class="icon size-3.5! transition-colors duration-200 group-focus-within/search:text-accent" aria-hidden="true"><use href="#i-search" /></svg>
               <Input
                 type="search"
                 placeholder={tr('Search requests...')}
@@ -282,7 +282,7 @@
                 bind:value={searchQuery}
                 onkeydown={(e) => { if (e.key === 'Enter') handleTopSearch(); }}
                 bare
-class="w-full bg-transparent text-sm outline-none placeholder:text-muted"
+class="m-0 w-full appearance-none border-0 border-none bg-transparent! p-0 text-[13px] font-normal outline-none placeholder:text-muted focus:shadow-none! focus-visible:shadow-none! focus:border-transparent! focus-visible:border-transparent!"
               />
             </label>
             <div class="flex min-w-0 items-center gap-[clamp(8px,1.2vw,17px)] max-nav:gap-1.5">
@@ -292,7 +292,7 @@ class="w-full bg-transparent text-sm outline-none placeholder:text-muted"
               <LanguageSelect {locale} {tr} onLocaleChange={onLocaleChange} />
               <span class="hidden w-px h-6 bg-line nav:block" aria-hidden="true"></span>
               <div class="group/profile flex min-w-0 items-center gap-2.5 max-nav:gap-1.5">
-                <svg class="size-[clamp(32px,3.1vw,43px)] shrink-0 overflow-hidden rounded-full border-2 border-line max-nav:size-[31px] transition-transform duration-200 group-hover/profile:scale-[1.06]" viewBox="0 0 44 44" role="img" aria-label={tr('ExoRoute Admin')}>
+                <svg class="size-[clamp(28px,2.4vw,34px)] shrink-0 overflow-hidden rounded-full border-2 border-line max-nav:size-[28px] transition-transform duration-200 group-hover/profile:scale-[1.06]" viewBox="0 0 44 44" role="img" aria-label={tr('ExoRoute Admin')}>
                   <defs>
                     <linearGradient id="avatar-bg" x1="0" y1="0" x2="1" y2="1">
                       <stop stop-color="#d6e1e3" />
@@ -306,16 +306,16 @@ class="w-full bg-transparent text-sm outline-none placeholder:text-muted"
                   <path d="M19 22h.2m7.4 0h.2" stroke="#29323a" stroke-width="1.4" stroke-linecap="round" />
                   <path d="M20 26c1.5 1.1 3.4 1.1 4.9 0" fill="none" stroke="#855c4d" stroke-width="1.2" stroke-linecap="round" />
                 </svg>
-                <div class="hidden grid gap-[3px] whitespace-nowrap leading-[1.15] nav:grid">
-                  <strong class="overflow-hidden text-ellipsis text-label font-semibold transition-colors duration-150 group-hover/profile:text-accent max-nav:max-w-[78px]">{tr('ExoRoute Admin')}</strong>
-                  <span class="text-muted text-meta">{gatewayAddress}</span>
+                <div class="hidden grid gap-[2px] whitespace-nowrap leading-[1.15] nav:grid">
+                  <strong class="overflow-hidden text-ellipsis text-[13px] font-medium transition-colors duration-150 group-hover/profile:text-accent max-nav:max-w-[78px]">{tr('ExoRoute Admin')}</strong>
+                  <span class="text-muted text-[11px] font-normal">{gatewayAddress}</span>
                 </div>
               </div>
             </div>
           </header>
 
           <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-          <div class="grid min-w-0 min-h-0 gap-[1.8%] max-nav:gap-3 max-nav:[grid-template-rows:auto_auto] max-nav:pb-[calc(64px+env(safe-area-inset-bottom,0px))] nav:flex nav:flex-col nav:h-full nav:min-h-0 nav:overflow-y-auto nav:[&>*]:shrink-0 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent]" onclick={onDialogClick}>
+          <div class="grid min-w-0 min-h-0 max-w-full gap-[1.8%] overflow-x-hidden max-nav:gap-3 max-nav:[grid-template-rows:auto_auto] max-nav:pb-[calc(80px+env(safe-area-inset-bottom,0px))] nav:flex nav:w-full nav:flex-col nav:h-full nav:min-h-0 nav:overflow-y-auto nav:[&>*]:shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" onclick={onDialogClick}>
             {@render children?.()}
           </div>
         </section>
@@ -327,7 +327,7 @@ class="w-full bg-transparent text-sm outline-none placeholder:text-muted"
        opens the full sidebar drawer. Hidden at >=681px where the rail owns
        navigation. -->
   <nav
-    class="max-nav:fixed max-nav:inset-x-0 max-nav:bottom-0 max-nav:z-40 max-nav:grid max-nav:grid-cols-5 max-nav:border-t max-nav:border-line max-nav:bg-surface max-nav:pt-1 max-nav:pb-[max(env(safe-area-inset-bottom,0px),8px)] nav:hidden"
+    class="max-nav:fixed max-nav:inset-x-0 max-nav:bottom-0 max-nav:z-40 max-nav:grid max-nav:grid-cols-5 max-nav:border-t max-nav:border-line max-nav:bg-surface max-nav:pt-1 max-nav:pb-[env(safe-area-inset-bottom,0px)] nav:hidden"
     aria-label={tr('Main navigation')}
   >
     {#each bottomItems as item (item.id)}
@@ -336,15 +336,15 @@ class="w-full bg-transparent text-sm outline-none placeholder:text-muted"
         aria-label={item.label}
         aria-current={item.id !== 'more' && navPage === item.id ? 'page' : undefined}
         onclick={() => (item.id === 'more' ? setMobileOpen(true) : handleNav(item.id))}
-        class="flex min-h-[48px] flex-col items-center justify-center gap-0.5 border-0 bg-transparent px-1 py-1 text-[10px] font-medium leading-tight cursor-pointer transition-colors {navPage === item.id && item.id !== 'more' ? 'text-accent-strong' : 'text-muted'} {focusRing}"
+        class="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 border-0 bg-transparent px-0.5 py-1 text-[10px] font-medium leading-tight tracking-tight cursor-pointer transition-colors {navPage === item.id && item.id !== 'more' ? 'text-accent-strong [box-shadow:inset_0_2px_0_0_var(--accent)]' : 'text-muted'} {focusRing}"
       >
         <svg class="icon size-[18px]!"><use href="#{item.icon}" /></svg>
-        <span class="max-w-full truncate">{item.label}</span>
+        <span class="max-w-full truncate">{item.shortLabel ?? item.label}</span>
       </button>
     {/each}
   </nav>
 
   {#if $dashboardToast}
-    <div class="fixed right-5 bottom-5 z-20 max-nav:bottom-[calc(72px+env(safe-area-inset-bottom,0px))] max-w-[min(380px,calc(100vw-40px))] rounded-xl border border-ink bg-ink px-4 py-3 text-canvas text-dash-body leading-[1.4] shadow-[0_10px_30px_#0003]" role="status" aria-live="polite">{$dashboardToast.message}</div>
+    <div class="fixed right-5 bottom-5 z-20 max-nav:bottom-[calc(84px+env(safe-area-inset-bottom,0px))] max-w-[min(380px,calc(100vw-40px))] rounded-xl border border-ink bg-ink px-4 py-3 text-canvas text-dash-body leading-[1.4] shadow-[0_10px_30px_#0003]" role="status" aria-live="polite">{$dashboardToast.message}</div>
   {/if}
 </div>

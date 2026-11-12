@@ -183,12 +183,12 @@
   });
 
   /* Native combobox input and compact pill styles follow the shared field
-     treatment; the chat model bar keeps its 30px-high, 10px-radius face. */
+     treatment; the chat model bar keeps its compact 30px trigger face. */
   const fieldInputClass = 'min-h-[44px] w-full rounded-xl border border-line bg-surface py-3 pl-3.5 pr-[60px] text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-text-dim hover:border-text-dim! focus:border-accent! focus:ring-3! focus:ring-accent/15! disabled:cursor-not-allowed disabled:opacity-55 disabled:bg-surface-sunken';
   const fieldButtonClass = 'flex min-h-[44px] w-full cursor-pointer items-center rounded-xl border border-line bg-surface px-3.5 text-left text-sm text-ink transition-[border-color,box-shadow] duration-150 hover:border-text-dim! focus:border-accent! focus:ring-3! focus:ring-accent/15! disabled:cursor-not-allowed disabled:opacity-55';
-  const pillFrameClass = 'border-[color:var(--nb-border)] bg-[color-mix(in_srgb,var(--accent)_7%,var(--surface))] rounded-[10px] text-xs font-semibold text-ink shadow-[var(--nb-shadow-sm)] focus:border-accent! focus:ring-3! focus:ring-accent/15! disabled:cursor-not-allowed disabled:opacity-55 disabled:bg-surface-sunken';
+  const pillFrameClass = 'rounded-lg border border-line bg-surface text-xs font-medium text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent! focus:ring-3! focus:ring-accent/15! disabled:cursor-not-allowed disabled:opacity-55 disabled:bg-surface-sunken';
   const pillPadClass = $derived(clearable ? 'pr-[52px]' : 'pr-[26px]');
-  const pillInputClass = $derived(`${pillFrameClass} h-[30px] min-h-[30px] py-0 pl-2.5 text-[color:var(--ink)] ${pillPadClass}`);
+  const pillInputClass = $derived(`${pillFrameClass} h-[30px] min-h-[30px] w-full py-0 pl-2.5 ${pillPadClass}`);
   const pillButtonClass = $derived(`${pillFrameClass} flex h-[30px] min-h-[30px] w-full cursor-pointer items-center px-2.5 text-left ${pillPadClass}`);
 </script>
 

@@ -302,7 +302,7 @@
   background: rgba(255, 255, 255, 0.02) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px dashed rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: none !important;
 }
 :root[data-theme='dark'] .overview-main-col .empty-symbol {
@@ -624,7 +624,7 @@
 :root[data-theme='dark'] .row-icon.danger-hover:hover { color: #fca5a5; background: rgba(239, 68, 68, 0.16); }
 :root[data-theme='dark'] .row-icon.danger-confirm { color: #f87171 !important; background: rgba(239, 68, 68, 0.22) !important; }
 :root[data-theme='dark'] .row-icon.danger-confirm:hover { color: #fca5a5 !important; background: rgba(239, 68, 68, 0.32) !important; }
-:root[data-theme='dark'] .empty-inline { border-style: dashed; border-color: rgba(255, 255, 255, 0.08); }
+:root[data-theme='dark'] .empty-inline { border-style: solid; border-color: rgba(255, 255, 255, 0.08); }
 :root[data-theme='dark'] .empty-inline strong { color: var(--ink); }
 :root[data-theme='dark'] .empty-inline div span { color: #8e93aa; }
 :root[data-theme='dark'] .empty-symbol { color: var(--info-soft); background: color-mix(in srgb, var(--info) 16%, transparent); }

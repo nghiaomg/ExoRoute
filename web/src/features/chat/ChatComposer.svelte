@@ -315,7 +315,7 @@
     display: grid;
     gap: 10px;
     padding: 10px;
-    border: 2px dashed var(--ink);
+    border: 1px solid var(--line);
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.4);
   }

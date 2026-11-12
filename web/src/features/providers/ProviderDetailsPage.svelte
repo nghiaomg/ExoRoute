@@ -110,10 +110,10 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
             onclick={copyBaseUrl}
           >
             {#if copiedUrl}
-              <Check size={14} class="copy-success-icon" />
+              <Check size={12} class="copy-success-icon" />
               <span>{tr('URL copied')}</span>
             {:else}
-              <Copy size={14} />
+              <Copy size={12} />
               <span>{tr('Copy URL')}</span>
             {/if}
           </Button>

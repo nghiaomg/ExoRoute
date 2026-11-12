@@ -621,6 +621,10 @@
 
       .dashboard-app .page-surface {
         display: grid;
+        /* A single minmax(0,1fr) column keeps wide descendants (KPI grids,
+           mono IDs) from stretching the implicit auto track past the
+           viewport — the classic flex/grid child overflow bug. */
+        grid-template-columns: minmax(0, 1fr);
         min-width: 0;
         min-height: 0;
         align-content: start;
@@ -634,6 +638,37 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 8px;
+      }
+
+      /* Filter bars share one compact control height. The Input controlClass
+         measures ~46px (py-3 + text-sm + border) while SelectOptions' select
+         is min-h-[38px]; pin both to 36px border-box, drop block padding so
+         py-3 cannot overflow the fixed height, and force a minimal 13px
+         scale so placeholders and labels stay crisp. Select gets the
+         input's radius/background so the pair reads as one control
+         language, with a slightly smaller chevron to match. */
+      .dashboard-app .page-toolbar input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']),
+  .dashboard-app .page-toolbar select {
+        height: 36px;
+        min-height: 36px;
+        padding-top: 0;
+        padding-bottom: 0;
+        font-size: 13px;
+      }
+
+      .dashboard-app .page-toolbar input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']) {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .dashboard-app .page-toolbar select {
+        border-radius: 12px;
+        background-color: var(--surface);
+        background-size: 11px 11px;
+      }
+
+      .dashboard-app .page-toolbar button {
+        font-size: 13px;
       }
 
       .dashboard-app .page-action {
@@ -809,12 +844,25 @@
 
       .dashboard-app .empty-state {
         padding: 28px 18px;
-        border: 1px dashed var(--text-dim);
+        border: 1px solid var(--line);
         border-radius: 13px;
         color: var(--muted);
         font-size: var(--type-body);
         line-height: var(--leading-body);
         text-align: center;
+      }
+
+      /* Table-cell variant: the surrounding row/card already provides the
+         boundary, so the box chrome would read as a nested card. Also resets
+         the legacy global .empty-state surface/min-height so nothing paints
+         an inner rectangle inside the table wrapper. */
+      .dashboard-app .empty-state.flush {
+        min-height: 0;
+        padding: 16px 4px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
       }
 
       .dashboard-app .page-stat-grid {
@@ -1005,17 +1053,28 @@
         backdrop-filter: blur(3px);
       }
 
-      .dashboard-app .modal-card {
+      /* Scoped under .modal so this width:100% out-ranks the legacy global
+         .modal-card.wide-modal { width: min(100%, 550px) } rule, which left
+         wide cards narrower than their centered dialog with a right-side gap. */
+      .dashboard-app .modal .modal-card {
         display: grid;
         gap: 15px;
-        /* Fill the dialog: the legacy dashboard stylesheet still contributes a
-           430px card width, which left the card stuck to the left edge of the
-           centered dialog. */
         width: 100%;
+        /* Scroll only on genuine overflow. Grid gaps + clamp() typography can
+           overflow the box by a fractional pixel and pin a permanent thin
+           scrollbar track; hiding the track keeps short modals clean while
+           wheel/touch scrolling still works when content really exceeds
+           max-height. */
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: none;
         padding: 22px;
         border: 1px solid var(--line);
         border-radius: 18px;
         background: var(--surface);
+      }
+      .dashboard-app .modal .modal-card::-webkit-scrollbar {
+        display: none;
       }
 
       .dashboard-app .modal-heading {

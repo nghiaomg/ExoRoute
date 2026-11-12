@@ -368,40 +368,38 @@
       <span class="button-icon"><svg class="icon"><use href="#i-sliders" /></svg></span>
       <span class="button-label">{tr('Parameters')}</span>
     </Button>
-    <Button class="action-button primary" type="button" onclick={newChat}>
-      <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
-      <span class="button-label">{tr('New chat')}</span>
-    </Button>
   </div>
 </div>
 
 <div class="page-surface flex flex-col min-h-0">
-  <div class="surface grid grid-cols-[230px_minmax(0,1fr)] gap-3.5 min-h-[480px] h-[calc(100svh-320px)] p-3.5 max-nav:grid-cols-1 max-nav:h-auto max-nav:min-h-0">
-    <aside class="flex flex-col gap-2.5 min-h-0 max-nav:order-2">
-      <Button class="flex items-center justify-center gap-[7px] min-h-[38px] rounded-xl border border-dashed border-text-dim! bg-db-tint! text-muted! text-dash-body font-medium cursor-pointer transition-colors duration-150 hover:border-accent! hover:text-accent! hover:bg-db-accent-tint! focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={newChat}>
+  <div class="surface flex min-h-[480px] h-[calc(100svh-320px)] overflow-hidden max-nav:h-auto max-nav:min-h-0 max-nav:flex-col">
+    <aside class="flex w-[250px] shrink-0 flex-col gap-2.5 border-r border-line bg-surface-sunken p-3 max-nav:order-2 max-nav:w-full max-nav:border-r-0 max-nav:border-t max-nav:border-line">
+      <Button class="flex items-center justify-center gap-[7px] min-h-[38px] rounded-xl border border-line bg-surface text-ink text-dash-body font-medium cursor-pointer transition-colors duration-150 hover:border-accent hover:text-accent hover:bg-db-accent-tint focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={newChat}>
         <svg class="icon"><use href="#i-plus" /></svg>
         {tr('New conversation')}
       </Button>
-      <div class="grid gap-1.5 overflow-y-auto content-start">
+      <div class="grid flex-1 gap-1.5 overflow-y-auto content-start">
         {#each sessions as session (session.id)}
           <button
             type="button"
             onclick={() => selectSession(session.id)}
-            class="grid gap-[3px] rounded-[11px] border bg-transparent py-2.5 px-3 text-left cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {session.id === activeSessionId ? 'bg-db-accent-tint border-db-accent-line' : 'border-transparent hover:bg-db-tint-strong'}"
+            class="grid gap-[3px] rounded-[11px] border bg-transparent py-2.5 px-3 text-left cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {session.id === activeSessionId ? 'bg-surface border-line shadow-sm' : 'border-transparent hover:bg-surface'}"
           >
             <strong class="overflow-hidden text-ellipsis whitespace-nowrap text-ink text-label font-semibold">{session.title}</strong>
             <span class="text-muted text-caption">{tr('{label} · {count} messages', { label: session.modelLabel || tr('no model'), count: session.messages.length })}</span>
           </button>
         {:else}
-          <p class="card-subtitle" style="padding:10px 4px">{tr('No conversations yet.')}</p>
+          <div class="grid flex-1 place-items-center p-6 text-center">
+            <p class="m-0 text-muted text-meta">{tr('No conversations yet.')}</p>
+          </div>
         {/each}
       </div>
     </aside>
 
-    <section class="flex min-w-0 min-h-0 flex-col overflow-hidden rounded-[13px] bg-db-tint-strong max-nav:min-h-[60svh]">
-      <div class="flex items-center gap-2.5 bg-line px-3.5 py-2.5">
-        <span class="text-muted text-caption font-semibold uppercase tracking-[0.04em]">{tr('Model')}</span>
-        <div class="flex-[1_1_auto] min-w-[180px] max-w-[430px]">
+    <section class="flex min-w-0 min-h-0 flex-1 flex-col bg-db-tint-strong max-nav:min-h-[60svh]">
+      <div class="flex items-center gap-2.5 border-b border-line bg-surface px-4 py-2">
+        <span class="shrink-0 text-muted text-caption font-semibold uppercase tracking-[0.04em]">{tr('Model')}</span>
+        <div class="min-w-0 max-w-[520px] flex-1">
           <SelectSearch
             items={modelItems}
             value={selectedModel}
@@ -420,16 +418,26 @@
         {/if}
       </div>
 
-      <div class="flex-1 min-h-0 overflow-y-auto p-[18px] flex flex-col gap-3 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent]" bind:this={messagesEl} aria-live="polite">
+      <div class="flex-1 min-h-0 overflow-y-auto p-[18px] flex flex-col gap-3 {messages.length ? '[scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent]' : '[scrollbar-width:none]'}" bind:this={messagesEl} aria-live="polite">
         {#if messages.length === 0}
-          <div class="m-auto grid justify-items-center gap-2 px-5 py-[30px] text-center text-muted">
-            <svg class="icon size-[34px]! text-text-dim!"><use href="#i-video" /></svg>
-            <strong class="text-ink text-section-title">{tr('Start a conversation')}</strong>
-            <p class="m-0 mb-2 text-dash-body">{tr('Messages are routed through the gateway exactly like production traffic.')}</p>
+          <div class="m-auto grid justify-items-center gap-3 px-5 py-[30px] text-center">
+            <span class="grid size-12 place-items-center rounded-2xl border border-line bg-surface text-muted"><svg class="icon size-6!"><use href="#i-chat" /></svg></span>
+            <div class="grid gap-1">
+              <strong class="text-ink text-section-title">{tr('Start a conversation')}</strong>
+              <p class="m-0 text-dash-body text-muted">{tr('Messages are routed through the gateway exactly like production traffic.')}</p>
+            </div>
             <div class="flex flex-wrap justify-center gap-2">
-              <Button class="rounded-full border border-line! bg-surface! px-[13px] py-2 text-muted! text-meta cursor-pointer transition-[border-color,color,transform] duration-150 hover:border-accent! hover:text-accent! hover:-translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={() => void send('Summarize this text in 3 bullets: ExoRoute is a protocol gateway that normalizes client and provider formats, adds retries, combos, quota tracking, and per-key scoping.')}>{tr('Summarize this text in 3 bullets')}</Button>
-              <Button class="rounded-full border border-line! bg-surface! px-[13px] py-2 text-muted! text-meta cursor-pointer transition-[border-color,color,transform] duration-150 hover:border-accent! hover:text-accent! hover:-translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={() => void send('Write a Python retry decorator with exponential backoff')}>{tr('Write a Python retry decorator')}</Button>
-              <Button class="rounded-full border border-line! bg-surface! px-[13px] py-2 text-muted! text-meta cursor-pointer transition-[border-color,color,transform] duration-150 hover:border-accent! hover:text-accent! hover:-translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={() => void send('Explain SSE vs WebSocket for LLM streaming')}>{tr('Explain SSE vs WebSocket')}</Button>
+              {#each [
+                { label: tr('Summarize this text in 3 bullets'), text: 'Summarize this text in 3 bullets: ExoRoute is a protocol gateway that normalizes client and provider formats, adds retries, combos, quota tracking, and per-key scoping.' },
+                { label: tr('Write a Python retry decorator'), text: 'Write a Python retry decorator with exponential backoff' },
+                { label: tr('Explain SSE vs WebSocket'), text: 'Explain SSE vs WebSocket for LLM streaming' },
+              ] as suggestion (suggestion.label)}
+                <button
+                  type="button"
+                  class="rounded-full border border-line bg-surface px-3.5 py-2 text-muted text-meta cursor-pointer transition-[border-color,color,background-color] duration-150 hover:border-accent hover:text-accent hover:bg-db-accent-tint focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring"
+                  onclick={() => void send(suggestion.text)}
+                >{suggestion.label}</button>
+              {/each}
             </div>
           </div>
         {/if}
@@ -440,12 +448,12 @@
         {/each}
       </div>
 
-      <form class="flex items-end gap-2 bg-db-tint px-3.5 py-3 border-t border-surface-sunken" onsubmit={(e) => { e.preventDefault(); void send(); }}>
-        <Button class="icon-action" type="button" title={tr('Attach image')} onclick={() => fileInput?.click()}>
+      <form class="mx-3.5 mb-3.5 mt-2 flex items-center gap-1.5 rounded-2xl border border-line bg-surface px-2 py-1.5 transition-[border-color,box-shadow] duration-150 focus-within:border-accent focus-within:ring-3 focus-within:ring-db-accent-ring" onsubmit={(e) => { e.preventDefault(); void send(); }}>
+        <Button class="grid size-8! shrink-0 place-items-center rounded-full! border-0! bg-transparent! text-muted! cursor-pointer transition-colors duration-150 hover:bg-db-tint-strong! hover:text-ink! disabled:opacity-55 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[15px]!" type="button" title={tr('Attach image')} onclick={() => fileInput?.click()}>
           <svg class="icon"><use href="#i-paperclip" /></svg>
         </Button>
         <Input bind:element={fileInput} type="file" accept="image/*" hidden onchange={onAttach} />
-        <textarea class="flex-1 min-h-10 max-h-[140px] rounded-xl border border-line bg-surface px-[13px] py-2.5 text-ink text-dash-body leading-[1.45] resize-none outline-none focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))] focus:ring-3 focus:ring-db-accent-ring"
+        <textarea class="flex-1 min-h-8 max-h-[140px] resize-none border-0 bg-transparent! px-1.5 py-1.5 text-ink text-dash-body leading-[1.45] outline-none placeholder:text-muted"
           bind:this={inputEl}
           bind:value={composerText}
           rows="1"
@@ -456,11 +464,11 @@
           disabled={streaming}
         ></textarea>
         {#if streaming}
-          <Button class="grid size-10! shrink-0 place-items-center rounded-xl! border-0! bg-db-danger! text-canvas! cursor-pointer transition-colors duration-150 hover:bg-accent-deep! disabled:opacity-55 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[14px]!" type="button" title={tr('Stop generating')} onclick={stop}>
+          <Button class="grid size-9! shrink-0 place-items-center rounded-full! border-0! bg-db-danger! text-canvas! cursor-pointer transition-colors duration-150 hover:bg-accent-deep! disabled:opacity-55 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[14px]!" type="button" title={tr('Stop generating')} onclick={stop}>
             <svg class="icon"><use href="#i-stop" /></svg>
           </Button>
         {:else}
-          <Button class="grid size-10! shrink-0 place-items-center rounded-xl! border-0! bg-ink! text-canvas! cursor-pointer transition-colors duration-150 hover:bg-accent! disabled:opacity-55 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[17px]!" type="submit" title={tr('Send')} disabled={!composerText.trim() || !selectedModel}>
+          <Button class="grid size-9! shrink-0 place-items-center rounded-full! border-0! bg-ink! text-canvas! cursor-pointer transition-colors duration-150 hover:bg-accent! disabled:opacity-40 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[16px]!" type="submit" title={tr('Send')} disabled={!composerText.trim() || !selectedModel}>
             <svg class="icon"><use href="#i-send" /></svg>
           </Button>
         {/if}

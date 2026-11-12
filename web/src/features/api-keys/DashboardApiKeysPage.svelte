@@ -300,7 +300,7 @@
       <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
     </div>
     {#if createdKey}
-      <div class="mt-4 flex flex-col gap-1.5 rounded-[14px] border border-dashed border-text-dim bg-surface-sunken px-[18px] py-4">
+      <div class="mt-4 flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface-sunken px-[18px] py-4">
         <strong>{createdKey.name}</strong>
         <div class="mt-1 flex items-center gap-2.5">
           <code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-text-dim bg-surface px-3.5 py-2.5 text-[13px] tracking-[0.02em] select-all">{createdKey.key}</code>

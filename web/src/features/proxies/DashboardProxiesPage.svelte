@@ -216,8 +216,8 @@
         </Button>
       </div>
       <p class="card-subtitle">{tr('{proxies} proxies · {endpoints} endpoints · {providers} providers', { proxies: proxies.length, endpoints: endpointCount, providers: providerCount })}</p>
-      <div class="page-toolbar mt-3">
-        <Input class="h-[38px] min-w-0 max-w-[420px] flex-[1_1_260px]" type="search" bind:value={query} placeholder={tr('Search proxies…')} aria-label={tr('Search proxies')} />
+      <div class="page-toolbar mt-3 items-center">
+        <Input class="min-w-0 flex-1" type="search" bind:value={query} placeholder={tr('Search proxies…')} aria-label={tr('Search proxies')} />
         <SelectOptions
           ariaLabel={tr('Filter by status')}
           bind:value={statusFilter}

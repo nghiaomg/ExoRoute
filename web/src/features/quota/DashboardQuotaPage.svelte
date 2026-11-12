@@ -112,10 +112,28 @@
     return Math.round(Math.min(100, Math.max(0, 100 - usedPercent)));
   }
 
+  /** Semantic quota tone from remaining percent: healthy >50%, warning
+      20–50%, depleted <20%. */
+  function quotaTone(usedPercent: number): 'ok' | 'warn' | 'bad' {
+    const remaining = 100 - usedPercent;
+    if (remaining < 20) return 'bad';
+    if (remaining <= 50) return 'warn';
+    return 'ok';
+  }
+
   function quotaBarStyle(usedPercent: number): string {
     const remaining = Math.min(100, Math.max(0, 100 - usedPercent));
-    // Filled segment fades from deep orange on the left to soft orange on the right.
-    return `background: linear-gradient(to right, var(--quota-fill-deep, #c2410c) 0, var(--quota-fill-soft, #fdba74) ${remaining}%, var(--surface-sunken) ${remaining}% 100%)`;
+    const tone = quotaTone(usedPercent);
+    const [from, to] = tone === 'ok'
+      ? ['var(--mint)', 'var(--db-success)']
+      : tone === 'warn'
+        ? ['var(--accent)', 'var(--db-accent-glow, var(--accent))']
+        : ['var(--db-danger)', 'var(--db-danger)'];
+    // Depleted quotas get a faint rose-tinted empty track so 0% reads at a glance.
+    const track = tone === 'bad'
+      ? 'color-mix(in srgb, var(--db-danger) 14%, var(--surface-sunken))'
+      : 'var(--surface-sunken)';
+    return `background: linear-gradient(to right, ${from} 0, ${to} ${remaining}%, ${track} ${remaining}% 100%)`;
   }
 
   function quotaValue(quota: ProviderUsageQuota): string {
@@ -145,9 +163,9 @@
 
   function statusClass(view: ProviderQuotaView): string {
     if (!view.hasData || !hasFreshQuotaData(view)) return 'pending';
-    if (view.maxUsed !== null && view.maxUsed >= 90) return 'error';
-    if (view.maxUsed !== null && view.maxUsed >= 70) return 'progress';
-    return 'complete';
+    // .status.progress = green (healthy), .complete = accent (warning),
+    // .error = red (depleted) — same semantic scale as the progress bars.
+    return { ok: 'progress', warn: 'complete', bad: 'error' }[quotaTone(view.maxUsed ?? 0)];
   }
 
   async function load(): Promise<void> {
@@ -291,8 +309,8 @@
               {#if view.quotas.length}
                 {#each view.quotas.slice(0, 3) as quota, i (i)}
                   <div>
-                    <div class="mb-1.5 flex items-center justify-between gap-2 text-muted text-meta"><span>{quota.label}</span><strong class="text-ink tabular-nums">{quotaValue(quota)}</strong></div>
-                    <div class="progress-track bg-[color-mix(in_srgb,var(--text-dim)_58%,var(--surface-sunken))]!" role="img" aria-label={tr('{percent}% remaining', { percent: remainingPercent(quota.used_percent) })}><div class="progress-fill h-full rounded-[inherit] bg-accent! transition-[background-size] duration-200" style={quotaBarStyle(quota.used_percent)}></div></div>
+                    <div class="flex items-center justify-between gap-2 text-ellipsis whitespace-nowrap text-xs font-medium text-muted"><span>{quota.label}</span><span class="text-ink tabular-nums">{quotaValue(quota)}</span></div>
+                    <div class="progress-track bg-[color-mix(in_srgb,var(--text-dim)_58%,var(--surface-sunken))]!" role="img" aria-label={tr('{percent}% remaining', { percent: remainingPercent(quota.used_percent) })}><div class="progress-fill h-full rounded-[inherit] transition-[background-size] duration-200" style={quotaBarStyle(quota.used_percent)}></div></div>
                   </div>
                 {/each}
               {:else}
@@ -330,12 +348,12 @@
       {#if detailView?.quotas.length}
         {#each detailView.quotas as quota, i (i)}
           <div>
-            <div class="mb-1.5 flex items-center justify-between gap-2 text-muted text-meta">
+            <div class="mb-1.5 flex items-center justify-between gap-2 text-ellipsis whitespace-nowrap text-xs font-medium text-muted">
               <span>{quota.label}{resetLabel(quota) ? ` · ${resetLabel(quota)}` : ''}</span>
-              <strong class="text-ink tabular-nums">{quotaValue(quota)}</strong>
+              <span class="text-ink tabular-nums">{quotaValue(quota)}</span>
             </div>
             <div class="progress-track">
-              <div class="progress-fill h-full rounded-[inherit] bg-accent! transition-[background-size] duration-200" style={quotaBarStyle(quota.used_percent)}></div>
+              <div class="progress-fill h-full rounded-[inherit] transition-[background-size] duration-200" style={quotaBarStyle(quota.used_percent)}></div>
             </div>
           </div>
         {/each}
@@ -345,11 +363,11 @@
       {#each detailView?.accounts ?? [] as account (account.key_id)}
         {#if account.local_meter}
           <div>
-            <div class="mb-1.5 flex items-center justify-between gap-2 text-muted text-meta"><span>{tr('Local usage · {name}', { name: account.name || tr('key') })}</span><strong class="text-ink tabular-nums">{tr('{count} windows', { count: Object.keys(account.local_meter.windows).length })}</strong></div>
+            <div class="mb-1.5 flex items-center justify-between gap-2 text-ellipsis whitespace-nowrap text-xs text-muted"><span>{tr('Local usage · {name}', { name: account.name || tr('key') })}</span><span class="text-ink tabular-nums">{tr('{count} windows', { count: Object.keys(account.local_meter.windows).length })}</span></div>
             {#each Object.entries(account.local_meter.windows) as [window, data] (window)}
-              <div class="mb-1.5 flex items-center justify-between gap-2 ps-3.5 text-muted text-meta">
+              <div class="mb-1.5 flex items-center justify-between gap-2 ps-3.5 text-ellipsis whitespace-nowrap text-xs text-muted">
                 <span>{window} · {tr('{count} requests', { count: data.requests })} · {tr('{count} tokens', { count: formatCount(data.input_tokens + data.output_tokens, locale) })}</span>
-                <strong class="text-ink tabular-nums">{data.cost_micro_usd != null ? `$${(data.cost_micro_usd / 1_000_000).toFixed(2)}` : '—'}</strong>
+                <span class="text-ink tabular-nums">{data.cost_micro_usd != null ? `$${(data.cost_micro_usd / 1_000_000).toFixed(2)}` : '—'}</span>
               </div>
             {/each}
           </div>

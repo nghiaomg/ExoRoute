@@ -709,7 +709,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 16px;
-    border-bottom: 2px dashed var(--ink);
+    border-bottom: 1px solid var(--line);
     background: color-mix(in srgb, var(--accent) 7%, #fff);
     font-size: 11px;
     color: var(--accent-strong);

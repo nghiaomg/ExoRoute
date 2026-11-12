@@ -12,7 +12,7 @@
   import type { Provider, ProviderKey, ProviderPreset, UpstreamProtocol } from '../../lib/types';
   import { providerLogo } from './provider-logo';
   import ProviderDetailsPage from './ProviderDetailsPage.svelte';
-  import ProviderPresetSetupPage from './ProviderPresetSetupPage.svelte';
+  import ProviderPresetSetupDialog from './ProviderPresetSetupDialog.svelte';
 
   interface Props {
     tr: Translate;
@@ -55,6 +55,7 @@
   let testRunning = $state(false);
   let creatingPresetId = $state<string | null>(null);
   let setupPresetId = $state<string | null>(null);
+  let setupDialogOpen = $state(false);
 
   const presetById = $derived(new Map(presets.map((p) => [p.id, p])));
   const setupPreset = $derived(setupPresetId ? presetById.get(setupPresetId) ?? null : null);
@@ -107,6 +108,7 @@
     const endpoint = preset.default_base_url?.trim();
     if (!endpoint) {
       setupPresetId = presetId;
+      setupDialogOpen = true;
       return;
     }
 
@@ -139,8 +141,8 @@
     }
   }
 
-  /** Group order mirrors the preset catalog; adapters without a preset fall into Custom. */
-  const CATEGORY_ORDER = ['cloud_api', 'gateway', 'oauth', 'custom'] as const;
+  /** Custom providers lead the list; built-in categories follow in catalog order. */
+  const CATEGORY_ORDER = ['custom', 'cloud_api', 'gateway', 'oauth'] as const;
   type ProviderGroupKey = (typeof CATEGORY_ORDER)[number];
   const CATEGORY_LABEL_KEYS: Record<ProviderGroupKey, string> = {
     cloud_api: 'Cloud API',
@@ -381,14 +383,7 @@
 </script>
 
 <div class="providers-view">
-{#if setupPreset}
-  <ProviderPresetSetupPage
-    preset={setupPreset}
-    {tr}
-    onBack={() => { setupPresetId = null; }}
-    onCreated={(providerId) => { setupPresetId = null; void finishPresetSetup(providerId); }}
-  />
-{:else if detailLive}
+{#if detailLive}
   <ProviderDetailsPage
     provider={detailLive}
     {tr}
@@ -462,9 +457,9 @@
         {#each providerGroups as group (group.key)}
           {#if group.items.length}
             <section class="provider-group">
-              <h3 class="flex items-center gap-[7px] m-0 mb-[8px] text-muted text-caption font-bold uppercase [letter-spacing:var(--tracking-caps)]">
+              <h3 class="flex items-center gap-[7px] m-0 mb-[8px] text-muted text-xs font-medium uppercase tracking-wider">
                 {group.label}
-                <span class="rounded-full bg-surface-sunken px-[7px] py-[1px] text-muted text-meta font-bold">{group.items.length}</span>
+                <span class="rounded-full bg-surface-sunken px-1.5 py-0.5 text-[11px] text-muted font-medium leading-none">{group.items.length}</span>
               </h3>
               <div class="course-list mt-3! grid! grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))]! content-start! gap-3!">
                 {#each group.items as entry (entry.key)}
@@ -478,8 +473,8 @@
                           {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
                         </span>
                         <span class="course-copy">
-                          <strong>{provider.name} <span class="ml-[6px] rounded-full bg-surface-sunken px-[7px] py-[2px] text-muted text-caption font-medium [vertical-align:1px]">{preset.name}</span></strong>
-                          <span>{provider.base_url} · {fmtKeys(provider)} · {provider.model_count ?? 0} {tr('models')}</span>
+                          <strong>{provider.name}</strong>
+                          <span>{fmtKeys(provider)} · {provider.model_count ?? 0} {tr('models')}</span>
                         </span>
                         {#if provider.enabled && !(provider.api_key_count ?? 0)}
                           <span class="status pending">{tr('No keys')}</span>
@@ -522,6 +517,16 @@
 {/if}
 </div>
 
+{#if setupPreset}
+  <ProviderPresetSetupDialog
+    bind:open={setupDialogOpen}
+    preset={setupPreset}
+    {tr}
+    onClose={() => { setupPresetId = null; }}
+    onCreated={(providerId) => { setupPresetId = null; setupDialogOpen = false; void finishPresetSetup(providerId); }}
+  />
+{/if}
+
 
 <!-- Manage API keys -->
 <dialog class="modal modal-wide w-[min(94vw,560px)]!" bind:this={keysDialog} aria-labelledby="keys-dialog-title">
@@ -542,7 +547,7 @@
         {#each keys as key (key.id)}
           <div class="flex items-center justify-between gap-2.5 rounded-[11px] border border-line bg-db-tint px-3 py-[9px] [&_code]:text-ink! [&_code]:text-meta!">
             <div class="course-copy">
-              <strong>{key.name || tr('Unnamed key')} <span class="ml-[6px] rounded-full bg-surface-sunken px-[7px] py-[2px] text-muted text-caption font-medium [vertical-align:1px]">{key.credential_type ?? 'api_key'}</span></strong>
+              <strong>{key.name || tr('Unnamed key')}</strong>
               <span>{key.enabled ? (key.invalid ? tr('marked invalid') : tr('healthy')) : tr('disabled')} · {fmtLastUsed(key)}</span>
             </div>
             <div class="flex gap-1.5">

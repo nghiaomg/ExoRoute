@@ -3,7 +3,7 @@
   import StatsCard from "../../components/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
-  import { getIntlLocale, type Locale } from '../../lib/i18n';
+  import type { Locale } from '../../lib/i18n';
   import type { Translate } from '../../lib/format';
   import { formatCount, formatCostMicroUsd, formatCompactTokenTotal } from '../../lib/format';
   import { showDashboardToast, pendingRequestSearch } from '../../lib/dashboard-ui';
@@ -155,19 +155,6 @@
 
   function providerLabel(row: RequestLog | RequestLiveRow): string {
     return (row.provider_id && providerNameById.get(row.provider_id)) || row.provider_id || '—';
-  }
-
-  // History timestamps arrive as the `YYYY-MM-DD HH:MM:SS` UTC shape the log
-  // store is keyed by; render them in the viewer's timezone.
-  function formatTimestamp(value: string | null): string {
-    if (!value) return tr('Not available');
-    const parsed = new Date(`${value.replace(' ', 'T')}Z`);
-    if (Number.isNaN(parsed.getTime())) return value;
-    return new Intl.DateTimeFormat(getIntlLocale(locale), {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    }).format(parsed);
   }
 
   async function loadStatistics(range: RangeFilter = rangeFilter): Promise<void> {
@@ -407,12 +394,6 @@
       <StatsCard index={8} eyebrow={tr('Efficiency')} value={stats ? formatCompactTokenTotal(stats.cached_tokens, locale) : '—'} title={tr('Cached tokens')} trend={`${tr('Cache ratio')} ${stats ? `${Math.round(stats.cache_ratio * 10) / 10}%` : '—'}`} />
     </section>
 
-    <p class="m-0 text-muted text-meta">
-      {tr('Data collected since')} <strong>{formatTimestamp(stats?.collection_started_at ?? null)}</strong>
-      <span aria-hidden="true"> · </span>
-      {tr('Last aggregate update')} <strong>{formatTimestamp(stats?.as_of ?? null)}</strong>
-    </p>
-
     <section class="course-card surface flex flex-col" id="req-board" aria-labelledby="requests-heading">
       <div class="card-title-row">
         <h2 id="requests-heading">{tr('Requests')}</h2>
@@ -433,13 +414,13 @@
           items={[{ label: tr('All providers'), value: 'all' }, ...providers.map((provider) => ({ label: provider.name, value: provider.id }))]}
           onValueChange={() => { cursorStack = []; void loadPage(null, false); }}
         />
-        <div class="inline-flex shrink-0 gap-0.5 rounded-[10px] border border-line bg-surface p-[3px]" role="group" aria-label={tr('Statistics time range')}>
+        <div class="inline-flex shrink-0 gap-0.5 rounded-[10px] border border-line bg-surface-sunken p-[3px]" role="group" aria-label={tr('Statistics time range')}>
           {#each RANGE_OPTIONS as range (range)}
             <button
               type="button"
               aria-pressed={rangeFilter === range}
               onclick={() => (rangeFilter = range)}
-              class="min-h-7 rounded-[7px] border-0 bg-transparent px-3 text-muted text-dash-body font-medium cursor-pointer transition-colors duration-150 hover:bg-db-tint-strong focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {rangeFilter === range ? 'bg-ink text-canvas' : ''}"
+              class="h-7 rounded-[7px] border-0 px-2.5 text-[13px] font-medium text-dash-body cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {rangeFilter === range ? 'bg-surface text-ink shadow-sm font-semibold' : 'bg-transparent text-muted hover:bg-db-tint-strong'}"
             >{tr(RANGE_LABEL[range])}</button>
           {/each}
         </div>
@@ -496,7 +477,7 @@
                 <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">{formatCostMicroUsd(row.cost_micro_usd) || '—'}</td>
               </tr>
             {:else}
-              <tr><td colspan={tableColumnCount} class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body [[tbody_tr:last-child_&]]:border-b-0"><div class="empty-state">{tr('No requests match the current filters.')}</div></td></tr>
+              <tr><td colspan={tableColumnCount} class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body [[tbody_tr:last-child_&]]:border-b-0"><div class="empty-state flush">{tr('No requests match the current filters.')}</div></td></tr>
             {/each}
           </tbody>
         </table>

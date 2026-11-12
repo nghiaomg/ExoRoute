@@ -411,7 +411,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px;
+  padding: 4px;
   border-radius: 14px;
   background: var(--surface-sunken);
   overflow-x: auto;
@@ -423,14 +423,14 @@
 .settings-nav-tab {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
+  gap: 6px;
+  padding: 6px 12px;
   border-radius: 10px;
   background: transparent;
   color: var(--muted);
   font-family: var(--font-heading);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.18s ease, color 0.18s ease;
@@ -704,4 +704,61 @@
   color: var(--accent);
   flex-shrink: 0;
   margin-top: 1px;
+}
+
+/* ─── Settings page: compact minimal typography scale ─── */
+/* Scoped under .dashboard-app so these out-rank the shared dashboard rules
+   (.dashboard-app .heading-copy h1, .card-title-row h2, StatsCard utilities)
+   without touching other pages. */
+.dashboard-app .settings-view .heading-copy h1 {
+  font-size: 20px;
+  font-weight: 600;
+}
+.dashboard-app .settings-view .heading-copy p {
+  font-size: 12px;
+}
+
+/* Summary stat cards (StatsCard): smaller KPI, tighter card, lighter title. */
+.dashboard-app .settings-view .group\/stat {
+  min-height: 118px;
+  padding: 14px 16px;
+}
+.dashboard-app .settings-view .group\/stat > div:first-child {
+  margin-bottom: 10px;
+}
+.dashboard-app .settings-view .group\/stat > span {
+  font-size: 20px;
+  font-weight: 600;
+}
+.dashboard-app .settings-view .group\/stat .stat-title {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-app .settings-view .group\/stat > div:last-child {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+/* Detail cards: smaller section titles, subtitles and form controls. */
+.dashboard-app .settings-view .card-title-row h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.dashboard-app .settings-view .card-subtitle {
+  font-size: 12px;
+}
+.dashboard-app .settings-view .field {
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-app .settings-view .field input,
+.dashboard-app .settings-view .field select,
+.dashboard-app .settings-view .field textarea {
+  min-height: 34px;
+  font-size: 12px;
+}
+.dashboard-app .settings-view .page-action {
+  min-height: 32px;
+  font-size: 12px;
 }

@@ -476,7 +476,7 @@
 .quota-empty-state h2 { margin: 0 0 4px; color: var(--ink); font: 700 14px var(--font-heading); }
 .quota-empty-state p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .quota-empty-state .primary-button { margin-left: auto; flex: 0 0 auto; }
-.quota-empty-credentials { padding: 20px; border: 2px dashed var(--line); border-radius: 10px; background: var(--surface-sunken); color: var(--muted); font-size: 12px; text-align: center; }
+.quota-empty-credentials { padding: 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-sunken); color: var(--muted); font-size: 12px; text-align: center; }
 .quota-pagination { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
 .quota-pagination > span { color: var(--muted); font-size: 12px; text-align: center; }
 

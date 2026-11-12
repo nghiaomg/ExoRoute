@@ -1,6 +1,6 @@
 <script lang="ts">
   import Button from "../../components/Button.svelte";
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
   import Input from '../../components/Input.svelte';
   import type { DashboardPage } from '../../lib/navigation';
@@ -23,6 +23,8 @@
   let settings = $state<PublicSettings>({});
   let gatewayStatus = $state<'loading' | 'running' | 'unavailable'>('loading');
   let query = $state('');
+  let endpointCopied = $state(false);
+  let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(() => {
     void api.overview()
@@ -34,6 +36,8 @@
     void api.statistics('1d').then((value) => (stats = value)).catch(() => {});
     void api.settings().then((value) => (settings = value)).catch(() => {});
   });
+
+  onDestroy(() => clearTimeout(copyTimer));
 
   const pageLabels: Record<DashboardPage, string> = {
     overview: 'Overview',
@@ -83,6 +87,21 @@
     } catch {
       showDashboardToast(tr('Copy failed'));
     }
+  }
+
+  async function copyEndpoint(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(endpointUrl);
+      endpointCopied = true;
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => (endpointCopied = false), 1600);
+    } catch {
+      showDashboardToast(tr('Copy failed'));
+    }
+  }
+
+  function scrollToSection(id: string): void {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function copyDiagnostics(): void {
@@ -135,7 +154,7 @@
 
 <div class="page-surface max-nav:max-h-none! max-nav:overflow-visible! max-nav:content-start!">
   <section class="surface flex gap-[18px] p-4 ps-[22px] pe-[22px] max-[760px]:flex-col max-[760px]:gap-3 max-[760px]:p-4" aria-label={tr('Gateway endpoint')}>
-    <div class="grid size-[42px] shrink-0 place-items-center rounded-[13px] bg-db-accent-tint text-accent [&_.icon]:size-5!"><svg class="icon" aria-hidden="true"><use href="#i-wifi" /></svg></div>
+    <div class="grid size-[42px] shrink-0 place-items-center rounded-[13px] bg-db-accent-tint text-accent [&_.icon]:size-5!"><svg class="icon" aria-hidden="true"><use href="#i-server" /></svg></div>
     <div class="flex min-w-0 flex-1 flex-col gap-1.5 [&>p]:m-0 [&>p]:text-muted [&>p]:text-[12.5px] [&>p]:leading-[1.5]">
       <div class="flex flex-wrap items-center gap-2.5">
         <strong class="text-[15px] text-ink">{tr('Gateway endpoint')}</strong>
@@ -151,76 +170,104 @@
       <p>{tr('Point any OpenAI- or Anthropic-compatible client at this base URL, then send the matching protocol path.')}</p>
       <div class="mt-0.5 flex flex-wrap items-center gap-2.5">
         <code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-line bg-db-tint-strong px-[13px] py-[9px] font-mono text-ink text-[12.5px]">{endpointUrl}</code>
-        <Button class="mini-add" type="button" onclick={() => void copyText(endpointUrl, tr('Endpoint copied'))}>
-          <svg class="icon" aria-hidden="true"><use href="#i-copy" /></svg>{tr('Copy')}
+        <Button class="mini-add h-[38px]! rounded-[10px]! px-3.5! {endpointCopied ? 'bg-db-success-tint! text-db-success!' : ''}" type="button" onclick={copyEndpoint}>
+          <svg class="icon" aria-hidden="true"><use href={endpointCopied ? '#i-check' : '#i-copy'} /></svg>{endpointCopied ? tr('Copied') : tr('Copy')}
         </Button>
       </div>
-      <div class="mt-1.5 grid gap-[5px] grid-cols-[repeat(auto-fit,minmax(230px,1fr))] [&>span]:flex [&>span]:min-w-0 [&>span]:items-center [&>span]:gap-2 [&>span]:text-muted [&>span]:text-caption [&_code]:shrink-0 [&_code]:font-mono [&_code]:text-ink [&_code]:text-[11.5px]">
-        <span><code>POST /v1/chat/completions</code>{tr('Chat Completions')}</span>
-        <span><code>POST /v1/responses</code>{tr('Responses')}</span>
-        <span><code>POST /v1/messages</code>{tr('Anthropic Messages')}</span>
-        <span><code>GET /v1/models</code>{tr('Models')}</span>
+      <div class="mt-1.5 grid grid-cols-1 gap-2.5 min-[681px]:grid-cols-2 min-[1100px]:grid-cols-4">
+        {#each [
+          { method: 'POST', path: '/v1/chat/completions', label: tr('Chat Completions') },
+          { method: 'POST', path: '/v1/responses', label: tr('Responses') },
+          { method: 'POST', path: '/v1/messages', label: tr('Anthropic Messages') },
+          { method: 'GET', path: '/v1/models', label: tr('Models') },
+        ] as item (item.path)}
+          <button
+            type="button"
+            class="group flex min-w-0 cursor-pointer flex-col gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent hover:bg-db-tint-strong"
+            aria-label={`${item.method} ${endpointBase}${item.path}`}
+            onclick={() => void copyText(`${endpointBase}${item.path}`, tr('Endpoint copied'))}
+          >
+            <span class="flex min-w-0 items-center gap-2">
+              <span class="shrink-0 rounded-[5px] px-[6px] py-px font-mono text-[10px] font-bold {item.method === 'GET' ? 'bg-db-success-tint text-db-success' : 'bg-db-accent-tint text-accent-strong'}">{item.method}</span>
+              <code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-ink text-[11.5px]">{item.path}</code>
+              <svg class="icon size-3.5! shrink-0 text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100" aria-hidden="true"><use href="#i-copy" /></svg>
+            </span>
+            <span class="text-muted text-caption">{item.label}</span>
+          </button>
+        {/each}
       </div>
     </div>
   </section>
 
-  <section class="grid grid-cols-[repeat(6,minmax(0,1fr))] gap-2.5 max-[1280px]:grid-cols-3 max-[760px]:grid-cols-2" aria-label={tr('System info')}>
-    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
-      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Uptime')}</span>
-      <strong>{overview ? formatUptime(overview.uptime_seconds, tr) : '—'}</strong>
-      <small>{tr('Current process')}</small>
+  <section class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3" aria-label={tr('System info')}>
+    <article class="flex min-w-0 flex-col gap-1 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+      <span class="text-muted text-[11px] leading-tight font-medium tracking-[0.04em] uppercase">{tr('Uptime')}</span>
+      <strong class="text-ink text-2xl leading-tight font-semibold tabular-nums">{overview ? formatUptime(overview.uptime_seconds, tr) : '—'}</strong>
+      <small class="text-muted text-xs">{tr('Current process')}</small>
     </article>
-    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
-      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Requests')}</span>
-      <strong>{overview ? overview.request_count.toLocaleString() : '—'}</strong>
-      <small>{tr('Request log retention stored in LMDB.')}</small>
+    <article class="flex min-w-0 flex-col gap-1 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+      <span class="text-muted text-[11px] leading-tight font-medium tracking-[0.04em] uppercase">{tr('Requests')}</span>
+      <strong class="text-ink text-2xl leading-tight font-semibold tabular-nums">{overview ? overview.request_count.toLocaleString() : '—'}</strong>
+      <small class="text-muted text-xs">{tr('Request log retention stored in LMDB.')}</small>
     </article>
-    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
-      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Success rate')}</span>
-      <strong>{successRate}</strong>
-      <small>{tr('Last 24 hours')}</small>
+    <article class="flex min-w-0 flex-col gap-1 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+      <span class="text-muted text-[11px] leading-tight font-medium tracking-[0.04em] uppercase">{tr('Success rate')}</span>
+      <strong class="text-ink text-2xl leading-tight font-semibold tabular-nums">{successRate}</strong>
+      <small class="text-muted text-xs">{tr('Last 24 hours')}</small>
     </article>
-    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
-      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Average latency')}</span>
-      <strong>{latency}</strong>
-      <small>{tr('Last 24 hours')}</small>
+    <article class="flex min-w-0 flex-col gap-1 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+      <span class="text-muted text-[11px] leading-tight font-medium tracking-[0.04em] uppercase">{tr('Average latency')}</span>
+      <strong class="text-ink text-2xl leading-tight font-semibold tabular-nums">{latency}</strong>
+      <small class="text-muted text-xs">{tr('Last 24 hours')}</small>
     </article>
-    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
-      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Providers')}</span>
-      <strong>{overview ? overview.provider_count : '—'}</strong>
-      <small>{overview ? tr('{count} combos configured', { count: overview.combo_count }) : tr('Configured upstreams')}</small>
+    <article class="flex min-w-0 flex-col gap-1 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+      <span class="text-muted text-[11px] leading-tight font-medium tracking-[0.04em] uppercase">{tr('Providers')}</span>
+      <strong class="text-ink text-2xl leading-tight font-semibold tabular-nums">{overview ? overview.provider_count : '—'}</strong>
+      <small class="text-muted text-xs">{overview ? tr('{count} combos configured', { count: overview.combo_count }) : tr('Configured upstreams')}</small>
     </article>
-    <article class="surface flex min-w-0 flex-col gap-0.5 px-3.5 py-[11px]">
-      <span class="text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Storage')}</span>
-      <strong>LMDB</strong>
-      <small>{tr('Local embedded environment')}</small>
+    <article class="flex min-w-0 flex-col gap-1 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+      <span class="text-muted text-[11px] leading-tight font-medium tracking-[0.04em] uppercase">{tr('Storage')}</span>
+      <strong class="text-ink text-2xl leading-tight font-semibold tabular-nums">LMDB</strong>
+      <small class="text-muted text-xs">{tr('Local embedded environment')}</small>
     </article>
   </section>
 
   <div class="grid grid-cols-[minmax(0,1.62fr)_minmax(0,1fr)] gap-[18px] items-start max-[1100px]:grid-cols-1">
     <section class="course-card surface flex flex-col max-[760px]:[&_.card-title-row]:flex-col! max-[760px]:[&_.card-title-row]:items-start!" aria-labelledby="help-reference-heading">
-      <div class="card-title-row">
-        <h2 id="help-reference-heading">{tr('Troubleshooting')}</h2>
-        <label class="flex min-w-[min(260px,46%)] items-center gap-[7px] rounded-full border border-line bg-db-tint-strong px-[11px] py-[7px] text-muted [&_.icon]:size-3.5! [&_.icon]:shrink-0 max-[760px]:w-full max-[760px]:min-w-0">
-          <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
-          <Input
-            type="search"
-            bind:value={query}
-            placeholder={tr('Search topics and status codes…')}
-            aria-label={tr('Search help topics')}
-          />
-          {#if query}
-            <Button class="grid size-[18px]! shrink-0 place-items-center rounded-full! border-0! p-0! bg-transparent! text-muted! cursor-pointer hover:bg-line! hover:text-ink! [&_.icon]:size-[11px]!" type="button" aria-label={tr('Clear search')} onclick={() => (query = '')}>
-              <svg class="icon" aria-hidden="true"><use href="#i-close" /></svg>
-            </Button>
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div class="min-w-0">
+          <h2 id="help-reference-heading" class="m-0 overflow-hidden text-ellipsis whitespace-nowrap text-ink text-section-title font-semibold [letter-spacing:var(--tracking-tight)]">{tr('Troubleshooting')}</h2>
+          <p class="card-subtitle whitespace-normal!">
+            {query
+              ? tr('{count} of {total} topics match your search.', { count: matchCount, total: topics.length + codes.length })
+              : tr('Common questions, then the status codes the gateway can return.')}
+          </p>
+        </div>
+        <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 max-[760px]:w-full max-[760px]:flex-none max-[760px]:justify-start">
+          {#if visibleTopics.length > 0 && visibleCodes.length > 0}
+            <div class="flex shrink-0 items-center gap-0.5 rounded-full border border-line bg-surface-sunken p-[3px]" role="group" aria-label={tr('Jump to section')}>
+              <button type="button" class="rounded-full px-2.5 py-1 text-caption font-medium text-muted transition-colors duration-150 hover:bg-surface hover:text-ink" onclick={() => scrollToSection('help-topics')}>{tr('Questions')}</button>
+              <button type="button" class="rounded-full px-2.5 py-1 text-caption font-medium text-muted transition-colors duration-150 hover:bg-surface hover:text-ink" onclick={() => scrollToSection('help-codes')}>{tr('Status codes')}</button>
+            </div>
           {/if}
-        </label>
+          <label class="flex min-w-[min(280px,100%)] max-w-[440px] flex-1 items-center gap-[7px] rounded-full border border-line bg-surface px-[13px] py-[9px] text-muted transition-[border-color,box-shadow] duration-150 focus-within:border-accent focus-within:ring-3 focus-within:ring-db-accent-ring [&_.icon]:size-3.5! [&_.icon]:shrink-0 max-[760px]:w-full max-[760px]:min-w-0 max-[760px]:max-w-none">
+            <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+            <Input
+              type="search"
+              bare
+              class="w-full appearance-none border-0 bg-transparent! p-0 text-sm text-ink outline-none placeholder:text-muted"
+              bind:value={query}
+              placeholder={tr('Search topics and status codes…')}
+              aria-label={tr('Search help topics')}
+            />
+            {#if query}
+              <Button class="grid size-[18px]! shrink-0 place-items-center rounded-full! border-0! p-0! bg-transparent! text-muted! cursor-pointer hover:bg-line! hover:text-ink! [&_.icon]:size-[11px]!" type="button" aria-label={tr('Clear search')} onclick={() => (query = '')}>
+                <svg class="icon" aria-hidden="true"><use href="#i-close" /></svg>
+              </Button>
+            {/if}
+          </label>
+        </div>
       </div>
-      <p class="card-subtitle">
-        {query
-          ? tr('{count} of {total} topics match your search.', { count: matchCount, total: topics.length + codes.length })
-          : tr('Common questions, then the status codes the gateway can return.')}
-      </p>
 
       {#if matchCount === 0}
         <div class="flex flex-col items-center gap-2 px-4 pt-[30px] pb-[26px] text-center [&>.icon]:size-6! [&>.icon]:text-muted">
@@ -231,12 +278,12 @@
         </div>
       {:else}
         {#if visibleTopics.length > 0}
-          <h3 class="mt-3.5 mb-0.5 text-muted text-caption font-bold tracking-[0.04em] uppercase">{tr('Questions')}</h3>
+          <h3 id="help-topics" class="mt-3.5 mb-0.5 scroll-mt-4 text-muted text-xs font-medium tracking-wider uppercase">{tr('Questions')}</h3>
           <div class="faq-list">
             {#each visibleTopics as topic (topic.id)}
               {@const target = topic.target}
               <details class="group/faq border-b border-line last:border-b-0">
-                <summary class="flex items-center justify-between gap-3 px-1 py-3 text-ink text-[13.5px] font-semibold cursor-pointer list-none transition-colors duration-150 hover:text-accent [&::-webkit-details-marker]:hidden">{topic.title}<span class="size-2 shrink-0 border-e-2 border-b-2 border-muted rotate-45 transition-transform duration-200 group-open/faq:-rotate-[135deg]"></span></summary>
+                <summary class="-mx-3 flex items-center justify-between gap-3 rounded-lg px-3 py-3 text-ink text-[13.5px] font-medium cursor-pointer list-none transition-colors duration-150 hover:bg-db-tint-strong hover:text-accent [&::-webkit-details-marker]:hidden">{topic.title}<span class="size-2 shrink-0 border-e-2 border-b-2 border-muted rotate-45 transition-transform duration-200 group-open/faq:-rotate-[135deg]"></span></summary>
                 <div class="flex flex-col items-start gap-1.5 px-1 pb-3.5 [&>p]:m-0 [&>p]:text-muted [&>p]:text-[12.5px] [&>p]:leading-[1.6] [&_.details-link]:mt-0">
                   <p>{topic.body}</p>
                   {#if target}
@@ -251,13 +298,13 @@
         {/if}
 
         {#if visibleCodes.length > 0}
-          <h3 class="mt-3.5 mb-0.5 text-muted text-caption font-bold tracking-[0.04em] uppercase">{tr('Status codes')}</h3>
+          <h3 id="help-codes" class="mt-3.5 mb-0.5 scroll-mt-4 text-muted text-xs font-medium tracking-wider uppercase">{tr('Status codes')}</h3>
           <dl class="mt-1 mb-0 flex flex-col">
             {#each visibleCodes as code (code.status)}
               <div class="flex items-baseline gap-3.5 border-b border-line py-[9px] px-1 last:border-b-0 max-[760px]:flex-col max-[760px]:items-start max-[760px]:gap-1">
                 <dt class="flex min-w-[132px] shrink-0 items-center gap-2 max-[760px]:min-w-0">
-                  <span class="inline-grid min-w-[38px] place-items-center rounded-[7px] px-[7px] py-0.5 font-mono text-[11.5px] font-bold {statusTone(code.status) === 'critical' ? 'bg-db-danger-tint text-db-danger' : statusTone(code.status) === 'warn' ? 'bg-db-accent-tint text-accent-strong' : 'bg-db-tint-strong text-muted'}">{code.status}</span>
-                  <span class="text-ink text-[12.5px] font-semibold">{code.reason}</span>
+                  <span class="inline-grid min-w-[38px] place-items-center rounded-[7px] px-[7px] py-0.5 font-mono text-[11.5px] font-medium {statusTone(code.status) === 'critical' ? 'bg-db-danger-tint text-db-danger' : statusTone(code.status) === 'warn' ? 'bg-db-accent-tint text-accent-strong' : 'bg-db-tint-strong text-muted'}">{code.status}</span>
+                  <span class="text-ink text-[12.5px] font-medium">{code.reason}</span>
                 </dt>
                 <dd class="m-0 text-muted text-[12.5px] leading-[1.55]">{code.detail}</dd>
               </div>
@@ -270,11 +317,11 @@
     <div class="flex flex-col gap-[18px]">
       <section class="course-card surface flex flex-col gap-0.5">
         <div class="card-title-row"><h2>{tr('Common tasks')}</h2></div>
-        <div class="mt-1.5 mb-0 flex flex-col">
+        <div class="mt-1.5 mb-0 flex flex-col gap-1">
           {#each guides as guide (guide.title)}
-            <Button class="group/hlink flex min-w-0 items-center gap-2.5 rounded-xl! border-0! bg-transparent! p-[9px] ps-2 pe-2 text-ink! text-left cursor-pointer font-inherit no-underline transition-colors duration-150 hover:bg-db-tint-strong! focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&>span:nth-child(2)]:flex [&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:flex-col [&>span:nth-child(2)]:gap-px [&_.help-arrow]:text-muted! [&_.help-arrow]:transition-[color,transform] [&_.help-arrow]:duration-150 hover:[&_.help-arrow]:text-accent! hover:[&_.help-arrow]:translate-x-1" type="button" onclick={() => onNavigate(guide.page)}>
+            <Button class="group/hlink flex min-w-0 items-center gap-2.5 rounded-xl! border-0! bg-transparent! p-2.5 text-ink! text-left cursor-pointer font-inherit no-underline transition-colors duration-150 hover:bg-db-tint-strong! focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&>span:nth-child(2)]:flex [&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:flex-col [&>span:nth-child(2)]:gap-px [&_.help-arrow]:text-muted! [&_.help-arrow]:transition-[color,transform] [&_.help-arrow]:duration-150 hover:[&_.help-arrow]:text-accent! hover:[&_.help-arrow]:translate-x-1" type="button" onclick={() => onNavigate(guide.page)}>
               <span class="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-db-accent-tint text-accent transition-colors duration-200 group-hover/hlink:bg-accent group-hover/hlink:text-accent-contrast [&_.icon]:size-[17px]!"><svg class="icon"><use href={`#${guide.icon}`} /></svg></span>
-              <span><strong class="text-[13px] leading-[1.35]">{guide.title}</strong><small class="text-muted text-[11.5px] leading-[1.35]">{guide.hint}</small></span>
+              <span><strong class="text-[13px] leading-[1.35] font-medium">{guide.title}</strong><small class="text-muted text-xs leading-[1.35]">{guide.hint}</small></span>
               <svg class="icon help-arrow size-[15px]!"><use href="#i-arrow-right" /></svg>
             </Button>
           {/each}
@@ -283,11 +330,11 @@
 
       <section class="course-card surface flex flex-col gap-0.5">
         <div class="card-title-row"><h2>{tr('Documentation')}</h2></div>
-        <div class="mt-1.5 mb-0 flex flex-col">
+        <div class="mt-1.5 mb-0 flex flex-col gap-1">
           {#each docsLinks as link (link.title)}
-            <a class="group/hlink flex min-w-0 items-center gap-2.5 rounded-xl border-0 bg-transparent p-[9px] ps-2 pe-2 text-ink text-left no-underline transition-colors duration-150 hover:bg-db-tint-strong [&>span:nth-child(2)]:flex [&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:flex-col [&>span:nth-child(2)]:gap-px [&_.help-arrow]:text-muted [&_.help-arrow]:transition-[color,transform] [&_.help-arrow]:duration-150 hover:[&_.help-arrow]:text-accent hover:[&_.help-arrow]:translate-x-1" href={link.href}>
+            <a class="group/hlink flex min-w-0 items-center gap-2.5 rounded-xl border-0 bg-transparent p-2.5 text-ink text-left no-underline transition-colors duration-150 hover:bg-db-tint-strong [&>span:nth-child(2)]:flex [&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:flex-col [&>span:nth-child(2)]:gap-px [&_.help-arrow]:text-muted [&_.help-arrow]:transition-[color,transform] [&_.help-arrow]:duration-150 hover:[&_.help-arrow]:text-accent hover:[&_.help-arrow]:translate-x-1" href={link.href}>
               <span class="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] bg-db-accent-tint text-accent-strong transition-colors duration-200 group-hover/hlink:bg-accent group-hover/hlink:text-accent-contrast [&_.icon]:size-[17px]!"><svg class="icon"><use href={`#${link.icon}`} /></svg></span>
-              <span><strong class="text-[13px] leading-[1.35]">{link.title}</strong><small class="text-muted text-[11.5px] leading-[1.35]">{link.hint}</small></span>
+              <span><strong class="text-[13px] leading-[1.35] font-medium">{link.title}</strong><small class="text-muted text-xs leading-[1.35]">{link.hint}</small></span>
               <svg class="icon help-arrow size-[15px]!"><use href="#i-arrow-right" /></svg>
             </a>
           {/each}

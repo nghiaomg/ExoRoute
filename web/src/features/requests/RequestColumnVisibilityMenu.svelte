@@ -62,9 +62,9 @@
     onclick={toggleMenu}
   >
     {#if isAnyHidden}
-      <EyeOff size={13} />
+      <EyeOff size={14} />
     {:else}
-      <Eye size={13} />
+      <Eye size={14} />
     {/if}
     <span class="req-vis-label">{tr('Hide info')}</span>
     {#if isAnyHidden}
@@ -106,14 +106,15 @@
   :global(.req-vis-trigger) {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    min-height: 32px;
-    padding: 6px 13px;
+    gap: 6px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 12px;
     border: 1px solid #e9eef0;
     border-radius: 10px;
     background: #fff;
     color: #59646e;
-    font-size: var(--type-body);
+    font-size: 13px;
     font-weight: var(--weight-medium);
     cursor: pointer;
     transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;

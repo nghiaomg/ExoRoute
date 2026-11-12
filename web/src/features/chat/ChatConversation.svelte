@@ -438,7 +438,7 @@
   .chat-reasoning p {
     margin: 6px 0 0;
     padding: 8px 10px;
-    border: 2px dashed var(--ink);
+    border: 1px solid var(--line);
     border-radius: 8px;
     white-space: pre-wrap;
   }

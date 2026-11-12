@@ -23,6 +23,7 @@
 
   let thinkingModeDraft: ProviderThinkingMode = 'preserve';
   let thinkingOverrideDraft = '';
+  let baseUrlDraft = '';
   let keyStrategyDraft: KeyStrategyType = 'priority';
   let modelPrefixDraft = '';
   let logoDraft = '';
@@ -43,6 +44,7 @@
 
   $: if (provider && provider.id !== providerId) {
     providerId = provider.id;
+    baseUrlDraft = provider.base_url ?? '';
     thinkingModeDraft = provider.thinking_mode ?? 'preserve';
     thinkingOverrideDraft = provider.thinking_override ?? '';
     keyStrategyDraft = provider.key_strategy ?? 'priority';
@@ -121,6 +123,20 @@
       return;
     }
 
+    const nextBaseUrl = baseUrlDraft.trim().replace(/\/+$/, '');
+    if (!nextBaseUrl) {
+      dialogNotice = tr('Base URL is required.');
+      dialogNoticeTone = 'error';
+      return;
+    }
+    try {
+      new URL(nextBaseUrl);
+    } catch {
+      dialogNotice = tr('Base URL must be a valid URL.');
+      dialogNoticeTone = 'error';
+      return;
+    }
+
     const modelPrefix = modelPrefixDraft.trim().toLowerCase() || currentProvider.id.toLowerCase();
     const logoUrl = logoDraft.trim() || null;
     const customHeaders = customHeaderDrafts
@@ -141,12 +157,15 @@
 
     const initialPrefix = (currentProvider.model_prefix ?? '').trim().toLowerCase() || currentProvider.id.toLowerCase();
     const initialLogo = (currentProvider.logo_url ?? '').trim() || null;
+    const initialBaseUrl = (currentProvider.base_url ?? '').trim().replace(/\/+$/, '');
+    const baseUrlChanged = nextBaseUrl !== initialBaseUrl;
     const proxyChanged = proxyIdDraft !== (currentProvider.proxy_id ?? null);
     const initialCustomHeaderNames = currentProvider.custom_headers ?? [];
     const headersChanged =
       customHeaders.length !== initialCustomHeaderNames.length ||
       customHeaders.some((h, i) => h.name !== initialCustomHeaderNames[i] || h.value !== null);
     const mainChanged =
+      baseUrlChanged ||
       modelPrefix !== initialPrefix ||
       logoUrl !== initialLogo ||
       proxyChanged ||
@@ -166,7 +185,7 @@
           id: currentProvider.id,
           adapter_id: currentProvider.adapter_id,
           name: currentProvider.name,
-          base_url: currentProvider.base_url,
+          base_url: nextBaseUrl,
           logo_url: logoUrl,
           model_prefix: modelPrefix,
           enabled: currentProvider.enabled,
@@ -197,11 +216,13 @@
 
       const headerNames = customHeaders.map((header) => header.name);
       customHeaderDrafts = headerNames.map((name) => ({ name, value: '', existing: true }));
+      baseUrlDraft = nextBaseUrl;
       logoDraft = logoUrl ?? '';
       modelPrefixDraft = modelPrefix;
 
       const updatedProvider: Provider = {
         ...currentProvider,
+        base_url: nextBaseUrl,
         logo_url: logoUrl,
         proxy_id: proxyIdDraft,
         model_prefix: modelPrefix,
@@ -234,6 +255,19 @@
 >
   {#if provider}
     <form class="modal-form" onsubmit={saveAll}>
+      <div class="detail-form-section">
+        <div>
+          <ArkField
+            label={tr('Base URL')}
+            bind:value={baseUrlDraft}
+            type="url"
+            required
+            disabled={saving}
+            placeholder="https://api.example.com/v1"
+          />
+        </div>
+      </div>
+
       <ProviderThinkingSettings
         bind:mode={thinkingModeDraft}
         bind:overrideText={thinkingOverrideDraft}
