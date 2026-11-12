@@ -1,13 +1,3 @@
-.modal-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; background: #20213766; backdrop-filter: blur(4px); animation: fade-in .15s ease; }
-.modal-backdrop[hidden],
-.modal-backdrop[data-state="closed"] {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
 .modal-card { position: relative; width: min(100%, 430px); max-height: calc(100vh - 40px); margin: 0; overflow-y: auto; padding: 20px; border: var(--nb-border); border-radius: 14px; background: #fff; box-shadow: var(--nb-shadow-lg); animation: rise-in .18s ease; }
 .modal-card.wide-modal { width: min(100%, 550px); }
 .modal-card.provider-create-dialog {
@@ -25,10 +15,10 @@
   grid-template-columns: 1fr 1fr;
   gap: 10px 14px;
 }
-.provider-create-grid .ark-field-root {
+.provider-create-grid .field {
   gap: 4px;
 }
-.provider-create-dialog .ark-field-helper {
+.provider-create-dialog .provider-create-helper {
   margin-top: 1px;
   font-size: 12px;
   line-height: 1.25;

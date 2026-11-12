@@ -327,10 +327,10 @@
 {:else}
   <div class="page-surface">
     <section class="stats-grid" aria-label={tr('Combo overview')}>
-      <StatsCard eyebrow={tr('Combos')} icon="#i-code" value={combos.length} title={tr('Combos')} trend={`${enabledCombos} ${tr('enabled')}, ${combos.length - enabledCombos} ${tr('disabled')}`} actionLabel={tr('View all')} onAction={ () => (strategyFilter = 'all') } />
-      <StatsCard eyebrow={tr('Combos')} icon="#i-layers" value={totalTargets} title={tr('Targets')} trend={tr('Across {count} providers', { count: providerOptions.length })} actionLabel={tr('View providers')} onAction={ () => onNavigate('providers') } />
-      <StatsCard eyebrow={tr('Combos')} icon="#i-clipboard" value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.requests, 0), locale) : '—'} title={tr('Requests Routed')} trend={routeWindowTrend} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard eyebrow={tr('Combos')} icon="#i-alert" value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.failures, 0), locale) : '—'} title={tr('Failures')} trend={routeWindowTrend} actionLabel={tr('Inspect failures')} onAction={ () => onNavigate('requests') } />
+      <StatsCard index={1} eyebrow={tr('Routing')} badgeTone="chip" badge={String(enabledCombos)} value={combos.length} title={tr('Combos')} trend={`${enabledCombos} ${tr('enabled')}, ${combos.length - enabledCombos} ${tr('disabled')}`} />
+      <StatsCard index={2} eyebrow={tr('Routing')} value={totalTargets} title={tr('Targets')} trend={tr('Across {count} providers', { count: providerOptions.length })} />
+      <StatsCard index={3} eyebrow={tr('Traffic')} value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.requests, 0), locale) : '—'} title={tr('Requests Routed')} trend={routeWindowTrend} />
+      <StatsCard index={4} eyebrow={tr('Reliability')} value={routeBreakdownAvailable ? formatCount([...routeStats.values()].reduce((n, row) => n + row.failures, 0), locale) : '—'} title={tr('Failures')} trend={routeWindowTrend} />
     </section>
 
     <section class="course-card surface flex flex-col" aria-labelledby="combos-heading">
@@ -338,8 +338,8 @@
         <h2 id="combos-heading">{tr('Combos')}</h2>
       </div>
       <p class="card-subtitle">{combos.length} {tr('combos')} · {totalTargets} {tr('targets')} · {strategies} {tr('strategies')}</p>
-      <div class="page-toolbar mt-3 items-center [&_.ark-select-trigger]:border! [&_.ark-select-trigger]:border-line! [&_.ark-select-trigger]:shadow-none! [&_.ark-select-trigger:focus-visible]:outline-0! [&_.ark-select-trigger:focus-visible]:ring-3! [&_.ark-select-trigger:focus-visible]:ring-db-accent-ring!">
-        <Input class="min-h-[34px]! w-[min(280px,100%)]! flex-[1_1_200px] rounded-[10px]! border-line! bg-surface! px-3! text-muted! text-dash-body! focus:outline-none! focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))]! focus:ring-3! focus:ring-db-accent-ring!" type="search" placeholder={tr('Search combos...')} aria-label={tr('Search combos')} bind:value={search} />
+      <div class="page-toolbar mt-3 items-center">
+        <Input class="w-[min(280px,100%)] flex-[1_1_200px]" type="search" placeholder={tr('Search combos...')} aria-label={tr('Search combos')} bind:value={search} />
         <SelectOptions
           class="combo-select"
           ariaLabel={tr('Filter by strategy')}
@@ -415,7 +415,6 @@
         {tr('Strategy')}
         <SelectOptions
           ariaLabel={tr('Strategy')}
-          portalContainer={comboDialog}
           bind:value={cfStrategy}
           items={[{ label: tr('Priority (first healthy wins)'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]}
         />
@@ -441,10 +440,9 @@
       </div>
       <div class="grid gap-2 max-nav:overflow-x-auto">
         {#each cfTargets as target, i (target.key)}
-          <div class="{target.kind === 'combo' ? 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&>.ark-select-root]:min-w-0 [&_.ark-select-trigger]:min-h-9! [&_.ark-select-trigger]:py-0! [&_.ark-select-trigger]:pl-2.5! [&_.ark-select-trigger]:pr-8! [&_.ark-select-trigger]:rounded-[9px]! [&_.ark-select-trigger]:border! [&_.ark-select-trigger]:border-line! [&_.ark-select-trigger]:bg-surface! [&_.ark-select-trigger]:shadow-none! [&_.ark-select-trigger:focus-visible]:outline-0! [&_.ark-select-trigger:focus-visible]:ring-3! [&_.ark-select-trigger:focus-visible]:ring-db-accent-ring! [&_.ark-select-indicators]:right-2! [&_.ark-select-positioner]:z-[100000]! grid-cols-[minmax(110px,0.5fr)_minmax(240px,1fr)_auto_32px]' : 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&>.ark-select-root]:min-w-0 [&_.ark-select-trigger]:min-h-9! [&_.ark-select-trigger]:py-0! [&_.ark-select-trigger]:pl-2.5! [&_.ark-select-trigger]:pr-8! [&_.ark-select-trigger]:rounded-[9px]! [&_.ark-select-trigger]:border! [&_.ark-select-trigger]:border-line! [&_.ark-select-trigger]:bg-surface! [&_.ark-select-trigger]:shadow-none! [&_.ark-select-trigger:focus-visible]:outline-0! [&_.ark-select-trigger:focus-visible]:ring-3! [&_.ark-select-trigger:focus-visible]:ring-db-accent-ring! [&_.ark-select-indicators]:right-2! [&_.ark-select-positioner]:z-[100000]! grid-cols-[minmax(110px,0.5fr)_minmax(140px,0.7fr)_minmax(180px,1fr)_auto_32px]'}">
+          <div class="{target.kind === 'combo' ? 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&_.target-kind]:min-h-9! [&_.target-kind]:py-0! [&_.target-kind]:pl-2.5! [&_.target-kind]:pr-8! [&_.target-kind]:rounded-[9px]! [&_.target-kind]:border! [&_.target-kind]:border-line! [&_.target-kind]:bg-surface! [&_.target-kind]:shadow-none! [&_.target-kind:focus-visible]:outline-0! [&_.target-kind:focus-visible]:ring-3! [&_.target-kind:focus-visible]:ring-db-accent-ring! grid-cols-[minmax(110px,0.5fr)_minmax(240px,1fr)_auto_32px]' : 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&_.target-kind]:min-h-9! [&_.target-kind]:py-0! [&_.target-kind]:pl-2.5! [&_.target-kind]:pr-8! [&_.target-kind]:rounded-[9px]! [&_.target-kind]:border! [&_.target-kind]:border-line! [&_.target-kind]:bg-surface! [&_.target-kind]:shadow-none! [&_.target-kind:focus-visible]:outline-0! [&_.target-kind:focus-visible]:ring-3! [&_.target-kind:focus-visible]:ring-db-accent-ring! grid-cols-[minmax(110px,0.5fr)_minmax(140px,0.7fr)_minmax(180px,1fr)_auto_32px]'}">
             <SelectOptions
               class="target-kind"
-              portalContainer={comboDialog}
               ariaLabel={tr('Target type')}
               placeholder={tr('Target type')}
               value={target.kind}
@@ -452,7 +450,7 @@
               onValueChange={(value) => setTargetKind(target, value as TargetKind)}
             />
             {#if target.kind === 'combo'}
-              <div class="combo-model-field min-w-0 [&_.combo-combobox-input]:w-full! [&_.combo-combobox-input]:h-9! [&_.combo-combobox-input]:min-h-9! [&_.combo-combobox-input:focus-visible]:outline-0! [&_.combo-combobox-input:focus-visible]:ring-3! [&_.combo-combobox-input:focus-visible]:ring-db-accent-ring!">
+              <div class="combo-model-field min-w-0 [&_input]:w-full! [&_input]:h-9! [&_input]:min-h-9! [&_input:focus-visible]:outline-0! [&_input:focus-visible]:ring-3! [&_input:focus-visible]:ring-db-accent-ring!">
                 <ComboReferencePicker
                   combos={nestableCombos}
                   selectedComboId={target.comboId}
@@ -469,7 +467,6 @@
             {:else}
               <SelectOptions
                 class="target-provider"
-                portalContainer={comboDialog}
                 ariaLabel={tr('Target provider')}
                 disabled={target.kind !== 'provider'}
                 value={target.providerId}
@@ -541,7 +538,7 @@
     cursor: pointer;
   }
 
-  .combo-retry-setting :global(.input-control) {
+  .combo-retry-setting :global(input[type="checkbox"]) {
     margin: 2px 0 0;
     flex: 0 0 auto;
   }

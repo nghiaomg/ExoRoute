@@ -2372,6 +2372,8 @@ export const fr: Catalog = {
   'Proxy live': 'Actif',
   'Proxy die': 'Hors service',
   'Could not check proxy.': 'Impossible de tester le proxy.',
+  'Reset to defaults': 'Rétablir les valeurs par défaut',
+  'Defaults restored': 'Valeurs par défaut rétablies',
   'Hide info': 'Masquer les infos',
   "Network usage": "Utilisation du réseau",
   "Application payload sent through configured proxy groups since this process started.": "Données applicatives acheminées via les groupes proxy configurés depuis le démarrage de ce processus.",

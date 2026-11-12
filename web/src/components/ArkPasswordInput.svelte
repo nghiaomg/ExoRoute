@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { PasswordInput } from '@ark-ui/svelte/password-input';
   import { Eye, EyeOff } from '@lucide/svelte';
   import type { HTMLInputAttributes } from 'svelte/elements';
-  import Input from './Input.svelte';
 
   interface Props {
     label?: string;
@@ -33,18 +31,19 @@
     class: className = '',
     ariaLabel,
   }: Props = $props();
+
+  let visible = $state(false);
 </script>
 
-<PasswordInput.Root {disabled} {required} class={`ark-password-root ${className}`}>
+<label class="field {className}">
   {#if label}
-    <PasswordInput.Label class="ark-password-label">{label}</PasswordInput.Label>
+    {label}
   {/if}
-  <PasswordInput.Control class="ark-password-control">
-    <Input
+  <span class="relative block">
+    <input
+      type={visible ? 'text' : 'password'}
+      class="w-full rounded-xl border border-line bg-surface px-3.5 py-3 pr-10! text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-muted focus:border-accent! focus:ring-3! focus:ring-accent/15!"
       bind:value
-      class="ark-password-input"
-      variant="password"
-      type="password"
       {placeholder}
       {name}
       {autocomplete}
@@ -52,15 +51,21 @@
       {maxlength}
       {required}
       {disabled}
-      aria-label={ariaLabel || label}
+      aria-label={ariaLabel || label || undefined}
     />
-    <PasswordInput.VisibilityTrigger class="ark-password-trigger" type="button" aria-label={visibilityToggleLabel}>
-      <PasswordInput.Indicator class="ark-password-indicator">
-        {#snippet fallback()}
-          <EyeOff size={15} />
-        {/snippet}
+    <button
+      type="button"
+      class="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center size-7 rounded-md text-muted hover:text-ink {disabled ? 'cursor-not-allowed' : 'cursor-pointer'}"
+      aria-label={visibilityToggleLabel}
+      aria-pressed={visible}
+      {disabled}
+      onclick={() => (visible = !visible)}
+    >
+      {#if visible}
         <Eye size={15} />
-      </PasswordInput.Indicator>
-    </PasswordInput.VisibilityTrigger>
-  </PasswordInput.Control>
-</PasswordInput.Root>
+      {:else}
+        <EyeOff size={15} />
+      {/if}
+    </button>
+  </span>
+</label>

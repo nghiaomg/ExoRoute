@@ -148,10 +148,10 @@
   {:else}
     {#if activeTab === 'server'}
       <section class="stats-grid" aria-label={tr('Settings overview')}>
-        <StatsCard eyebrow={tr('Settings')} icon="#i-server" value={port} title={tr('Listen port')} trend={host} actionLabel={tr('Operational settings')} onAction={ () => selectTab('operational') } />
-        <StatsCard eyebrow={tr('Settings')} icon="#i-shield" value={settings.admin_password_configured ? tr('On') : '—'} title={tr('Auth Required')} trend={tr('Admin session enforced')} actionLabel={tr('Change admin password')} onAction={ () => pwDialog?.showModal() } />
-        <StatsCard eyebrow={tr('Settings')} icon="#i-layers" value={tr('Resource limits')} title={tr('Gateway resource limits')} trend={tr('Body size, SSE buffers and provider concurrency')} actionLabel={tr('Gateway resource limits')} onAction={ () => selectTab('resources') } />
-        <StatsCard eyebrow={tr('Settings')} icon="#i-database" value="LMDB" title={tr('Storage')} trend={dbPath.split(/[\\/]/).pop()} actionLabel={tr('Database backup')} onAction={ () => selectTab('backup') } />
+        <StatsCard index={1} eyebrow={tr('Config')} value={port} title={tr('Listen port')} trend={host} />
+        <StatsCard index={2} eyebrow={tr('Security')} badgeTone="success" badge={settings.admin_password_configured ? tr('On') : undefined} value={settings.admin_password_configured ? tr('On') : '—'} title={tr('Auth Required')} trend={tr('Admin session enforced')} />
+        <StatsCard index={3} eyebrow={tr('Limits')} value={tr('Resource limits')} title={tr('Gateway resource limits')} trend={tr('Body size, SSE buffers and provider concurrency')} />
+        <StatsCard index={4} eyebrow={tr('Storage')} value="LMDB" title={tr('Storage')} trend={dbPath.split(/[\\/]/).pop()} />
       </section>
 
       <div class="grid grid-cols-2 gap-[18px] max-[1100px]:grid-cols-1">

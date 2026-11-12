@@ -49,12 +49,78 @@
   let msgSeq = 0;
   let sessionSeq = 0;
 
-  // Parameters dialog
+  // Parameters dialog. The backend validates temperature in [0, 2] and
+  // max_tokens in [1, 131072] (128 * 1024), and caps the system prompt at
+  // 32k chars; the UI clamps to the same bounds before anything is sent.
   let paramsDialog = $state<HTMLDialogElement>();
-  let temperature = $state(0.7);
-  let maxTokens = $state(4096);
-  let systemPrompt = $state('You are a concise assistant testing the ExoRoute gateway.');
-  let streamEnabled = $state(true);
+  const CHAT_PARAMETERS_KEY = 'exoroute:chat:parameters';
+  const CHAT_MAX_TOKENS_LIMIT = 131072;
+  const CHAT_SYSTEM_PROMPT_LIMIT = 32 * 1024;
+  const CHAT_PARAMETER_DEFAULTS = {
+    temperature: 0.7,
+    maxTokens: 4096,
+    systemPrompt: 'You are a concise assistant testing the ExoRoute gateway.',
+    streamEnabled: true,
+  };
+  let temperature = $state(CHAT_PARAMETER_DEFAULTS.temperature);
+  let maxTokens = $state(CHAT_PARAMETER_DEFAULTS.maxTokens);
+  let systemPrompt = $state(CHAT_PARAMETER_DEFAULTS.systemPrompt);
+  let streamEnabled = $state(CHAT_PARAMETER_DEFAULTS.streamEnabled);
+
+  function clampChatParameters(input: { temperature: number; maxTokens: number; systemPrompt: string; streamEnabled: boolean }) {
+    return {
+      temperature: Math.min(2, Math.max(0, input.temperature)),
+      maxTokens: Math.min(CHAT_MAX_TOKENS_LIMIT, Math.max(1, Math.round(input.maxTokens))),
+      systemPrompt: input.systemPrompt.slice(0, CHAT_SYSTEM_PROMPT_LIMIT),
+      streamEnabled: Boolean(input.streamEnabled),
+    };
+  }
+
+  // The testbench parameters survive reloads as a plain, non-sensitive UI
+  // preference; a corrupted or half-typed record falls back field-by-field.
+  function loadChatParameters(): void {
+    try {
+      const raw = window.localStorage.getItem(CHAT_PARAMETERS_KEY);
+      if (!raw) return;
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      const saved = parsed as { temperature?: unknown; maxTokens?: unknown; systemPrompt?: unknown; streamEnabled?: unknown };
+      const values = clampChatParameters({
+        temperature: typeof saved.temperature === 'number' ? saved.temperature : CHAT_PARAMETER_DEFAULTS.temperature,
+        maxTokens: typeof saved.maxTokens === 'number' ? saved.maxTokens : CHAT_PARAMETER_DEFAULTS.maxTokens,
+        systemPrompt: typeof saved.systemPrompt === 'string' ? saved.systemPrompt : CHAT_PARAMETER_DEFAULTS.systemPrompt,
+        streamEnabled: typeof saved.streamEnabled === 'boolean' ? saved.streamEnabled : CHAT_PARAMETER_DEFAULTS.streamEnabled,
+      });
+      temperature = values.temperature;
+      maxTokens = values.maxTokens;
+      systemPrompt = values.systemPrompt;
+      streamEnabled = values.streamEnabled;
+    } catch {
+      // Corrupted preference: keep the defaults instead of failing the page.
+    }
+  }
+
+  function saveChatParameters(): void {
+    try {
+      const values = clampChatParameters({ temperature, maxTokens, systemPrompt, streamEnabled });
+      temperature = values.temperature;
+      maxTokens = values.maxTokens;
+      systemPrompt = values.systemPrompt;
+      streamEnabled = values.streamEnabled;
+      window.localStorage.setItem(CHAT_PARAMETERS_KEY, JSON.stringify(values));
+    } catch {
+      // Storage unavailable: keep the in-memory values for this session.
+    }
+  }
+
+  function resetChatParameters(): void {
+    temperature = CHAT_PARAMETER_DEFAULTS.temperature;
+    maxTokens = CHAT_PARAMETER_DEFAULTS.maxTokens;
+    systemPrompt = CHAT_PARAMETER_DEFAULTS.systemPrompt;
+    streamEnabled = CHAT_PARAMETER_DEFAULTS.streamEnabled;
+    saveChatParameters();
+    showDashboardToast(tr('Defaults restored'));
+  }
   let pendingAttachments = $state<ChatAttachmentInput[]>([]);
   // Initialize with null, never undefined: `Input.element` declares a fallback
   // (`$bindable(null)`), and Svelte 5 throws props_invalid_value when a bind
@@ -132,10 +198,10 @@
       provider_id: option?.provider_id ?? '',
       model: option?.model ?? '',
       message: text,
-      system_prompt: systemPrompt.trim() || null,
+      system_prompt: systemPrompt.trim().slice(0, CHAT_SYSTEM_PROMPT_LIMIT) || null,
       history: history.length ? history : null,
-      temperature,
-      max_tokens: maxTokens,
+      temperature: Math.min(2, Math.max(0, temperature)),
+      max_tokens: Math.min(CHAT_MAX_TOKENS_LIMIT, Math.max(1, Math.round(maxTokens))),
       ...(pendingAttachments.length ? { attachments: pendingAttachments } : {}),
     };
   }
@@ -288,7 +354,7 @@
     showDashboardToast(tr('Attached {name}', { name: file.name }));
   }
 
-  onMount(() => { void loadModels(); });
+  onMount(() => { loadChatParameters(); void loadModels(); });
   onDestroy(() => { streamController?.abort(); });
 </script>
 
@@ -335,7 +401,7 @@
     <section class="flex min-w-0 min-h-0 flex-col overflow-hidden rounded-[13px] bg-db-tint-strong max-nav:min-h-[60svh]">
       <div class="flex items-center gap-2.5 bg-line px-3.5 py-2.5">
         <span class="text-muted text-caption font-semibold uppercase tracking-[0.04em]">{tr('Model')}</span>
-        <div class="flex-[1_1_auto] min-w-[180px] max-w-[430px] [&_.ark-combobox-input]:min-h-8! [&_.ark-combobox-input]:h-8! [&_.ark-combobox-input]:text-meta!">
+        <div class="flex-[1_1_auto] min-w-[180px] max-w-[430px]">
           <SelectSearch
             items={modelItems}
             value={selectedModel}
@@ -403,9 +469,9 @@
   </div>
 </div>
 
-<!-- Chat parameters dialog -->
-<dialog class="modal" bind:this={paramsDialog} aria-labelledby="chat-settings-title">
-  <form class="modal-card" onsubmit={(e) => { e.preventDefault(); paramsDialog?.close(); showDashboardToast(tr('Parameters applied to the next request')); }}>
+<!-- Chat parameters dialog; the shell opens it via [data-open-modal] on the Parameters button -->
+<dialog class="modal" id="chat-settings-dialog" bind:this={paramsDialog} aria-labelledby="chat-settings-title">
+  <form class="modal-card" onsubmit={(e) => { e.preventDefault(); saveChatParameters(); paramsDialog?.close(); showDashboardToast(tr('Parameters applied to the next request')); }}>
     <div class="modal-heading">
       <div>
         <h2 id="chat-settings-title">{tr('Chat parameters')}</h2>
@@ -428,11 +494,14 @@
         <textarea rows="3" placeholder={tr('You are a helpful routing assistant…')} bind:value={systemPrompt}></textarea>
       </label>
       <label class="field flex! flex-row! items-center gap-2 text-muted text-dash-body!">
-        <Input type="checkbox" bind:checked={streamEnabled} />
-        {tr('Stream response (SSE)')}
+        <!-- w/h overrides: the legacy `.modal-form input` rule would otherwise
+            stretch this checkbox to a 100%-wide 37px control. -->
+        <Input class="w-4! h-4! shrink-0 accent-accent!" type="checkbox" bind:checked={streamEnabled} />
+        <span class="flex-1">{tr('Stream response (SSE)')}</span>
       </label>
     </div>
     <div class="modal-actions">
+      <Button class="page-action" type="button" onclick={resetChatParameters}>{tr('Reset to defaults')}</Button>
       <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
       <Button class="page-action primary" type="submit">{tr('Apply')}</Button>
     </div>

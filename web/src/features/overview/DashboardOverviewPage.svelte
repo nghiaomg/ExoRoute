@@ -110,6 +110,11 @@
     return formatCount(value ?? 0, locale);
   }
 
+  function splitCompact(value: string): [string, string | null] {
+    const m = /^(\d*\.?\d+)([KMBT])$/.exec(value);
+    return m ? [m[1], m[2]] : [value, null];
+  }
+
   function fmtCompactTokens(value: number): string {
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
     if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
@@ -287,15 +292,15 @@
       class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-3 max-[900px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[480px]:grid-cols-1 max-[680px]:gap-[8px]"
       aria-label={tr('Gateway overview')}
     >
-      <StatsCard eyebrow={tr('Traffic summary')} icon="#i-clipboard" value={statisticsError ? '—' : fmtInt(stats.total_requests)} title={tr('Requests Today')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard eyebrow={tr('Providers')} icon="#i-link" value={overview.provider_count} title={tr('Providers')} trend={tr('Configured upstreams')} actionLabel={tr('View Providers')} onAction={ () => onNavigate('providers') } />
-      <StatsCard eyebrow={tr('Routing strategy')} icon="#i-code" value={overview.combo_count} title={tr('Combos')} trend={tr('Routing rules in place')} actionLabel={tr('View Combos')} onAction={ () => onNavigate('combos') } />
-      <StatsCard eyebrow={tr('Success Rate')} icon="#i-trend-up" value={successRate === null ? '—' : `${successRate}%`} title={tr('Success Rate')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard eyebrow={tr('Tokens')} icon="#i-import" value={statisticsError ? '—' : formatCompactTokenTotal(stats.input_tokens, locale)} title={tr('Input tokens')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard eyebrow={tr('Tokens')} icon="#i-export" value={statisticsError ? '—' : formatCompactTokenTotal(stats.output_tokens, locale)} title={tr('Output tokens')} trend={tr('Last 24 hours')} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard eyebrow={tr('Cache ratio')} icon="#i-database" value={statisticsError ? '—' : formatCompactTokenTotal(stats.cached_tokens, locale)} title={tr('Cached tokens')} trend={`${tr('Cache ratio')} ${statisticsError ? '—' : `${Math.round(stats.cache_ratio * 10) / 10}%`}`} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard eyebrow={tr('Avg Latency')} icon="#i-clock" value={statisticsError || !stats.average_latency_ms ? '—' : `${Math.round(stats.average_latency_ms)} ms`} title={tr('Avg Latency')} trend={tr('p50 {value}', { value: statisticsError || !stats.latency.p50_ms ? '—' : `${Math.round(stats.latency.p50_ms)} ms` })} actionLabel={tr('View Requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard eyebrow={tr('Egress proxy')} icon="#i-link" value={proxySummary ? formatCount(proxySummary.total, locale) : '—'} title={tr('Proxies')} trend={proxySummary ? tr('{enabled} enabled · {endpoints} endpoints', { enabled: proxySummary.enabled, endpoints: proxySummary.endpoints }) : '—'} actionLabel={tr('View Proxies')} onAction={ () => onNavigate('proxies') } />
+      <StatsCard index={1} eyebrow={tr('Traffic')} badge={statisticsError ? undefined : tr('24H')} value={statisticsError ? '—' : fmtInt(stats.total_requests)} title={tr('Requests Today')} trend={tr('Last 24 hours')} />
+      <StatsCard index={2} eyebrow={tr('Network')} badgeTone="dot" badge={tr('Configured upstreams')} value={overview.provider_count} title={tr('Providers')} trend={tr('Configured upstreams')} />
+      <StatsCard index={3} eyebrow={tr('Routing')} value={overview.combo_count} title={tr('Combos')} trend={tr('Routing rules configured')} />
+      <StatsCard index={4} eyebrow={tr('Reliability')} badgeTone="success" badge={successRate === null ? undefined : `${successRate}%`} value={successRate === null ? '—' : `${successRate}%`} title={tr('Success Rate')} trend={tr('Successful requests · last 24h')} />
+      <StatsCard index={5} eyebrow={tr('Tokens')} badge={statisticsError ? undefined : tr('24H')} value={statisticsError ? '—' : splitCompact(formatCompactTokenTotal(stats.input_tokens, locale))[0]} unit={statisticsError ? undefined : splitCompact(formatCompactTokenTotal(stats.input_tokens, locale))[1]} title={tr('Input tokens')} trend={tr('Prompt tokens received')} />
+      <StatsCard index={6} eyebrow={tr('Tokens')} badge={statisticsError ? undefined : tr('24H')} value={statisticsError ? '—' : splitCompact(formatCompactTokenTotal(stats.output_tokens, locale))[0]} unit={statisticsError ? undefined : splitCompact(formatCompactTokenTotal(stats.output_tokens, locale))[1]} title={tr('Output tokens')} trend={tr('Completion tokens returned')} />
+      <StatsCard index={7} eyebrow={tr('Efficiency')} badgeTone="pill" badge={statisticsError ? undefined : `${Math.round(stats.cache_ratio * 10) / 10}%`} value={statisticsError ? '—' : splitCompact(formatCompactTokenTotal(stats.cached_tokens, locale))[0]} unit={statisticsError ? undefined : splitCompact(formatCompactTokenTotal(stats.cached_tokens, locale))[1]} title={tr('Cached tokens')} trend={tr('Reused from provider cache')} />
+      <StatsCard index={8} eyebrow={tr('Performance')} badgeTone="success" badge={statisticsError || !stats.latency.p50_ms ? undefined : `↓ ${Math.round(stats.latency.p50_ms)} ms`} value={statisticsError || !stats.average_latency_ms ? '—' : Math.round(stats.average_latency_ms)} unit={statisticsError || !stats.average_latency_ms ? undefined : 'ms'} title={tr('Avg Latency')} trend={tr('Gateway request average')} />
+      <StatsCard index={9} eyebrow={tr('Egress')} badgeTone="dot" badge={proxySummary ? `${proxySummary.enabled}` : undefined} value={proxySummary ? formatCount(proxySummary.total, locale) : '—'} title={tr('Proxies')} trend={proxySummary ? tr('{enabled} enabled · {endpoints} endpoints', { enabled: proxySummary.enabled, endpoints: proxySummary.endpoints }) : tr('Configured gateway routes')} />
     </section>
 
     <div class="grid min-w-0 min-h-0 grid-cols-[1fr_1.02fr] gap-[2%] max-[680px]:min-w-0 max-[680px]:shrink-0 max-[680px]:grid-cols-[minmax(0,1fr)] max-[680px]:gap-[10px]">

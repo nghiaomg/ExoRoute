@@ -2371,6 +2371,8 @@ export const ar: Catalog = {
   'Proxy live': 'يعمل',
   'Proxy die': 'تعطل',
   'Could not check proxy.': 'تعذر فحص الوكيل.',
+  'Reset to defaults': 'إعادة التعيين للافتراضي',
+  'Defaults restored': 'تمت استعادة الافتراضي',
   'Hide info': 'إخفاء المعلومات',
   "Network usage": "استخدام الشبكة",
   "Application payload sent through configured proxy groups since this process started.": "بيانات التطبيق المرسلة عبر مجموعات الوكيل المُعدّة منذ بدء هذه العملية.",

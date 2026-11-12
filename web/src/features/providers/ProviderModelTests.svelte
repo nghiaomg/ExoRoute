@@ -243,7 +243,7 @@ import { localizedError } from '../../lib/errors';
 </script>
 
 <div class="provider-model-filter">
-  <label class="search-box"><Search size={15} /><Input bind:value={query} placeholder={tr('Search saved models')} aria-label={tr('Search saved models')} /></label>
+  <label class="search-box"><Search size={15} /><Input bare bind:value={query} placeholder={tr('Search saved models')} aria-label={tr('Search saved models')} /></label>
   <span class="provider-model-count">
     {#if query.trim()}
       {filteredModels.length} / {models.length} {tr('saved models')}

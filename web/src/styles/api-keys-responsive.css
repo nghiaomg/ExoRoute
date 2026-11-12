@@ -130,10 +130,7 @@
     justify-content: center;
     font-size: 13px;
   }
-  .modal-actions .ark-clipboard-root {
-    width: 100%;
-  }
-  .modal-actions .ark-clipboard-trigger {
+  .modal-actions .clipboard-trigger {
     width: 100%;
     justify-content: center;
     height: 42px;

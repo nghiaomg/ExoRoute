@@ -142,20 +142,26 @@
 </ArkDialog>
 
 <style>
-  /* The drawer reuses the shared dialog (focus trap, escape, portal) and only
-     moves it to the right edge through the shared positioner. */
-  :global(.modal-positioner:has(> .request-drawer-card)) {
-    align-items: stretch !important;
-    justify-items: end !important;
-    padding: 0 !important;
+  /* The drawer reuses the shared native dialog and only moves it to the right
+     edge. ArkDialog renders the caller class on the .modal-card child, so the
+     hosting <dialog class="modal"> is retargeted through :has(); the centered
+     dialog box becomes a full-height, right-anchored sheet. */
+  :global(dialog:has(> .modal-card.request-drawer-card)) {
+    width: min(460px, 100vw) !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    margin: 0 0 0 auto !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   :global(.request-drawer-card) {
     display: flex !important;
     flex-direction: column;
-    width: min(460px, 100%) !important;
-    max-height: 100dvh !important;
-    height: 100dvh;
+    width: 100% !important;
+    max-height: 100% !important;
+    height: 100%;
     padding: 18px 20px !important;
     border-radius: 16px 0 0 16px !important;
     animation: request-drawer-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -337,6 +343,12 @@
 
   @media (max-width: 650px) {
     /* On phones the shared dialog already turns into a bottom sheet. */
+    :global(dialog:has(> .modal-card.request-drawer-card)) {
+      width: 100vw !important;
+      height: auto !important;
+      max-height: 88vh !important;
+      margin: auto 0 0 0 !important;
+    }
     :global(.request-drawer-card) {
       width: 100% !important;
       height: auto;

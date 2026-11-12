@@ -440,11 +440,11 @@ fn frame(value: &Value) -> Vec<u8> {
     bytes
 }
 
-fn done_frame() -> Vec<u8> {
+pub(super) fn done_frame() -> Vec<u8> {
     b"data: [DONE]\n\n".to_vec()
 }
 
-fn chat_chunk_frame(
+pub(super) fn chat_chunk_frame(
     completion_id: &str,
     model: &str,
     created: u64,
@@ -479,6 +479,10 @@ fn error_turn_frame(message: &str) -> Vec<u8> {
 /// turn loops.
 pub(super) struct TurnRender {
     pub completion_id: String,
+    /// Caller-side tool names; empty when the client declared no tools.
+    pub caller_tools: Vec<String>,
+    /// OpenAI-style tool_call id for a converted envelope.
+    pub tool_call_id: String,
     pub model: String,
     pub created: u64,
     pub prompt_chars: usize,
@@ -502,7 +506,7 @@ where
 {
     async_stream::stream! {
         let _keep_alive = guard;
-        let TurnRender { completion_id, model, created, prompt_chars, request_timeout } = render;
+        let TurnRender { completion_id, caller_tools: _, tool_call_id: _, model, created, prompt_chars, request_timeout } = render;
         let mut output_chars: usize = 0;
         let mut has_non_whitespace_output = false;
         yield Ok(chat_chunk_frame(
@@ -588,6 +592,8 @@ where
     let _keep_alive = guard;
     let TurnRender {
         completion_id,
+        caller_tools,
+        tool_call_id,
         model,
         created,
         prompt_chars,
@@ -613,6 +619,51 @@ where
                     );
                 }
                 let completion_tokens = estimated_tokens(text.chars().count());
+                // Router-level tool-envelope resolution (see docs/OmniRoute
+                // DEVIN_CLAUDE_BRIDGE.md): a model turn that wrapped an action
+                // in a tool envelope converts into a proper tool_calls
+                // response; raw markup never leaks to the client.
+                let (message, finish_reason) = if caller_tools.is_empty() {
+                    (
+                        json!({"role": "assistant", "content": text}),
+                        if stop_reason == "max_tokens" {
+                            "length"
+                        } else {
+                            "stop"
+                        },
+                    )
+                } else {
+                    match super::tool_envelope::resolve_tool_envelope(&text, &caller_tools) {
+                        super::tool_envelope::ToolEnvelopeOutcome::ToolCall(call) => (
+                            json!({
+                                "role": "assistant",
+                                "content": null,
+                                "tool_calls": [{
+                                    "id": tool_call_id,
+                                    "type": "function",
+                                    "function": {"name": call.name, "arguments": call.arguments},
+                                }],
+                            }),
+                            "tool_calls",
+                        ),
+                        super::tool_envelope::ToolEnvelopeOutcome::Text(clean) => {
+                            if !has_assistant_output(&clean) {
+                                return Err(
+                                    "the Devin CLI emitted an unparsable tool call envelope"
+                                        .to_owned(),
+                                );
+                            }
+                            (
+                                json!({"role": "assistant", "content": clean}),
+                                if stop_reason == "max_tokens" {
+                                    "length"
+                                } else {
+                                    "stop"
+                                },
+                            )
+                        }
+                    }
+                };
                 return Ok(json!({
                     "id": completion_id,
                     "object": "chat.completion",
@@ -620,8 +671,8 @@ where
                     "model": model,
                     "choices": [{
                         "index": 0,
-                        "message": {"role": "assistant", "content": text},
-                        "finish_reason": if stop_reason == "max_tokens" { "length" } else { "stop" },
+                        "message": message,
+                        "finish_reason": finish_reason,
                     }],
                     "usage": {
                         "prompt_tokens": estimated_tokens(prompt_chars),

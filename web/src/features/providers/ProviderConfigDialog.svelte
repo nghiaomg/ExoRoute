@@ -261,8 +261,8 @@
 
       <div class="detail-form-section">
         <div>
-          <label class="ark-field-root">
-            <span class="ark-field-label">{tr('Egress proxy')}</span>
+          <label class="field">
+            <span class="text-xs font-semibold text-ink">{tr('Egress proxy')}</span>
             <SelectSearch
               items={proxyOptions.map((option) => ({ label: option.name, value: option.id, keywords: option.id, hint: option.enabled ? undefined : tr('disabled') }))}
               value={proxyIdDraft ?? ''}

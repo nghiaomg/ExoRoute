@@ -47,10 +47,11 @@ describe('combo usage attribution', () => {
 
     renderPage();
     await fireEvent.click(await screen.findByRole('button', { name: 'New combo' }));
-    await fireEvent.click(screen.getByRole('combobox', { name: 'Target provider' }));
-
+    // The target-provider control is a native <select> now: the options are
+    // its own <option> children, rendered inside the editor dialog.
+    const targetSelect = screen.getByRole('combobox', { name: 'Target provider' }) as HTMLSelectElement;
     expect(await screen.findByRole('option', { name: 'OpenAI' })).toBeTruthy();
-    expect(document.querySelector('dialog.modal')?.contains(screen.getByRole('listbox'))).toBe(true);
+    expect(document.querySelector('dialog.modal')?.contains(targetSelect)).toBe(true);
   });
 
   test('uses the route alias breakdown instead of a same-named model breakdown', async () => {

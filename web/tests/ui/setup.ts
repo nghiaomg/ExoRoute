@@ -34,16 +34,14 @@ class TestIntersectionObserver {
 Object.defineProperty(window, 'ResizeObserver', { value: TestResizeObserver });
 Object.defineProperty(window, 'IntersectionObserver', { value: TestIntersectionObserver });
 Element.prototype.scrollIntoView = () => {};
-// Ark's combobox looks the highlighted option up with CSS.escape, which jsdom
-// does not implement. Escaping the reserved characters is enough for the
-// data-value selectors the widgets build from provider and model ids.
-if (typeof (globalThis as { CSS?: unknown }).CSS === 'undefined') {
-  Object.defineProperty(globalThis, 'CSS', {
-    value: {
-      escape: (value: string) => String(value).replace(/[^a-zA-Z0-9_-]/g, (char) => `\\${char}`),
-    },
-  });
-}
-// Ark UI's popover positioning scrolls its content element, which jsdom does
-// not implement.
+// Dropdown panels keep the highlighted option in view with scrollIntoView and
+// may scroll their content element, neither of which jsdom implements.
 Element.prototype.scrollTo = () => {};
+// jsdom implements dialog.close()/cancel-less semantics but not showModal(),
+// which the native-dialog system (shell delegation + ArkDialog replacement)
+// relies on; polyfill it as "mark open" — tests assert dialog[open].
+if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement): void {
+    this.setAttribute('open', '');
+  };
+}

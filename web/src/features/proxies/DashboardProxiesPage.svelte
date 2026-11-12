@@ -201,10 +201,10 @@
 {:else}
   <div class="page-surface">
     <section class="stats-grid grid grid-cols-4 gap-3 max-[1100px]:grid-cols-2 max-[560px]:grid-cols-1" aria-label={tr('Proxy overview')}>
-      <StatsCard eyebrow={tr('Proxies')} icon="#i-shield" value={proxies.length} title={tr('Total proxies')} trend={tr('{count} endpoints configured', { count: endpointCount })} actionLabel={tr('View all')} onAction={ () => { query = ''; statusFilter = 'all'; } } />
-      <StatsCard eyebrow={tr('Proxies')} icon="#i-zap" value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} actionLabel={tr('Show enabled only')} onAction={ () => { query = ''; statusFilter = 'enabled'; } } />
-      <StatsCard eyebrow={tr('Proxies')} icon="#i-layers" value={endpointCount} title={tr('Endpoints')} trend={tr('Across {count} proxy groups', { count: proxies.length })} actionLabel={tr('View all')} onAction={ () => { query = ''; statusFilter = 'all'; } } />
-      <StatsCard eyebrow={tr('Proxies')} icon="#i-users" value={providerCount} title={tr('Providers')} trend={tr('Assigned across proxy groups')} />
+      <StatsCard index={1} eyebrow={tr('Egress')} value={proxies.length} title={tr('Total proxies')} trend={tr('{count} endpoints configured', { count: endpointCount })} />
+      <StatsCard index={2} eyebrow={tr('Network')} badgeTone="dot" badge={String(enabledCount)} value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} />
+      <StatsCard index={3} eyebrow={tr('Routing')} value={endpointCount} title={tr('Endpoints')} trend={tr('Across {count} proxy groups', { count: proxies.length })} />
+      <StatsCard index={4} eyebrow={tr('Network')} value={providerCount} title={tr('Providers')} trend={tr('Assigned across proxy groups')} />
     </section>
 
     <section class="course-card surface" aria-labelledby="proxies-heading">

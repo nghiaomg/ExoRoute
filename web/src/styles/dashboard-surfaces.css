@@ -38,9 +38,6 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.model-test-toolbar-select .ark-checkbox-label {
-  white-space: nowrap;
-}
 .model-test-toolbar-actions {
   display: inline-flex;
   align-items: center;

@@ -2371,6 +2371,8 @@ export const hi: Catalog = {
   'Proxy live': 'सक्रिय',
   'Proxy die': 'खराब',
   'Could not check proxy.': 'प्रॉक्सी की जाँच नहीं हो सकी।',
+  'Reset to defaults': 'डिफ़ॉल्ट पर रीसेट करें',
+  'Defaults restored': 'डिफ़ॉल्ट पुनर्स्थापित',
   'Hide info': 'जानकारी छिपाएँ',
   "Network usage": "नेटवर्क उपयोग",
   "Application payload sent through configured proxy groups since this process started.": "इस प्रक्रिया के शुरू होने के बाद से कॉन्फ़िगर किए गए प्रॉक्सी समूहों से भेजा गया एप्लिकेशन पेलोड।",

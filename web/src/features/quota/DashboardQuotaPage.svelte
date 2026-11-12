@@ -251,10 +251,10 @@
 {:else}
   <div class="page-surface">
     <section class="stats-grid" aria-label={tr('Quota overview')}>
-      <StatsCard eyebrow={tr('Quota')} icon="#i-users" value={views.length} title={tr('Providers Monitored')} trend={tr('{reporting} reporting, {missing} missing keys', { reporting: reporting.length, missing: missingKeys.length })} actionLabel={tr('View providers')} onAction={ () => onNavigate('providers') } />
-      <StatsCard eyebrow={tr('Quota')} icon="#i-chart" value={avgUtil === null ? '—' : `${avgUtil}%`} title={tr('Avg Utilization')} trend={tr('Across reporting providers')} actionLabel={tr('See breakdown')} onAction={ () => document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' }) } />
-      <StatsCard eyebrow={tr('Quota')} icon="#i-alert" value={nearLimit.length} title={tr('Near Limit')} trend={nearLimitTrend} actionLabel={nearLimit[0] ? tr('Inspect {name}', { name: nearLimit[0].provider.name }) : tr('See breakdown')} onAction={ () => nearLimit[0] ? openDetail(nearLimit[0]) : document.getElementById('quota-board')?.scrollIntoView({ behavior: 'smooth' }) } />
-      <StatsCard eyebrow={tr('Quota')} icon="#i-cpu" value={localProviders.length} title={tr('Local Providers')} trend={localProviders.map((v) => v.provider.name).join(', ') || tr('None configured')} actionLabel={tr('Open chat')} onAction={ () => onNavigate('chat') } />
+      <StatsCard index={1} eyebrow={tr('Coverage')} value={views.length} title={tr('Providers Monitored')} trend={tr('{reporting} reporting, {missing} missing keys', { reporting: reporting.length, missing: missingKeys.length })} />
+      <StatsCard index={2} eyebrow={tr('Utilization')} badgeTone="success" badge={avgUtil === null ? undefined : `${avgUtil}%`} value={avgUtil === null ? '—' : `${avgUtil}%`} title={tr('Avg Utilization')} trend={tr('Across reporting providers')} />
+      <StatsCard index={3} eyebrow={tr('Limits')} value={nearLimit.length} title={tr('Near Limit')} trend={nearLimitTrend} />
+      <StatsCard index={4} eyebrow={tr('Local')} value={localProviders.length} title={tr('Local Providers')} trend={localProviders.map((v) => v.provider.name).join(', ') || tr('None configured')} />
     </section>
 
     <section class="course-card surface flex flex-col" id="quota-board" aria-labelledby="quota-heading">

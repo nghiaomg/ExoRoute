@@ -527,7 +527,7 @@
   gap: 8px;
   width: 100%;
 }
-.provider-manual-model-row .ark-field-input {
+.provider-manual-model-row .provider-manual-model-input {
   flex: 1 1 auto;
   min-width: 0;
   height: 38px;

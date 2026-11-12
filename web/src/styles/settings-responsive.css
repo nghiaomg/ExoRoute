@@ -440,10 +440,6 @@
     background: var(--surface-sunken);
     border: 1px solid var(--line);
   }
-  .output-style-row .ark-checkbox-root {
-    align-self: flex-start;
-    margin-top: 2px;
-  }
   .output-style-copy {
     grid-column: 2;
     display: flex;
@@ -475,11 +471,6 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--muted);
-  }
-  /* The level control is the shared Ark select, so only its share of the row is
-     set here; the trigger brings its own height, frame, and colours. */
-  .output-style-level .ark-select-root {
-    flex: 0 1 160px;
   }
 
   /* Database Backup */
@@ -566,9 +557,6 @@
     padding-left: 14px;
     padding-right: 14px;
   }
-  .output-style-level .ark-select-root {
-    flex: 0 1 140px;
-  }
 }
 
 /* ─── 6. Ultra-compact Devices (<= 360px: 320px–360px) ─── */
@@ -633,10 +621,6 @@
     padding-left: 11px;
     padding-right: 11px;
   }
-  .output-style-level .ark-select-root {
-    flex: 1 1 auto;
-    max-width: 130px;
-  }
 }
 
 .codex-auth-link { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-strong); font-size: 12px; font-weight: 700; text-decoration: none; }
@@ -667,7 +651,6 @@
 .model-routing-table td strong,
 .model-routing-table td small { display: block; }
 .model-routing-table td small { margin-top: 3px; color: var(--text-dim); font-size: 12px; line-height: 1.35; }
-.model-routing-table td .ark-select-root { min-width: 175px; }
 .model-routing-unknown,
 .model-routing-warning { color: var(--accent-strong) !important; }
 .model-routing-actions { display: flex; gap: 5px; white-space: nowrap; }

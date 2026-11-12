@@ -28,11 +28,6 @@
   border-radius: 8px;
   font-size: 13px;
 }
-/* The concurrency select is the shared Ark control, so it needs the width cap
-   the number fields get from `.resource-limit-input`. */
-.settings-view .resource-limit-select .ark-select-control {
-  width: min(100%, 220px);
-}
 .settings-view .resource-continuity-control strong {
   color: var(--accent-strong);
 }
@@ -73,13 +68,6 @@
 .output-style-row:hover {
   background: var(--surface-sunken);
 }
-.output-style-row .ark-checkbox-control {
-  border: 1.5px solid var(--line) !important;
-}
-.output-style-row .ark-checkbox-root[data-state="checked"] .ark-checkbox-control {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-}
 .output-style-copy {
   display: flex;
   min-width: 0;
@@ -105,11 +93,6 @@
   text-transform: uppercase;
   letter-spacing: .04em;
 }
-/* The level control is the shared Ark select, which brings its own frame; the
-   row only constrains how wide it may grow. */
-.output-style-level .ark-select-root {
-  width: 100%;
-}
 .output-styles-form .resource-limits-actions {
   margin-top: 0;
 }
@@ -123,9 +106,6 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-  }
-  .output-style-level .ark-select-root {
-    max-width: 160px;
   }
 }
 

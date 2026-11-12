@@ -27,24 +27,13 @@ function limits(values: GatewayResourceLimitValues): GatewayResourceLimits {
 }
 
 /**
- * The shared controls are Ark widgets. Their hidden native element carries the
- * accessible name, so a test clicks the box the user sees rather than that
- * hidden input, which real pointers cannot reach.
+ * The shared SelectOptions control is a native `<select>`: picking an option
+ * is a normal change event, matched by the option's visible label.
  */
-function arkControl(input: HTMLElement): Element {
-  const control = input.closest('[data-scope="checkbox"]')?.querySelector('[data-part="control"]');
-  if (!control) throw new Error('the shared checkbox did not render its control');
-  return control;
-}
-
-async function toggle(input: HTMLElement): Promise<void> {
-  await fireEvent.click(arkControl(input));
-}
-
-/** Opens a shared select and picks one of its options by visible label. */
-async function chooseOption(trigger: HTMLElement, label: string): Promise<void> {
-  await fireEvent.click(trigger);
-  await fireEvent.click(await screen.findByRole('option', { name: label }));
+async function chooseOption(select: HTMLSelectElement, label: string): Promise<void> {
+  const option = Array.from(select.options).find((candidate) => candidate.textContent?.trim() === label);
+  if (!option) throw new Error(`the shared select has no option labelled "${label}"`);
+  await fireEvent.change(select, { target: { value: option.value } });
 }
 
 function loadedLimits(): ReturnType<typeof vi.spyOn> {
@@ -56,17 +45,15 @@ afterEach(() => {
 });
 
 describe('the gateway resource limits panel', () => {
-  test('the body-processing limit is the shared select, not a native one', async () => {
+  test('the body-processing limit is the shared native select', async () => {
     loadedLimits();
 
     render(GatewayResourceLimitsPanel, { props: { tr } });
 
-    const trigger = await screen.findByRole('combobox', { name: 'Concurrent bodies being processed' });
-    // A native `<select>` also answers to the combobox role, so the tag is what
-    // tells the shared control apart from the element it replaced.
-    expect(trigger.tagName).toBe('BUTTON');
-    expect(trigger.closest('.ark-select-root')).not.toBeNull();
-    expect(trigger.textContent).toContain('4 requests');
+    const select = await screen.findByRole('combobox', { name: 'Concurrent bodies being processed' }) as HTMLSelectElement;
+    expect(select.tagName).toBe('SELECT');
+    expect(select.value).toBe('4');
+    expect(select.options[select.selectedIndex]?.textContent).toContain('4 requests');
   });
 
   test('the chosen concurrency is what the panel saves', async () => {
@@ -75,8 +62,8 @@ describe('the gateway resource limits panel', () => {
 
     render(GatewayResourceLimitsPanel, { props: { tr } });
 
-    const trigger = await screen.findByRole('combobox', { name: 'Concurrent bodies being processed' });
-    await chooseOption(trigger, '8 requests');
+    const select = await screen.findByRole('combobox', { name: 'Concurrent bodies being processed' }) as HTMLSelectElement;
+    await chooseOption(select, '8 requests');
     await fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     await waitFor(() => expect(update).toHaveBeenCalled());
@@ -89,8 +76,9 @@ describe('the gateway resource limits panel', () => {
 
     render(GatewayResourceLimitsPanel, { props: { tr } });
 
-    const trigger = await screen.findByRole('combobox', { name: 'Concurrent bodies being processed' });
-    expect(trigger.textContent).toContain('Unlimited');
+    const select = await screen.findByRole('combobox', { name: 'Concurrent bodies being processed' }) as HTMLSelectElement;
+    expect(select.value).toBe('0');
+    expect(select.options[select.selectedIndex]?.textContent).toContain('Unlimited');
   });
 
   test('stream continuity is the shared checkbox and saves what it reports', async () => {
@@ -99,13 +87,14 @@ describe('the gateway resource limits panel', () => {
 
     render(GatewayResourceLimitsPanel, { props: { tr } });
 
-    const input = await screen.findByRole('checkbox', { name: 'Stream continuity' });
+    const input = await screen.findByRole('checkbox', { name: 'Stream continuity' }) as HTMLInputElement;
     expect(input.tagName).toBe('INPUT');
-    expect(input.closest('.ark-checkbox-root')).not.toBeNull();
+    expect(input.checked).toBe(false);
     expect(screen.getByText('Disabled')).toBeTruthy();
 
-    await toggle(input);
+    await fireEvent.click(input);
 
+    expect(input.checked).toBe(true);
     expect(screen.getByText('Enabled')).toBeTruthy();
     await fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
@@ -129,15 +118,14 @@ describe('the output styles panel', () => {
 
     render(OutputStylesPanel, { props: { tr } });
 
-    const trigger = await screen.findByRole('combobox', { name: 'Terse prose style level' });
-    expect(trigger.tagName).toBe('BUTTON');
-    expect(trigger.closest('.ark-select-root')).not.toBeNull();
-    expect(trigger.hasAttribute('data-disabled')).toBe(true);
+    const select = await screen.findByRole('combobox', { name: 'Terse prose style level' }) as HTMLSelectElement;
+    expect(select.tagName).toBe('SELECT');
+    expect(select.hasAttribute('disabled')).toBe(true);
 
-    await toggle(await screen.findByRole('checkbox', { name: 'Terse prose' }));
+    await fireEvent.click(await screen.findByRole('checkbox', { name: 'Terse prose' }));
 
-    expect(trigger.hasAttribute('data-disabled')).toBe(false);
-    await chooseOption(trigger, 'Ultra');
+    expect(select.hasAttribute('disabled')).toBe(false);
+    await chooseOption(select, 'Ultra');
     await fireEvent.click(screen.getByRole('button', { name: 'Save output styles' }));
 
     await waitFor(() => expect(update).toHaveBeenCalled());

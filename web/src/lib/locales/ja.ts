@@ -530,6 +530,8 @@ export const ja: Catalog = {
   'Your new API key': '新しい API キー',
   'Create an API key': 'API キーを作成',
   'Close dialog': 'ダイアログを閉じる',
+  'Reset to defaults': '既定値に戻す',
+  'Defaults restored': '既定値を復元しました',
   'Close': '閉じる',
   'Provider name': 'プロバイダー名',
   'e.g. OpenAI compatible': '例: OpenAI 互換',

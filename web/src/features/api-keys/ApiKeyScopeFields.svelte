@@ -1,7 +1,6 @@
 <script lang="ts">
   import Button from "../../components/Button.svelte";
-  import { Portal } from '@ark-ui/svelte/portal';
-  import { Combobox, createListCollection } from '@ark-ui/svelte/combobox';
+  import { onDestroy, onMount } from 'svelte';
   import { ChevronsUpDown, X } from '@lucide/svelte';
   import Input from '../../components/Input.svelte';
   import type { Translate } from '../../lib/format';
@@ -22,13 +21,16 @@
   export let disabled = false;
 
   let query = '';
+  let open = false;
+  let activeIndex = 0;
+  let containerRef: HTMLDivElement | null = null;
+  let inputElement: HTMLInputElement | null = null;
 
   $: providersById = new Map(providers.map((provider) => [provider.id, provider]));
   $: addable = addableScopeProviders(providers, selectedProviderIds, query);
-  $: collection = createListCollection({
-    items: addable.options.map((provider) => ({ label: provider.name, value: provider.id })),
-  });
   $: ruleCount = parseModelRules(modelRules).length;
+  // Keep the highlight inside the match list.
+  $: activeIndex = Math.min(activeIndex, Math.max(0, addable.options.length - 1));
 
   function providerLabel(providerId: string): string {
     return providersById.get(providerId)?.name ?? providerId;
@@ -38,17 +40,71 @@
     selectedProviderIds = toggleProviderScope(selectedProviderIds, providerId, allowed);
   }
 
-  function handleInputValueChange(details: { inputValue: string }): void {
-    query = details.inputValue ?? '';
-  }
-
   // Adding a provider clears the field so the next one can be typed straight
   // away; the chip row is the record of what the key may use.
-  function handleValueChange(details: { value: string[] }): void {
-    const providerId = details.value[0] ?? '';
+  function addProvider(providerId: string): void {
+    if (!providerId) return;
     query = '';
-    if (providerId) toggleProvider(providerId, true);
+    open = false;
+    toggleProvider(providerId, true);
+    inputElement?.focus();
   }
+
+  function handleInput(): void {
+    open = true;
+  }
+
+  // Clicking the field shows the current matches, like the former
+  // openOnClick combobox.
+  function handleOpen(): void {
+    if (!disabled) open = true;
+  }
+
+  function handleKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (!open) { open = true; return; }
+      activeIndex = Math.min(activeIndex + 1, addable.options.length - 1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!open) { open = true; return; }
+      activeIndex = Math.max(activeIndex - 1, 0);
+    } else if (event.key === 'Enter') {
+      // The add field lives inside forms whose submit button must not fire.
+      if (open) {
+        event.preventDefault();
+        const option = addable.options[activeIndex];
+        if (option) addProvider(option.id);
+      }
+    } else if (event.key === 'Escape' && open) {
+      // Swallow the key so hosting dialogs do not close with the panel.
+      event.preventDefault();
+      event.stopPropagation();
+      open = false;
+    }
+  }
+
+  // Capture phase: clicks anywhere outside the container close the panel,
+  // and Escape closes it from any element with focus.
+  function handleDocumentClick(event: MouseEvent): void {
+    if (!open || !containerRef) return;
+    if (!containerRef.contains(event.target as Node)) open = false;
+  }
+
+  function handleDocumentKeydown(event: KeyboardEvent): void {
+    if (!open) return;
+    if (event.key === 'Escape') open = false;
+  }
+
+  onMount(() => {
+    document.addEventListener('click', handleDocumentClick, true);
+    document.addEventListener('keydown', handleDocumentKeydown);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('click', handleDocumentClick, true);
+    document.removeEventListener('keydown', handleDocumentKeydown);
+  });
 </script>
 
 <div class="scope-fields">
@@ -87,67 +143,74 @@
           {/each}
         </ul>
       {/if}
-      <Combobox.Root
-        {collection}
-        value={[]}
-        inputValue={query}
-        onInputValueChange={handleInputValueChange}
-        onValueChange={handleValueChange}
-        openOnClick
-        openOnChange
-        closeOnSelect
-        inputBehavior="autohighlight"
-        lazyMount
-        unmountOnExit
-        {disabled}
-        positioning={{ sameWidth: true, fitViewport: true }}
-        class="scope-add"
-      >
-        <Combobox.Control class="scope-add-control">
+      <div class="scope-add" bind:this={containerRef}>
+        <div class="scope-add-control">
           <Input
             variant="combobox"
-            class="ark-field-input scope-add-input"
+            class="scope-add-input"
+            bind:element={inputElement}
             placeholder={tr('Search providers by name or ID')}
-            aria-label={tr('Add a provider')}
+            ariaLabel={tr('Add a provider')}
             autocomplete="off"
+            role="combobox"
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            {disabled}
+            bind:value={query}
+            oninput={handleInput}
+            onclick={handleOpen}
+            onkeydown={handleKeydown}
           />
-          <Combobox.Trigger class="scope-add-trigger" aria-label={tr('Search providers by name or ID')}>
+          <button
+            type="button"
+            class="scope-add-trigger"
+            aria-label={tr('Search providers by name or ID')}
+            aria-expanded={open}
+            {disabled}
+            tabindex="-1"
+            onclick={() => { open = !open; if (open) inputElement?.focus(); }}
+          >
             <ChevronsUpDown size={14} />
-          </Combobox.Trigger>
-        </Combobox.Control>
-        <Portal>
-          <Combobox.Positioner class="ark-select-positioner">
-            <Combobox.Content class="ark-select-content">
-              <Combobox.List class="ark-select-item-group">
-                {#each collection.items as item (item.value)}
-                  <Combobox.Item class="ark-select-item" {item}>
-                    <Combobox.ItemText class="ark-select-item-text">{item.label}</Combobox.ItemText>
-                  </Combobox.Item>
-                {:else}
-                  <Combobox.Empty class="ark-select-empty">{tr('No matching providers')}</Combobox.Empty>
-                {/each}
-              </Combobox.List>
-              {#if addable.truncated}
-                <p class="scope-limit-hint">
-                  {tr('Showing the first {count} provider matches. Type to narrow results.', {
-                    count: MAX_VISIBLE_SCOPE_PROVIDERS,
-                  })}
-                </p>
-              {/if}
-            </Combobox.Content>
-          </Combobox.Positioner>
-        </Portal>
-      </Combobox.Root>
+          </button>
+        </div>
+        {#if open}
+          <div class="scope-add-panel" role="listbox" aria-label={tr('Add a provider')}>
+            {#each addable.options as option, index (option.id)}
+              <button
+                type="button"
+                role="option"
+                aria-selected={index === activeIndex}
+                class="scope-add-option" class:active={index === activeIndex}
+                onmousedown={(event) => event.preventDefault()}
+                onclick={() => addProvider(option.id)}
+                onmouseenter={() => (activeIndex = index)}
+              >
+                <span class="scope-add-option-name">{option.name}</span>
+                <span class="scope-add-option-id">{option.id}</span>
+              </button>
+            {:else}
+              <div class="scope-add-empty">{tr('No matching providers')}</div>
+            {/each}
+            {#if addable.truncated}
+              <p class="scope-limit-hint">
+                {tr('Showing the first {count} provider matches. Type to narrow results.', {
+                  count: MAX_VISIBLE_SCOPE_PROVIDERS,
+                })}
+              </p>
+            {/if}
+          </div>
+        {/if}
+      </div>
     {/if}
     <p class="scope-help">{tr('Leave empty to allow every provider.')}</p>
   </div>
 
   <div class="scope-field api-key-scope-models">
-    <label class="scope-label" for={modelRulesId}>{tr('Model rules, one per line')}</label>
+    <label class="scope-label" for={modelRulesId}>{tr('Allowed models')}</label>
     <p class="scope-help">{ruleCount ? tr('{count} model rules', { count: ruleCount }) : tr('All models')}</p>
     <textarea
       id={modelRulesId}
-      class="ark-field-input scope-rules"
+      class="scope-rules"
       rows="4"
       placeholder={'gpt-4*\nclaude-3-5-sonnet'}
       bind:value={modelRules}
@@ -240,24 +303,24 @@
     cursor: not-allowed;
     opacity: 0.5;
   }
-  /* Ark renders these parts itself, so the scoped compiler cannot see them. */
-  :global(.scope-add) {
+  .scope-add {
+    position: relative;
     display: grid;
     gap: 4px;
     min-width: 0;
   }
-  :global(.scope-add-control) {
+  .scope-add-control {
     position: relative;
     display: flex;
     align-items: center;
     min-width: 0;
   }
-  :global(.scope-add-input) {
+  .scope-add :global(.scope-add-input) {
     height: 36px;
     padding-right: 32px;
     font-size: 12.5px;
   }
-  :global(.scope-add-trigger) {
+  .scope-add-trigger {
     position: absolute;
     right: 8px;
     display: grid;
@@ -268,8 +331,68 @@
     background: transparent;
     cursor: pointer;
   }
-  :global(.scope-add-trigger:hover:not(:disabled)) {
+  .scope-add-trigger:hover:not(:disabled) {
     color: #c2410c;
+  }
+  /* In-flow suggestion panel; anchors to the add field's own wrapper. */
+  .scope-add-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 99999;
+    max-height: 240px;
+    margin-top: 4px;
+    padding: 4px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-popover, var(--surface));
+    box-shadow: 0 10px 24px rgb(0 0 0 / 0.14);
+  }
+  .scope-add-option {
+    display: flex;
+    min-height: 32px;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.3;
+    text-align: left;
+    cursor: pointer;
+  }
+  .scope-add-option.active,
+  .scope-add-option:hover {
+    background: var(--surface-sunken);
+  }
+  .scope-add-option-name {
+    overflow: hidden;
+    min-width: 0;
+    flex: 1 1 auto;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scope-add-option-id {
+    overflow: hidden;
+    max-width: 45%;
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scope-add-empty {
+    padding: 10px;
+    color: var(--muted);
+    font-size: 12.5px;
+    text-align: center;
   }
   .scope-limit-hint {
     margin: 2px 7px 4px;

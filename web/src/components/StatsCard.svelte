@@ -1,98 +1,87 @@
 <script lang="ts">
   /**
-   * Shared dashboard statistic card: icon + headline number, title, one-line
-   * trend, and an optional `details-link` action. Tailwind utilities reference
-   * the theme bridge in styles/tailwind.css; `!` marks utilities that must
-   * out-rank unlayered legacy rules (.dashboard-app button color reset, .icon
-   * sizing). The KPI uses the approved number-accent hover treatment.
+   * Shared dashboard statistic card — variant 06 from
+   * sketch/components/StatsCardVariants.html: mono uppercase kicker + right
+   * badge on top, 32px KPI number, title and one muted subtitle line below.
+   * Hover swaps the border for the accent gradient wash and tints the KPI.
+   * The previous icon circle and "details-link" action are removed by design.
+   * Colors resolve through the theme bridge in styles/tailwind.css.
    */
   interface Props {
-    /** Sprite id for the icon, with or without the leading `#`. */
-    icon?: string;
-    /** Localized category shown above the value. */
+    /** Localized category shown above the value (distinct from the title). */
     eyebrow?: string;
+    /** 1-based card position on the page — renders the sketch's `02 / NETWORK` kicker. */
+    index?: number;
+    /** Short right-hand badge text; pair with `badgeTone`. */
+    badge?: string;
+    /** Badge treatment: green pill, gray chip, green text, muted text, or a status dot. */
+    badgeTone?: 'pill' | 'chip' | 'success' | 'text' | 'dot';
     /** Headline value, already formatted by the caller. */
     value?: string | number;
+    /** Small muted unit suffix rendered next to the KPI (e.g. 'ms'). */
+    unit?: string | null;
     /** Card heading; only needed when rendering a real card. */
     title?: string;
-    /** One muted line under the title; omit to render no trend row. */
+    /** One muted line under the title; omit to render no subtitle row. */
     trend?: string;
-    /** When set, renders the details-link button with this label. */
-    actionLabel?: string;
-    onAction?: () => void;
     /** Render the empty loading placeholder instead of content. */
     skeleton?: boolean;
     skeletonHeight?: number;
   }
 
   let {
-    icon = '',
     eyebrow = '',
+    index,
+    badge,
+    badgeTone = 'text',
     value = '',
+    unit,
     title = '',
     trend,
-    actionLabel,
-    onAction,
     skeleton = false,
-    skeletonHeight = 132,
+    skeletonHeight = 152,
   }: Props = $props();
 
-  const iconHref = $derived(icon.startsWith('#') ? icon : `#${icon}`);
-
-  const focusRing = 'focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring';
-  const cardBase =
-    'stats-card group/stat relative flex min-h-[152px] min-w-0 flex-col rounded-[17px] border border-line bg-surface p-[18px] ' +
-    'max-nav:min-h-[116px] max-nav:rounded-[13px] max-nav:p-4';
-  const topClass =
-    'mb-5 flex min-w-0 items-center justify-between gap-2';
-  const iconClass =
-    'grid size-5 shrink-0 place-items-center text-muted';
-  const numberClass =
-    'stat-value overflow-hidden text-ellipsis text-ink font-bold tabular-nums tracking-[-0.035em] leading-none origin-right ' +
-    'transition-colors duration-200 motion-reduce:transition-none';
-  const titleClass =
-    'stat-title m-0 mt-2 mb-1 overflow-hidden text-ellipsis text-ink font-semibold tracking-[-0.01em] whitespace-nowrap @max-[920px]:mt-2 max-nav:whitespace-normal max-nav:overflow-visible';
-  const trendClass =
-    'stat-meta block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-muted leading-[1.45]';
-  const actionClass = `stat-action stat-meta inline-flex w-fit items-center gap-1 mt-1.5 border-0 bg-transparent p-0 text-ink font-medium text-left cursor-pointer ${focusRing}`;
+  const cardClass =
+    'min-w-0 min-h-[152px] rounded-[17px] border border-line bg-surface p-[18px] ' +
+    'transition-[transform,box-shadow,border-color,background-color] duration-200 ' +
+    'hover:border-transparent! hover:bg-[linear-gradient(var(--surface),var(--surface))_padding-box,linear-gradient(120deg,var(--accent)_0%,var(--accent-glow)_35%,var(--accent-soft)_70%,var(--accent)_100%)_border-box]';
+  const kickerClass =
+    'mb-5 flex min-w-0 items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted';
+  const kpiClass =
+    'block overflow-hidden text-ellipsis text-[32px] font-bold leading-none tracking-[-0.055em] text-ink transition-colors duration-200 group-hover/stat:text-accent!';
 </script>
 
 {#if skeleton}
-  <div class={cardBase} style="min-height:{skeletonHeight}px" aria-hidden="true"></div>
+  <div class={cardClass} style="min-height:{skeletonHeight}px" aria-hidden="true"></div>
 {:else}
-  <article class={cardBase}>
-    <div class={topClass}>
-      <span class="stat-eyebrow">{eyebrow}</span>
-      <span class={iconClass} aria-hidden="true"><svg class="icon size-full!"><use href={iconHref} /></svg></span>
+  <div class="group/stat {cardClass}">
+    <div class={kickerClass}>
+      <span class="stat-eyebrow min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{index !== undefined ? `${String(index).padStart(2, '0')} / ${eyebrow}` : eyebrow}</span>
+      {#if badge}
+        {#if badgeTone === 'pill'}
+          <span class="shrink-0 rounded-full bg-db-success/10 px-2 py-1 tracking-normal text-db-success">{badge}</span>
+        {:else if badgeTone === 'chip'}
+          <span class="shrink-0 rounded-md bg-db-tint-strong px-2 py-1 tracking-normal text-muted">{badge}</span>
+        {:else if badgeTone === 'success'}
+          <span class="shrink-0 tracking-normal text-db-success">{badge}</span>
+        {:else if badgeTone === 'dot'}
+          <span class="size-2 shrink-0 rounded-full bg-db-success ring-4 ring-db-success/10" title={badge}></span>
+        {:else}
+          <span class="shrink-0">{badge}</span>
+        {/if}
+      {/if}
     </div>
-    <span class={numberClass} data-stat-value>{value}</span>
-    <h2 class={titleClass}>{title}</h2>
+    <span class={kpiClass}>{value}{#if unit}<span class="ms-1 text-xl font-semibold text-muted">{unit}</span>{/if}</span>
+    <h2 class="stat-title m-0 mt-2 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-ink">{title}</h2>
     {#if trend !== undefined}
-      <div class={trendClass}>{trend}</div>
+      <div class="mt-1 block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-muted">{trend}</div>
     {/if}
-    {#if actionLabel !== undefined}
-      <button type="button" onclick={onAction} class={actionClass}>
-        {actionLabel}
-        <svg class="icon size-[11px]!"><use href="#i-arrow-right" /></svg>
-      </button>
-    {/if}
-  </article>
+  </div>
 {/if}
 
 <style>
-  .stat-value { font-size: var(--type-kpi, 2rem); }
-  .stat-eyebrow { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-family: var(--font-mono, monospace); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-  .stat-title { font-size: var(--type-label, .875rem); }
-  .stat-meta { font-size: var(--type-meta, .75rem); }
-  .stat-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  .stats-card:hover .stat-value { color: var(--accent); }
-  .stats-card { transition: border-color .22s ease, background-color .22s ease; }
-  .stats-card:hover {
-    border-color: transparent;
-    background: linear-gradient(var(--surface), var(--surface)) padding-box,
-      linear-gradient(120deg, var(--accent), #fb923c, #fbbf24, #84cc16, var(--accent)) border-box;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .stats-card { transition: none; }
-  }
+  /* Kicker inherits the mono family from the theme bridge; keep the overflow
+     ellipsis here because the utility row already truncates the first child. */
+  .stat-eyebrow { font-family: var(--font-mono, monospace); }
 </style>

@@ -535,6 +535,8 @@ export const zh: Catalog = {
   'Your new API key': '您的新 API 密钥',
   'Create an API key': '创建 API 密钥',
   'Close dialog': '关闭对话框',
+  'Reset to defaults': '恢复默认设置',
+  'Defaults restored': '已恢复默认设置',
   'Close': '关闭',
   'Provider name': '服务提供商名称',
   'e.g. OpenAI compatible': '例如：OpenAI 兼容接口',

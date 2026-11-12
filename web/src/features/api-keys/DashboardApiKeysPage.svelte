@@ -234,17 +234,17 @@
     <div class="empty-state">{error} <Button class="mini-add" type="button" onclick={() => load()}>{tr('Retry')}</Button></div>
   {:else}
     <section class="stats-grid" aria-label={tr('API key overview')}>
-      <StatsCard eyebrow={tr('API keys')} icon="#i-key" value={activeCount} title={tr('Active Keys')} trend={tr('Showing {count} API keys on this page', { count: keys.length })} actionLabel={tr('Show active')} onAction={ () => { statusFilter = 'active'; boardEl?.scrollIntoView({ behavior: 'smooth' }); } } />
-      <StatsCard eyebrow={tr('API keys')} icon="#i-clipboard" value={stats ? stats.total_requests.toLocaleString() : '—'} title={tr('Requests Today')} trend={tr('Across all keys · 24h')} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
-      <StatsCard eyebrow={tr('API keys')} icon="#i-dollar" value={stats ? formatCostMicroUsd(stats.cost.cost_reported_micro_usd) : '—'} title={tr('Spend Today')} trend={tr('Estimated upstream cost')} actionLabel={tr('Check quota')} onAction={ () => onNavigate('quota') } />
-      <StatsCard eyebrow={tr('API keys')} icon="#i-alert" value={stats ? stats.failures.toLocaleString() : '—'} title={tr('Failures Today')} trend={stats ? `${stats.success_rate.toFixed(1)}% ${tr('success')}` : tr('24h window')} actionLabel={tr('View requests')} onAction={ () => onNavigate('requests') } />
+      <StatsCard index={1} eyebrow={tr('Keys')} badgeTone="dot" badge={String(activeCount)} value={activeCount} title={tr('Active Keys')} trend={tr('Showing {count} API keys on this page', { count: keys.length })} />
+      <StatsCard index={2} eyebrow={tr('Traffic')} badge={stats ? tr('24H') : undefined} value={stats ? stats.total_requests.toLocaleString() : '—'} title={tr('Requests Today')} trend={tr('Across all keys · 24h')} />
+      <StatsCard index={3} eyebrow={tr('Spend')} value={stats ? formatCostMicroUsd(stats.cost.cost_reported_micro_usd) : '—'} title={tr('Spend Today')} trend={tr('Estimated upstream cost')} />
+      <StatsCard index={4} eyebrow={tr('Reliability')} value={stats ? stats.failures.toLocaleString() : '—'} title={tr('Failures Today')} trend={stats ? `${stats.success_rate.toFixed(1)}% ${tr('success')}` : tr('24h window')} />
     </section>
 
     <section class="course-card surface keys-board" id="keys-board" bind:this={boardEl} aria-labelledby="keys-heading">
       <div class="card-title-row"><h2 id="keys-heading">{tr('Keys')}</h2></div>
       <p class="card-subtitle">{tr('Showing {count} API keys on this page', { count: keys.length })}{nextCursor ? ` · ${tr('more available')}` : ''}</p>
-      <div class="page-toolbar items-center [&_.ark-select-trigger]:border! [&_.ark-select-trigger]:border-line! [&_.ark-select-trigger]:shadow-none! [&_.ark-select-trigger:focus-visible]:outline-0! [&_.ark-select-trigger:focus-visible]:ring-3! [&_.ark-select-trigger:focus-visible]:ring-db-accent-ring!">
-        <Input class="min-h-[34px]! w-[min(280px,100%)]! flex-[1_1_200px] rounded-[10px]! border-line! bg-surface! px-3! text-muted! text-dash-body! focus:outline-none! focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))]! focus:ring-3! focus:ring-db-accent-ring!" type="search" placeholder={tr('Search keys…')} aria-label={tr('Search API keys')} bind:value={searchQuery} />
+      <div class="page-toolbar items-center">
+        <Input class="w-[min(280px,100%)] flex-[1_1_200px]" type="search" placeholder={tr('Search keys…')} aria-label={tr('Search API keys')} bind:value={searchQuery} />
         <SelectOptions
           class="prov-select"
           ariaLabel={tr('Filter keys')}

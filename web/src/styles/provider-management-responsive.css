@@ -272,10 +272,6 @@
     display: inline-block;
     border: none !important;
   }
-  .model-routing-table td .ark-select-root {
-    width: 100% !important;
-    min-width: 0 !important;
-  }
   .model-routing-actions {
     display: flex !important;
     align-items: center !important;

@@ -59,6 +59,14 @@
     { id: 'chat', label: tr('Chat'), icon: 'i-video', count: '' },
   ]);
 
+  const bottomItems = $derived([
+    { id: 'overview', label: tr('Overview'), icon: 'i-grid' },
+    { id: 'providers', label: tr('Providers'), icon: 'i-link' },
+    { id: 'requests', label: tr('Requests'), icon: 'i-clipboard' },
+    { id: 'chat', label: tr('Chat'), icon: 'i-video' },
+    { id: 'more', label: tr('More'), icon: 'i-menu' },
+  ]);
+
   const generalItems = $derived([
     { id: 'api-keys', label: tr('API keys'), icon: 'i-key' },
     { id: 'settings', label: tr('Settings'), icon: 'i-settings' },
@@ -115,7 +123,7 @@
   function onShellKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       mobileOpen = false;
-      document.querySelectorAll('dialog[open]').forEach((d) => (d as HTMLDialogElement).close());
+      document.querySelectorAll('dialog[open]:not([data-prevent-close])').forEach((d) => (d as HTMLDialogElement).close());
     }
   }
 
@@ -164,7 +172,10 @@
   }
 
   function navCountClass(active: boolean): string {
-    return `grid ms-auto h-[19px] min-w-[19px] shrink-0 place-items-center rounded-full px-1 text-caption font-semibold tabular-nums @max-[920px]:h-4 @max-[920px]:min-w-4 @max-[920px]:px-[3px] max-nav:h-[18px] max-nav:min-w-[18px] ${collapsed ? 'nav:hidden' : ''} ${active ? 'bg-accent text-accent-contrast' : 'bg-ink text-canvas'}`;
+    // leading-none keeps the digits inside the pill: the inherited body
+    // line-height (~1.45) makes a 13px caption line taller than the fixed
+    // 19px/16px height, so multi-digit counts spilled past the rounded edge.
+    return `grid ms-auto h-[19px] min-w-[19px] shrink-0 place-items-center rounded-full px-1 text-caption leading-none whitespace-nowrap font-semibold tabular-nums @max-[920px]:h-4 @max-[920px]:min-w-4 @max-[920px]:px-[3px] max-nav:h-[18px] max-nav:min-w-[18px] ${collapsed ? 'nav:hidden' : ''} ${active ? 'bg-accent text-accent-contrast' : 'bg-ink text-canvas'}`;
   }
 </script>
 
@@ -214,7 +225,7 @@
 
           <nav class={sidePanelClass} aria-label={tr('Main navigation')}>
             <div>
-              <p class="m-0 mb-2 ms-[7px] text-caption font-semibold tracking-[0.04em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('Menu')}</p>
+              <p class="m-0 mb-2 ms-[7px] text-[11px] font-medium tracking-[0.03em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('Menu')}</p>
               <div class="grid gap-0.5 {collapsed ? 'nav:justify-items-center' : ''}">
                 {#each menuItems as item (item.id)}
                   {@const active = navPage === item.id}
@@ -225,7 +236,7 @@
                     class={navButtonClass(active)}
                   >
                     <span class={navIconClass(active)}><svg class="icon size-[53%]!"><use href="#{item.icon}" /></svg></span>
-                    <span class="overflow-hidden text-ellipsis whitespace-nowrap text-dash-body font-medium {collapsed ? 'nav:hidden' : ''}">{item.label}</span>
+                    <span class="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-normal {collapsed ? 'nav:hidden' : ''}">{item.label}</span>
                     {#if item.count}<span class={navCountClass(active)}>{item.count}</span>{/if}
                   </button>
                 {/each}
@@ -233,7 +244,7 @@
             </div>
 
             <div class="mt-[5.5%] max-nav:mt-2.5">
-              <p class="m-0 mb-2 ms-[7px] text-caption font-semibold tracking-[0.04em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('General')}</p>
+              <p class="m-0 mb-2 ms-[7px] text-[11px] font-medium tracking-[0.03em] text-muted uppercase {collapsed ? 'nav:hidden' : ''}">{tr('General')}</p>
               <div class="grid gap-0.5 {collapsed ? 'nav:justify-items-center' : ''}">
                 {#each generalItems as item (item.id)}
                   {@const active = navPage === item.id}
@@ -243,7 +254,7 @@
                     class={navButtonClass(active)}
                   >
                     <span class={navIconClass(active)}><svg class="icon size-[53%]!"><use href="#{item.icon}" /></svg></span>
-                    <span class="overflow-hidden text-ellipsis whitespace-nowrap text-dash-body font-medium {collapsed ? 'nav:hidden' : ''}">{item.label}</span>
+                    <span class="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-normal {collapsed ? 'nav:hidden' : ''}">{item.label}</span>
                   </button>
                 {/each}
               </div>
@@ -252,7 +263,7 @@
             {#if onSignOut}
               <button type="button" onclick={handleSignOut} class="mt-[3.5%] text-accent! {navButtonClass(false)}">
                 <span class={navIconClass(true)}><svg class="icon size-[53%]!"><use href="#i-logout" /></svg></span>
-                <span class="overflow-hidden text-ellipsis whitespace-nowrap text-dash-body font-medium {collapsed ? 'nav:hidden' : ''}">{tr('Log Out')}</span>
+                <span class="overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-normal {collapsed ? 'nav:hidden' : ''}">{tr('Log Out')}</span>
               </button>
             {/if}
           </nav>
@@ -262,7 +273,7 @@
 
         <section class="grid min-w-0 min-h-0 max-nav:min-h-[100svh] max-nav:[grid-template-rows:56px_auto] max-nav:gap-2.5 nav:h-full nav:ml-[calc(100vw*0.219)] nav:gap-[1.8%] nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] {collapsed ? 'nav:ml-[92px]' : ''}">
           <header class="flex h-full min-w-0 items-center justify-between gap-[18px] rounded-[16px] bg-surface px-[2.3%] max-nav:gap-2 max-nav:rounded-[13px] max-nav:px-[9px]">
-            <label class="group/search flex h-[58%] w-[min(43%,370px)] min-w-[120px] items-center gap-2.5 rounded-full bg-db-tint-strong px-[13px] text-text-dim transition-colors duration-200 focus-within:bg-surface-sunken focus-within:ring-3 focus-within:ring-db-accent-ring max-nav:w-[43%] max-nav:min-w-0 max-nav:px-[9px]">
+            <label class="group/search hidden w-[min(43%,370px)] min-w-[120px] items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-3 text-text-dim transition-[border-color,box-shadow] duration-150 focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15 nav:flex">
               <svg class="icon size-4! transition-colors duration-200 group-focus-within/search:text-accent" aria-hidden="true"><use href="#i-search" /></svg>
               <Input
                 type="search"
@@ -270,7 +281,8 @@
                 aria-label={tr('Search requests')}
                 bind:value={searchQuery}
                 onkeydown={(e) => { if (e.key === 'Enter') handleTopSearch(); }}
-                class="w-full min-w-0 border-0 bg-transparent p-0 text-ink text-dash-body outline-none placeholder:text-muted"
+                bare
+class="w-full bg-transparent text-sm outline-none placeholder:text-muted"
               />
             </label>
             <div class="flex min-w-0 items-center gap-[clamp(8px,1.2vw,17px)] max-nav:gap-1.5">
@@ -278,7 +290,7 @@
                 <svg class="icon transition-transform duration-200 group-hover/menu:scale-110"><use href="#i-menu" /></svg>
               </button>
               <LanguageSelect {locale} {tr} onLocaleChange={onLocaleChange} />
-              <span class="w-px h-6 bg-line max-nav:h-5" aria-hidden="true"></span>
+              <span class="hidden w-px h-6 bg-line nav:block" aria-hidden="true"></span>
               <div class="group/profile flex min-w-0 items-center gap-2.5 max-nav:gap-1.5">
                 <svg class="size-[clamp(32px,3.1vw,43px)] shrink-0 overflow-hidden rounded-full border-2 border-line max-nav:size-[31px] transition-transform duration-200 group-hover/profile:scale-[1.06]" viewBox="0 0 44 44" role="img" aria-label={tr('ExoRoute Admin')}>
                   <defs>
@@ -294,7 +306,7 @@
                   <path d="M19 22h.2m7.4 0h.2" stroke="#29323a" stroke-width="1.4" stroke-linecap="round" />
                   <path d="M20 26c1.5 1.1 3.4 1.1 4.9 0" fill="none" stroke="#855c4d" stroke-width="1.2" stroke-linecap="round" />
                 </svg>
-                <div class="grid gap-[3px] whitespace-nowrap leading-[1.15]">
+                <div class="hidden grid gap-[3px] whitespace-nowrap leading-[1.15] nav:grid">
                   <strong class="overflow-hidden text-ellipsis text-label font-semibold transition-colors duration-150 group-hover/profile:text-accent max-nav:max-w-[78px]">{tr('ExoRoute Admin')}</strong>
                   <span class="text-muted text-meta">{gatewayAddress}</span>
                 </div>
@@ -303,7 +315,7 @@
           </header>
 
           <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-          <div class="grid min-w-0 min-h-0 gap-[1.8%] max-nav:gap-3 max-nav:[grid-template-rows:auto_auto] nav:flex nav:flex-col nav:h-full nav:min-h-0 nav:overflow-y-auto nav:[&>*]:shrink-0 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent]" onclick={onDialogClick}>
+          <div class="grid min-w-0 min-h-0 gap-[1.8%] max-nav:gap-3 max-nav:[grid-template-rows:auto_auto] max-nav:pb-[calc(64px+env(safe-area-inset-bottom,0px))] nav:flex nav:flex-col nav:h-full nav:min-h-0 nav:overflow-y-auto nav:[&>*]:shrink-0 [scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent]" onclick={onDialogClick}>
             {@render children?.()}
           </div>
         </section>
@@ -311,7 +323,28 @@
     </section>
   </main>
 
+  <!-- Mobile app tab bar: fixed bottom, five primary destinations; "More"
+       opens the full sidebar drawer. Hidden at >=681px where the rail owns
+       navigation. -->
+  <nav
+    class="max-nav:fixed max-nav:inset-x-0 max-nav:bottom-0 max-nav:z-40 max-nav:grid max-nav:grid-cols-5 max-nav:border-t max-nav:border-line max-nav:bg-surface max-nav:pt-1 max-nav:pb-[max(env(safe-area-inset-bottom,0px),8px)] nav:hidden"
+    aria-label={tr('Main navigation')}
+  >
+    {#each bottomItems as item (item.id)}
+      <button
+        type="button"
+        aria-label={item.label}
+        aria-current={item.id !== 'more' && navPage === item.id ? 'page' : undefined}
+        onclick={() => (item.id === 'more' ? setMobileOpen(true) : handleNav(item.id))}
+        class="flex min-h-[48px] flex-col items-center justify-center gap-0.5 border-0 bg-transparent px-1 py-1 text-[10px] font-medium leading-tight cursor-pointer transition-colors {navPage === item.id && item.id !== 'more' ? 'text-accent-strong' : 'text-muted'} {focusRing}"
+      >
+        <svg class="icon size-[18px]!"><use href="#{item.icon}" /></svg>
+        <span class="max-w-full truncate">{item.label}</span>
+      </button>
+    {/each}
+  </nav>
+
   {#if $dashboardToast}
-    <div class="fixed right-5 bottom-5 z-20 max-w-[min(380px,calc(100vw-40px))] rounded-xl border border-ink bg-ink px-4 py-3 text-canvas text-dash-body leading-[1.4] shadow-[0_10px_30px_#0003]" role="status" aria-live="polite">{$dashboardToast.message}</div>
+    <div class="fixed right-5 bottom-5 z-20 max-nav:bottom-[calc(72px+env(safe-area-inset-bottom,0px))] max-w-[min(380px,calc(100vw-40px))] rounded-xl border border-ink bg-ink px-4 py-3 text-canvas text-dash-body leading-[1.4] shadow-[0_10px_30px_#0003]" role="status" aria-live="polite">{$dashboardToast.message}</div>
   {/if}
 </div>

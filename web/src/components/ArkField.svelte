@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Field } from '@ark-ui/svelte/field';
   import type { HTMLInputAttributes } from 'svelte/elements';
-  import Input from './Input.svelte';
 
   interface Props {
     label?: string;
@@ -46,18 +44,23 @@
     onValueChange,
   }: Props = $props();
 
+  /* Same control language as the native Input.svelte branch: 12px radius,
+     generous padding, focus = full accent border + 15% accent ring. */
+  const controlClass =
+    'w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-muted focus:border-accent! focus:ring-3! focus:ring-accent/15!';
 </script>
 
-<Field.Root {disabled} {required} invalid={Boolean(errorText)} class={`ark-field-root ${className}`}>
+<label class="field {className}">
   {#if label}
-    <Field.Label class="ark-field-label">{label}</Field.Label>
+    {label}
   {/if}
-  <Input
-    variant="field"
+  <input
+    class={controlClass}
     bind:value
     {type}
-    class="ark-field-input"
     {placeholder}
+    {required}
+    {disabled}
     {name}
     {autocomplete}
     {minlength}
@@ -65,15 +68,14 @@
     {min}
     {max}
     {step}
-    aria-label={ariaLabel || label}
-    {required}
-    {disabled}
+    aria-label={ariaLabel || label || undefined}
+    aria-invalid={errorText ? 'true' : undefined}
     oninput={(event) => { value = (event.currentTarget as HTMLInputElement).value; onValueChange?.(value); }}
   />
   {#if helperText}
-    <Field.HelperText class="ark-field-helper">{helperText}</Field.HelperText>
+    <small class="text-xs leading-normal text-muted">{helperText}</small>
   {/if}
   {#if errorText}
-    <Field.ErrorText class="ark-field-error">{errorText}</Field.ErrorText>
+    <small role="alert" class="text-xs leading-normal text-db-danger">{errorText}</small>
   {/if}
-</Field.Root>
+</label>

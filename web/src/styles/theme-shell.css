@@ -7,25 +7,13 @@
 :root[data-theme='dark'] .output-style-row:hover {
   background: rgba(255, 255, 255, 0.05) !important;
 }
-:root[data-theme='dark'] .output-style-row .ark-checkbox-control {
-  background: #222330 !important;
-  border: 1.5px solid #404252 !important;
-}
-:root[data-theme='dark'] .output-style-row:hover:not([data-disabled]) .ark-checkbox-control {
-  border-color: var(--accent-soft) !important;
-}
-:root[data-theme='dark'] .output-style-row .ark-checkbox-root[data-state="checked"] .ark-checkbox-control {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-}
 :root[data-theme='dark'] .output-style-copy strong {
   color: var(--ink) !important;
 }
 :root[data-theme='dark'] .output-style-copy small {
   color: #8e93aa !important;
 }
-/* The level control is the shared Ark select; its dark theme lives with the
-   other Ark components. */
+/* Native select has its own token-driven dark skin. */
 :root[data-theme='dark'] .output-style-level {
   color: #8e93aa !important;
 }
@@ -33,10 +21,6 @@
 :root[data-theme='dark'] .settings-view .database-log-option {
   background: rgba(255, 255, 255, 0.03) !important;
   border: 1px solid rgba(255, 255, 255, 0.07) !important;
-}
-:root[data-theme='dark'] .settings-view .database-log-option .ark-checkbox-control {
-  background: #222330 !important;
-  border: 1.5px solid #404252 !important;
 }
 
 @media (max-width: 768px) {

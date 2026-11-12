@@ -125,10 +125,6 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07) !important;
 }
 
-:root[data-palette='minimal-light'] .ark-field-input,
-:root[data-palette='minimal-light'] .ark-password-input,
-:root[data-palette='minimal-light'] .ark-select-trigger,
-:root[data-palette='minimal-light'] .ark-combobox-input,
 :root[data-palette='minimal-light'] .search-box,
 :root[data-palette='minimal-light'] .login-form input,
 :root[data-palette='minimal-light'] .modal-form input,
@@ -137,12 +133,6 @@
   border-radius: var(--radius-sm) !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
   background: #ffffff !important;
-}
-
-:root[data-palette='minimal-light'] .ark-checkbox-control {
-  border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-  border-radius: 4px !important;
 }
 
 :root[data-palette='minimal-light'] .strategy-badge,
@@ -283,7 +273,7 @@
   --radius-lg: 8px;
   --radius-xl: 10px;
 
-  --font-heading: "JetBrains Mono", "Space Grotesk", monospace;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
 }
 
 :root[data-palette='tokyo-night'] body::before {
@@ -375,10 +365,6 @@
   box-shadow: none !important;
 }
 
-:root[data-palette='tokyo-night'] .ark-field-input,
-:root[data-palette='tokyo-night'] .ark-password-input,
-:root[data-palette='tokyo-night'] .ark-select-trigger,
-:root[data-palette='tokyo-night'] .ark-combobox-input,
 :root[data-palette='tokyo-night'] .search-box,
 :root[data-palette='tokyo-night'] .login-form input {
   border-radius: 4px !important;
@@ -496,10 +482,6 @@
   box-shadow: none !important;
 }
 
-:root[data-palette='catppuccin'] .ark-field-input,
-:root[data-palette='catppuccin'] .ark-password-input,
-:root[data-palette='catppuccin'] .ark-select-trigger,
-:root[data-palette='catppuccin'] .ark-combobox-input,
 :root[data-palette='catppuccin'] .search-box,
 :root[data-palette='catppuccin'] .login-form input {
   border-radius: 12px !important;
@@ -616,10 +598,6 @@
   box-shadow: none !important;
 }
 
-:root[data-palette='linear'] .ark-field-input,
-:root[data-palette='linear'] .ark-password-input,
-:root[data-palette='linear'] .ark-select-trigger,
-:root[data-palette='linear'] .ark-combobox-input,
 :root[data-palette='linear'] .search-box,
 :root[data-palette='linear'] .login-form input {
   border-radius: 5px !important;
@@ -740,10 +718,6 @@
   font-family: var(--font-mono);
 }
 
-:root[data-palette='cyber-neon'] .ark-field-input,
-:root[data-palette='cyber-neon'] .ark-password-input,
-:root[data-palette='cyber-neon'] .ark-select-trigger,
-:root[data-palette='cyber-neon'] .ark-combobox-input,
 :root[data-palette='cyber-neon'] .search-box,
 :root[data-palette='cyber-neon'] .login-form input {
   border-radius: 2px !important;

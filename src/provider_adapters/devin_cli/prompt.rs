@@ -111,7 +111,9 @@ fn append_caller_tools(body: &Value, out: &mut String) {
     if !tool_names.is_empty() {
         out.push_str("[System]\nCaller-side tools are available externally: ");
         out.push_str(&tool_names.join(", "));
-        out.push_str(".\nDo not call those tools yourself. Answer in assistant text only.\n\n");
+        out.push_str(
+            ".\nTo use one, end your turn with exactly one envelope:\n\n<tool>{\"name\": \"<tool name>\", \"arguments\": {\"<argument>\": <value>}}</tool>\n\nThe envelope JSON must be valid and escape quotes inside string values. Use no other tag, do not mix narrative with the envelope, and make exactly one call per turn.\n\n",
+        );
     }
 }
 

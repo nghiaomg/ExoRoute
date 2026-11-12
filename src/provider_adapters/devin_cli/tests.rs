@@ -1,6 +1,6 @@
 use super::acp::{
-    AcpSession, DEVIN_ENDPOINT_URL, TurnEvent, discover_devin_binary, flatten_chat_messages,
-    streaming_turn,
+    AcpSession, DEVIN_ENDPOINT_URL, TurnEvent, acquire_session_permit, buffered_turn,
+    discover_devin_binary, flatten_chat_messages, streaming_turn,
 };
 use super::*;
 use futures_util::StreamExt;
@@ -245,6 +245,8 @@ async fn empty_successful_devin_turn_is_an_error_not_an_empty_completion() {
         (),
         7,
         super::acp::TurnRender {
+            caller_tools: Vec::new(),
+            tool_call_id: "call_test".to_owned(),
             completion_id: "chatcmpl-empty".to_owned(),
             model: "swe-2-flash".to_owned(),
             created: 0,
@@ -299,6 +301,8 @@ async fn streaming_turn_emits_role_content_and_finish_frames() {
         (),
         7,
         super::acp::TurnRender {
+            caller_tools: Vec::new(),
+            tool_call_id: "call_test".to_owned(),
             completion_id: "chatcmpl-1".to_owned(),
             model: "swe-1-7".to_owned(),
             created: 0,
@@ -344,6 +348,8 @@ async fn an_exited_child_becomes_a_stream_error_frame() {
         (),
         7,
         super::acp::TurnRender {
+            caller_tools: Vec::new(),
+            tool_call_id: "call_test".to_owned(),
             completion_id: "chatcmpl-1".to_owned(),
             model: "swe-1-7".to_owned(),
             created: 0,
@@ -402,9 +408,7 @@ fn flatten_formats_caller_tools_response_format_and_tool_results() {
     assert!(with_tools.contains(
         "[System]\nCaller-side tools are available externally: lookup_weather, anthropic_tool."
     ));
-    assert!(
-        with_tools.contains("Do not call those tools yourself. Answer in assistant text only.")
-    );
+    assert!(with_tools.contains("end your turn with exactly one envelope"));
     assert!(with_tools.contains("[User]\nhi"));
 
     let with_json = flatten_chat_messages(&serde_json::json!({
@@ -478,4 +482,135 @@ fn the_adapter_pins_the_local_endpoint_and_protocol() {
             .endpoint(DEVIN_ENDPOINT_URL, Protocol::Messages, None)
             .is_err()
     );
+}
+
+/// Drives one scripted agent turn and returns the buffered completion the
+/// router would send. `caller_tools` feeds the tool-envelope resolution.
+async fn buffered_completion_with_turn(
+    turn_text: String,
+    caller_tools: &[&str],
+    completion_id: &str,
+) -> serde_json::Value {
+    let (mut session, _requests, mut child_out) = scripted_session();
+    let writer = tokio::spawn(async move {
+        child_out
+            .write_all(
+                json_line(&serde_json::json!({
+                    "jsonrpc": "2.0", "method": "session/update",
+                    "params": {"update": {"sessionUpdate": "agent_message_chunk",
+                        "content": [{"type": "text", "text": turn_text}]}},
+                }))
+                .as_bytes(),
+            )
+            .await
+            .unwrap();
+        child_out
+            .write_all(
+                json_line(&serde_json::json!({
+                    "jsonrpc": "2.0", "id": 1, "result": {"stopReason": "end_turn"},
+                }))
+                .as_bytes(),
+            )
+            .await
+            .unwrap();
+    });
+    let prompt_id = session.send_prompt("s-1", "hi").await.unwrap();
+    let guard = acquire_session_permit().unwrap();
+    let render = super::acp::TurnRender {
+        completion_id: completion_id.to_owned(),
+        caller_tools: caller_tools
+            .iter()
+            .map(|name| (*name).to_string())
+            .collect(),
+        tool_call_id: "call_test_1".to_owned(),
+        model: "swe-2-flash".to_owned(),
+        created: 0,
+        prompt_chars: 2,
+        request_timeout: Duration::from_secs(5),
+    };
+    let completion = buffered_turn(session, guard, prompt_id, render)
+        .await
+        .expect("turn resolves");
+    writer.await.unwrap();
+    completion
+}
+
+/// The exact broken envelope from the field report: the model wrapped a
+/// caller tool in its own tag and left the shell quotes unescaped, which
+/// makes the JSON invalid. The router must repair it into a tool call
+/// instead of leaking the raw markup to the client.
+#[tokio::test]
+async fn a_broken_native_envelope_converts_into_a_tool_call() {
+    let broken = "<execute_bash> {\"command\":\"cd \"C:/WorkSpace/GitHub-Projects/qwencoder/frontend_v2/html\" && bun -e \"Bun.serve({port: 8931, fetch(req){ const p = new URL(req.url).pathname; }})\" \",\"description\":\"Serve mockup folder on port 8931\"} </execute_bash>";
+    let completion =
+        buffered_completion_with_turn(broken.to_owned(), &["execute_bash"], "chatcmpl-env-1").await;
+
+    let message = &completion["choices"][0]["message"];
+    assert!(message["content"].is_null());
+    let call = &message["tool_calls"][0];
+    assert_eq!(call["id"], "call_test_1");
+    assert_eq!(call["type"], "function");
+    assert_eq!(call["function"]["name"], "execute_bash");
+    let arguments: serde_json::Value =
+        serde_json::from_str(call["function"]["arguments"].as_str().unwrap())
+            .expect("repaired arguments are valid JSON");
+    let command = arguments["command"].as_str().unwrap();
+    assert!(
+        command.contains("cd \"C:/WorkSpace/GitHub-Projects"),
+        "repaired command: {command}"
+    );
+    assert!(command.contains("Bun.serve"), "repaired command: {command}");
+    assert_eq!(arguments["description"], "Serve mockup folder on port 8931");
+    assert_eq!(completion["choices"][0]["finish_reason"], "tool_calls");
+}
+
+/// An envelope naming a tool the client never declared is model-owned
+/// markup: the router strips it so raw tags never reach the client.
+#[tokio::test]
+async fn an_unknown_envelope_is_stripped_from_the_reply() {
+    let text = "Working on it.\n<not_a_tool>{\"command\":\"ls\"}</not_a_tool>\nDone soon.";
+    let completion =
+        buffered_completion_with_turn(text.to_owned(), &["execute_bash"], "chatcmpl-env-2").await;
+    let content = completion["choices"][0]["message"]["content"]
+        .as_str()
+        .unwrap();
+    assert!(content.contains("Working on it."));
+    assert!(
+        !content.contains("not_a_tool"),
+        "leaked envelope: {content}"
+    );
+    assert!(content.contains("Done soon."));
+    assert_eq!(completion["choices"][0]["finish_reason"], "stop");
+}
+
+/// A turn with no envelope and no caller tools keeps the plain-text contract.
+#[tokio::test]
+async fn plain_text_turns_without_tools_are_untouched() {
+    let completion =
+        buffered_completion_with_turn("plain answer".to_owned(), &[], "chatcmpl-env-3").await;
+    assert_eq!(
+        completion["choices"][0]["message"]["content"],
+        "plain answer"
+    );
+    assert!(
+        completion["choices"][0]["message"]
+            .get("tool_calls")
+            .is_none()
+    );
+    assert_eq!(completion["choices"][0]["finish_reason"], "stop");
+}
+
+/// The bridge format (`<tool>` with a `name` field) converts too, and a
+/// narrative around the envelope is dropped with the action, matching the
+/// docs rule that mixed narrative and actions are not relayed as text.
+#[tokio::test]
+async fn the_tool_bridge_envelope_converts_with_its_arguments() {
+    let text = "<tool>{\"name\": \"lookup_weather\", \"arguments\": {\"city\": \"Hanoi\"}}</tool>";
+    let completion =
+        buffered_completion_with_turn(text.to_owned(), &["lookup_weather"], "chatcmpl-env-4").await;
+    let message = &completion["choices"][0]["message"];
+    let call = &message["tool_calls"][0];
+    assert_eq!(call["function"]["name"], "lookup_weather");
+    assert_eq!(call["function"]["arguments"], "{\"city\":\"Hanoi\"}");
+    assert_eq!(completion["choices"][0]["finish_reason"], "tool_calls");
 }

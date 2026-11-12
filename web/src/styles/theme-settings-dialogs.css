@@ -34,11 +34,6 @@
 :root[data-theme='dark'] .page-footer b { color: #6b7086; }
 
 /* Dialogs and form fields */
-:root[data-theme='dark'] .modal-backdrop {
-  background: var(--surface-backdrop);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
 :root[data-theme='dark'] .modal-card {
   background: var(--surface-modal) !important;
   color: var(--ink);
@@ -73,7 +68,7 @@
 :root[data-theme='dark'] .provider-create-keys-section {
   border-top-color: rgba(255, 255, 255, 0.08);
 }
-:root[data-theme='dark'] .provider-create-dialog .ark-field-helper,
+:root[data-theme='dark'] .provider-create-dialog .provider-create-helper,
 :root[data-theme='dark'] .provider-create-form .key-test-help {
   color: #8e93aa;
 }
@@ -373,9 +368,5 @@
   :root[data-theme='dark'] .sidebar { background: var(--surface-shell); }
 }
 
-@media (max-width: 650px) {
-  :root[data-theme='dark'] .topbar { background: color-mix(in srgb, var(--surface-raised) 94%, transparent); }
-  :root[data-theme='dark'] .modal-backdrop { padding: 12px; }
-}
 
 

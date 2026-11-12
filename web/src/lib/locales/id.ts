@@ -530,6 +530,8 @@ export const id: Catalog = {
   'Your new API key': 'Kunci API baru Anda',
   'Create an API key': 'Buat kunci API',
   'Close dialog': 'Tutup dialog',
+  'Reset to defaults': 'Reset ke bawaan',
+  'Defaults restored': 'Bawaan dipulihkan',
   'Close': 'Tutup',
   'Provider name': 'Nama penyedia',
   'e.g. OpenAI compatible': 'misalnya kompatibel dengan OpenAI',

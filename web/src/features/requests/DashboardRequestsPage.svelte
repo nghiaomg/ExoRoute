@@ -397,14 +397,14 @@
 {:else}
   <div class="page-surface">
     <section class="stats-grid" aria-label={tr('Request overview')}>
-      <StatsCard eyebrow={tr('Requests')} icon="#i-clipboard" value={stats ? formatCount(stats.total_requests, locale) : '—'} title={tr('Requests')} trend={tr('{range} window', { range: rangeFilter })} actionLabel={tr('Browse table')} onAction={ () => document.getElementById('req-board')?.scrollIntoView({ behavior: 'smooth' }) } />
-      <StatsCard eyebrow={tr('Requests')} icon="#i-trend-up" value={stats ? `${Math.round(stats.success_rate * 10) / 10}%` : '—'} title={tr('Success Rate')} trend={tr('2xx responses')} actionLabel={tr('Filter 2xx')} onAction={ () => (statusFilter = '2xx') } />
-      <StatsCard eyebrow={tr('Requests')} icon="#i-clock" value={stats?.average_latency_ms ? `${Math.round(stats.average_latency_ms)} ms` : '—'} title={tr('Avg Latency')} trend={tr('p50 {value}', { value: stats?.latency.p50_ms ? `${Math.round(stats.latency.p50_ms)} ms` : '—' })} actionLabel={tr('Sort by latency')} onAction={ () => showDashboardToast(tr('Sort by latency is not supported by the log API')) } />
-      <StatsCard eyebrow={tr('Requests')} icon="#i-alert" value={stats ? formatCount(stats.failures, locale) : '—'} title={tr('Failed')} trend={tr('4xx + 5xx responses')} actionLabel={tr('Show failures')} onAction={ () => (statusFilter = 'failure') } />
-      <StatsCard eyebrow={tr('Requests')} icon="#i-play" value={formatCount(liveActive, locale)} title={tr('Active now')} trend={tr('in-progress requests')} actionLabel={tr('View live')} onAction={ () => (statusFilter = 'live') } />
-      <StatsCard eyebrow={tr('Requests')} icon="#i-import" value={stats ? formatCompactTokenTotal(stats.input_tokens, locale) : '—'} title={tr('Input tokens')} trend={tr('{range} window', { range: rangeFilter })} actionLabel={tr('Browse table')} onAction={ () => document.getElementById('req-board')?.scrollIntoView({ behavior: 'smooth' }) } />
-      <StatsCard eyebrow={tr('Requests')} icon="#i-export" value={stats ? formatCompactTokenTotal(stats.output_tokens, locale) : '—'} title={tr('Output tokens')} trend={tr('{range} window', { range: rangeFilter })} actionLabel={tr('Browse table')} onAction={ () => document.getElementById('req-board')?.scrollIntoView({ behavior: 'smooth' }) } />
-      <StatsCard eyebrow={tr('Requests')} icon="#i-database" value={stats ? formatCompactTokenTotal(stats.cached_tokens, locale) : '—'} title={tr('Cached tokens')} trend={`${tr('Cache ratio')} ${stats ? `${Math.round(stats.cache_ratio * 10) / 10}%` : '—'}`} actionLabel={tr('Browse table')} onAction={ () => document.getElementById('req-board')?.scrollIntoView({ behavior: 'smooth' }) } />
+      <StatsCard index={1} eyebrow={tr('Traffic')} badge={stats ? rangeFilter : undefined} value={stats ? formatCount(stats.total_requests, locale) : '—'} title={tr('Requests')} trend={tr('{range} window', { range: rangeFilter })} />
+      <StatsCard index={2} eyebrow={tr('Reliability')} badgeTone="success" badge={stats ? `${Math.round(stats.success_rate * 10) / 10}%` : undefined} value={stats ? `${Math.round(stats.success_rate * 10) / 10}%` : '—'} title={tr('Success Rate')} trend={tr('2xx responses')} />
+      <StatsCard index={3} eyebrow={tr('Performance')} badgeTone="success" badge={stats?.latency.p50_ms ? `↓ ${Math.round(stats.latency.p50_ms)} ms` : undefined} value={stats?.average_latency_ms ? Math.round(stats.average_latency_ms) : '—'} unit={stats?.average_latency_ms ? 'ms' : undefined} title={tr('Avg Latency')} trend={tr('p50 {value}', { value: stats?.latency.p50_ms ? `${Math.round(stats.latency.p50_ms)} ms` : '—' })} />
+      <StatsCard index={4} eyebrow={tr('Failures')} value={stats ? formatCount(stats.failures, locale) : '—'} title={tr('Failed')} trend={tr('4xx + 5xx responses')} />
+      <StatsCard index={5} eyebrow={tr('Traffic')} badgeTone="dot" badge={String(liveActive)} value={formatCount(liveActive, locale)} title={tr('Active now')} trend={tr('in-progress requests')} />
+      <StatsCard index={6} eyebrow={tr('Tokens')} value={stats ? formatCompactTokenTotal(stats.input_tokens, locale) : '—'} title={tr('Input tokens')} trend={tr('{range} window', { range: rangeFilter })} />
+      <StatsCard index={7} eyebrow={tr('Tokens')} value={stats ? formatCompactTokenTotal(stats.output_tokens, locale) : '—'} title={tr('Output tokens')} trend={tr('{range} window', { range: rangeFilter })} />
+      <StatsCard index={8} eyebrow={tr('Efficiency')} value={stats ? formatCompactTokenTotal(stats.cached_tokens, locale) : '—'} title={tr('Cached tokens')} trend={`${tr('Cache ratio')} ${stats ? `${Math.round(stats.cache_ratio * 10) / 10}%` : '—'}`} />
     </section>
 
     <p class="m-0 text-muted text-meta">
@@ -419,7 +419,7 @@
       </div>
       <p class="card-subtitle">{tr('Showing {count} of {total} requests', { count: visibleRows.length, total: stats ? formatCount(stats.total_requests, locale) : '—' })}{metrics.successRate !== null ? ` · ${tr('page success {percent}%', { percent: Math.round(metrics.successRate) })}` : ''}</p>
       <div class="page-toolbar mt-3 gap-2">
-        <Input class="min-h-[34px]! w-[min(300px,100%)]! flex-[1_1_220px] rounded-[10px]! border-line! bg-surface! px-3! text-muted! text-dash-body! focus:outline-none! focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))]! focus:ring-3! focus:ring-db-accent-ring!" type="search" placeholder={tr('Search model, key, provider…')} aria-label={tr('Search requests')} bind:value={search} />
+        <Input class="w-[min(300px,100%)] flex-[1_1_220px]" type="search" placeholder={tr('Search model, key, provider…')} aria-label={tr('Search requests')} bind:value={search} />
         <SelectOptions
           class="req-select"
           ariaLabel={tr('Filter by status')}

@@ -375,26 +375,14 @@
 /* Soft Neo-Brutalism treatment for the Settings View.
    Panels, tiles, chips and buttons keep ink borders + hard offset shadows;
    only rows, labels and code badges stay flat. */
-.settings-view .settings-panel,
-.settings-view .settings-hero-card,
-.settings-view .config-tile,
-.settings-view .config-status-chip,
-.settings-view .resource-limit-input input,
-.settings-view .resource-limit-input select,
-.settings-view .resource-limits-notice,
-.settings-view .resource-limits-error,
-.settings-view .resource-limits-success,
-.settings-view .database-file-label,
-.settings-view .primary-button,
-.settings-view .secondary-button,
-.settings-view .settings-nav-tab,
-.settings-view .ark-checkbox-control {
+.settings-view .database-log-option,
+.settings-view .resource-continuity-control,
+.settings-view .output-style-row > label,
+.settings-view .resource-limits-actions .primary-button,
+.settings-view .resource-limits-actions .secondary-button,
+.settings-view .settings-nav-tab {
   border: var(--nb-border) !important;
   box-shadow: var(--nb-shadow-sm) !important;
-}
-/* Checkboxes keep the ink border only: a hard shadow at 17px reads as noise. */
-.settings-view .ark-checkbox-control {
-  box-shadow: none !important;
 }
 .settings-view .settings-nav-tab:hover,
 .settings-view .primary-button:hover:not(:disabled),

@@ -3,7 +3,6 @@
   import Button from "../../components/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Cpu, Download, LoaderCircle, RefreshCw, Save } from '@lucide/svelte';
-  import { Field } from '@ark-ui/svelte/field';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -218,12 +217,15 @@ import { localizedError } from '../../lib/errors';
   </div>
 
   <form class="provider-manual-model-form" onsubmit={saveManualModel}>
-    <Field.Root class="provider-manual-model-field">
-      <Field.Label class="ark-field-label">{tr('Model ID')}</Field.Label>
+    <!-- Equivalent of the ArkField label.field markup: the submit button shares
+        the control row, so the wrapper hosts label/input/helper directly. -->
+    <div class="provider-manual-model-field">
+      <label class="provider-manual-model-label" for="provider-manual-model-id">{tr('Model ID')}</label>
       <div class="provider-manual-model-row">
         <Input variant="field"
           bind:value={manualModelDraft}
-          class="ark-field-input"
+          class="provider-manual-model-input"
+          id="provider-manual-model-id"
           maxlength={256}
           placeholder={tr(provider.adapter_id === 'antigravity' ? 'e.g. ag/model-id' : 'e.g. provider/model-id')}
           aria-label={tr('Model ID')}
@@ -233,8 +235,8 @@ import { localizedError } from '../../lib/errors';
           <span>{tr('Save model')}</span>
         </Button>
       </div>
-      <Field.HelperText class="provider-manual-model-help">{tr('Add a model ID manually when provider discovery is unavailable.')}</Field.HelperText>
-    </Field.Root>
+      <small class="provider-manual-model-help">{tr('Add a model ID manually when provider discovery is unavailable.')}</small>
+    </div>
   </form>
   {#if manualModelNotice}<div class="provider-import-feedback" class:success={manualModelNoticeTone === 'success'} class:error={manualModelNoticeTone === 'error'} role={manualModelNoticeTone === 'error' ? 'alert' : 'status'}>{manualModelNotice}</div>{/if}
 

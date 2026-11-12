@@ -5,12 +5,6 @@
 }
 
 @font-face {
-  font-family: 'Space Grotesk Fallback';
-  src: local('Space Grotesk'), local('Trebuchet MS'), local('Plus Jakarta Sans'), sans-serif;
-  font-display: swap;
-}
-
-@font-face {
   font-family: 'JetBrains Mono Fallback';
   src: local('JetBrains Mono'), local('Geist Mono'), local('Segoe UI Mono'), local('Menlo'), local('Monaco'), local('Consolas'), local('Liberation Mono'), monospace;
   font-display: swap;
@@ -286,20 +280,11 @@ a { color: inherit; text-decoration: none; }
   border-radius: 8px;
   transition: background .15s ease, color .15s ease;
 }
-.login-screen .language-select-control { border: none; background: var(--surface-sunken); }
-.login-screen .language-select,
-.login-screen .language-select-trigger { border: none; background: transparent; }
-.login-screen .language-select-control:hover,
-.login-screen .language-select-root[data-state="open"] .language-select-control {
-  background: var(--surface-sunken);
-  color: var(--accent-deep);
-}
 .login-screen .preference-button:hover {
   background: var(--surface-sunken);
   color: var(--accent-deep);
 }
 
-.login-screen .ark-password-input,
 .login-screen .modal-form input {
   height: 44px;
   padding: 0 40px 0 14px;
@@ -310,12 +295,6 @@ a { color: inherit; text-decoration: none; }
   font-size: 13px;
   box-shadow: var(--nb-shadow-sm);
   transition: border-color .14s ease, box-shadow .14s ease, background-color .14s ease;
-}
-.login-screen .ark-password-trigger {
-  right: 10px;
-}
-.login-screen .ark-password-trigger:hover {
-  color: var(--accent-deep);
 }
 
 .login-screen .primary-button {
@@ -474,156 +453,35 @@ a { color: inherit; text-decoration: none; }
   color: var(--ink);
   background: rgba(0, 0, 0, 0.06);
 }
-.language-select-root {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-.language-select-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 32px;
-  padding: 0 6px 0 8px;
-  color: var(--muted);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02), inset 0 1px 1px rgba(255, 255, 255, 0.9);
-  transition: all .16s ease;
-  cursor: pointer;
-}
-.language-select-control:hover,
-.language-select-root[data-state="open"] .language-select-control {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--ink);
-}
-.language-select-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 100%;
+/* Shared legacy-style field used by ApiKeyScopeFields and standalone fields. */
+.scope-add-input,
+.scope-rules,
+.provider-manual-model-input {
   width: 100%;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.language-select-icon {
-  flex-shrink: 0;
-  color: inherit;
-  opacity: 0.85;
-}
-.language-select-value-text {
-  max-width: 125px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  color: inherit;
-}
-.language-select-indicators {
-  display: inline-flex;
-  align-items: center;
-  pointer-events: none;
-  color: var(--text-dim);
-  margin-left: 1px;
-}
-.language-select-indicator {
-  display: grid;
-  place-items: center;
-  transition: transform .15s ease;
-}
-.language-select-root[data-state="open"] .language-select-indicator {
-  transform: rotate(180deg);
-  color: var(--accent-deep);
-}
-
-/* Language Dropdown Menu (Portal) */
-.language-select-positioner {
-  z-index: 99999 !important;
-}
-.language-select-positioner[hidden],
-.language-select-positioner:has(> .language-select-content[data-state="closed"]),
-.language-select-positioner:has(> .language-select-content[hidden]),
-.language-select-content[hidden],
-.language-select-content[data-state="closed"] {
-  display: none !important;
-  pointer-events: none !important;
-}
-.language-select-content {
-  position: relative;
-  z-index: 99999 !important;
-  min-width: 175px;
-  max-height: 290px;
-  overflow-y: auto;
-  padding: 6px;
-  border-radius: 12px;
-  background: var(--surface);
+  min-height: 44px;
+  outline: none;
+  padding: 12px 14px;
   border: 1px solid var(--line);
-  box-shadow: 0 14px 36px rgba(30, 26, 57, 0.12), 0 2px 10px rgba(0, 0, 0, 0.04);
-  display: grid;
-  gap: 2px;
-  outline: none;
-  animation: fade-in .14s ease;
-}
-.language-select-item-group {
-  display: grid;
-  gap: 2px;
-}
-.language-select-item-group-label {
-  padding: 5px 8px 6px;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--text-dim);
-  user-select: none;
-}
-.language-select-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background .12s ease, color .12s ease;
-  user-select: none;
-  outline: none;
+  background: var(--surface);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color .18s ease, box-shadow .18s ease;
 }
-.language-select-item:hover,
-.language-select-item[data-highlighted] {
-  background: var(--surface-sunken);
-  color: var(--ink);
-}
-.language-select-item[data-state="checked"] {
-  font-weight: 700;
-  color: var(--accent-strong);
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
-}
-.language-select-item-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.language-select-item-indicator {
-  display: grid;
-  place-items: center;
-  color: var(--accent);
-  flex-shrink: 0;
-}
+.scope-add-input:disabled,
+.scope-rules:disabled,
+.provider-manual-model-input:disabled { cursor: not-allowed; opacity: .55; background: var(--surface-sunken); }/* Provider logo tiles: the frame geometry comes from .course-icon /
+   .provider-avatar, these rules anchor the contained image and center the
+   initial fallback (ProviderAvatar component, providers page rows). */
+.provider-logo { position: relative; flex: 0 0 auto; overflow: hidden; display: grid; place-items: center; }
+.provider-logo img { position: absolute; z-index: 1; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; padding: 3px; box-sizing: border-box; border-radius: inherit; }
+.provider-logo img[hidden] { display: none; }
+.provider-avatar.has-image { background: #ffffff !important; }
+.provider-avatar-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-family: var(--font-heading); font-weight: 700; line-height: 1; text-transform: uppercase; user-select: none; }
+.detail-avatar.provider-logo img { padding: 6px; }
+
 .gateway-pill {
   display: flex;
   align-items: center;

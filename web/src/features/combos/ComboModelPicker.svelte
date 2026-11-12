@@ -1,10 +1,8 @@
 <script lang="ts">
-  import Input from '../../components/Input.svelte';
   import Button from "../../components/Button.svelte";
+  import SelectSearch from '../../components/SelectSearch.svelte';
   import { afterUpdate, onDestroy } from 'svelte';
-  import { Check, ChevronsUpDown, LoaderCircle } from '@lucide/svelte';
-  import { Portal } from '@ark-ui/svelte/portal';
-  import { Combobox, createListCollection } from '@ark-ui/svelte/combobox';
+  import { LoaderCircle } from '@lucide/svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -24,7 +22,6 @@ import { localizedError } from '../../lib/errors';
 
   let models: string[] = [];
   let hasMore = false;
-  let inputValue = '';
   let searchQuery = '';
   let state: 'idle' | 'loading' | 'ready' | 'empty' | 'error' = 'idle';
   let error = '';
@@ -37,16 +34,23 @@ import { localizedError } from '../../lib/errors';
   $: visibleModels = target.model && !models.includes(target.model)
     ? [target.model, ...models].slice(0, MODEL_PAGE_SIZE)
     : models.slice(0, MODEL_PAGE_SIZE);
-  $: collection = createListCollection({
-    items: visibleModels.map((model) => ({ label: model, value: model })),
-  });
-  $: selectedValues = target.model ? [target.model] : [];
+  $: pickerItems = visibleModels.map((model) => ({ label: model, value: model }));
+  // The panel's empty row carries the same state message the old Ark
+  // Combobox.Empty rendered while the catalog loads, is filtered to nothing,
+  // or fails.
+  $: noOptionsText = noOptionsMessage();
+
+  function noOptionsMessage(): string {
+    if (state === 'empty' && searchQuery) return tr('No matching saved models.');
+    if (state === 'empty') return tr('No saved models for this provider. Import its model list first.');
+    if (state === 'idle' && searchQuery.length === 1) return tr('Type at least 2 characters to search saved models.');
+    if (state === 'idle') return tr('Focus this field to load saved models.');
+    if (state === 'error') return error;
+    return tr('Loading saved models…');
+  }
 
   afterUpdate(() => {
     if (!active || !focused) {
-      if (!focused && inputValue !== target.model) {
-        inputValue = target.model;
-      }
       if (activeProviderId || controller || searchTimer || models.length || state !== 'idle') {
         activeProviderId = '';
         clearCatalog();
@@ -57,7 +61,6 @@ import { localizedError } from '../../lib/errors';
 
     activeProviderId = target.providerId;
     searchQuery = '';
-    inputValue = target.model;
     clearCatalog();
     if (target.providerId) void loadModels(target.providerId, '');
   });
@@ -99,7 +102,6 @@ import { localizedError } from '../../lib/errors';
       state = models.length ? 'ready' : 'empty';
       if (!query && !hasMore && models.length === 1 && !target.model) {
         onModelChange(target.key, models[0]);
-        inputValue = models[0];
       }
     } catch (cause) {
       if (generation !== requestGeneration || controller !== requestController || !active || !focused || target.providerId !== providerId) return;
@@ -110,8 +112,9 @@ import { localizedError } from '../../lib/errors';
     }
   }
 
-  function searchModels(value: string): void {
-    inputValue = value;
+  // SelectSearch reports every open ('' query) and keystroke; the old
+  // debounce, minimum length, and abort semantics are unchanged.
+  function handleSearch(value: string): void {
     searchQuery = value.trim();
     cancelPending();
     models = [];
@@ -135,21 +138,7 @@ import { localizedError } from '../../lib/errors';
     }, MODEL_SEARCH_DEBOUNCE_MS);
   }
 
-  function handleInputValueChange(details: { inputValue: string; reason?: string }): void {
-    inputValue = details.inputValue;
-    if (details.reason === 'input-change') {
-      searchModels(details.inputValue);
-    } else if (details.reason === 'item-select') {
-      searchQuery = '';
-    } else if (details.reason === 'interact-outside') {
-      searchQuery = '';
-      inputValue = target.model;
-    }
-  }
-
-  function handleValueChange(details: { value: string[] }): void {
-    const model = details.value[0] ?? '';
-    inputValue = model;
+  function handleValueChange(model: string): void {
     searchQuery = '';
     onModelChange(target.key, model);
   }
@@ -159,19 +148,24 @@ import { localizedError } from '../../lib/errors';
     onActivate(target.key);
   }
 
-  function handleInputFocus(event: FocusEvent & { currentTarget: HTMLInputElement }): void {
-    event.currentTarget.select();
-    activate();
-  }
-
   function deactivate(): void {
     focused = false;
     onDeactivate(target.key);
   }
 
-  function handleOpenChange(details: { open: boolean }): void {
-    if (details.open) activate();
-    else deactivate();
+  // The shared SelectSearch owns its open state; activation follows DOM focus
+  // so the parent keeps exactly one loading picker and cleanup still runs when
+  // focus leaves the field.
+  function handleFocusIn(): void {
+    if (!focused) activate();
+  }
+
+  function handleFocusOut(event: FocusEvent): void {
+    if (!focused) return;
+    const next = event.relatedTarget as Node | null;
+    const container = event.currentTarget as HTMLElement;
+    if (next && container.contains(next)) return;
+    deactivate();
   }
 
   function retry(): void {
@@ -195,53 +189,19 @@ import { localizedError } from '../../lib/errors';
   });
 </script>
 
-<div class="combo-model-field">
-  <Combobox.Root
-    {collection}
-    value={selectedValues}
-    {inputValue}
-    onInputValueChange={handleInputValueChange}
-    onValueChange={handleValueChange}
-    onOpenChange={handleOpenChange}
+<div class="combo-model-field combo-picker" onfocusin={handleFocusIn} onfocusout={handleFocusOut}>
+  <SelectSearch
+    items={pickerItems}
+    value={target.model}
+    label={tr('Upstream model')}
+    ariaLabel={tr('Search saved models')}
+    placeholder={tr(target.providerId ? 'Search saved models' : 'Choose a provider first.')}
     disabled={!target.providerId}
-    openOnClick
-    closeOnSelect
-    lazyMount
-    unmountOnExit
-    positioning={{ sameWidth: true, fitViewport: true }}
-    class="combo-model-picker"
-  >
-    <Combobox.Label class="combo-field-label">{tr('Upstream model')}</Combobox.Label>
-    <Combobox.Control class="combo-combobox-control">
-      <Input variant="combobox" class="ark-field-input combo-combobox-input" placeholder={tr(target.providerId ? 'Search saved models' : 'Choose a provider first.')} autocomplete="off" onfocus={handleInputFocus} />
-      <Combobox.Trigger class="combo-combobox-trigger" aria-label={tr('Search saved models')}>
-        <ChevronsUpDown size={14} />
-      </Combobox.Trigger>
-    </Combobox.Control>
-    <Portal>
-      <Combobox.Positioner class="ark-select-positioner">
-        <Combobox.Content class="ark-select-content combo-combobox-content">
-          <Combobox.List class="ark-select-item-group">
-            {#each collection.items as item (item.value)}
-              <Combobox.Item class="ark-select-item" {item}>
-                <Combobox.ItemText class="ark-select-item-text">{item.label}</Combobox.ItemText>
-                <Combobox.ItemIndicator class="ark-select-item-indicator"><Check size={14} /></Combobox.ItemIndicator>
-              </Combobox.Item>
-            {:else}
-              <Combobox.Empty class="ark-select-empty">
-                {#if state === 'empty' && searchQuery}{tr('No matching saved models.')}
-                {:else if state === 'empty'}{tr('No saved models for this provider. Import its model list first.')}
-                {:else if state === 'idle' && searchQuery.length === 1}{tr('Type at least 2 characters to search saved models.')}
-                {:else if state === 'idle'}{tr('Focus this field to load saved models.')}
-                {:else if state === 'error'}{error}
-                {:else}{tr('Loading saved models…')}{/if}
-              </Combobox.Empty>
-            {/each}
-          </Combobox.List>
-        </Combobox.Content>
-      </Combobox.Positioner>
-    </Portal>
-  </Combobox.Root>
+    clearable={false}
+    {noOptionsText}
+    onSearch={handleSearch}
+    onValueChange={handleValueChange}
+  />
 
   {#if target.providerId && (state === 'loading' || state === 'empty' || state === 'error')}
     <div class="target-catalog-status" aria-live="polite">
@@ -253,3 +213,18 @@ import { localizedError } from '../../lib/errors';
     </div>
   {/if}
 </div>
+
+<style>
+  /* Keep the compact combo-row face of the former Ark combobox input while
+     rendering through the shared SelectSearch control. */
+  .combo-picker :global(input),
+  .combo-picker :global(button[aria-haspopup='listbox']) {
+    height: 35px;
+    min-height: 35px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 32px;
+    border-radius: 7px;
+    font-size: 12.5px;
+  }
+</style>

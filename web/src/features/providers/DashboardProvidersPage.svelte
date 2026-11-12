@@ -99,11 +99,6 @@
     return presets.find((p) => p.adapter_id === provider.adapter_id || p.id === provider.adapter_id)?.name ?? provider.adapter_id;
   }
 
-  function providerTypeLabel(preset: ProviderPreset): string {
-    const labels = preset.labels.map((label) => tr(label)).join(', ');
-    return labels ? labels : tr(CATEGORY_LABEL_KEYS[presetCategory(preset)]);
-  }
-
   async function providerPreset(presetId: string): Promise<void> {
     if (creatingPresetId) return;
     const preset = presetById.get(presetId);
@@ -439,10 +434,10 @@
       class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-[680px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[680px]:gap-[8px]"
       aria-label={tr('Provider overview')}
     >
-      <StatsCard eyebrow={tr('Providers')} icon="#i-link" value={providers.length} title={tr('Total Providers')} trend={tr('{enabled} enabled, {disabled} disabled', { enabled: enabledCount, disabled: providers.length - enabledCount })} actionLabel={tr('View all')} onAction={ () => (statusFilter = 'all') } />
-      <StatsCard eyebrow={tr('Providers')} icon="#i-zap" value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} actionLabel={tr('Show enabled only')} onAction={ () => (statusFilter = 'enabled') } />
-      <StatsCard eyebrow={tr('Providers')} icon="#i-key" value={totalKeys} title={tr('Credentials')} trend={tr('Across {count} providers', { count: providers.filter((p) => (p.api_key_count ?? 0) > 0).length })} actionLabel={tr('Manage keys')} onAction={ () => { if (providers[0]) void openKeys(providers[0]); } } />
-      <StatsCard eyebrow={tr('Providers')} icon="#i-refresh" value={totalModels} title={tr('Synced Models')} trend={keylessCount ? tr('{count} enabled without keys', { count: keylessCount }) : tr('All enabled providers have keys')} actionLabel={tr('Sync now')} onAction={ syncModels } />
+      <StatsCard index={1} eyebrow={tr('Network')} value={providers.length} title={tr('Total Providers')} trend={tr('{enabled} enabled, {disabled} disabled', { enabled: enabledCount, disabled: providers.length - enabledCount })} />
+      <StatsCard index={2} eyebrow={tr('Network')} badgeTone="dot" badge={String(enabledCount)} value={enabledCount} title={tr('Enabled')} trend={tr('Serving live traffic')} />
+      <StatsCard index={3} eyebrow={tr('Keys')} value={totalKeys} title={tr('Credentials')} trend={tr('Across {count} providers', { count: providers.filter((p) => (p.api_key_count ?? 0) > 0).length })} />
+      <StatsCard index={4} eyebrow={tr('Routing')} value={totalModels} title={tr('Synced Models')} trend={keylessCount ? tr('{count} enabled without keys', { count: keylessCount }) : tr('All enabled providers have keys')} />
     </section>
 
     <section class="course-card surface" aria-labelledby="providers-heading">
@@ -455,7 +450,7 @@
       </div>
       <p class="card-subtitle">{tr('{providers} providers · {enabled} enabled · {keys} credentials', { providers: providers.length, enabled: enabledCount, keys: totalKeys })}</p>
       <div class="page-toolbar provider-toolbar mt-3 items-center">
-        <Input class="min-h-[34px]! w-[min(280px,100%)]! flex-[1_1_200px] rounded-[10px]! border-line! bg-surface! px-3! text-muted! text-dash-body! focus:outline-none! focus:border-[color-mix(in_srgb,var(--accent)_55%,var(--surface))]! focus:ring-3! focus:ring-db-accent-ring!" type="search" placeholder={tr('Search providers...')} aria-label={tr('Search providers')} bind:value={search} />
+        <Input class="w-[min(280px,100%)] flex-[1_1_200px]" type="search" placeholder={tr('Search providers...')} aria-label={tr('Search providers')} bind:value={search} />
         <SelectOptions
           class="prov-select"
           ariaLabel={tr('Filter by status')}
@@ -502,8 +497,7 @@
                           {#if logo}<img src={logo} alt="" aria-hidden="true" />{:else}<svg class="icon"><use href="#i-zap" /></svg>{/if}
                         </span>
                         <span class="course-copy">
-                          <strong>{preset.name} <span class="ml-[6px] rounded-full bg-surface-sunken px-[7px] py-[2px] text-muted text-caption font-medium [vertical-align:1px]">{providerTypeLabel(preset)}</span></strong>
-                          <span>{preset.default_base_url ?? preset.adapter_id}</span>
+                          <strong>{preset.name}</strong>
                         </span>
                         {#if creatingPresetId === preset.id}
                           <span class="status progress">{tr('Creating…')}</span>
@@ -558,7 +552,7 @@
         {/each}
       {/if}
     </div>
-    <form class="flex gap-2 [&_input]:min-h-[38px]! [&_input]:flex-1! [&_input]:rounded-[10px]! [&_input]:border! [&_input]:border-line! [&_input]:bg-db-tint! [&_input]:px-3! [&_input]:text-ink! [&_input]:text-dash-body! [&_input:focus]:outline-0! [&_input:focus]:ring-3! [&_input:focus]:ring-db-accent-ring!" onsubmit={(e) => { e.preventDefault(); void addKey(); }}>
+    <form class="flex gap-2 [&_input]:flex-1" onsubmit={(e) => { e.preventDefault(); void addKey(); }}>
       <Input bind:value={newKey} type="password" placeholder={tr('Paste a new API key…')} autocomplete="off" />
       <Button class="page-action primary disabled:opacity-55 disabled:cursor-default" type="submit" disabled={keyBusy || !newKey.trim()}>{keyBusy ? tr('Testing…') : tr('Add key')}</Button>
     </form>

@@ -2371,6 +2371,8 @@ export const ko: Catalog = {
   'Proxy live': '정상',
   'Proxy die': '실패',
   'Could not check proxy.': '프록시를 확인할 수 없습니다.',
+  'Reset to defaults': '기본값으로 초기화',
+  'Defaults restored': '기본값이 복원되었습니다',
   'Hide info': '정보 숨기기',
   "Network usage": "네트워크 사용량",
   "Application payload sent through configured proxy groups since this process started.": "이 프로세스가 시작된 이후 구성된 프록시 그룹을 통해 전송된 애플리케이션 페이로드입니다.",

@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { Checkbox } from '@ark-ui/svelte/checkbox';
-  import { Check, Minus } from '@lucide/svelte';
-
   interface Props {
     checked?: boolean | 'indeterminate';
     disabled?: boolean;
@@ -21,32 +18,43 @@
     ariaLabel = '',
     onCheckedChange = () => {},
   }: Props = $props();
+
+  let inputEl = $state<HTMLInputElement | null>(null);
+
+  /* The prop is the source of truth (callback-driven, not bindable): reflect
+     it onto the native control, including the indeterminate state which has
+     no HTML attribute. `!` out-ranks the unlayered legacy `.modal-form input`
+     reset, which would otherwise stretch the box to a full-width 37px control. */
+  $effect(() => {
+    if (!inputEl) return;
+    inputEl.checked = checked === true;
+    inputEl.indeterminate = checked === 'indeterminate';
+  });
+
+  function handleChange(event: Event & { currentTarget: EventTarget & HTMLInputElement }): void {
+    onCheckedChange(event.currentTarget.checked);
+  }
 </script>
 
-<Checkbox.Root
-  {checked}
-  {disabled}
-  onCheckedChange={(details) => onCheckedChange(details.checked)}
-  class="ark-checkbox-root {className}"
+<label
+  class="inline-flex! items-center! gap-2! select-none {disabled ? 'cursor-not-allowed! opacity-55' : 'cursor-pointer!'} {className}"
 >
-  <Checkbox.Control class="ark-checkbox-control">
-    <Checkbox.Indicator class="ark-checkbox-indicator">
-      {#if checked === 'indeterminate'}
-        <Minus size={12} strokeWidth={3} />
-      {:else}
-        <Check size={12} strokeWidth={3} />
-      {/if}
-    </Checkbox.Indicator>
-  </Checkbox.Control>
+  <input
+    bind:this={inputEl}
+    type="checkbox"
+    class="h-[17px]! w-[17px]! shrink-0 accent-accent!"
+    {disabled}
+    aria-label={ariaLabel || label || undefined}
+    onchange={handleChange}
+  />
   {#if label || description}
-    <div class="ark-checkbox-text">
+    <span class="grid! gap-[3px]!">
       {#if label}
-        <Checkbox.Label class="ark-checkbox-label">{label}</Checkbox.Label>
+        <span class="text-sm! font-semibold! text-ink!">{label}</span>
       {/if}
       {#if description}
-        <small class="ark-checkbox-description">{description}</small>
+        <small class="text-xs! leading-normal! text-muted!">{description}</small>
       {/if}
-    </div>
+    </span>
   {/if}
-  <Checkbox.HiddenInput aria-label={ariaLabel || label} />
-</Checkbox.Root>
+</label>

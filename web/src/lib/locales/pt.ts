@@ -530,6 +530,8 @@ export const pt: Catalog = {
   'Your new API key': 'Sua nova chave de API',
   'Create an API key': 'Criar uma chave de API',
   'Close dialog': 'Fechar diálogo',
+  'Reset to defaults': 'Restaurar padrões',
+  'Defaults restored': 'Padrões restaurados',
   'Close': 'Fechar',
   'Provider name': 'Nome do provedor',
   'e.g. OpenAI compatible': 'ex.: compatível com OpenAI',

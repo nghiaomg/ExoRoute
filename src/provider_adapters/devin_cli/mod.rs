@@ -5,6 +5,7 @@ mod acp;
 mod prompt;
 #[cfg(test)]
 mod tests;
+mod tool_envelope;
 
 pub(super) struct DevinCliAdapter;
 
@@ -146,21 +147,64 @@ pub(super) async fn send_local_upstream(
     let completion_id = format!("chatcmpl-devin-{request_id}");
     let created = acp::unix_timestamp();
     let prompt_chars = prompt.chars().count();
+    let caller_tools = prompt::extract_caller_tool_names(upstream_body);
+    // Tool-bearing requests are buffered so the router can resolve a tool
+    // envelope before anything reaches the client (see tool_envelope.rs).
+    let has_caller_tools = !caller_tools.is_empty();
     let render = acp::TurnRender {
         completion_id,
+        caller_tools,
+        tool_call_id: format!("call_{request_id}"),
         model: model.to_owned(),
         created,
         prompt_chars,
         request_timeout,
     };
-    if streaming {
+    if streaming && !has_caller_tools {
         let body = acp::streaming_turn(session, (spawned.child, permit), prompt_id, render);
         sse_response(body)
     } else {
         let completion =
             acp::buffered_turn(session, (spawned.child, permit), prompt_id, render).await?;
-        json_response(&completion)
+        if streaming {
+            sse_response(completion_to_sse(completion))
+        } else {
+            json_response(&completion)
+        }
     }
+}
+
+/// Converts a buffered completion into OpenAI SSE frames for streaming
+/// clients whose tool-bearing turns were resolved after collection.
+fn completion_to_sse(
+    completion: Value,
+) -> impl futures_util::Stream<Item = Result<Vec<u8>, std::io::Error>> + Send + 'static {
+    let id = completion["id"].as_str().unwrap_or_default().to_owned();
+    let created = completion["created"].as_u64().unwrap_or_default();
+    let model = completion["model"].as_str().unwrap_or_default().to_owned();
+    let choice = &completion["choices"][0];
+    let message = &choice["message"];
+    let finish_reason = choice["finish_reason"].as_str();
+    let usage = completion.get("usage").cloned();
+    let mut frames = Vec::new();
+    let delta = if message.get("tool_calls").is_some() {
+        json!({"role": "assistant", "tool_calls": message["tool_calls"].clone()})
+    } else {
+        json!({"role": "assistant", "content": message["content"].clone()})
+    };
+    frames.push(acp::chat_chunk_frame(
+        &id, &model, created, delta, None, None,
+    ));
+    frames.push(acp::chat_chunk_frame(
+        &id,
+        &model,
+        created,
+        json!({}),
+        finish_reason,
+        usage,
+    ));
+    frames.push(acp::done_frame());
+    futures_util::stream::iter(frames.into_iter().map(Ok))
 }
 
 fn sse_response<S>(body: S) -> Result<reqwest::Response, String>

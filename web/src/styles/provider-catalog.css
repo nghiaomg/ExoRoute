@@ -347,8 +347,8 @@
     font-size: 12px;
   }
 
-  /* Modals & Dialogs on Mobile (Bottom Sheet style) */
-  .modal-positioner {
+  /* Native dialogs are their own top-layer modal; align the card to the bottom on mobile. */
+  dialog.modal[open] {
     align-items: flex-end;
     padding: 0;
   }
