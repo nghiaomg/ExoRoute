@@ -1338,6 +1338,7 @@ export const vi: Record<TranslationKey, string> = {
   'Could not load providers.': 'Không thể tải nhà cung cấp.',
   'Toggle password visibility': 'Hiện/ẩn mật khẩu',
   'Combos': 'Combo',
+  'combo': 'combo',
   'Create combo': 'Tạo combo',
   'Create a combo': 'Tạo combo',
   'Choose which providers serve a model and how requests fall back.': 'Chọn nhà cung cấp xử lý mô hình và cách chuyển sang lựa chọn dự phòng.',

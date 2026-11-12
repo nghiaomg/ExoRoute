@@ -762,3 +762,39 @@
   min-height: 32px;
   font-size: 12px;
 }
+
+/* ─── Combo target rows: compact 32px controls ─── */
+.dashboard-app .combo-target-rows .switch-track {
+  width: 32px;
+  height: 16px;
+}
+.dashboard-app .combo-target-rows .switch-thumb {
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+}
+.dashboard-app .combo-target-rows .icon-action {
+  width: 32px;
+  height: 32px;
+}
+.dashboard-app .combo-target-rows .icon-action .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ─── Combo dialog: compact typography & controls ─── */
+.dashboard-app .combo-dialog .form-note {
+  font-size: 12px;
+}
+.dashboard-app .combo-dialog .page-action {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-app .combo-dialog .modal-actions .page-action {
+  min-height: 32px;
+}

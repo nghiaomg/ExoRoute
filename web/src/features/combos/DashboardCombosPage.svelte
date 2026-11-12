@@ -351,12 +351,15 @@
         {#each filteredCombos as combo (combo.id)}
           {@const usage = comboUsage(combo)}
           {@const pct = successPct(combo)}
-          <article class="rounded-[14px] bg-db-tint-strong p-4 ps-[18px] pe-[18px] transition-[background-color,transform,box-shadow] duration-200 hover:bg-surface-sunken data-[status=disabled]:opacity-62" data-status={combo.enabled !== false ? 'enabled' : 'disabled'} data-strategy={combo.strategy}>
-            <div class="flex items-center gap-[11px] [&_.course-copy]:flex-1 [&_.course-copy]:min-w-0 [&_code]:px-1.5 [&_code]:rounded-md [&_code]:bg-surface-sunken [&_code]:text-muted [&_code]:text-[0.85em]">
-              <span class="course-icon"><svg class="icon"><use href={combo.strategy === 'round_robin' ? '#i-layers' : '#i-code'} /></svg></span>
-              <div class="course-copy">
-                <strong>{combo.name} <span class="ms-1.5 px-[7px] py-0.5 rounded-full bg-surface-sunken text-muted text-caption font-medium align-[1px]">{strategyLabel(combo.strategy)}</span></strong>
-                <span>
+          <article class="flex min-w-0 flex-col rounded-[14px] border border-line bg-surface p-4 transition-[border-color,box-shadow] duration-200 hover:border-text-dim/50 hover:shadow-sm data-[status=disabled]:opacity-62" data-status={combo.enabled !== false ? 'enabled' : 'disabled'} data-strategy={combo.strategy}>
+            <div class="flex min-w-0 items-center gap-[11px]">
+              <span class="course-icon shrink-0"><svg class="icon"><use href={combo.strategy === 'round_robin' ? '#i-layers' : '#i-code'} /></svg></span>
+              <div class="min-w-0 flex-1">
+                <div class="flex min-w-0 items-center gap-2">
+                  <strong class="truncate text-sm font-semibold text-ink">{combo.name}</strong>
+                  <span class="shrink-0 rounded-full bg-surface-sunken px-2 py-0.5 text-[11px] font-medium leading-none text-muted">{strategyLabel(combo.strategy)}</span>
+                </div>
+                <span class="mt-0.5 block truncate text-xs text-muted">
                   {#if usage}
                     {formatCount(usage.requests, locale)} {tr('requests')}{pct !== null ? ` · ${tr('{count}% success', { count: pct })}` : ''}
                   {:else}
@@ -364,23 +367,32 @@
                   {/if}
                 </span>
               </div>
-              <label class="switch" title={tr('Enable combo')}>
+              <label class="switch shrink-0" title={tr('Enable combo')}>
                 <Input type="checkbox" class="combo-toggle" checked={combo.enabled !== false} onchange={() => toggleCombo(combo)} />
                 <span class="switch-track"><span class="switch-thumb"></span></span>
               </label>
             </div>
-            <div class="mt-3 flex flex-wrap gap-[7px]">
+            <ul class="mt-3 flex flex-col gap-1" aria-label={tr('Targets')}>
               {#each combo.targets.slice(0, 4) as target, i (i)}
-                <span class="px-2.5 py-[5px] rounded-full bg-surface text-muted text-meta font-medium whitespace-nowrap">{targetLabel(target)}</span>
+                <li class="flex min-w-0 items-center gap-1.5 text-xs">
+                  {#if target.combo_id}
+                    <span class="shrink-0 rounded-[5px] bg-db-accent-tint px-1.5 py-px text-[10px] font-medium leading-[1.4] text-accent-strong">{tr('combo')}</span>
+                    <span class="truncate font-medium text-ink">{target.combo_id}</span>
+                  {:else}
+                    <span class="truncate text-muted">{targetLabel(target)}</span>
+                  {/if}
+                </li>
               {/each}
-              {#if combo.targets.length > 5}
-                <span class="bg-transparent! border border-line text-muted" title={combo.targets.slice(4, -1).map((target) => targetLabel(target)).join(' · ')}>{tr('+{count} more', { count: combo.targets.length - 5 })}</span>
+              {#if combo.targets.length > 4}
+                <li>
+                  <span
+                    class="inline-flex items-center rounded-full border border-line px-2 py-0.5 text-[11px] font-medium leading-none text-muted"
+                    title={combo.targets.slice(4).map((target) => targetLabel(target)).join(' · ')}
+                  >{tr('+{count} more', { count: combo.targets.length - 4 })}</span>
+                </li>
               {/if}
-              {#if combo.targets.length > 1}
-                <span class="bg-db-accent-tint! text-accent-strong!">{targetLabel(combo.targets[combo.targets.length - 1])}</span>
-              {/if}
-            </div>
-            <div class="mt-3 flex items-center justify-between gap-2.5 pt-[11px] border-t border-line">
+            </ul>
+            <div class="mt-auto flex items-center justify-between gap-2.5 border-t border-line pt-[11px]">
               <div class="course-actions">
                 <Button class="icon-action" type="button" title={tr('Edit combo')} onclick={() => openComboDialog(combo)}><svg class="icon"><use href="#i-edit" /></svg></Button>
                 <Button class="icon-action" type="button" title={tr('Duplicate')} onclick={() => duplicateCombo(combo)}><svg class="icon"><use href="#i-copy" /></svg></Button>
@@ -398,7 +410,7 @@
 
 <!-- Create / edit combo -->
 <dialog class="modal modal-wide" bind:this={comboDialog} aria-labelledby="combo-dialog-title" onclose={() => { cfError = ''; }}>
-  <form class="modal-card" onsubmit={(e) => { e.preventDefault(); void saveCombo(); }}>
+  <form class="modal-card combo-dialog" onsubmit={(e) => { e.preventDefault(); void saveCombo(); }}>
     <div class="modal-heading">
       <div>
         <h2 id="combo-dialog-title">{editingCombo ? tr('Edit combo') : tr('New combo')}</h2>
@@ -434,15 +446,15 @@
     <p class="form-note">{tr('The combo name is the model alias clients request.')}</p>
 
     <div class="grid gap-2.5 rounded-[13px] border border-line bg-db-tint p-3.5">
-      <div class="flex items-baseline gap-2.5 [&_strong]:text-ink [&_strong]:text-label">
-        <strong>{tr('Targets')}</strong>
-        <span class="text-muted text-caption">{tr('Tries each target in order on failure.')}</span>
+      <div class="flex items-baseline gap-2.5">
+        <strong class="text-xs font-semibold text-ink">{tr('Targets')}</strong>
+        <span class="text-muted text-xs">{tr('Tries each target in order on failure.')}</span>
       </div>
-      <div class="grid gap-2 max-nav:overflow-x-auto">
+      <div class="combo-target-rows grid gap-2 max-nav:overflow-x-auto">
         {#each cfTargets as target, i (target.key)}
-          <div class="{target.kind === 'combo' ? 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&_.target-kind]:min-h-9! [&_.target-kind]:py-0! [&_.target-kind]:pl-2.5! [&_.target-kind]:pr-8! [&_.target-kind]:rounded-[9px]! [&_.target-kind]:border! [&_.target-kind]:border-line! [&_.target-kind]:bg-surface! [&_.target-kind]:shadow-none! [&_.target-kind:focus-visible]:outline-0! [&_.target-kind:focus-visible]:ring-3! [&_.target-kind:focus-visible]:ring-db-accent-ring! grid-cols-[minmax(110px,0.5fr)_minmax(240px,1fr)_auto_32px]' : 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&_.target-kind]:min-h-9! [&_.target-kind]:py-0! [&_.target-kind]:pl-2.5! [&_.target-kind]:pr-8! [&_.target-kind]:rounded-[9px]! [&_.target-kind]:border! [&_.target-kind]:border-line! [&_.target-kind]:bg-surface! [&_.target-kind]:shadow-none! [&_.target-kind:focus-visible]:outline-0! [&_.target-kind:focus-visible]:ring-3! [&_.target-kind:focus-visible]:ring-db-accent-ring! grid-cols-[minmax(110px,0.5fr)_minmax(140px,0.7fr)_minmax(180px,1fr)_auto_32px]'}">
+          <div class="{target.kind === 'combo' ? 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&_.target-kind]:min-h-8! [&_.target-kind]:py-0! [&_.target-kind]:pl-2.5! [&_.target-kind]:pr-8! [&_.target-kind]:rounded-[9px]! [&_.target-kind]:border! [&_.target-kind]:border-line! [&_.target-kind]:bg-surface! [&_.target-kind]:shadow-none! [&_.target-kind:focus-visible]:outline-0! [&_.target-kind:focus-visible]:ring-3! [&_.target-kind:focus-visible]:ring-db-accent-ring! grid-cols-[minmax(132px,0.5fr)_minmax(240px,1fr)_auto_32px]' : 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&_.target-kind]:min-h-8! [&_.target-kind]:py-0! [&_.target-kind]:pl-2.5! [&_.target-kind]:pr-8! [&_.target-kind]:rounded-[9px]! [&_.target-kind]:border! [&_.target-kind]:border-line! [&_.target-kind]:bg-surface! [&_.target-kind]:shadow-none! [&_.target-kind:focus-visible]:outline-0! [&_.target-kind:focus-visible]:ring-3! [&_.target-kind:focus-visible]:ring-db-accent-ring! grid-cols-[minmax(132px,0.5fr)_minmax(140px,0.7fr)_minmax(180px,1fr)_auto_32px]'}">
             <SelectOptions
-              class="target-kind"
+              class="target-kind text-xs!"
               ariaLabel={tr('Target type')}
               placeholder={tr('Target type')}
               value={target.kind}
@@ -466,7 +478,7 @@
               </div>
             {:else}
               <SelectOptions
-                class="target-provider"
+                class="target-provider h-8! min-h-8! text-xs!"
                 ariaLabel={tr('Target provider')}
                 disabled={target.kind !== 'provider'}
                 value={target.providerId}
@@ -494,7 +506,7 @@
           </div>
         {/each}
       </div>
-      <Button class="page-action" type="button" onclick={addTarget}>
+      <Button class="page-action w-full justify-center" type="button" onclick={addTarget}>
         <svg class="icon"><use href="#i-plus" /></svg>
         {tr('Add target')}
       </Button>

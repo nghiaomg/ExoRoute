@@ -65,6 +65,9 @@
   let open = $state(false);
   let filterQuery = $state('');
   let activeIndex = $state(0);
+  // Flip the panel above the input when there isn't ~260px of room below —
+  // keeps it inside scrollable modals instead of clipping under the footer.
+  let dropUp = $state(false);
   let containerRef: HTMLDivElement | null = null;
   let inputElement: HTMLInputElement | null = $state(null);
 
@@ -96,6 +99,12 @@
     open = true;
     if (resetQuery) filterQuery = '';
     activeIndex = Math.max(0, filteredItems.findIndex((item) => item.value === value));
+    const rect = inputElement?.getBoundingClientRect();
+    if (rect) {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      dropUp = spaceBelow < 260 && spaceAbove > spaceBelow;
+    }
     onSearch?.('');
   }
 
@@ -241,7 +250,7 @@
     <div
       role="listbox"
       id={listboxId}
-      class="absolute left-0 right-0 top-full z-[99999] mt-1 max-h-[240px] overflow-y-auto rounded-xl border border-line bg-surface-popover p-1 shadow-lg"
+      class={`absolute left-0 right-0 z-[99999] max-h-[240px] overflow-y-auto rounded-xl border border-line bg-surface-popover p-1 shadow-lg ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
     >
       {#each filteredItems as item, index (item.value)}
         <button
@@ -250,7 +259,7 @@
           id={`${listboxId}-${index}`}
           aria-selected={item.value === value}
           title={item.value === item.label ? undefined : item.value}
-          class={`flex min-h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-xs leading-snug text-ink transition-colors duration-100 hover:bg-surface-sunken ${index === activeIndex ? 'bg-surface-sunken' : ''} ${item.value === value ? 'bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] font-semibold text-accent-strong' : ''}`}
+          class={`flex min-h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left text-xs leading-snug text-ink transition-colors duration-100 hover:bg-surface-sunken ${index === activeIndex ? 'bg-surface-sunken' : ''} ${item.value === value ? 'bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] font-semibold text-accent-strong' : ''}`}
           onmouseenter={() => (activeIndex = index)}
           onclick={() => selectItem(item)}
         >
@@ -259,7 +268,7 @@
           {#if item.value === value}<Check size={14} class="shrink-0 text-accent" />{/if}
         </button>
       {:else}
-        <div class="px-2.5 py-2 text-center text-sm text-text-dim">{noOptionsText}</div>
+        <div class="px-3 py-2 text-center text-xs text-text-dim">{noOptionsText}</div>
       {/each}
     </div>
   {/if}

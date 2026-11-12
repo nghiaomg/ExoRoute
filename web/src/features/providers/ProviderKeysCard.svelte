@@ -160,7 +160,7 @@ import { localizedError } from '../../lib/errors';
         ? 'Each request starts at the next enabled key, then falls back to the following keys.'
         : 'Keys are tried in this order. The first enabled key serves requests and the following keys are fallbacks.')}</p>
     </div>
-    <Button class="secondary-button compact" disabled={loading} onclick={load}><RefreshCw size={13} />{tr('Refresh keys')}</Button>
+    <Button class="secondary-button compact" disabled={loading} onclick={load}><RefreshCw size={14} />{tr('Refresh keys')}</Button>
   </div>
 
   {#if isFreebuff}
@@ -171,7 +171,7 @@ import { localizedError } from '../../lib/errors';
   {/if}
 
   {#if errorMessage}
-    <div class="provider-model-empty" role="alert"><p>{errorMessage}</p><Button class="secondary-button compact" onclick={load}><RefreshCw size={13} />{tr('Retry')}</Button></div>
+    <div class="provider-model-empty" role="alert"><p>{errorMessage}</p><Button class="secondary-button compact" onclick={load}><RefreshCw size={14} />{tr('Retry')}</Button></div>
   {:else if loading}
     <div class="provider-keys-loading"><LoaderCircle size={15} class="spin" />{tr('Loading provider keys…')}</div>
   {:else if keys.length}

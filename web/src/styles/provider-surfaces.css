@@ -108,3 +108,27 @@
   font-weight: 550;
   line-height: 1.45;
 }
+
+/* ─── Provider detail: compact button & field scale ─── */
+.providers-view .detail-hero-actions .secondary-button,
+.providers-view .detail-hero-actions .primary-button,
+.providers-view .detail-hero-actions .detail-delete-btn,
+.providers-view .provider-model-section .secondary-button.compact,
+.providers-view .provider-model-section .primary-button.compact {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.providers-view .provider-model-section .provider-manual-model-row .provider-manual-model-input {
+  height: 32px;
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.providers-view .provider-model-section .provider-manual-model-label {
+  font-size: 12px;
+  font-weight: 500;
+}

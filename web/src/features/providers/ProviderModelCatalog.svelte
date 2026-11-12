@@ -211,8 +211,8 @@ import { localizedError } from '../../lib/errors';
   <div class="provider-model-section-heading">
     <div><h3>{tr('Saved models')}</h3><p>{tr('Manage saved models for this provider. Import a list, add a model ID manually, or test models below.')}</p></div>
     <Button class="primary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}>
-      {#if importFeedback?.state === 'loading'}<LoaderCircle size={13} class="spin" />{tr('Importing models…')}
-      {:else}<Download size={13} />{tr('Import models')}{/if}
+      {#if importFeedback?.state === 'loading'}<LoaderCircle size={14} class="spin" />{tr('Importing models…')}
+      {:else}<Download size={14} />{tr('Import models')}{/if}
     </Button>
   </div>
 
@@ -231,7 +231,7 @@ import { localizedError } from '../../lib/errors';
           aria-label={tr('Model ID')}
         />
         <Button type="submit" class="secondary-button compact" disabled={savingManualModel || deletingModel !== ''}>
-          {#if savingManualModel}<LoaderCircle size={13} class="spin" />{:else}<Save size={13} />{/if}
+          {#if savingManualModel}<LoaderCircle size={14} class="spin" />{:else}<Save size={14} />{/if}
           <span>{tr('Save model')}</span>
         </Button>
       </div>
@@ -245,9 +245,9 @@ import { localizedError } from '../../lib/errors';
   {#if catalogState === 'loading'}
     <div class="inline-loading"><LoaderCircle size={16} class="spin" /><span>{tr('Loading saved models…')}</span></div>
   {:else if catalogState === 'error'}
-    <div class="provider-model-empty" role="alert"><p>{catalogError}</p><Button class="secondary-button compact" onclick={loadCatalog}><RefreshCw size={13} />{tr('Retry loading models')}</Button></div>
+    <div class="provider-model-empty" role="alert"><p>{catalogError}</p><Button class="secondary-button compact" onclick={loadCatalog}><RefreshCw size={14} />{tr('Retry loading models')}</Button></div>
   {:else if catalogState === 'empty'}
-    <div class="provider-model-empty"><Cpu size={19} /><p>{tr('No saved models for this provider. Import a list or add a model ID manually.')}</p><Button class="secondary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}><Download size={13} />{tr('Import models')}</Button></div>
+    <div class="provider-model-empty"><Cpu size={19} /><p>{tr('No saved models for this provider. Import a list or add a model ID manually.')}</p><Button class="secondary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}><Download size={14} />{tr('Import models')}</Button></div>
   {:else if catalogState === 'ready'}
     <ProviderModelTests provider={provider} models={modelTargets} {manualModels} {tr} onDeleteModel={deleteModel} />
   {/if}

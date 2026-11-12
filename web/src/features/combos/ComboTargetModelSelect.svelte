@@ -144,12 +144,13 @@
      rendering through the shared SelectSearch control. */
   .combo-picker :global(input),
   .combo-picker :global(button[aria-haspopup='listbox']) {
-    height: 35px;
-    min-height: 35px;
+    height: 32px;
+    min-height: 32px;
     padding-top: 0;
     padding-bottom: 0;
+    padding-left: 10px;
     padding-right: 32px;
     border-radius: 7px;
-    font-size: 12.5px;
+    font-size: 12px;
   }
 </style>

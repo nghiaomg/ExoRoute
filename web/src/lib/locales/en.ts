@@ -1336,6 +1336,7 @@ export const en = {
   'Could not load providers.': 'Could not load providers.',
   'Toggle password visibility': 'Toggle password visibility',
   'Combos': 'Combos',
+  'combo': 'combo',
   'Proxies': 'Proxies',
   'Egress proxy': 'Egress proxy',
   'Configure egress proxy groups and ordered connect fallbacks.': 'Configure egress proxy groups and ordered connect fallbacks.',
