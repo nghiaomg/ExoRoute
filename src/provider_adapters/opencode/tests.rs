@@ -529,9 +529,15 @@ async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
         .and_then(|value| value.to_str().ok())
         .expect("canonical request header");
     assert!(request_id.starts_with("msg_"), "{request_id}");
-    assert_eq!(
-        preparation.headers.get("authorization").unwrap(),
-        "Bearer public"
+    // The free-tier authorization belongs to `apply_upstream_request_auth`: a
+    // preparation header would be appended *in addition* to it, and the wire
+    // then carries a duplicate `Authorization` that Cloudflare's edge answers
+    // with a bare HTTP 400.
+    assert!(
+        preparation
+            .headers
+            .get(http::header::AUTHORIZATION)
+            .is_none()
     );
 
     let names: Vec<&str> = body["tools"]
@@ -573,6 +579,125 @@ async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
     assert_eq!(
         retry.headers.get("x-opencode-session"),
         preparation.headers.get("x-opencode-session")
+    );
+}
+
+/// Composes the request exactly as every send path does — the model probe, the
+/// gateway send, and the workspace relay all apply the preparation headers onto
+/// the request builder and then the adapter auth — and builds it, so assertions
+/// run against the wire-shaped header list.
+async fn compose_zen_wire_request(
+    state: &AppState,
+    model: &str,
+    auth_type: &str,
+    secret: Option<&str>,
+    protocol: UpstreamProtocol,
+) -> reqwest::Request {
+    let request_id = "request-1";
+    let mut body = json!({
+        "model": model,
+        "messages": [{"role": "user", "content": "Reply with OK."}],
+        "stream": true,
+    });
+    let preparation = OPENCODE_ZEN_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state,
+                base_url: "https://opencode.ai/zen/v1",
+                adapter_base_url_override: None,
+                model,
+                request_id,
+                streaming: true,
+                auth: UpstreamAuthContext {
+                    auth_type,
+                    auth_header: None,
+                    secret,
+                    oauth_auth: None,
+                    session_id: request_id,
+                    protocol,
+                    model: Some(model),
+                },
+            },
+            &mut body,
+        )
+        .await
+        .expect("Zen fingerprint preparation");
+
+    let mut request = reqwest::Client::new().post("https://opencode.ai/zen/v1/chat/completions");
+    for (name, value) in &preparation.headers {
+        request = request.header(name, value);
+    }
+    let request = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request,
+            UpstreamAuthContext {
+                auth_type,
+                auth_header: None,
+                secret,
+                oauth_auth: None,
+                session_id: request_id,
+                protocol,
+                model: Some(model),
+            },
+        )
+        .expect("Zen upstream auth");
+    request.build().expect("build composed Zen request")
+}
+
+#[tokio::test]
+async fn zen_sends_exactly_one_authorization_header_on_the_wire() {
+    let database = crate::support::test_support::TestDatabase::open().await;
+    let state = AppState::new(database.config(), database.db.clone());
+
+    // The free-tier lane answers `Bearer public` whether the provider is keyed
+    // or not, and the upstream rejects anything else with 403/500.
+    for (auth_type, secret) in [("none", None), ("bearer", Some("key-value"))] {
+        let request = compose_zen_wire_request(
+            &state,
+            "exo-free",
+            auth_type,
+            secret,
+            UpstreamProtocol::ChatCompletions,
+        )
+        .await;
+        let values: Vec<&HeaderValue> = request
+            .headers()
+            .get_all(http::header::AUTHORIZATION)
+            .iter()
+            .collect();
+        assert_eq!(
+            values.len(),
+            1,
+            "a duplicate Authorization header reaches the wire and Cloudflare's edge answers it with HTTP 400"
+        );
+        assert_eq!(
+            values[0].to_str().expect("authorization header text"),
+            "Bearer public"
+        );
+    }
+
+    // A paid model keeps the connection key — still sent exactly once.
+    let request = compose_zen_wire_request(
+        &state,
+        "exo-paid",
+        "bearer",
+        Some("key-value"),
+        UpstreamProtocol::ChatCompletions,
+    )
+    .await;
+    let values: Vec<&HeaderValue> = request
+        .headers()
+        .get_all(http::header::AUTHORIZATION)
+        .iter()
+        .collect();
+    assert_eq!(
+        values.len(),
+        1,
+        "duplicate Authorization header on the wire"
+    );
+    assert_eq!(
+        values[0].to_str().expect("authorization header text"),
+        "Bearer key-value"
     );
 }
 

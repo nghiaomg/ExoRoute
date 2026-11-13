@@ -173,6 +173,12 @@ impl ProviderAdapter for OpenCodeZenAdapter {
     /// OpenCode's free tier refuses a request that does not carry the official
     /// client's identity, so Zen declares that identity and the tool quartet the
     /// upstream requires. See [`client`] for the contract.
+    ///
+    /// These headers must not carry `Authorization`: every send path applies
+    /// `apply_upstream_request_auth` after this preparation, and reqwest appends
+    /// rather than replaces headers, so an authorization placed here would be
+    /// sent twice — a duplicate `Authorization` header that Cloudflare's edge
+    /// rejects with a bare HTTP 400 before the request reaches the upstream.
     fn prepare_upstream_request<'a>(
         &'a self,
         context: AdapterRequestContext<'a>,
@@ -183,12 +189,7 @@ impl ProviderAdapter for OpenCodeZenAdapter {
             // seed, so a retry or a later turn of one conversation reuses the
             // same upstream session. These headers are applied after the caller
             // headers, which is what makes the session canonical.
-            let mut headers = fingerprint_headers(context.auth.session_id, context.request_id);
-            if routing::is_opencode_free_tier_model(context.model)
-                && let Ok(value) = http::HeaderValue::from_str("Bearer public")
-            {
-                headers.insert(http::header::AUTHORIZATION, value);
-            }
+            let headers = fingerprint_headers(context.auth.session_id, context.request_id);
             apply_fingerprint_tools(body, context.auth.protocol);
             Ok(AdapterRequestPreparation::new(headers, None, None))
         })
