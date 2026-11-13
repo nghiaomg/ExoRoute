@@ -38,7 +38,7 @@ pub(super) fn resolve_tool_envelope(text: &str, caller_tools: &[String]) -> Tool
     let Some((tag, inner_range, _)) = find_first_envelope(text) else {
         return ToolEnvelopeOutcome::Text(text.to_owned());
     };
-    let Some(value) = parse_lenient_json(&text[inner_range.clone()].trim()) else {
+    let Some(value) = parse_lenient_json(text[inner_range.clone()].trim()) else {
         return ToolEnvelopeOutcome::Text(strip_envelopes(text));
     };
 

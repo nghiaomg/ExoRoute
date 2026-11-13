@@ -3,6 +3,7 @@ use std::time::Duration;
 
 mod acp;
 mod prompt;
+mod summary;
 #[cfg(test)]
 mod tests;
 mod tool_envelope;

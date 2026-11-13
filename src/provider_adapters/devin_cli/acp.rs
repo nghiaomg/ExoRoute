@@ -509,6 +509,10 @@ where
         let TurnRender { completion_id, caller_tools: _, tool_call_id: _, model, created, prompt_chars, request_timeout } = render;
         let mut output_chars: usize = 0;
         let mut has_non_whitespace_output = false;
+        // The summarizer wraps its report in <summary>…</summary> markup that
+        // must never reach the client; the stripper tolerates tags split
+        // across chunk boundaries. See [`super::summary`] for the contract.
+        let mut stripper = super::summary::SummaryStripper::new();
         yield Ok(chat_chunk_frame(
             &completion_id,
             &model,
@@ -533,22 +537,38 @@ where
                     break;
                 }
                 Ok(Ok(Some(TurnEvent::Text(delta)))) => {
-                    output_chars += delta.chars().count();
-                    has_non_whitespace_output |= !delta.trim().is_empty();
-                    if output_chars > MAX_OUTPUT_TEXT_CHARS {
-                        yield Ok(error_turn_frame("the Devin CLI reply exceeded the output limit"));
-                        break;
+                    let delta = stripper.push(&delta);
+                    if !delta.is_empty() {
+                        output_chars += delta.chars().count();
+                        has_non_whitespace_output |= !delta.trim().is_empty();
+                        if output_chars > MAX_OUTPUT_TEXT_CHARS {
+                            yield Ok(error_turn_frame("the Devin CLI reply exceeded the output limit"));
+                            break;
+                        }
+                        yield Ok(chat_chunk_frame(
+                            &completion_id,
+                            &model,
+                            created,
+                            json!({"content": delta}),
+                            None,
+                            None,
+                        ));
                     }
-                    yield Ok(chat_chunk_frame(
-                        &completion_id,
-                        &model,
-                        created,
-                        json!({"content": delta}),
-                        None,
-                        None,
-                    ));
                 }
                 Ok(Ok(Some(TurnEvent::Ended { stop_reason }))) => {
+                    let tail = stripper.finish();
+                    if !tail.is_empty() {
+                        output_chars += tail.chars().count();
+                        has_non_whitespace_output |= !tail.trim().is_empty();
+                        yield Ok(chat_chunk_frame(
+                            &completion_id,
+                            &model,
+                            created,
+                            json!({"content": tail}),
+                            None,
+                            None,
+                        ));
+                    }
                     if !has_non_whitespace_output {
                         yield Ok(error_turn_frame("the Devin CLI completed the turn without assistant text"));
                         break;
@@ -613,6 +633,11 @@ where
                 }
             }
             Some(TurnEvent::Ended { stop_reason }) => {
+                // The summarizer wraps its report in <summary>…</summary>
+                // markup; strip the envelope before the client sees the text
+                // and before the tool-envelope resolution reads it. See
+                // [`super::summary`] for the contract.
+                let text = super::summary::strip_summary_envelope(&text);
                 if !has_assistant_output(&text) {
                     return Err(
                         "the Devin CLI completed the turn without assistant text".to_owned()

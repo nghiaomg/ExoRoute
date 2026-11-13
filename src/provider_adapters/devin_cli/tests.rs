@@ -2,6 +2,7 @@ use super::acp::{
     AcpSession, DEVIN_ENDPOINT_URL, TurnEvent, acquire_session_permit, buffered_turn,
     discover_devin_binary, flatten_chat_messages, streaming_turn,
 };
+use super::summary::{SummaryStripper, strip_summary_envelope};
 use super::*;
 use futures_util::StreamExt;
 use std::time::Duration;
@@ -613,4 +614,212 @@ async fn the_tool_bridge_envelope_converts_with_its_arguments() {
     assert_eq!(call["function"]["name"], "lookup_weather");
     assert_eq!(call["function"]["arguments"], "{\"city\":\"Hanoi\"}");
     assert_eq!(completion["choices"][0]["finish_reason"], "tool_calls");
+}
+
+/// The exact turn shape from the field report: the summarizer wraps its
+/// markdown report in `<summary>…</summary>` and the closing tag leaked into
+/// the chat frame as literal text.
+#[test]
+fn the_summary_envelope_is_stripped_from_a_completed_turn() {
+    let turn = "<summary>\n## Overview\n\nThe file has been created.\n\n## Current State\n\nTask complete.\n</summary>";
+    let cleaned = strip_summary_envelope(turn);
+    assert!(cleaned.starts_with("## Overview"), "{cleaned}");
+    assert!(cleaned.ends_with("Task complete."), "{cleaned}");
+    assert!(!cleaned.contains("<summary"), "{cleaned}");
+    assert!(!cleaned.contains("</summary"), "{cleaned}");
+
+    // A turn that does not open with the envelope passes through untouched,
+    // including `<summary>` sequences that are legitimate answer content.
+    let plain = "Here is an example:\n\n```html\n<summary>text</summary>\n```";
+    assert_eq!(strip_summary_envelope(plain), plain);
+    // Whitespace around the envelope is part of the envelope, not the report.
+    assert_eq!(
+        strip_summary_envelope("  <summary>answer</summary>  "),
+        "answer"
+    );
+    // A turn truncated before the closer keeps what arrived, minus the opener.
+    assert_eq!(
+        strip_summary_envelope("<summary>\npartial report"),
+        "partial report"
+    );
+}
+
+#[test]
+fn the_streaming_stripper_hides_tags_split_across_deltas() {
+    let mut stripper = SummaryStripper::new();
+    let mut emitted = String::new();
+    for delta in ["<sum", "mary>\n## Over", "view\n", "</sum", "mary>"] {
+        emitted.push_str(&stripper.push(delta));
+    }
+    emitted.push_str(&stripper.finish());
+    assert_eq!(emitted, "\n## Overview\n");
+
+    // Inside the envelope a lone `<` is held back until the next delta
+    // resolves it, then emitted in order; a wrapped `<tool>` call in the
+    // buffer keeps streaming as text because the closer never arrives here.
+    let mut stripper = SummaryStripper::new();
+    let mut emitted = String::new();
+    for delta in ["<summary>", "x <", " y", "</summary>", "tail"] {
+        emitted.push_str(&stripper.push(delta));
+    }
+    emitted.push_str(&stripper.finish());
+    assert_eq!(emitted, "x < ytail");
+
+    // A plain answer never opening with the envelope passes through as-is.
+    let mut stripper = SummaryStripper::new();
+    let mut emitted = String::new();
+    for delta in ["a < b", " and <summary", "> free text"] {
+        emitted.push_str(&stripper.push(delta));
+    }
+    emitted.push_str(&stripper.finish());
+    assert_eq!(emitted, "a < b and <summary> free text");
+}
+
+/// The field-report turn, streamed in deltas that split both the opener and
+/// the closer across chunk boundaries: the client sees the report body and
+/// never the envelope markup.
+#[tokio::test]
+async fn streaming_strips_the_summary_envelope_across_chunk_boundaries() {
+    let (engine_to_child, _child_in) = duplex(64 * 1024);
+    let (mut child_out, engine_reads) = duplex(64 * 1024);
+    for delta in [
+        "<sum",
+        "mary>\n## Overview\n\n",
+        "The file has been created.\n",
+        "</sum",
+        "mary>",
+    ] {
+        child_out
+            .write_all(
+                json_line(&serde_json::json!({
+                    "jsonrpc": "2.0", "method": "session/update",
+                    "params": {"update": {"sessionUpdate": "agent_message_chunk",
+                        "content": {"type": "text", "text": delta}}},
+                }))
+                .as_bytes(),
+            )
+            .await
+            .unwrap();
+    }
+    child_out
+        .write_all(
+            json_line(&serde_json::json!({
+                "jsonrpc": "2.0", "id": 7, "result": {"stopReason": "end_turn"},
+            }))
+            .as_bytes(),
+        )
+        .await
+        .unwrap();
+    drop(child_out);
+
+    let stream = streaming_turn(
+        AcpSession::new(engine_to_child, engine_reads),
+        (),
+        7,
+        super::acp::TurnRender {
+            caller_tools: Vec::new(),
+            tool_call_id: "call_test".to_owned(),
+            completion_id: "chatcmpl-sum-1".to_owned(),
+            model: "swe-2-flash".to_owned(),
+            created: 0,
+            prompt_chars: 8,
+            request_timeout: Duration::from_secs(5),
+        },
+    );
+    let mut output = String::new();
+    {
+        futures_util::pin_mut!(stream);
+        while let Some(frame) = stream.next().await {
+            output.push_str(&String::from_utf8(frame.unwrap()).unwrap());
+        }
+    }
+    assert!(!output.contains("<summary"), "leaked opener: {output}");
+    assert!(!output.contains("</summary"), "leaked closer: {output}");
+    assert!(output.contains("## Overview"), "{output}");
+    assert!(output.contains("The file has been created."), "{output}");
+    assert!(output.contains("\"finish_reason\":\"stop\""), "{output}");
+}
+
+/// A turn that is nothing but envelope markup has no client-facing content,
+/// so it fails loudly instead of emitting an empty successful completion.
+#[tokio::test]
+async fn an_envelope_only_streaming_turn_still_fails_loudly() {
+    let (engine_to_child, _child_in) = duplex(64 * 1024);
+    let (mut child_out, engine_reads) = duplex(64 * 1024);
+    child_out
+        .write_all(
+            json_line(&serde_json::json!({
+                "jsonrpc": "2.0", "method": "session/update",
+                "params": {"update": {"sessionUpdate": "agent_message_chunk",
+                    "content": {"type": "text", "text": "<summary> </summary>"}}},
+            }))
+            .as_bytes(),
+        )
+        .await
+        .unwrap();
+    child_out
+        .write_all(
+            json_line(&serde_json::json!({
+                "jsonrpc": "2.0", "id": 7, "result": {"stopReason": "end_turn"},
+            }))
+            .as_bytes(),
+        )
+        .await
+        .unwrap();
+    drop(child_out);
+
+    let stream = streaming_turn(
+        AcpSession::new(engine_to_child, engine_reads),
+        (),
+        7,
+        super::acp::TurnRender {
+            caller_tools: Vec::new(),
+            tool_call_id: "call_test".to_owned(),
+            completion_id: "chatcmpl-sum-2".to_owned(),
+            model: "swe-2-flash".to_owned(),
+            created: 0,
+            prompt_chars: 8,
+            request_timeout: Duration::from_secs(5),
+        },
+    );
+    let mut output = String::new();
+    {
+        futures_util::pin_mut!(stream);
+        while let Some(frame) = stream.next().await {
+            output.push_str(&String::from_utf8(frame.unwrap()).unwrap());
+        }
+    }
+    assert!(
+        output.contains("the Devin CLI completed the turn without assistant text"),
+        "{output}"
+    );
+    assert!(!output.contains("\"finish_reason\":\"stop\""), "{output}");
+}
+
+/// The buffered path strips the envelope the same way before the completion
+/// is returned.
+#[tokio::test]
+async fn buffered_turn_strips_the_summary_envelope() {
+    let turn = "<summary>\n## Overview\n\nDone.\n</summary>";
+    let completion = buffered_completion_with_turn(turn.to_owned(), &[], "chatcmpl-sum-3").await;
+    let content = completion["choices"][0]["message"]["content"]
+        .as_str()
+        .unwrap();
+    assert!(content.starts_with("## Overview"), "{content}");
+    assert!(!content.contains("summary"), "{content}");
+    assert_eq!(completion["choices"][0]["finish_reason"], "stop");
+}
+
+/// A tool envelope inside a summary-wrapped turn still converts: the summary
+/// strip runs before the tool-envelope resolution reads the text.
+#[tokio::test]
+async fn a_summary_wrapped_tool_envelope_still_converts() {
+    let turn = "<summary>\n<tool>{\"name\": \"lookup_weather\", \"arguments\": {\"city\": \"Hanoi\"}}</tool>\n</summary>";
+    let completion =
+        buffered_completion_with_turn(turn.to_owned(), &["lookup_weather"], "chatcmpl-sum-4").await;
+    assert_eq!(completion["choices"][0]["finish_reason"], "tool_calls");
+    assert_eq!(
+        completion["choices"][0]["message"]["tool_calls"][0]["function"]["name"],
+        "lookup_weather"
+    );
 }
