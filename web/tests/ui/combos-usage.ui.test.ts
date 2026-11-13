@@ -47,11 +47,42 @@ describe('combo usage attribution', () => {
 
     renderPage();
     await fireEvent.click(await screen.findByRole('button', { name: 'New combo' }));
-    // The target-provider control is a native <select> now: the options are
-    // its own <option> children, rendered inside the editor dialog.
-    const targetSelect = screen.getByRole('combobox', { name: 'Target provider' }) as HTMLSelectElement;
+    // The unified target picker is a searchable SelectSearch: the options are
+    // listbox rows rendered inside the editor dialog, and provider entries
+    // carry their id as the searchable keyword.
+    const targetSelect = screen.getByRole('combobox', { name: 'Search providers and combos' }) as HTMLInputElement;
+    await fireEvent.click(targetSelect);
     expect(await screen.findByRole('option', { name: 'OpenAI' })).toBeTruthy();
     expect(document.querySelector('dialog.modal')?.contains(targetSelect)).toBe(true);
+  });
+
+  test('submits a nested combo target chosen from the unified picker', async () => {
+    vi.spyOn(api, 'combos').mockResolvedValue([combo('fallback-chain')]);
+    vi.spyOn(api, 'comboProviderOptions').mockResolvedValue({ providers: [], next_cursor: null });
+    vi.spyOn(api, 'statistics').mockRejectedValue(new Error('unavailable'));
+    const createCombo = vi.spyOn(api, 'createCombo').mockResolvedValue({} as GatewayCombo);
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } });
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; this.dispatchEvent(new Event('close')); } });
+
+    renderPage();
+    await fireEvent.click(await screen.findByRole('button', { name: 'New combo' }));
+    const targetSelect = screen.getByRole('combobox', { name: 'Search providers and combos' });
+    await fireEvent.click(targetSelect);
+    // Picking a combo entry turns the row into a nested-combo target without
+    // any model field. The row carries the muted "combo" hint after the name.
+    await fireEvent.click(await screen.findByRole('option', { name: /fallback-chain/ }));
+    const form = targetSelect.closest('form') as HTMLFormElement;
+    expect(form).toBeTruthy();
+    const nameField = form.querySelector('input') as HTMLInputElement;
+    await fireEvent.input(nameField, { target: { value: 'nested-test' } });
+    await fireEvent.submit(form);
+    await waitFor(() => expect(createCombo).toHaveBeenCalledTimes(1));
+    const body = createCombo.mock.calls[0][0];
+    expect(body.targets).toHaveLength(1);
+    expect(body.targets[0].combo_id).toBe('combo-fallback-chain');
+    expect(body.targets[0].provider_id).toBe('');
+    expect(body.targets[0].model).toBe('');
+    expect(body.targets[0].priority).toBe(1);
   });
 
   test('uses the route alias breakdown instead of a same-named model breakdown', async () => {

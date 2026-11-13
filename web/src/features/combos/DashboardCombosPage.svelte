@@ -2,6 +2,7 @@
   import Button from "../../components/Button.svelte";
   import StatsCard from "../../components/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
+  import { GripVertical } from '@lucide/svelte';
   import { api } from '../../lib/api';
   import Input from '../../components/Input.svelte';
   import type { DashboardPage } from '../../lib/navigation';
@@ -10,8 +11,8 @@
   import { formatCount } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import SelectOptions from '../../components/SelectOptions.svelte';
-  import ComboReferencePicker from './ComboReferencePicker.svelte';
   import ComboTargetModelSelect from './ComboTargetModelSelect.svelte';
+  import ComboTargetSelect from './ComboTargetSelect.svelte';
   import type { ComboProviderOption, GatewayCombo, RouteBreakdown } from '../../lib/types';
 
   interface Props {
@@ -175,13 +176,23 @@
     return { key: nextTargetKey++, kind: '', providerId: '', model: '', comboId: '', enabled: true };
   }
 
-  function setTargetKind(target: TargetDraft, kind: TargetKind): void {
-    if (target.kind === kind) return;
-    target.kind = kind;
-    // The two shapes store different fields; reset the ones the new kind ignores.
-    target.providerId = '';
-    target.model = '';
-    target.comboId = '';
+  /** The unified target picker decides the kind: a combo entry makes the row
+   * a nested-combo target, anything else is a provider target. The fields the
+   * kind ignores reset so a row never carries both forms. Re-selecting the
+   * row's current provider keeps its model. */
+  function applyTargetSelection(
+    key: number,
+    kind: 'provider' | 'combo',
+    providerId: string,
+    comboId: string,
+  ): void {
+    const draft = cfTargets.find((target) => target.key === key);
+    if (!draft) return;
+    if (draft.kind === kind && kind === 'provider' && draft.providerId === providerId) return;
+    draft.kind = kind;
+    draft.providerId = providerId;
+    draft.model = '';
+    draft.comboId = comboId;
   }
 
   function addTarget(): void {
@@ -190,6 +201,63 @@
 
   function removeTarget(index: number): void {
     cfTargets = cfTargets.filter((_, i) => i !== index);
+  }
+
+  function reorderTarget(from: number, to: number): void {
+    if (from === to || from < 0 || to < 0 || from >= cfTargets.length || to >= cfTargets.length) return;
+    const next = [...cfTargets];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    cfTargets = next;
+  }
+
+  function moveTarget(index: number, direction: -1 | 1): void {
+    reorderTarget(index, index + direction);
+  }
+
+  // Drag-and-drop reordering. The row is the draggable (so the drag image is
+  // the whole row, and the browser retargets dragstart to it), but a drag may
+  // only start after the pointer went down on the handle — the arm flag — so
+  // text selection inside the pickers keeps working. Rows reorder live under
+  // the pointer and every row keeps its stable key. The handle also reorders
+  // with the arrow keys so the same capability exists without a pointer.
+  let dragKey = $state<number | null>(null);
+  let dragArmedKey = $state<number | null>(null);
+
+  function handleDragStart(event: DragEvent, key: number): void {
+    if (dragArmedKey !== key) {
+      event.preventDefault();
+      return;
+    }
+    dragArmedKey = null;
+    dragKey = key;
+    if (event.dataTransfer) {
+      event.dataTransfer.setData('text/plain', String(key));
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  function handleDragOver(event: DragEvent, index: number): void {
+    if (dragKey === null) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    const from = cfTargets.findIndex((target) => target.key === dragKey);
+    if (from >= 0 && from !== index) reorderTarget(from, index);
+  }
+
+  function handleDragEnd(): void {
+    dragKey = null;
+    dragArmedKey = null;
+  }
+
+  function handleDragKeydown(event: KeyboardEvent, index: number): void {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveTarget(index, -1);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveTarget(index, 1);
+    }
   }
 
   async function saveCombo(): Promise<void> {
@@ -294,6 +362,9 @@
   onMount(() => { void load(); });
   onDestroy(() => { generation += 1; });
 </script>
+
+<!-- A plain click on the handle disarms the row-drag gate. -->
+<svelte:window onmouseup={() => (dragArmedKey = null)} />
 
 <div class="page-heading">
   <div class="heading-copy">
@@ -450,49 +521,45 @@
         <strong class="text-xs font-semibold text-ink">{tr('Targets')}</strong>
         <span class="text-muted text-xs">{tr('Tries each target in order on failure.')}</span>
       </div>
-      <div class="combo-target-rows grid gap-2 max-nav:overflow-x-auto">
+      <div class="combo-target-rows grid gap-2 max-nav:overflow-x-auto" role="list">
         {#each cfTargets as target, i (target.key)}
-          <div class="{target.kind === 'combo' ? 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&_.target-kind]:min-h-8! [&_.target-kind]:py-0! [&_.target-kind]:pl-2.5! [&_.target-kind]:pr-8! [&_.target-kind]:rounded-[9px]! [&_.target-kind]:border! [&_.target-kind]:border-line! [&_.target-kind]:bg-surface! [&_.target-kind]:shadow-none! [&_.target-kind:focus-visible]:outline-0! [&_.target-kind:focus-visible]:ring-3! [&_.target-kind:focus-visible]:ring-db-accent-ring! grid-cols-[minmax(132px,0.5fr)_minmax(240px,1fr)_auto_32px]' : 'grid gap-2 items-center min-w-0 max-nav:min-w-[640px] [&>div]:min-w-0 [&_.target-kind]:min-h-8! [&_.target-kind]:py-0! [&_.target-kind]:pl-2.5! [&_.target-kind]:pr-8! [&_.target-kind]:rounded-[9px]! [&_.target-kind]:border! [&_.target-kind]:border-line! [&_.target-kind]:bg-surface! [&_.target-kind]:shadow-none! [&_.target-kind:focus-visible]:outline-0! [&_.target-kind:focus-visible]:ring-3! [&_.target-kind:focus-visible]:ring-db-accent-ring! grid-cols-[minmax(132px,0.5fr)_minmax(140px,0.7fr)_minmax(180px,1fr)_auto_32px]'}">
-            <SelectOptions
-              class="target-kind text-xs!"
-              ariaLabel={tr('Target type')}
-              placeholder={tr('Target type')}
-              value={target.kind}
-              items={[{ label: tr('Provider'), value: 'provider' }, { label: tr('Combo'), value: 'combo' }]}
-              onValueChange={(value) => setTargetKind(target, value as TargetKind)}
+          <div
+            role="listitem"
+            class="combo-target-row {target.kind === 'combo'
+              ? 'grid-cols-[26px_minmax(240px,1fr)_auto_32px]'
+              : 'grid-cols-[26px_minmax(200px,0.8fr)_minmax(220px,1fr)_auto_32px]'} grid gap-2 items-center min-w-0 max-nav:min-w-[680px] [&>div]:min-w-0"
+            class:is-dragging={dragKey === target.key}
+            draggable="true"
+            ondragstart={(event) => handleDragStart(event, target.key)}
+            ondragover={(event) => handleDragOver(event, i)}
+            ondrop={(event) => event.preventDefault()}
+            ondragend={handleDragEnd}
+          >
+            <button
+              type="button"
+              class="target-drag-handle"
+              aria-label={tr('Reorder targets')}
+              title={tr('Drag to reorder targets')}
+              onmousedown={() => (dragArmedKey = target.key)}
+              onkeydown={(event) => handleDragKeydown(event, i)}
+            >
+              <GripVertical size={13} />
+            </button>
+            <ComboTargetSelect
+              providers={providerOptions}
+              combos={nestableCombos}
+              kind={target.kind}
+              providerId={target.providerId}
+              comboId={target.comboId}
+              targetKey={target.key}
+              {tr}
+              onTargetChange={applyTargetSelection}
             />
-            {#if target.kind === 'combo'}
-              <div class="combo-model-field min-w-0 [&_input]:w-full! [&_input]:h-9! [&_input]:min-h-9! [&_input:focus-visible]:outline-0! [&_input:focus-visible]:ring-3! [&_input:focus-visible]:ring-db-accent-ring!">
-                <ComboReferencePicker
-                  combos={nestableCombos}
-                  selectedComboId={target.comboId}
-                  targetKey={target.key}
-                  hideLabel
-                  portalContainer={comboDialog}
-                  {tr}
-                  onComboChange={(key, comboId) => {
-                    const draft = cfTargets.find((t) => t.key === key);
-                    if (draft) draft.comboId = comboId;
-                  }}
-                />
-              </div>
-            {:else}
-              <SelectOptions
-                class="target-provider h-8! min-h-8! text-xs!"
-                ariaLabel={tr('Target provider')}
-                disabled={target.kind !== 'provider'}
-                value={target.providerId}
-                items={providerOptions.map((option) => ({ label: `${option.name}${option.enabled ? '' : ` (${tr('disabled')})`}`, value: option.id, disabled: !option.enabled && option.id !== target.providerId }))}
-                onValueChange={(value) => {
-                  if (!providerOptions.some((option) => option.id === value && option.enabled)) return;
-                  target.providerId = value;
-                  target.model = '';
-                }}
-              />
+            {#if target.kind !== 'combo'}
               <ComboTargetModelSelect
                 providerId={target.kind === 'provider' ? target.providerId : ''}
                 value={target.model}
-                disabledPlaceholder={target.kind === '' ? tr('Choose a target type first.') : tr('Choose a provider first.')}
+                disabledPlaceholder={target.kind === '' ? tr('Choose a target first.') : tr('Choose a provider first.')}
                 portalContainer={comboDialog}
                 {tr}
                 onChange={(model) => (target.model = model)}
@@ -538,6 +605,36 @@
 </dialog>
 
 <style>
+  .target-drag-handle {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    cursor: grab;
+  }
+
+  .target-drag-handle:hover {
+    color: var(--ink);
+  }
+
+  .target-drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .target-drag-handle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .combo-target-row.is-dragging {
+    opacity: 0.45;
+  }
+
   .combo-retry-setting {
     grid-column: 1 / -1;
     display: flex;

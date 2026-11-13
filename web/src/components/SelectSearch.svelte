@@ -12,8 +12,8 @@
 </script>
 
 <script lang="ts">
-  import { Check, ChevronDown, X } from '@lucide/svelte';
-  import { onDestroy, onMount } from 'svelte';
+import { Check, ChevronDown, X } from '@lucide/svelte';
+import { onDestroy, onMount, tick } from 'svelte';
 
   interface Props {
     items: SelectSearchOption[];
@@ -65,11 +65,25 @@
   let open = $state(false);
   let filterQuery = $state('');
   let activeIndex = $state(0);
-  // Flip the panel above the input when there isn't ~260px of room below —
-  // keeps it inside scrollable modals instead of clipping under the footer.
+  // The panel is measured against its nearest clipping ancestor (a modal
+  // dialog, a scroll container) and the viewport, so it can grow to the
+  // option text width without running past either edge, scroll internally
+  // instead of spilling out of a dialog, and flip above the input when the
+  // room below runs out.
   let dropUp = $state(false);
+  let panelMaxHeight = $state(240);
+  let panelWidth = $state<number | null>(null);
+  let panelAnchorRight = $state(false);
   let containerRef: HTMLDivElement | null = null;
+  let panelElement: HTMLDivElement | null = $state(null);
   let inputElement: HTMLInputElement | null = $state(null);
+
+  const PANEL_MAX_HEIGHT = 240;
+  const PANEL_MIN_HEIGHT = 140;
+  const PANEL_MAX_WIDTH = 520;
+  const PANEL_EDGE_MARGIN = 8;
+  // Panel padding (p-1), borders, and sub-pixel slack around the widest row.
+  const PANEL_WIDTH_MARGIN = 12;
 
   function searchText(item: SelectSearchOption): string {
     return `${item.label} ${item.hint ?? ''} ${item.keywords ?? ''}`.toLowerCase();
@@ -97,15 +111,70 @@
   function openPanel(resetQuery = true): void {
     if (disabled || open) return;
     open = true;
+    // Drop the previous measurement so the unclamped panel renders first and
+    // the widest option's natural width can be measured.
+    panelWidth = null;
     if (resetQuery) filterQuery = '';
     activeIndex = Math.max(0, filteredItems.findIndex((item) => item.value === value));
-    const rect = inputElement?.getBoundingClientRect();
-    if (rect) {
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      dropUp = spaceBelow < 260 && spaceAbove > spaceBelow;
-    }
+    // Measure inside a microtask so the styles land before the browser paints.
+    void tick().then(measurePanel);
     onSearch?.('');
+  }
+
+  /** The nearest ancestor that visually clips the panel: a dialog or any
+   * scroll/overflow container between the input and the document root. */
+  function clippingBoundsFor(anchor: HTMLElement): DOMRect | null {
+    let node = anchor.parentElement;
+    while (node && node !== document.body) {
+      if (node instanceof HTMLDialogElement) return node.getBoundingClientRect();
+      if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(node).overflowY)) {
+        return node.getBoundingClientRect();
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function measurePanel(): void {
+    const input = inputElement;
+    if (!input) return;
+    const inputRect = input.getBoundingClientRect();
+    const clipper = clippingBoundsFor(input);
+    const bounds = {
+      left: PANEL_EDGE_MARGIN,
+      top: PANEL_EDGE_MARGIN,
+      right: window.innerWidth - PANEL_EDGE_MARGIN,
+      bottom: window.innerHeight - PANEL_EDGE_MARGIN,
+    };
+    const leftBound = Math.max(clipper?.left ?? bounds.left, bounds.left);
+    const rightBound = Math.min(clipper?.right ?? bounds.right, bounds.right);
+    const topBound = Math.max(clipper?.top ?? bounds.top, bounds.top);
+    const bottomBound = Math.min(clipper?.bottom ?? bounds.bottom, bounds.bottom);
+
+    const spaceBelow = bottomBound - inputRect.bottom;
+    const spaceAbove = inputRect.top - topBound;
+    dropUp = spaceBelow < 200 && spaceAbove > spaceBelow;
+    panelMaxHeight = Math.max(
+      PANEL_MIN_HEIGHT,
+      Math.min(PANEL_MAX_HEIGHT, Math.max(spaceBelow, spaceAbove) - PANEL_EDGE_MARGIN),
+    );
+
+    // Width follows the widest option row so long model names stay readable,
+    // capped by the room beside the input: growing rightward when there is
+    // space, otherwise anchored to the input's right edge.
+    const widestRow = panelElement
+      ? Math.max(0, ...Array.from(panelElement.querySelectorAll('button[role="option"]')).map((row) => row.scrollWidth))
+      : 0;
+    const desiredWidth = Math.max(inputRect.width, widestRow + PANEL_WIDTH_MARGIN);
+    const roomRight = rightBound - inputRect.left;
+    const roomLeft = inputRect.right - leftBound;
+    if (roomRight >= desiredWidth || roomRight >= roomLeft) {
+      panelAnchorRight = false;
+      panelWidth = Math.max(inputRect.width, Math.min(PANEL_MAX_WIDTH, desiredWidth, roomRight - PANEL_EDGE_MARGIN));
+    } else {
+      panelAnchorRight = true;
+      panelWidth = Math.max(inputRect.width, Math.min(PANEL_MAX_WIDTH, desiredWidth, roomLeft - PANEL_EDGE_MARGIN));
+    }
   }
 
   function closePanel(): void {
@@ -248,9 +317,11 @@
 
   {#if open}
     <div
+      bind:this={panelElement}
       role="listbox"
       id={listboxId}
-      class={`absolute left-0 right-0 z-[99999] max-h-[240px] overflow-y-auto rounded-xl border border-line bg-surface-popover p-1 shadow-lg ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+      class={`absolute z-[99999] overflow-y-auto rounded-xl border border-line bg-surface-popover p-1 shadow-lg ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} ${panelAnchorRight ? 'right-0' : 'left-0'} ${panelWidth === null ? 'w-max min-w-full' : ''}`}
+      style={`max-height: ${panelMaxHeight}px;${panelWidth !== null ? ` width: ${panelWidth}px;` : ''}`}
     >
       {#each filteredItems as item, index (item.value)}
         <button
@@ -259,16 +330,16 @@
           id={`${listboxId}-${index}`}
           aria-selected={item.value === value}
           title={item.value === item.label ? undefined : item.value}
-          class={`flex min-h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left text-xs leading-snug text-ink transition-colors duration-100 hover:bg-surface-sunken ${index === activeIndex ? 'bg-surface-sunken' : ''} ${item.value === value ? 'bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] font-semibold text-accent-strong' : ''}`}
+          class={`flex min-h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-1.5 text-left text-xs! leading-snug text-ink transition-colors duration-100 hover:bg-surface-sunken ${index === activeIndex ? 'bg-surface-sunken' : ''} ${item.value === value ? 'bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] font-semibold text-accent-strong' : ''}`}
           onmouseenter={() => (activeIndex = index)}
           onclick={() => selectItem(item)}
         >
           <span class="min-w-0 flex-1 truncate">{item.label}</span>
-          {#if item.hint}<span class="max-w-[45%] shrink-0 truncate text-[10px] font-semibold text-muted">{item.hint}</span>{/if}
+          {#if item.hint}<span class="max-w-[45%] shrink-0 truncate text-[10px]! font-semibold text-muted">{item.hint}</span>{/if}
           {#if item.value === value}<Check size={14} class="shrink-0 text-accent" />{/if}
         </button>
       {:else}
-        <div class="px-3 py-2 text-center text-xs text-text-dim">{noOptionsText}</div>
+        <div class="px-3 py-2 text-center text-xs! text-text-dim">{noOptionsText}</div>
       {/each}
     </div>
   {/if}
