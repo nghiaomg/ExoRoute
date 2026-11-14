@@ -158,6 +158,7 @@ pub(super) async fn send_local_upstream(
         tool_call_id: format!("call_{request_id}"),
         model: model.to_owned(),
         created,
+        prompt_text: prompt.clone(),
         prompt_chars,
         request_timeout,
     };

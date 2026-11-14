@@ -444,6 +444,33 @@ pub(super) fn done_frame() -> Vec<u8> {
     b"data: [DONE]\n\n".to_vec()
 }
 
+/// Re-arms a refused turn against a fresh session on the same CLI process:
+/// the child is still alive after a refused prompt, and re-initializing on
+/// the existing transport is accepted. A short pause first gives a
+/// capacity-bound backend room to recover. Returns the new prompt id, or
+/// `None` when the re-handshake or the bounded wait failed — the caller then
+/// reports the original refusal.
+async fn retry_turn<W, R>(
+    session: &mut AcpSession<W, R>,
+    model: &str,
+    prompt_text: &str,
+    deadline: tokio::time::Instant,
+) -> Option<u64>
+where
+    W: AsyncWrite + Unpin,
+    R: AsyncRead + Unpin,
+{
+    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+    let rearm = async {
+        let session_id = session.start_session(Some(model)).await.ok()?;
+        session.send_prompt(&session_id, prompt_text).await.ok()
+    };
+    tokio::time::timeout_at(deadline, rearm)
+        .await
+        .ok()
+        .flatten()
+}
+
 pub(super) fn chat_chunk_frame(
     completion_id: &str,
     model: &str,
@@ -485,8 +512,21 @@ pub(super) struct TurnRender {
     pub tool_call_id: String,
     pub model: String,
     pub created: u64,
+    /// The flattened prompt text, kept so a transient server-side refusal can
+    /// be retried once against a fresh session.
+    pub prompt_text: String,
     pub prompt_chars: usize,
     pub request_timeout: Duration,
+}
+
+/// Whether the CLI turn was refused by Devin's backend for a transient
+/// model-availability reason ("Selected model is at capacity. Please try a
+/// different model."). Such a refusal arrives as the turn's error result, so
+/// the upstream provably never accepted or billed the inference, and one
+/// retry against a fresh session is safe.
+pub(super) fn is_transient_model_refusal(error: &str) -> bool {
+    let lowered = error.to_ascii_lowercase();
+    lowered.contains("try a different model") || lowered.contains("at capacity")
 }
 
 /// Streams one CLI turn as Chat Completions SSE frames. `guard` is opaque
@@ -506,9 +546,15 @@ where
 {
     async_stream::stream! {
         let _keep_alive = guard;
-        let TurnRender { completion_id, caller_tools: _, tool_call_id: _, model, created, prompt_chars, request_timeout } = render;
+        let TurnRender { completion_id, caller_tools: _, tool_call_id: _, model, created, prompt_text, prompt_chars, request_timeout } = render;
         let mut output_chars: usize = 0;
         let mut has_non_whitespace_output = false;
+        let mut prompt_id = prompt_id;
+        // Devin's backend occasionally refuses a turn because the selected
+        // model is at capacity; the refusal is transient, so the turn is
+        // retried once against a fresh session — but only before any text has
+        // streamed, because a retry cannot unsend what the client saw.
+        let mut retried_refusal = false;
         // The summarizer wraps its report in <summary>…</summary> markup that
         // must never reach the client; the stripper tolerates tags split
         // across chunk boundaries. See [`super::summary`] for the contract.
@@ -529,6 +575,16 @@ where
                     break;
                 }
                 Ok(Err(error)) => {
+                    if !retried_refusal
+                        && output_chars == 0
+                        && is_transient_model_refusal(&error)
+                        && let Some(new_prompt_id) =
+                            retry_turn(&mut session, &model, &prompt_text, deadline).await
+                    {
+                        retried_refusal = true;
+                        prompt_id = new_prompt_id;
+                        continue;
+                    }
                     yield Ok(error_turn_frame(&error));
                     break;
                 }
@@ -616,23 +672,41 @@ where
         tool_call_id,
         model,
         created,
+        prompt_text,
         prompt_chars,
         request_timeout,
     } = render;
     let deadline = tokio::time::Instant::now() + request_timeout;
+    let mut prompt_id = prompt_id;
+    // Same transient-refusal retry as the streaming loop: one fresh-session
+    // re-prompt while nothing has been buffered yet.
+    let mut retried_refusal = false;
     let mut text = String::new();
     loop {
         let event = tokio::time::timeout_at(deadline, session.next_turn_event(prompt_id))
             .await
             .map_err(|_| "the Devin CLI session exceeded the request timeout".to_owned())?;
-        match event? {
-            Some(TurnEvent::Text(delta)) => {
+        match event {
+            Err(error) => {
+                if !retried_refusal
+                    && text.is_empty()
+                    && is_transient_model_refusal(&error)
+                    && let Some(new_prompt_id) =
+                        retry_turn(&mut session, &model, &prompt_text, deadline).await
+                {
+                    retried_refusal = true;
+                    prompt_id = new_prompt_id;
+                    continue;
+                }
+                return Err(error);
+            }
+            Ok(Some(TurnEvent::Text(delta))) => {
                 text.push_str(&delta);
                 if text.chars().count() > MAX_OUTPUT_TEXT_CHARS {
                     return Err("the Devin CLI reply exceeded the output limit".to_owned());
                 }
             }
-            Some(TurnEvent::Ended { stop_reason }) => {
+            Ok(Some(TurnEvent::Ended { stop_reason })) => {
                 // The summarizer wraps its report in <summary>…</summary>
                 // markup; strip the envelope before the client sees the text
                 // and before the tool-envelope resolution reads it. See
@@ -706,7 +780,7 @@ where
                     },
                 }));
             }
-            None => return Err("the Devin CLI exited before finishing the turn".to_owned()),
+            Ok(None) => return Err("the Devin CLI exited before finishing the turn".to_owned()),
         }
     }
 }
