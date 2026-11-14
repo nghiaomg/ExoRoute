@@ -249,7 +249,7 @@ async fn resolve_gateway_targets(
     client_protocol: Protocol,
     target_rotation_offset: usize,
 ) -> Result<(Vec<Target>, bool), GatewayRequestPreparationError> {
-    let route = load_stored_route(&state.db, route_alias, client_protocol)
+    let route = load_route_for_alias(&state.db, route_alias, client_protocol)
         .await
         .map_err(GatewayRequestPreparationError::Database)?;
     let (strategy, mut targets, retry_until_success) = if let Some(route) = route {
@@ -357,6 +357,60 @@ fn order_priority_targets(targets: &mut [Target], target_rotation_offset: usize)
 /// decision the operator can see and change, not a silent drop. Any structural
 /// problem (missing combo, loop, too deep, too many expanded targets) sets
 /// `flatten_issue`, which the caller turns into a 503.
+/// Resolves a combo through its name index. A combo is addressed by its
+/// documented model alias — the combo NAME — while the stored route keeps the
+/// id it was created with, so a renamed combo's alias no longer equals its
+/// route id. Duplicate names resolve to the first enabled route in index
+/// order; a disabled one is still returned so the caller can report it.
+async fn load_stored_route_by_name(
+    db: &crate::infra::storage::Database,
+    name: &str,
+    client_protocol: Protocol,
+) -> Result<Option<StoredRoute>, StorageError> {
+    let ids = {
+        let name = name.to_owned();
+        db.read(move |transaction| {
+            let prefix = crate::admin::route_name_index_exact_prefix(&name)?;
+            // Values are the combo ids the name resolves to; key order is
+            // deterministic, so duplicates resolve stably.
+            let rows = transaction
+                .scan_prefix::<String>(Table::RouteNameIndex, &prefix, 16)?
+                .into_iter()
+                .map(|(_, id)| id)
+                .collect::<Vec<_>>();
+            Ok(rows)
+        })
+        .await?
+    };
+    let mut disabled = None;
+    for id in ids {
+        let Some(route) = load_stored_route(db, &id, client_protocol).await? else {
+            continue;
+        };
+        if route.enabled {
+            return Ok(Some(route));
+        }
+        if disabled.is_none() {
+            disabled = Some(route);
+        }
+    }
+    Ok(disabled)
+}
+
+/// Loads the stored route a client's model alias addresses: the combo name is
+/// the documented alias (resolved through the name index, which survives
+/// renames), with a direct route-id lookup as the fallback.
+pub(super) async fn load_route_for_alias(
+    db: &crate::infra::storage::Database,
+    route_alias: &str,
+    client_protocol: Protocol,
+) -> Result<Option<StoredRoute>, StorageError> {
+    match load_stored_route_by_name(db, route_alias, client_protocol).await? {
+        Some(route) => Ok(Some(route)),
+        None => load_stored_route(db, route_alias, client_protocol).await,
+    }
+}
+
 pub(super) async fn load_stored_route(
     db: &crate::infra::storage::Database,
     route_id: &str,
@@ -400,7 +454,7 @@ pub(super) async fn route_retries_until_success(
     route_id: &str,
     client_protocol: Protocol,
 ) -> Result<bool, StorageError> {
-    let Some(route) = load_stored_route(db, route_id, client_protocol).await? else {
+    let Some(route) = load_route_for_alias(db, route_id, client_protocol).await? else {
         return Ok(false);
     };
     Ok(route.enabled

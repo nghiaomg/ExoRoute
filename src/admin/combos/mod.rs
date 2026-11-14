@@ -10,6 +10,7 @@ use references::{
     MAX_DELETE_BLOCKERS_NAMED, PendingCombo, ensure_reference_graph, referencing_combo_names,
     validate_combo_references,
 };
+pub(crate) use storage::route_name_index_exact_prefix;
 #[cfg(test)]
 pub(super) use storage::route_target_key;
 pub(super) use storage::{

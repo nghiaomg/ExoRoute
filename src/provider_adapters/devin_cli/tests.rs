@@ -8,6 +8,18 @@ use futures_util::StreamExt;
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, duplex};
 
+/// The session semaphore is process-global and bounded to four concurrent
+/// sessions, so parallel tests wait for a permit instead of failing when all
+/// four are momentarily held.
+async fn acquire_test_session_permit() -> tokio::sync::OwnedSemaphorePermit {
+    loop {
+        match acquire_session_permit() {
+            Ok(permit) => return permit,
+            Err(_) => tokio::time::sleep(Duration::from_millis(25)).await,
+        }
+    }
+}
+
 fn json_line(value: &serde_json::Value) -> String {
     format!("{}\n", serde_json::to_string(value).unwrap())
 }
@@ -519,7 +531,7 @@ async fn buffered_completion_with_turn(
             .unwrap();
     });
     let prompt_id = session.send_prompt("s-1", "hi").await.unwrap();
-    let guard = acquire_session_permit().unwrap();
+    let guard = acquire_test_session_permit().await;
     let render = super::acp::TurnRender {
         completion_id: completion_id.to_owned(),
         caller_tools: caller_tools
@@ -1015,7 +1027,7 @@ async fn a_transient_model_refusal_is_retried_in_buffered_turns() {
         // Keep the output pipe open until the retried turn resolves.
         tokio::time::sleep(Duration::from_secs(8)).await;
     });
-    let guard = acquire_session_permit().unwrap();
+    let guard = acquire_test_session_permit().await;
     let mut render = retry_turn_render("chatcmpl-retry-4");
     render.request_timeout = Duration::from_secs(12);
     let completion = buffered_turn(session, guard, 1, render)

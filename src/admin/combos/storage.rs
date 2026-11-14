@@ -116,6 +116,14 @@ pub(crate) fn route_name_index_key(name: &str, id: &str) -> Result<String, Stora
     Ok(key)
 }
 
+/// The scan prefix matching every name-index entry for exactly `name` (the
+/// separator bounds the name), whatever combo id currently owns it.
+pub(crate) fn route_name_index_exact_prefix(name: &str) -> Result<String, StorageError> {
+    let key = format!("{ROUTE_NAME_INDEX_PREFIX}{name}\u{1}");
+    crate::infra::storage::validate_key(&key)?;
+    Ok(key)
+}
+
 pub(crate) fn route_target_provider_index_prefix(
     provider_id: &str,
 ) -> Result<String, StorageError> {
