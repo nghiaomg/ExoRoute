@@ -40,18 +40,23 @@ pub(super) fn done_frame() -> Vec<u8> {
 /// reports the original refusal.
 async fn retry_turn<W, R>(
     session: &mut AcpSession<W, R>,
+    session_id: &str,
     model: &str,
     prompt_text: &str,
     deadline: tokio::time::Instant,
-) -> Option<u64>
+) -> Option<(u64, String)>
 where
     W: AsyncWrite + Unpin,
     R: AsyncRead + Unpin,
 {
+    // The refused session is dropped from the transport's store before the
+    // fresh one is created; its reply is never read by design.
+    let _ = session.forget_session(session_id).await;
     tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
     let rearm = async {
         let session_id = session.start_session(Some(model)).await.ok()?;
-        session.send_prompt(&session_id, prompt_text).await.ok()
+        let prompt_id = session.send_prompt(&session_id, prompt_text).await.ok()?;
+        Some((prompt_id, session_id))
     };
     tokio::time::timeout_at(deadline, rearm)
         .await
@@ -100,6 +105,9 @@ pub(super) struct TurnRender {
     pub tool_call_id: String,
     pub model: String,
     pub created: u64,
+    /// The CLI session this turn runs in, so it can be deleted from the
+    /// transport's persistent store once the turn ends.
+    pub session_id: String,
     /// The flattened prompt text, kept so a transient server-side refusal can
     /// be retried once against a fresh session.
     pub prompt_text: String,
@@ -134,7 +142,8 @@ where
 {
     async_stream::stream! {
         let _keep_alive = guard;
-        let TurnRender { completion_id, caller_tools: _, tool_call_id: _, model, created, prompt_text, prompt_chars, request_timeout } = render;
+        let TurnRender { completion_id, caller_tools: _, tool_call_id: _, model, created, session_id, prompt_text, prompt_chars, request_timeout } = render;
+        let mut session_id = session_id;
         let mut output_chars: usize = 0;
         let mut has_non_whitespace_output = false;
         let mut prompt_id = prompt_id;
@@ -166,11 +175,12 @@ where
                     if !retried_refusal
                         && output_chars == 0
                         && is_transient_model_refusal(&error)
-                        && let Some(new_prompt_id) =
-                            retry_turn(&mut session, &model, &prompt_text, deadline).await
+                        && let Some((new_prompt_id, new_session_id)) =
+                            retry_turn(&mut session, &session_id, &model, &prompt_text, deadline).await
                     {
                         retried_refusal = true;
                         prompt_id = new_prompt_id;
+                        session_id = new_session_id;
                         continue;
                     }
                     yield Ok(error_turn_frame(&error));
@@ -236,6 +246,7 @@ where
                 }
             }
         }
+        let _ = session.forget_session(&session_id).await;
     }
 }
 
@@ -260,17 +271,19 @@ where
         tool_call_id,
         model,
         created,
+        session_id,
         prompt_text,
         prompt_chars,
         request_timeout,
     } = render;
     let deadline = tokio::time::Instant::now() + request_timeout;
+    let mut session_id = session_id;
     let mut prompt_id = prompt_id;
     // Same transient-refusal retry as the streaming loop: one fresh-session
     // re-prompt while nothing has been buffered yet.
     let mut retried_refusal = false;
     let mut text = String::new();
-    loop {
+    let result = loop {
         let event = tokio::time::timeout_at(deadline, session.next_turn_event(prompt_id))
             .await
             .map_err(|_| "the Devin CLI session exceeded the request timeout".to_owned())?;
@@ -279,19 +292,20 @@ where
                 if !retried_refusal
                     && text.is_empty()
                     && is_transient_model_refusal(&error)
-                    && let Some(new_prompt_id) =
-                        retry_turn(&mut session, &model, &prompt_text, deadline).await
+                    && let Some((new_prompt_id, new_session_id)) =
+                        retry_turn(&mut session, &session_id, &model, &prompt_text, deadline).await
                 {
                     retried_refusal = true;
                     prompt_id = new_prompt_id;
+                    session_id = new_session_id;
                     continue;
                 }
-                return Err(error);
+                break Err(error);
             }
             Ok(Some(TurnEvent::Text(delta))) => {
                 text.push_str(&delta);
                 if text.chars().count() > MAX_OUTPUT_TEXT_CHARS {
-                    return Err("the Devin CLI reply exceeded the output limit".to_owned());
+                    break Err("the Devin CLI reply exceeded the output limit".to_owned());
                 }
             }
             Ok(Some(TurnEvent::Ended { stop_reason })) => {
@@ -301,9 +315,7 @@ where
                 // [`super::summary`] for the contract.
                 let text = super::summary::strip_summary_envelope(&text);
                 if !has_assistant_output(&text) {
-                    return Err(
-                        "the Devin CLI completed the turn without assistant text".to_owned()
-                    );
+                    break Err("the Devin CLI completed the turn without assistant text".to_owned());
                 }
                 let completion_tokens = estimated_tokens(text.chars().count());
                 // Router-level tool-envelope resolution (see docs/OmniRoute
@@ -335,7 +347,7 @@ where
                         ),
                         super::tool_envelope::ToolEnvelopeOutcome::Text(clean) => {
                             if !has_assistant_output(&clean) {
-                                return Err(
+                                break Err(
                                     "the Devin CLI emitted an unparsable tool call envelope"
                                         .to_owned(),
                                 );
@@ -368,7 +380,9 @@ where
                     },
                 }));
             }
-            Ok(None) => return Err("the Devin CLI exited before finishing the turn".to_owned()),
+            Ok(None) => break Err("the Devin CLI exited before finishing the turn".to_owned()),
         }
-    }
+    };
+    let _ = session.forget_session(&session_id).await;
+    result
 }

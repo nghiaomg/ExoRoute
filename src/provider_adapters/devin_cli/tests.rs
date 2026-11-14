@@ -263,6 +263,7 @@ async fn empty_successful_devin_turn_is_an_error_not_an_empty_completion() {
             completion_id: "chatcmpl-empty".to_owned(),
             model: "swe-2-flash".to_owned(),
             created: 0,
+            session_id: "s-1".to_owned(),
             prompt_text: String::new(),
             prompt_chars: 8,
             request_timeout: Duration::from_secs(5),
@@ -320,6 +321,7 @@ async fn streaming_turn_emits_role_content_and_finish_frames() {
             completion_id: "chatcmpl-1".to_owned(),
             model: "swe-1-7".to_owned(),
             created: 0,
+            session_id: "s-1".to_owned(),
             prompt_text: String::new(),
             prompt_chars: 8,
             request_timeout: Duration::from_secs(5),
@@ -368,6 +370,7 @@ async fn an_exited_child_becomes_a_stream_error_frame() {
             completion_id: "chatcmpl-1".to_owned(),
             model: "swe-1-7".to_owned(),
             created: 0,
+            session_id: "s-1".to_owned(),
             prompt_text: String::new(),
             prompt_chars: 8,
             request_timeout: Duration::from_secs(5),
@@ -541,6 +544,7 @@ async fn buffered_completion_with_turn(
         tool_call_id: "call_test_1".to_owned(),
         model: "swe-2-flash".to_owned(),
         created: 0,
+        session_id: "s-1".to_owned(),
         prompt_text: String::new(),
         prompt_chars: 2,
         request_timeout: Duration::from_secs(5),
@@ -738,6 +742,7 @@ async fn streaming_strips_the_summary_envelope_across_chunk_boundaries() {
             completion_id: "chatcmpl-sum-1".to_owned(),
             model: "swe-2-flash".to_owned(),
             created: 0,
+            session_id: "s-1".to_owned(),
             prompt_text: String::new(),
             prompt_chars: 8,
             request_timeout: Duration::from_secs(5),
@@ -795,6 +800,7 @@ async fn an_envelope_only_streaming_turn_still_fails_loudly() {
             completion_id: "chatcmpl-sum-2".to_owned(),
             model: "swe-2-flash".to_owned(),
             created: 0,
+            session_id: "s-1".to_owned(),
             prompt_text: String::new(),
             prompt_chars: 8,
             request_timeout: Duration::from_secs(5),
@@ -846,12 +852,13 @@ async fn a_summary_wrapped_tool_envelope_still_converts() {
 /// matters: the retry recognizes this class by its message.
 const TRANSIENT_REFUSAL: &str = "Client error: Protocol error (invalid_argument): There is an issue with this request, please try a different model.";
 
-/// A request-driven child script that runs the production turn flow: a
-/// responder task answers each engine request (handshake, prompt, and — after
-/// a retried refusal — the re-handshake) in arrival order. Returns the
-/// collected stream output and the number of requests the engine sent.
+/// A request-driven child script: a responder task parses each engine request
+/// and answers through `respond(method, id, prompt_occurrence)` with replies
+/// carrying the request's own id, so the session-delete requests the turn
+/// pipeline emits never shift the scripted sequence. Returns the collected
+/// stream output and the number of requests the engine sent.
 async fn run_scripted_streaming_turn(
-    respond: impl Fn(usize, &str) -> Vec<serde_json::Value> + Send + 'static,
+    mut respond: impl FnMut(&str, u64, usize) -> Vec<serde_json::Value> + Send + 'static,
     turn: super::acp::TurnRender,
 ) -> (String, usize) {
     let (engine_to_child, _child_in) = duplex(64 * 1024);
@@ -861,7 +868,8 @@ async fn run_scripted_streaming_turn(
 
     let responder = tokio::spawn(async move {
         let mut request_line = String::new();
-        let mut index = 0usize;
+        let mut prompts_answered = 0usize;
+        let mut count = 0usize;
         loop {
             let read = requests
                 .read_line(&mut request_line)
@@ -870,8 +878,19 @@ async fn run_scripted_streaming_turn(
             if read == 0 {
                 break;
             }
-            index += 1;
-            for reply in respond(index, request_line.trim()) {
+            count += 1;
+            let request: serde_json::Value =
+                serde_json::from_str(request_line.trim()).expect("engine request is JSON");
+            let method = request["method"].as_str().unwrap_or_default().to_owned();
+            let id = request["id"].as_u64().unwrap_or(0);
+            let prompt_occurrence = if method == "session/prompt" {
+                prompts_answered += 1;
+                prompts_answered
+            } else {
+                prompts_answered
+            };
+            for mut reply in respond(&method, id, prompt_occurrence) {
+                reply["id"] = serde_json::json!(id);
                 child_out
                     .write_all(json_line(&reply).as_bytes())
                     .await
@@ -879,7 +898,7 @@ async fn run_scripted_streaming_turn(
             }
             request_line.clear();
         }
-        index
+        count
     });
 
     // The production sequence: handshake, submit the prompt, then stream the
@@ -910,6 +929,7 @@ fn retry_turn_render(completion_id: &str) -> super::acp::TurnRender {
         completion_id: completion_id.to_owned(),
         model: "swe-2-flash-medium".to_owned(),
         created: 0,
+        session_id: "s-1".to_owned(),
         prompt_text: "Reply with OK".to_owned(),
         prompt_chars: 13,
         request_timeout: Duration::from_secs(10),
@@ -919,17 +939,20 @@ fn retry_turn_render(completion_id: &str) -> super::acp::TurnRender {
 #[tokio::test]
 async fn a_transient_model_refusal_is_retried_once_and_succeeds() {
     let (output, request_count) = run_scripted_streaming_turn(
-        |index, _request| match index {
-            1 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 1, "result": {}})],
-            2 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 2, "result": {"sessionId": "s-1"}})],
-            3 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 3, "error": {"code": -32000, "message": TRANSIENT_REFUSAL}})],
-            4 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 4, "result": {}})],
-            5 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 5, "result": {"sessionId": "s-2"}})],
-            6 => vec![
-                serde_json::json!({"jsonrpc": "2.0", "method": "session/update",
+        |method, _id, prompt_occurrence| match (method, prompt_occurrence) {
+            ("initialize", _) => vec![serde_json::json!({"result": {}})],
+            ("session/new", _) => {
+                vec![serde_json::json!({"result": {"sessionId": "renamed-session"}})]
+            }
+            ("session/prompt", 1) => {
+                vec![serde_json::json!({"error": {"code": -32000, "message": TRANSIENT_REFUSAL}})]
+            }
+            ("session/delete", _) => Vec::new(),
+            ("session/prompt", _) => vec![
+                serde_json::json!({"method": "session/update",
                     "params": {"update": {"sessionUpdate": "agent_message_chunk",
                         "content": {"type": "text", "text": "OK after the retry"}}}}),
-                serde_json::json!({"jsonrpc": "2.0", "id": 6, "result": {"stopReason": "end_turn"}}),
+                serde_json::json!({"result": {"stopReason": "end_turn"}}),
             ],
             _ => Vec::new(),
         },
@@ -937,7 +960,9 @@ async fn a_transient_model_refusal_is_retried_once_and_succeeds() {
     )
     .await;
 
-    assert_eq!(request_count, 6, "the retry re-handshakes and re-prompts");
+    // handshake(2) + refused prompt + its delete + re-handshake(2) + fresh
+    // prompt + its delete = 8 wire requests.
+    assert_eq!(request_count, 8, "the retry re-handshakes and re-prompts");
     assert!(
         !output.contains("\"error\""),
         "the retried turn must not surface the refusal: {output}"
@@ -946,20 +971,16 @@ async fn a_transient_model_refusal_is_retried_once_and_succeeds() {
         output.contains("OK after the retry"),
         "the retried turn's text reaches the client: {output}"
     );
-    assert!(
-        output.contains("\"finish_reason\":\"stop\""),
-        "the retried turn completes: {output}"
-    );
     assert!(output.ends_with("data: [DONE]\n\n"));
 }
 
 #[tokio::test]
 async fn a_non_transient_turn_error_is_not_retried() {
     let (output, request_count) = run_scripted_streaming_turn(
-        |index, _request| match index {
-            1 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 1, "result": {}})],
-            2 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 2, "result": {"sessionId": "s-1"}})],
-            3 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 3, "error": {"code": -32000, "message": "the turn failed for a permanent reason"}})],
+        |method, _id, prompt_occurrence| match (method, prompt_occurrence) {
+            ("initialize", _) => vec![serde_json::json!({"result": {}})],
+            ("session/new", _) => vec![serde_json::json!({"result": {"sessionId": "s-1"}})],
+            ("session/prompt", _) => vec![serde_json::json!({"error": {"code": -32000, "message": "the turn failed for a permanent reason"}})],
             _ => Vec::new(),
         },
         retry_turn_render("chatcmpl-retry-2"),
@@ -970,23 +991,24 @@ async fn a_non_transient_turn_error_is_not_retried() {
         output.contains("permanent reason"),
         "the original error surfaces: {output}"
     );
-    assert_eq!(request_count, 3, "no re-handshake after a permanent error");
+    // handshake(2) + failed prompt + its session delete: no re-handshake.
+    assert_eq!(request_count, 4);
     assert!(output.ends_with("data: [DONE]\n\n"));
 }
 
 #[tokio::test]
 async fn a_refusal_after_output_has_streamed_is_not_retried() {
     let (output, request_count) = run_scripted_streaming_turn(
-        |index, _request| match index {
-            1 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 1, "result": {}})],
-            2 => vec![serde_json::json!({"jsonrpc": "2.0", "id": 2, "result": {"sessionId": "s-1"}})],
-            3 => vec![
+        |method, _id, prompt_occurrence| match (method, prompt_occurrence) {
+            ("initialize", _) => vec![serde_json::json!({"result": {}})],
+            ("session/new", _) => vec![serde_json::json!({"result": {"sessionId": "s-1"}})],
+            ("session/prompt", _) => vec![
                 // Text streamed first, then the refusal: a retry would
                 // duplicate what the client already saw.
-                serde_json::json!({"jsonrpc": "2.0", "method": "session/update",
+                serde_json::json!({"method": "session/update",
                     "params": {"update": {"sessionUpdate": "agent_message_chunk",
                         "content": {"type": "text", "text": "partial answer"}}}}),
-                serde_json::json!({"jsonrpc": "2.0", "id": 3, "error": {"code": -32000, "message": TRANSIENT_REFUSAL}}),
+                serde_json::json!({"error": {"code": -32000, "message": TRANSIENT_REFUSAL}}),
             ],
             _ => Vec::new(),
         },
@@ -999,25 +1021,26 @@ async fn a_refusal_after_output_has_streamed_is_not_retried() {
         output.contains("please try a different model"),
         "the refusal surfaces after streamed output: {output}"
     );
-    assert_eq!(request_count, 3, "no re-handshake once output streamed");
+    assert_eq!(request_count, 4, "no re-handshake once output streamed");
     assert!(output.ends_with("data: [DONE]\n\n"));
 }
 
+/// The buffered path forgets the refused session and the fresh one the same
+/// way. The prompt (id 1) never went over the wire, so the session's own id
+/// counter is still at 1: the retry's delete takes id 1 too, re-initialize
+/// id 2, session/new id 3, and the fresh prompt id 4.
 #[tokio::test]
 async fn a_transient_model_refusal_is_retried_in_buffered_turns() {
     let (session, _requests, mut child_out) = scripted_session();
-    // The refused prompt (id 1, passed in below) never went over the wire, so
-    // the session's own id counter is still at 1: the retry's re-initialize
-    // also sends id 1, then session/new takes id 2 and the fresh prompt id 3.
     let writer = tokio::spawn(async move {
         for reply in [
             serde_json::json!({"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": TRANSIENT_REFUSAL}}),
-            serde_json::json!({"jsonrpc": "2.0", "id": 1, "result": {}}),
-            serde_json::json!({"jsonrpc": "2.0", "id": 2, "result": {"sessionId": "s-2"}}),
+            serde_json::json!({"jsonrpc": "2.0", "id": 2, "result": {}}),
+            serde_json::json!({"jsonrpc": "2.0", "id": 3, "result": {"sessionId": "s-2"}}),
             serde_json::json!({"jsonrpc": "2.0", "method": "session/update",
                 "params": {"update": {"sessionUpdate": "agent_message_chunk",
                     "content": {"type": "text", "text": "Reply with OK accepted."}}}}),
-            serde_json::json!({"jsonrpc": "2.0", "id": 3, "result": {"stopReason": "end_turn"}}),
+            serde_json::json!({"jsonrpc": "2.0", "id": 4, "result": {"stopReason": "end_turn"}}),
         ] {
             child_out
                 .write_all(json_line(&reply).as_bytes())

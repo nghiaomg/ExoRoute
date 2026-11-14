@@ -256,6 +256,17 @@ impl<W: AsyncWrite + Unpin, R: AsyncRead + Unpin> AcpSession<W, R> {
     }
 
     /// Submits the turn prompt; the returned id identifies its result.
+    /// Fire-and-forget deletion of the CLI session one request created. The
+    /// transport keeps every session in its own persistent store, so without
+    /// this each routed request would accumulate one there. The request is
+    /// written with its own id and the reply is deliberately unread — it
+    /// arrives as an unsolicited response and is dropped.
+    pub(super) async fn forget_session(&mut self, session_id: &str) -> Result<(), String> {
+        self.send_request("session/delete", json!({"sessionId": session_id}))
+            .await
+            .map(|_| ())
+    }
+
     pub(super) async fn send_prompt(
         &mut self,
         session_id: &str,
