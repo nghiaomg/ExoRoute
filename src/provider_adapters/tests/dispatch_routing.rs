@@ -155,6 +155,11 @@ fn opencode_models_route_to_documented_upstream_protocols() {
         "deepseek-v4.1-flash",
         "mimo-v2.6-flash",
         "space-bunny-free",
+        "longcat-2.5-free",
+        "hy4-flash-free",
+        "beam-free",
+        "iceman-contributor-free",
+        "exo-free",
     ] {
         assert_eq!(
             model_upstream_protocol(OPENCODE_GO_ADAPTER_ID, model),

@@ -112,7 +112,12 @@ fn go_model_protocol(model: &str) -> Option<UpstreamProtocol> {
         | "mimo-v2.5-pro"
         | "hy4-preview"
         | "hy3"
-        | "space-bunny-free" => ChatCompletions,
+        | "space-bunny-free"
+        | "longcat-2.5-free"
+        | "hy4-flash-free"
+        | "beam-free"
+        | "iceman-contributor-free"
+        | "exo-free" => ChatCompletions,
         _ => return None,
     };
     Some(protocol)
