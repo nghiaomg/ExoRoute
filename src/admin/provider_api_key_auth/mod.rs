@@ -20,8 +20,7 @@ use listener::ensure_callback_listener_locked;
 mod flow;
 pub(super) use flow::{
     ApiKeyAuthApplyClaim, ApiKeyCallbackAcceptance, accept_callback_state,
-    claim_api_key_auth_apply, pending_callback_adapter_id,
-    pending_callback_flow_id,
+    claim_api_key_auth_apply, pending_callback_adapter_id, pending_callback_flow_id,
 };
 #[cfg(test)]
 use listener::loopback_addresses;
@@ -223,18 +222,18 @@ pub(super) async fn apply(
             &SecretContext::pending_provider_key(&flow_id),
             Some(&encrypted_api_key),
         )
-            .map_err(|_| {
-                fail(
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "could not decrypt the pending provider key",
-                )
-            })?
-            .ok_or_else(|| {
-                fail(
-                    StatusCode::CONFLICT,
-                    "provider API key is no longer available",
-                )
-            })?;
+        .map_err(|_| {
+            fail(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "could not decrypt the pending provider key",
+            )
+        })?
+        .ok_or_else(|| {
+            fail(
+                StatusCode::CONFLICT,
+                "provider API key is no longer available",
+            )
+        })?;
         super::providers::add_provider_key_with_id(
             &state,
             &provider_id,

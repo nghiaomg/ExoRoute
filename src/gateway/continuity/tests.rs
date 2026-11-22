@@ -476,9 +476,10 @@ async fn seed_stream_runs(
             transaction.put(
                 Table::StreamEvents,
                 &format!("{run_id}/00000000000000000001"),
-                &Record::new()
-                    .with("sequence", Field::I64(1))
-                    .with("payload", Field::Bytes(vec![0; usize::try_from(retained_bytes).unwrap_or(0)])),
+                &Record::new().with("sequence", Field::I64(1)).with(
+                    "payload",
+                    Field::Bytes(vec![0; usize::try_from(retained_bytes).unwrap_or(0)]),
+                ),
             )?;
             transaction.put(
                 Table::StreamRunApiKeyIndex,

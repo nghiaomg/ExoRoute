@@ -362,7 +362,7 @@ pub(crate) async fn add_provider_key_with_id(
         api_key,
     )
     .map_err(|error| fail(StatusCode::BAD_REQUEST, error))?
-        .ok_or_else(|| fail(StatusCode::BAD_REQUEST, "api_key is required"))?;
+    .ok_or_else(|| fail(StatusCode::BAD_REQUEST, "api_key is required"))?;
     let name = requested_name
         .map(str::trim)
         .filter(|name| !name.is_empty())

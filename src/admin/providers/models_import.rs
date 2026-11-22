@@ -226,12 +226,11 @@ async fn import_credential_probed_models(
         legacy_secret,
     )
     .map_err(|_| {
-            fail(
-                StatusCode::BAD_REQUEST,
-                "could not decrypt provider credentials; check EXOROUTE_MASTER_KEY",
-            )
-        })?
-    {
+        fail(
+            StatusCode::BAD_REQUEST,
+            "could not decrypt provider credentials; check EXOROUTE_MASTER_KEY",
+        )
+    })? {
         credentials.push(secret);
     }
 
@@ -239,18 +238,15 @@ async fn import_credential_probed_models(
         let secret = row.bytes("secret").map_err(internal)?;
         if let Some(secret) = decrypt_secret(
             state.config.master_key.as_ref(),
-            &crate::security::SecretContext::provider_key(
-                row.text("id").map_err(internal)?,
-            ),
+            &crate::security::SecretContext::provider_key(row.text("id").map_err(internal)?),
             Some(secret),
         )
         .map_err(|_| {
-                fail(
-                    StatusCode::BAD_REQUEST,
-                    "could not decrypt provider credentials; check EXOROUTE_MASTER_KEY",
-                )
-            })?
-        {
+            fail(
+                StatusCode::BAD_REQUEST,
+                "could not decrypt provider credentials; check EXOROUTE_MASTER_KEY",
+            )
+        })? {
             credentials.push(secret);
         }
     }

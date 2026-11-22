@@ -61,8 +61,12 @@ pub(crate) async fn update_provider(
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?
             .unwrap_or(existing_custom_headers);
     let encrypted_custom_headers = if custom_headers_were_updated {
-        encrypt_custom_headers(&normalized_custom_headers, &id, state.config.master_key.as_ref())
-            .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?
+        encrypt_custom_headers(
+            &normalized_custom_headers,
+            &id,
+            state.config.master_key.as_ref(),
+        )
+        .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?
     } else {
         None
     };
@@ -116,9 +120,9 @@ pub(crate) async fn update_provider(
                 key,
             )
             .map_err(|error| fail(StatusCode::BAD_REQUEST, error))
-                .and_then(|secret| {
-                    secret.ok_or_else(|| fail(StatusCode::BAD_REQUEST, "provider API key is empty"))
-                })
+            .and_then(|secret| {
+                secret.ok_or_else(|| fail(StatusCode::BAD_REQUEST, "provider API key is empty"))
+            })
         })
         .collect::<Result<Vec<_>, _>>()?;
     let mut key_tests = Vec::with_capacity(keys.len());

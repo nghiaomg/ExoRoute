@@ -40,7 +40,7 @@ pub(crate) async fn save_codex_account(
         &serialized,
     )
     .map_err(|_| "could not encrypt the OpenAI account credentials".to_owned())?
-        .ok_or_else(|| "OpenAI returned an empty account credential".to_owned())?;
+    .ok_or_else(|| "OpenAI returned an empty account credential".to_owned())?;
     let index_prefix = crate::infra::db::provider_api_key_index_prefix(provider_id, false)
         .map_err(|_| "could not inspect existing OpenAI accounts".to_owned())?;
     let mut after_index: Option<String> = None;
@@ -80,13 +80,12 @@ pub(crate) async fn save_codex_account(
             let secret = record
                 .bytes("secret")
                 .map_err(|_| "could not inspect an existing OpenAI account".to_owned())?;
-            let Some(secret) =
-                crate::security::decrypt_secret(
-                    state.config.master_key.as_ref(),
-                    &crate::security::SecretContext::oauth_account(&id),
-                    Some(secret),
-                )
-                    .map_err(|_| "could not decrypt an existing OpenAI account".to_owned())?
+            let Some(secret) = crate::security::decrypt_secret(
+                state.config.master_key.as_ref(),
+                &crate::security::SecretContext::oauth_account(&id),
+                Some(secret),
+            )
+            .map_err(|_| "could not decrypt an existing OpenAI account".to_owned())?
             else {
                 continue;
             };
@@ -106,8 +105,7 @@ pub(crate) async fn save_codex_account(
             state.config.master_key.as_ref(),
             &crate::security::SecretContext::oauth_account(&id),
             &serialized,
-        )
-        ?;
+        )?;
         state
             .db
             .write(move |transaction| {

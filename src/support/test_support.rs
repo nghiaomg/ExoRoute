@@ -205,8 +205,8 @@ pub async fn seed_provider_key(
         &crate::security::SecretContext::provider_key(key_id),
         secret,
     )
-        .map_err(StorageError::Invalid)?
-        .ok_or_else(|| StorageError::Invalid("test provider key is empty".to_owned()))?;
+    .map_err(StorageError::Invalid)?
+    .ok_or_else(|| StorageError::Invalid("test provider key is empty".to_owned()))?;
     let record = Record::new()
         .with("id", Field::Text(key_id_owned.clone()))
         .with("provider_id", Field::Text(provider_id_owned.clone()))

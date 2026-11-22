@@ -53,7 +53,7 @@ async fn persist_new_account(
         &serialized,
     )
     .map_err(|_| "could not encrypt Kiro account credentials".to_owned())?
-        .ok_or_else(|| "Kiro returned an empty account credential".to_owned())?;
+    .ok_or_else(|| "Kiro returned an empty account credential".to_owned())?;
     let now = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save Kiro account credentials".to_owned())?;
     let identity = account.identity();
@@ -206,8 +206,8 @@ pub(crate) async fn account_for_use(
         &crate::security::SecretContext::oauth_account(credential_id),
         Some(&encrypted),
     )
-        .map_err(|_| "could not decrypt Kiro account; check EXOROUTE_MASTER_KEY".to_owned())?
-        .ok_or_else(|| "Kiro account credentials are empty".to_owned())?;
+    .map_err(|_| "could not decrypt Kiro account; check EXOROUTE_MASTER_KEY".to_owned())?
+    .ok_or_else(|| "Kiro account credentials are empty".to_owned())?;
     if serialized.len() > MAX_ACCOUNT_BYTES {
         return Err("stored Kiro account data exceeded its size limit".to_owned());
     }
@@ -238,7 +238,7 @@ async fn persist_refresh(
         &serialized,
     )
     .map_err(|_| "could not encrypt Kiro account credentials".to_owned())?
-        .ok_or_else(|| "Kiro returned empty account credentials".to_owned())?;
+    .ok_or_else(|| "Kiro returned empty account credentials".to_owned())?;
     let id = credential_id.to_owned();
     state
         .db

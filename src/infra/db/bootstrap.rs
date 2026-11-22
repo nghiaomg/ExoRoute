@@ -144,8 +144,9 @@ pub(crate) async fn recover_abandoned_stream_runs(database: &Database) -> Result
                         expired.push((id, run));
                         continue;
                     }
-                    retained_total = retained_total
-                        .saturating_add(run.optional_integer("retained_bytes")?.unwrap_or(0).max(0));
+                    retained_total = retained_total.saturating_add(
+                        run.optional_integer("retained_bytes")?.unwrap_or(0).max(0),
+                    );
                 }
                 if page_len < PAGE_SIZE {
                     break;

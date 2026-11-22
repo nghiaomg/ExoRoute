@@ -38,7 +38,7 @@ pub(super) async fn save_cline_account(
         &serialized,
     )
     .map_err(|_| "could not encrypt Cline account credentials".to_owned())?
-        .ok_or_else(|| "Cline returned an empty account credential".to_owned())?;
+    .ok_or_else(|| "Cline returned an empty account credential".to_owned())?;
     let now = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save Cline account credentials".to_owned())?;
     let mut record = crate::admin::providers::provider_api_key_record(
@@ -158,16 +158,16 @@ pub(super) async fn save_cline_account(
                 let was_invalid = existing.boolean("invalid")?;
                 existing.insert("name", Field::Text(record.text("name")?.to_owned()));
                 existing.insert(
-                "secret",
-                Field::Bytes(
-                    crate::security::encrypt_for_storage(
-                        master_key.as_ref(),
-                        &crate::security::SecretContext::oauth_account(&existing_id),
-                        &serialized_update,
-                    )
-                    .map_err(StorageError::Invalid)?,
-                ),
-            );
+                    "secret",
+                    Field::Bytes(
+                        crate::security::encrypt_for_storage(
+                            master_key.as_ref(),
+                            &crate::security::SecretContext::oauth_account(&existing_id),
+                            &serialized_update,
+                        )
+                        .map_err(StorageError::Invalid)?,
+                    ),
+                );
                 existing.insert("credential_type", Field::Text("oauth".to_owned()));
                 if let Some(identity) = account_identity.as_deref() {
                     existing.insert("oauth_account_identity", Field::Text(identity.to_owned()));

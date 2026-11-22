@@ -8,7 +8,10 @@ use super::url::{
     ResolvedProviderUrl, build_pinned_client, build_proxy_client, resolve_provider_url,
     resolve_proxy_url, validate_provider_url, validate_provider_url_via_proxy, validate_proxy_url,
 };
-use crate::{config::UpstreamSettings, security::{SecretContext, decrypt_secret}};
+use crate::{
+    config::UpstreamSettings,
+    security::{SecretContext, decrypt_secret},
+};
 use reqwest::Url;
 use sha2::{Digest, Sha256};
 use std::{

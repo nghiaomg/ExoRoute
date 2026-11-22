@@ -340,8 +340,8 @@ async fn failed_provider_key_is_saved_with_warning_and_never_returned() {
             &crate::security::SecretContext::provider_key(rows.1.text("id").expect("key id")),
             Some(encrypted),
         )
-            .expect("decrypt stored key")
-            .as_deref(),
+        .expect("decrypt stored key")
+        .as_deref(),
         Some("invalid-but-saved")
     );
 }

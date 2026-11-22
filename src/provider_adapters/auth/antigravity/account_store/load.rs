@@ -56,8 +56,8 @@ pub(in crate::provider_adapters) async fn load_account_for_use(
         &crate::security::SecretContext::oauth_account(credential_id),
         Some(&encrypted),
     )
-        .map_err(|_| "could not decrypt Antigravity account; check EXOROUTE_MASTER_KEY".to_owned())?
-        .ok_or_else(|| "Antigravity account credentials are empty".to_owned())?;
+    .map_err(|_| "could not decrypt Antigravity account; check EXOROUTE_MASTER_KEY".to_owned())?
+    .ok_or_else(|| "Antigravity account credentials are empty".to_owned())?;
     if serialized.len() > MAX_ACCOUNT_BYTES {
         return Err("stored Antigravity account data exceeded its size limit".to_owned());
     }

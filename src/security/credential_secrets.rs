@@ -61,11 +61,7 @@ impl SecretContext {
 
     fn aad(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(
-            AAD_DOMAIN.len()
-                + 12
-                + self.table.len()
-                + self.record_id.len()
-                + self.field.len(),
+            AAD_DOMAIN.len() + 12 + self.table.len() + self.record_id.len() + self.field.len(),
         );
         bytes.extend_from_slice(AAD_DOMAIN);
         push_component(&mut bytes, self.table.as_bytes());
@@ -151,7 +147,9 @@ pub fn decrypt_secret(
         }
         let version = stored[ENVELOPE_MAGIC.len()];
         if version != ENVELOPE_VERSION {
-            return Err(format!("unsupported credential encryption version {version}"));
+            return Err(format!(
+                "unsupported credential encryption version {version}"
+            ));
         }
         let body = &stored[header_len..];
         if body.len() < LEGACY_MIN_LEN {
@@ -173,7 +171,9 @@ pub fn decrypt_secret(
     // the format detection collision-safe for the impossible case of a legacy
     // ciphertext that happens to begin with the v2 magic bytes.
     if secret_needs_migration(Some(stored)) {
-        tracing::debug!("decrypting a legacy AAD-free credential; it will migrate on the next write");
+        tracing::debug!(
+            "decrypting a legacy AAD-free credential; it will migrate on the next write"
+        );
     }
     if stored.len() < LEGACY_MIN_LEN {
         return Err("stored provider credential is invalid".to_owned());
@@ -229,9 +229,7 @@ mod tests {
                 .as_deref(),
             Some("secret-value")
         );
-        assert!(
-            decrypt_secret(Some(&[20u8; 32]), &context, Some(&encrypted)).is_err()
-        );
+        assert!(decrypt_secret(Some(&[20u8; 32]), &context, Some(&encrypted)).is_err());
     }
 
     #[test]
@@ -301,11 +299,15 @@ mod tests {
     #[test]
     fn empty_values_stay_absent() {
         let context = SecretContext::provider_key("key-1");
-        assert!(encrypt_secret(Some(&KEY), &context, "")
-            .expect("empty input is valid")
-            .is_none());
-        assert!(decrypt_secret(Some(&KEY), &context, None)
-            .expect("absent input is valid")
-            .is_none());
+        assert!(
+            encrypt_secret(Some(&KEY), &context, "")
+                .expect("empty input is valid")
+                .is_none()
+        );
+        assert!(
+            decrypt_secret(Some(&KEY), &context, None)
+                .expect("absent input is valid")
+                .is_none()
+        );
     }
 }

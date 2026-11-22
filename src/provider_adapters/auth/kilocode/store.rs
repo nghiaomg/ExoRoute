@@ -45,7 +45,7 @@ pub(crate) async fn save_kilocode_account(
         &serialized,
     )
     .map_err(|_| "could not encrypt Kilo Code account credentials".to_owned())?
-        .ok_or_else(|| "Kilo Code returned an empty account credential".to_owned())?;
+    .ok_or_else(|| "Kilo Code returned an empty account credential".to_owned())?;
     let now = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save Kilo Code account credentials".to_owned())?;
     let identity = account.identity();
@@ -221,8 +221,8 @@ pub(crate) async fn account_for_use(
         &crate::security::SecretContext::oauth_account(credential_id),
         Some(&stored),
     )
-        .map_err(|_| "could not decrypt Kilo Code account; check EXOROUTE_MASTER_KEY".to_owned())?
-        .ok_or_else(|| "Kilo Code account credentials are empty".to_owned())?;
+    .map_err(|_| "could not decrypt Kilo Code account; check EXOROUTE_MASTER_KEY".to_owned())?
+    .ok_or_else(|| "Kilo Code account credentials are empty".to_owned())?;
     if serialized.len() > MAX_ACCOUNT_BYTES || serialized.len() > MAX_TOKEN_BYTES + 1024 {
         return Err("stored Kilo Code account data exceeded its size limit".to_owned());
     }

@@ -1008,7 +1008,10 @@ async fn reader_check_succeeds_on_a_live_environment() {
     let database = Database::open_for_test(&path, 4 * 1024 * 1024)
         .await
         .expect("open environment");
-    let reclaimed = database.reader_check().await.expect("reader check succeeds");
+    let reclaimed = database
+        .reader_check()
+        .await
+        .expect("reader check succeeds");
     assert_eq!(reclaimed, 0, "a fresh environment has no stale readers");
     // A live read transaction must not be reclaimed by the check.
     let held = database
@@ -1017,10 +1020,7 @@ async fn reader_check_succeeds_on_a_live_environment() {
         .expect("read while checking");
     assert!(held.is_some());
     assert_eq!(
-        database
-            .reader_check()
-            .await
-            .expect("second reader check"),
+        database.reader_check().await.expect("second reader check"),
         0
     );
     drop(database);
@@ -1038,9 +1038,7 @@ async fn reopen_honors_an_oversize_persisted_map_marker() {
             .await
             .expect("open initial environment");
         database
-            .write(|transaction| {
-                transaction.put(Table::Providers, "kept", &"value".to_owned())
-            })
+            .write(|transaction| transaction.put(Table::Providers, "kept", &"value".to_owned()))
             .await
             .expect("seed data before marker");
         drop(database);

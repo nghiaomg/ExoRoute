@@ -515,9 +515,7 @@ async fn finish_cancelled_run(
         cancellation_sequence,
         b"event: error\ndata: {\"error\":\"Stream cancelled by user\"}\n\n",
     );
-    if *journal_available
-        && let Err(error) = journal.append(run_id, &payload, upstream).await
-    {
+    if *journal_available && let Err(error) = journal.append(run_id, &payload, upstream).await {
         *journal_available = false;
         tracing::warn!(%error, %run_id, "stream replay journal failed while cancelling a stream");
         let _ = journal.mark_incomplete(run_id, cancellation_sequence).await;

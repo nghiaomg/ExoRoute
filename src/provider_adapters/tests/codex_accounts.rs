@@ -237,8 +237,8 @@ async fn saving_distinct_and_reconnected_codex_accounts_keeps_existing_credentia
                         ),
                         Some(secret),
                     )
-                        .expect("decrypt Codex key")
-                        .expect("Codex key payload");
+                    .expect("decrypt Codex key")
+                    .expect("Codex key payload");
                     let account: CodexAccount =
                         serde_json::from_str(&serialized).expect("decode Codex key");
                     (record.text("id").expect("key id").to_owned(), account)

@@ -58,9 +58,7 @@ pub(crate) const STREAM_RETAINED_BYTES_KEY: &str = "stream_continuity_retained_b
 
 /// Reads the retained-byte counter. An absent or malformed counter defaults
 /// to zero: it is a derived value that startup recovery always recomputes.
-pub(crate) fn stream_retained_bytes(
-    transaction: &WriteTxn<'_, '_>,
-) -> Result<i64, StorageError> {
+pub(crate) fn stream_retained_bytes(transaction: &WriteTxn<'_, '_>) -> Result<i64, StorageError> {
     read_writable_stream_retained_bytes(transaction)
 }
 

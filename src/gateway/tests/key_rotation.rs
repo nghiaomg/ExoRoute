@@ -368,8 +368,8 @@ async fn round_robin_providers_keep_the_configured_secret_fallback() {
         &crate::security::SecretContext::provider("provider", "secret"),
         "legacy-secret",
     )
-        .expect("encrypt provider secret")
-        .expect("non-empty provider secret");
+    .expect("encrypt provider secret")
+    .expect("non-empty provider secret");
     database
         .db
         .write(move |transaction| {

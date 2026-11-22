@@ -130,13 +130,11 @@ async fn reconnecting_the_same_google_account_updates_one_credential() {
     let encrypted = accounts[0].bytes("secret").expect("account secret");
     let serialized = security::decrypt_secret(
         state.config.master_key.as_ref(),
-        &crate::security::SecretContext::oauth_account(
-            accounts[0].text("id").expect("account id"),
-        ),
+        &crate::security::SecretContext::oauth_account(accounts[0].text("id").expect("account id")),
         Some(encrypted),
     )
-        .expect("decrypt account secret")
-        .expect("account secret payload");
+    .expect("decrypt account secret")
+    .expect("account secret payload");
     let account: AntigravityAccount =
         serde_json::from_str(&serialized).expect("decode account secret");
     assert_eq!(account.access_token, "access-token-2");

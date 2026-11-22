@@ -71,9 +71,12 @@ pub(crate) async fn create_provider(
         custom_headers_for_input(input.custom_headers.as_deref(), &BTreeMap::new())
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?
             .unwrap_or_default();
-    let encrypted_custom_headers =
-        encrypt_custom_headers(&normalized_custom_headers, &id, state.config.master_key.as_ref())
-            .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
+    let encrypted_custom_headers = encrypt_custom_headers(
+        &normalized_custom_headers,
+        &id,
+        state.config.master_key.as_ref(),
+    )
+    .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
     let keys = provider_keys(&input);
     if state
         .db
@@ -136,7 +139,7 @@ pub(crate) async fn create_provider(
                 key,
             )
             .map_err(|error| fail(StatusCode::BAD_REQUEST, error))?
-                .ok_or_else(|| fail(StatusCode::BAD_REQUEST, "provider API key is empty"))?,
+            .ok_or_else(|| fail(StatusCode::BAD_REQUEST, "provider API key is empty"))?,
         );
         key_tests.push(json!({
             "index": index,

@@ -306,16 +306,15 @@ async fn endpoint_reorder_keeps_aad_bound_secrets_decryptable() {
 
     let first_id = uuid::Uuid::new_v4().to_string();
     let second_id = uuid::Uuid::new_v4().to_string();
-    let make_endpoint = |endpoint_id: String, port: u16, priority: u32, secret: &str| {
-        ProxyEndpointInput {
+    let make_endpoint =
+        |endpoint_id: String, port: u16, priority: u32, secret: &str| ProxyEndpointInput {
             endpoint_id,
             url: Some(format!("http://127.0.0.1:{port}")),
             priority,
             secret: Some(secret.to_owned()),
             enabled: true,
             ..ProxyEndpointInput::default()
-        }
-    };
+        };
     let mut proxy = input(vec![
         make_endpoint(first_id.clone(), 7801, 0, "alpha-secret"),
         make_endpoint(second_id.clone(), 7802, 1, "beta-secret"),
@@ -329,11 +328,8 @@ async fn endpoint_reorder_keeps_aad_bound_secrets_decryptable() {
         async move {
             database
                 .read(move |transaction| {
-                    let endpoints = transaction.scan_prefix::<Record>(
-                        Table::ProxyEndpoints,
-                        &prefix,
-                        10,
-                    )?;
+                    let endpoints =
+                        transaction.scan_prefix::<Record>(Table::ProxyEndpoints, &prefix, 10)?;
                     let mut found = Vec::new();
                     for (_, record) in endpoints {
                         let endpoint_id = record.text("endpoint_id")?.to_owned();

@@ -284,8 +284,8 @@ async fn apply_persists_the_encrypted_key_once_and_never_returns_it() {
             &crate::security::SecretContext::pending_provider_key(flow_id),
             "cc-secret-test-value",
         )
-            .expect("encrypt pending API key")
-            .expect("non-empty API key"),
+        .expect("encrypt pending API key")
+        .expect("non-empty API key"),
     );
     state
         .register_provider_api_key_auth_flow(flow_id.to_owned(), flow)
@@ -331,7 +331,7 @@ async fn apply_persists_the_encrypted_key_once_and_never_returns_it() {
         Some(&saved_secret.1),
     )
     .expect("decrypt saved key")
-        .expect("stored key");
+    .expect("stored key");
     assert_eq!(decrypted, "cc-secret-test-value");
     let key_prefix = crate::infra::db::provider_api_key_index_prefix("command-code", false)
         .expect("provider API key index prefix");

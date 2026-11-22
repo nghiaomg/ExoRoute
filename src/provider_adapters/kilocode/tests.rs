@@ -309,8 +309,8 @@ async fn save_oauth_credential(
         &crate::security::SecretContext::oauth_account(key_id),
         &serialized,
     )
-        .expect("encrypt")
-        .expect("non-empty encrypted account");
+    .expect("encrypt")
+    .expect("non-empty encrypted account");
     let now = crate::infra::db::utc_timestamp_now().expect("timestamp");
     let mut record = crate::admin::providers::provider_api_key_record(
         crate::admin::providers::ProviderApiKeyRecordData {

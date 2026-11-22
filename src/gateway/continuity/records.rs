@@ -299,9 +299,8 @@ fn append_event_in_txn(
     let sequence = latest_sequence.checked_add(1).ok_or_else(|| {
         StorageError::Invalid("stream event sequence exceeded the supported range".to_owned())
     })?;
-    let retained_bytes = usize::try_from(run.integer("retained_bytes")?).map_err(|_| {
-        StorageError::Invalid("stream retained-byte count is invalid".to_owned())
-    })?;
+    let retained_bytes = usize::try_from(run.integer("retained_bytes")?)
+        .map_err(|_| StorageError::Invalid("stream retained-byte count is invalid".to_owned()))?;
     let replay_complete = run.boolean("replay_complete")?;
     let global_retained = stream_retained_bytes(transaction)?;
     let fits_run = retained_bytes
@@ -387,7 +386,13 @@ pub(in crate::gateway) async fn finish_run_with_settings(
     let error = error.map(|message| truncate_error(message, upstream.continuity_setup_error_bytes));
     let finished_at = crate::infra::db::utc_timestamp_now()?;
     db.write(move |transaction| {
-        finish_run_in_txn(transaction, &run_id, &status, error.as_deref(), &finished_at)
+        finish_run_in_txn(
+            transaction,
+            &run_id,
+            &status,
+            error.as_deref(),
+            &finished_at,
+        )
     })
     .await
 }
@@ -405,7 +410,13 @@ fn finish_run_in_txn(
     };
     if run.text("status")? == "running" {
         run.insert("status", Field::Text(status.to_owned()));
-        run.insert("error", error.map(str::to_owned).map(Field::Text).unwrap_or(Field::Null));
+        run.insert(
+            "error",
+            error
+                .map(str::to_owned)
+                .map(Field::Text)
+                .unwrap_or(Field::Null),
+        );
         run.insert("finished_at", Field::Text(finished_at.to_owned()));
         transaction.put(Table::StreamRuns, run_id, &run)?;
     }
@@ -496,7 +507,8 @@ impl JournalBatch {
         upstream: UpstreamSettings,
     ) -> Result<(), StorageError> {
         let finished_at = crate::infra::db::utc_timestamp_now()?;
-        let error = error.map(|message| truncate_error(message, upstream.continuity_setup_error_bytes));
+        let error =
+            error.map(|message| truncate_error(message, upstream.continuity_setup_error_bytes));
         match self
             .request(JournalOp::Finish {
                 run_id: run_id.to_owned(),
@@ -701,10 +713,7 @@ pub(in crate::gateway) fn remove_stream_run(
         Table::StreamRunApiKeyIndex,
         &stream_run_api_key_index_key(api_key_id, id)?,
     )?;
-    let retained = run
-        .optional_integer("retained_bytes")?
-        .unwrap_or(0)
-        .max(0);
+    let retained = run.optional_integer("retained_bytes")?.unwrap_or(0).max(0);
     deduct_stream_retained_bytes(transaction, retained)?;
     Ok(())
 }

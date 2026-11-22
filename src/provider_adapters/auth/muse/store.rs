@@ -53,7 +53,7 @@ pub(crate) async fn save_muse_account(
         &serialized,
     )
     .map_err(|_| "could not encrypt Muse account credentials".to_owned())?
-        .ok_or_else(|| "Muse returned an empty account credential".to_owned())?;
+    .ok_or_else(|| "Muse returned an empty account credential".to_owned())?;
     let now = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save Muse account credentials".to_owned())?;
     let identity = account.identity();
@@ -185,7 +185,7 @@ pub(crate) async fn persist_account(
         &serialized,
     )
     .map_err(|_| "could not encrypt Muse account credentials".to_owned())?
-        .ok_or_else(|| "Muse account credentials are empty".to_owned())?;
+    .ok_or_else(|| "Muse account credentials are empty".to_owned())?;
     let now = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save Muse account credentials".to_owned())?;
     let id = credential_id.to_owned();
@@ -262,7 +262,7 @@ pub(crate) async fn persist_remint_attempt(
         &serialized,
     )
     .map_err(|_| "could not encrypt Muse account credentials".to_owned())?
-        .ok_or_else(|| "Muse account credentials are empty".to_owned())?;
+    .ok_or_else(|| "Muse account credentials are empty".to_owned())?;
     let id = credential_id.to_owned();
     state
         .db
@@ -355,8 +355,8 @@ pub(crate) async fn load_muse_account(
         &crate::security::SecretContext::oauth_account(credential_id),
         Some(&stored),
     )
-        .map_err(|_| "could not decrypt Muse account; check EXOROUTE_MASTER_KEY".to_owned())?
-        .ok_or_else(|| "Muse account credentials are empty".to_owned())?;
+    .map_err(|_| "could not decrypt Muse account; check EXOROUTE_MASTER_KEY".to_owned())?
+    .ok_or_else(|| "Muse account credentials are empty".to_owned())?;
     if serialized.len() > MAX_ACCOUNT_BYTES {
         return Err("stored Muse account data exceeded its size limit".to_owned());
     }

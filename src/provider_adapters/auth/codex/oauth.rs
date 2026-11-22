@@ -149,16 +149,15 @@ pub(super) async fn load_account_for_use(
     if encrypted.len() > MAX_CREDENTIAL_BYTES {
         return Err("stored OpenAI Codex account data exceeded its size limit".to_owned());
     }
-    let serialized =
-        crate::security::decrypt_secret(
-            state.config.master_key.as_ref(),
-            &crate::security::SecretContext::oauth_account(credential_id),
-            Some(&encrypted),
-        )
-            .map_err(|_| {
-                "could not decrypt the OpenAI Codex account; check EXOROUTE_MASTER_KEY".to_owned()
-            })?
-            .ok_or_else(|| "OpenAI Codex account credentials are empty".to_owned())?;
+    let serialized = crate::security::decrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(credential_id),
+        Some(&encrypted),
+    )
+    .map_err(|_| {
+        "could not decrypt the OpenAI Codex account; check EXOROUTE_MASTER_KEY".to_owned()
+    })?
+    .ok_or_else(|| "OpenAI Codex account credentials are empty".to_owned())?;
     let mut account: CodexAccount = serde_json::from_str(&serialized)
         .map_err(|_| "stored OpenAI Codex account data is invalid".to_owned())?;
     if force_refresh || account.expires_at <= unix_now().saturating_add(REFRESH_LEAD_SECONDS) {
@@ -175,14 +174,13 @@ pub(super) async fn load_account_for_use(
                 account.refresh_metadata();
                 let serialized = serde_json::to_string(&account)
                     .map_err(|_| "could not encode the refreshed OpenAI account".to_owned())?;
-                let encrypted =
-                    crate::security::encrypt_secret(
-                        state.config.master_key.as_ref(),
-                        &crate::security::SecretContext::oauth_account(credential_id),
-                        &serialized,
-                    )
-                        .map_err(|_| "could not encrypt the refreshed OpenAI account".to_owned())?
-                        .ok_or_else(|| "OpenAI returned an empty refreshed account".to_owned())?;
+                let encrypted = crate::security::encrypt_secret(
+                    state.config.master_key.as_ref(),
+                    &crate::security::SecretContext::oauth_account(credential_id),
+                    &serialized,
+                )
+                .map_err(|_| "could not encrypt the refreshed OpenAI account".to_owned())?
+                .ok_or_else(|| "OpenAI returned an empty refreshed account".to_owned())?;
                 let id = credential_id.to_owned();
                 let display_name = account.display_name();
                 let updated_at = crate::infra::db::utc_timestamp_now().map_err(|_| {

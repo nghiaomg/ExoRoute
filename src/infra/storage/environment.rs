@@ -302,9 +302,7 @@ impl Database {
             env.clear_stale_readers().map_err(StorageError::from)
         })
         .await
-        .map_err(|error| {
-            StorageError::Task(format!("LMDB reader check task failed: {error}"))
-        })??;
+        .map_err(|error| StorageError::Task(format!("LMDB reader check task failed: {error}")))??;
         if reclaimed > 0 {
             tracing::warn!(reclaimed, "reclaimed stale LMDB reader slots");
         }

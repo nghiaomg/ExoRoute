@@ -298,10 +298,7 @@ fn provider_secret_credential(
     let legacy_secret = provider.optional_bytes("secret").map_err(internal)?;
     let secret = decrypt_secret(
         state.config.master_key.as_ref(),
-        &SecretContext::provider(
-            provider.text("id").map_err(internal)?,
-            "secret",
-        ),
+        &SecretContext::provider(provider.text("id").map_err(internal)?, "secret"),
         legacy_secret,
     )
     .map_err(|message| fail_request(StatusCode::INTERNAL_SERVER_ERROR, message))?;

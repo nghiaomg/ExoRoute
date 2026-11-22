@@ -49,7 +49,7 @@ pub(crate) async fn save_qoder_account(
         &serialized,
     )
     .map_err(|_| "could not encrypt Qoder account credentials".to_owned())?
-        .ok_or_else(|| "Qoder returned an empty account credential".to_owned())?;
+    .ok_or_else(|| "Qoder returned an empty account credential".to_owned())?;
     let now = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save Qoder account credentials".to_owned())?;
     let identity = account.identity();
@@ -221,8 +221,8 @@ pub(crate) async fn account_for_use(
         &crate::security::SecretContext::oauth_account(credential_id),
         Some(&stored),
     )
-        .map_err(|_| "could not decrypt Qoder account; check EXOROUTE_MASTER_KEY".to_owned())?
-        .ok_or_else(|| "Qoder account credentials are empty".to_owned())?;
+    .map_err(|_| "could not decrypt Qoder account; check EXOROUTE_MASTER_KEY".to_owned())?
+    .ok_or_else(|| "Qoder account credentials are empty".to_owned())?;
     if serialized.len() > MAX_ACCOUNT_BYTES || serialized.len() > MAX_TOKEN_BYTES + 1024 {
         return Err("stored Qoder account data exceeded its size limit".to_owned());
     }

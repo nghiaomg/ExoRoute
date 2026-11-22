@@ -447,11 +447,8 @@ pub(super) async fn delete_api_key(
             // additional run/event/index row orphaned after a key deletion.
             let prefix = format!("{id}/");
             loop {
-                let run_indexes = transaction.scan_prefix::<String>(
-                    Table::StreamRunApiKeyIndex,
-                    &prefix,
-                    256,
-                )?;
+                let run_indexes =
+                    transaction.scan_prefix::<String>(Table::StreamRunApiKeyIndex, &prefix, 256)?;
                 if run_indexes.is_empty() {
                     break;
                 }

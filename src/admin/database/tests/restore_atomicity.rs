@@ -494,7 +494,10 @@ async fn snapshot_round_trip_preserves_legacy_and_aad_bound_secrets() {
         decrypt_secret(
             Some(&MASTER_KEY),
             &SecretContext::provider_key("legacy-key"),
-            restored.0.optional_bytes("secret").expect("legacy secret field"),
+            restored
+                .0
+                .optional_bytes("secret")
+                .expect("legacy secret field"),
         )
         .expect("legacy decryption after restore")
         .as_deref(),
@@ -504,7 +507,10 @@ async fn snapshot_round_trip_preserves_legacy_and_aad_bound_secrets() {
         decrypt_secret(
             Some(&MASTER_KEY),
             &SecretContext::provider_key("bound-key"),
-            restored.1.optional_bytes("secret").expect("bound secret field"),
+            restored
+                .1
+                .optional_bytes("secret")
+                .expect("bound secret field"),
         )
         .expect("v2 decryption after restore")
         .as_deref(),
