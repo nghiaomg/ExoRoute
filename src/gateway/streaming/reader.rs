@@ -27,6 +27,14 @@ pub(crate) enum SseReadEvent {
     Shutdown,
 }
 
+/// Timing options for the transport reader. Grouped so callers cannot confuse
+/// the upstream idle deadline with the client-facing keep-alive cadence.
+pub(crate) struct SseReaderTiming {
+    pub idle_timeout: Duration,
+    pub overall_timeout: Option<Duration>,
+    pub keepalive_interval: Duration,
+}
+
 /// Reads bounded SSE frames from an upstream byte stream.
 ///
 /// This type owns transport concerns only: upstream idle/continuity deadlines,
@@ -57,26 +65,31 @@ impl SseFrameReader {
     ) -> Self {
         Self::with_keepalive_interval(
             chunks,
-            idle_timeout,
+            SseReaderTiming {
+                idle_timeout,
+                overall_timeout,
+                keepalive_interval: CLIENT_KEEPALIVE_INTERVAL,
+            },
             continuity_enabled,
-            overall_timeout,
             resource_limits,
             shutdown,
             processing_slots,
-            CLIENT_KEEPALIVE_INTERVAL,
         )
     }
 
     pub(crate) fn with_keepalive_interval(
         chunks: UpstreamChunkStream,
-        idle_timeout: Duration,
+        timing: SseReaderTiming,
         continuity_enabled: bool,
-        overall_timeout: Option<Duration>,
         resource_limits: GatewayResourceLimits,
         shutdown: watch::Receiver<bool>,
         processing_slots: Option<Arc<DynamicSemaphore>>,
-        keepalive_interval: Duration,
     ) -> Self {
+        let SseReaderTiming {
+            idle_timeout,
+            overall_timeout,
+            keepalive_interval,
+        } = timing;
         let now = tokio::time::Instant::now();
         // Client-facing SSE comments keep strict clients' stream watchdogs
         // alive during silent provider pauses, including non-continuity streams.

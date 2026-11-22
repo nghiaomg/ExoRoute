@@ -5,8 +5,8 @@
 //! cache so unrelated providers never share proxy credentials or DNS overrides.
 
 use super::url::{
-    ResolvedProviderUrl, build_pinned_client, build_proxy_client, resolve_provider_url,
-    resolve_proxy_url, validate_provider_url, validate_provider_url_via_proxy, validate_proxy_url,
+    build_pinned_client, build_proxy_client, resolve_provider_url, resolve_proxy_url,
+    validate_provider_url, validate_provider_url_via_proxy, validate_proxy_url,
 };
 use crate::{
     config::UpstreamSettings,
@@ -57,6 +57,17 @@ struct CachedProviderClient {
 static PROVIDER_CLIENTS: LazyLock<Mutex<HashMap<ProviderClientKey, CachedProviderClient>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+/// Cohesive client options shared by direct and proxied provider requests.
+#[derive(Clone)]
+pub struct ProviderClientOptions {
+    pub allow_local: bool,
+    pub connect_timeout: Duration,
+    pub request_timeout: Duration,
+    pub streaming: bool,
+    pub user_agent: String,
+    pub upstream: UpstreamSettings,
+}
+
 /// Build a client for a provider origin. With no proxy, provider DNS is resolved
 /// and pinned as before. With a proxy, the proxy is validated as the actual
 /// destination and provider DNS is delegated to that proxy; reqwest's
@@ -72,12 +83,14 @@ pub async fn provider_client(
 ) -> Result<(Url, reqwest::Client), String> {
     provider_client_with_proxy(
         input,
-        allow_local,
-        connect_timeout,
-        request_timeout,
-        streaming,
-        user_agent,
-        upstream,
+        ProviderClientOptions {
+            allow_local,
+            connect_timeout,
+            request_timeout,
+            streaming,
+            user_agent: user_agent.to_owned(),
+            upstream,
+        },
         None,
     )
     .await
@@ -85,14 +98,17 @@ pub async fn provider_client(
 
 pub async fn provider_client_with_proxy(
     input: &str,
-    allow_local: bool,
-    connect_timeout: Duration,
-    request_timeout: Duration,
-    streaming: bool,
-    user_agent: &str,
-    upstream: UpstreamSettings,
+    options: ProviderClientOptions,
     proxy: Option<&ProxyEgress>,
 ) -> Result<(Url, reqwest::Client), String> {
+    let ProviderClientOptions {
+        allow_local,
+        connect_timeout,
+        request_timeout,
+        streaming,
+        user_agent,
+        upstream,
+    } = options;
     let url = if proxy.is_some() {
         validate_provider_url_via_proxy(input, allow_local)?
     } else {
@@ -112,7 +128,7 @@ pub async fn provider_client_with_proxy(
         connect_timeout,
         request_timeout,
         streaming,
-        user_agent: user_agent.to_owned(),
+        user_agent: user_agent.clone(),
     };
     let now = Instant::now();
     {
@@ -139,7 +155,7 @@ pub async fn provider_client_with_proxy(
         .connect_timeout(connect_timeout)
         .timeout(total_timeout)
         .pool_idle_timeout(PROVIDER_POOL_IDLE_TIMEOUT)
-        .user_agent(user_agent);
+        .user_agent(&user_agent);
     let client = if let Some(proxy) = proxy {
         let proxy_url = validate_proxy_url(proxy.url.as_str(), allow_local)?;
         let resolved_proxy = resolve_proxy_url(

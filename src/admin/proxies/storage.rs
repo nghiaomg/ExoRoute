@@ -244,10 +244,10 @@ pub(super) fn save_proxy(
             let stable_id = old_endpoint
                 .optional_text("endpoint_id")?
                 .map(str::to_owned);
-            if let Some(secret) = old_endpoint.field("secret") {
-                if let Some(stable_id) = stable_id {
-                    old_secrets.insert(stable_id, secret.clone());
-                }
+            if let Some(secret) = old_endpoint.field("secret")
+                && let Some(stable_id) = stable_id
+            {
+                old_secrets.insert(stable_id, secret.clone());
             }
             transaction.delete(Table::ProxyEndpoints, &old_key)?;
             if let Some(reference) = old_endpoint.optional_text("ref_proxy_id")? {
@@ -262,12 +262,10 @@ pub(super) fn save_proxy(
         transaction.put(Table::ProxyNameIndex, name_index, &proxy_id)?;
         for endpoint in endpoints {
             let mut record = endpoint.record.clone();
-            if endpoint.preserve_secret {
-                if let Some(secret) =
-                    old_secrets.get(&endpoint.record.text("endpoint_id")?.to_owned())
-                {
-                    record.insert("secret", secret.clone());
-                }
+            if endpoint.preserve_secret
+                && let Some(secret) = old_secrets.get(endpoint.record.text("endpoint_id")?)
+            {
+                record.insert("secret", secret.clone());
             }
             transaction.put_if_absent(Table::ProxyEndpoints, &endpoint.endpoint_key, &record)?;
             if let Some(reference_index) = endpoint.reference_index.as_deref() {
@@ -298,20 +296,4 @@ fn hex_component(value: &str) -> String {
         encoded.push_str(&format!("{byte:02x}"));
     }
     encoded
-}
-
-#[cfg(test)]
-pub(super) use tests_support::endpoint_key_for_test;
-
-#[cfg(test)]
-mod tests_support {
-    use super::*;
-
-    pub(in crate::admin::proxies) fn endpoint_key_for_test(
-        proxy_id: &str,
-        priority: u32,
-        ordinal: usize,
-    ) -> String {
-        proxy_endpoint_key(proxy_id, priority, ordinal).expect("test endpoint key is valid")
-    }
 }

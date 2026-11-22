@@ -85,12 +85,14 @@ async fn prepare_workspace_request<A: ProviderAdapter + ?Sized>(
     let (endpoint, client) = match proxy {
         Some(proxy) => egress::provider_client_with_proxy(
             endpoint.as_str(),
-            request.state.config.allow_private_provider_urls,
-            connect_timeout,
-            request_timeout,
-            streaming,
-            user_agent,
-            upstream,
+            egress::ProviderClientOptions {
+                allow_local: request.state.config.allow_private_provider_urls,
+                connect_timeout,
+                request_timeout,
+                streaming,
+                user_agent: user_agent.to_owned(),
+                upstream,
+            },
             Some(proxy),
         )
         .await

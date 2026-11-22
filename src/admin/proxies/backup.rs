@@ -1,8 +1,5 @@
-use super::references::{
-    MAX_PROXY_NESTING_SCAN, ProxyReferenceError, ProxyReferenceIssue, validate_pending_proxy,
-};
 use super::*;
-use crate::infra::storage::{ReadTxn, StorageError, Table};
+use crate::infra::storage::StorageError;
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct BackupProxyGraph {
@@ -198,15 +195,14 @@ pub(crate) fn validate_backup_proxy_entries(
         if positions.len() > MAX_PROXY_ENDPOINTS {
             return Err("A proxy in the backup has too many endpoints.");
         }
-        if let Some(max_ordinal) = positions.iter().max().copied() {
-            if usize::try_from(max_ordinal)
+        if let Some(max_ordinal) = positions.iter().max().copied()
+            && (usize::try_from(max_ordinal)
                 .ok()
                 .and_then(|n| n.checked_add(1))
                 != Some(positions.len())
-                || !(0..=max_ordinal).all(|ordinal| positions.contains(&ordinal))
-            {
-                return Err("The backup contains non-contiguous proxy endpoint order.");
-            }
+                || !(0..=max_ordinal).all(|ordinal| positions.contains(&ordinal)))
+        {
+            return Err("The backup contains non-contiguous proxy endpoint order.");
         }
         if let Some(proxy) = proxies.get(owner) {
             let proxy_enabled = proxy
@@ -239,46 +235,4 @@ fn null_bytes(record: &Record, field: &str) -> Result<bool, &'static str> {
         .optional_bytes(field)
         .map_err(|_| "A proxy endpoint record in the backup is invalid.")?
         .is_none())
-}
-
-/// Revalidates every parent affected by replacing one node in the stored graph.
-pub(crate) fn validate_proxy_candidate_and_ancestors(
-    store: &impl ProxyStore,
-    references: &impl ProxyReferences,
-    proxy_id: &str,
-    pending: &PendingProxy,
-) -> Result<(), ProxyReferenceError> {
-    validate_pending_proxy(store, proxy_id, pending)?;
-    let mut queue = references.referencing_proxies(proxy_id)?;
-    let mut seen = HashSet::new();
-    while let Some(parent_id) = queue.pop() {
-        if !seen.insert(parent_id.clone()) {
-            continue;
-        }
-        let Some(parent) = store.proxy_node(&parent_id)? else {
-            return Err(ProxyReferenceError::Issue(ProxyReferenceIssue::Missing {
-                proxy_id: parent_id,
-            }));
-        };
-        let pending_parent = PendingProxy {
-            enabled: parent.enabled,
-            server_endpoints: parent.server_endpoints,
-            references: parent.references.clone(),
-        };
-        validate_pending_proxy(store, &parent_id, &pending_parent)?;
-        queue.extend(references.referencing_proxies(&parent_id)?);
-        if seen.len() > MAX_PROXY_NESTING_SCAN {
-            return Err(ProxyReferenceError::Issue(
-                ProxyReferenceIssue::GraphTooLarge,
-            ));
-        }
-    }
-    Ok(())
-}
-
-pub(crate) fn proxy_record_by_id(
-    transaction: &ReadTxn<'_, '_>,
-    proxy_id: &str,
-) -> Result<Option<Record>, StorageError> {
-    transaction.get::<Record>(Table::Proxies, proxy_id)
 }

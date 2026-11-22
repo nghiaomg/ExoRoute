@@ -232,18 +232,6 @@ impl From<StorageError> for ProxyReferenceError {
     }
 }
 
-impl ProxyReferenceError {
-    pub(super) fn into_api(self) -> (axum::http::StatusCode, axum::Json<serde_json::Value>) {
-        match self {
-            ProxyReferenceError::Storage(error) => internal(error),
-            ProxyReferenceError::Issue(issue) => fail(
-                axum::http::StatusCode::BAD_REQUEST,
-                proxy_issue_message(&issue),
-            ),
-        }
-    }
-}
-
 pub(super) fn proxy_issue_message(issue: &ProxyReferenceIssue) -> String {
     match issue {
         ProxyReferenceIssue::SelfReference => {
@@ -252,10 +240,9 @@ pub(super) fn proxy_issue_message(issue: &ProxyReferenceIssue) -> String {
         ProxyReferenceIssue::Cycle { path } => {
             format!("embedded proxies form a cycle: {}", path.join(" -> "))
         }
-        ProxyReferenceIssue::Depth { proxy_id } => format!(
-            "embedded proxies are nested deeper than the supported limit at '{}'",
-            proxy_id
-        ),
+        ProxyReferenceIssue::Depth { proxy_id } => {
+            format!("embedded proxies are nested deeper than the supported limit at '{proxy_id}'")
+        }
         ProxyReferenceIssue::Missing { proxy_id } => {
             format!("embedded proxy '{proxy_id}' does not exist")
         }
@@ -291,21 +278,6 @@ impl<'a, S: ProxyStore> ReferenceWalk<'a, S> {
             stack: Vec::new(),
             scanned: 0,
         }
-    }
-
-    /// Expands the pending proxy and reports its endpoint total and depth.
-    fn expand_pending(
-        &mut self,
-        proxy_id: &str,
-        pending: &PendingProxy,
-    ) -> Result<NodeSummary, ProxyReferenceError> {
-        if !pending.enabled {
-            return Ok(NodeSummary::default());
-        }
-        self.stack.push(proxy_id.to_owned());
-        let summary = self.scan_children(&pending.references, pending.server_endpoints)?;
-        self.stack.pop();
-        Ok(summary)
     }
 
     fn scan_children(
@@ -474,19 +446,6 @@ pub(super) fn ensure_reference_graph<S: ProxyStore>(
     validate_pending_proxy(store, proxy_id, pending).map_err(|error| match error {
         ProxyReferenceError::Storage(error) => error,
         ProxyReferenceError::Issue(_) => StorageError::Conflict,
-    })
-}
-
-pub(super) fn ensure_proxy_update_graph<S: ProxyStore + ProxyReferences>(
-    store: &S,
-    proxy_id: &str,
-    pending: &PendingProxy,
-) -> Result<(), StorageError> {
-    validate_proxy_candidate_and_ancestors(store, store, proxy_id, pending).map_err(|error| {
-        match error {
-            ProxyReferenceError::Storage(error) => error,
-            ProxyReferenceError::Issue(_) => StorageError::Conflict,
-        }
     })
 }
 

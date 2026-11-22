@@ -137,30 +137,17 @@ pub(crate) struct ProxyTrafficTotals {
     pub last_used: u64,
 }
 
+#[derive(Default)]
 pub(crate) struct ProxyTrafficRegistry {
     pub entries: HashMap<String, ProxyTrafficTotals>,
     pub clock: u64,
     pub truncated: bool,
 }
 
-impl Default for ProxyTrafficRegistry {
-    fn default() -> Self {
-        Self {
-            entries: HashMap::new(),
-            clock: 0,
-            truncated: false,
-        }
-    }
-}
-
 /// One endpoint outcome of the last diagnostic proxy live-check.
 #[derive(Clone, Debug)]
 pub(crate) struct ProxyEndpointCheckOutcome {
-    pub endpoint_id: String,
     pub live: bool,
-    pub latency_millis: u64,
-    /// Short, classified failure text. Never contains credentials or secrets.
-    pub error: Option<String>,
 }
 
 /// The last diagnostic live-check of one proxy, kept in process memory only.
@@ -183,21 +170,12 @@ pub(crate) struct ProxyCheckSummary {
     pub die_count: usize,
 }
 
+#[derive(Default)]
 pub(crate) struct ProxyCheckRegistry {
     pub entries: HashMap<String, ProxyCheckRecord>,
     /// One single-permit semaphore per proxy with a check currently running.
     pub in_flight: HashMap<String, Arc<Semaphore>>,
     pub clock: u64,
-}
-
-impl Default for ProxyCheckRegistry {
-    fn default() -> Self {
-        Self {
-            entries: HashMap::new(),
-            in_flight: HashMap::new(),
-            clock: 0,
-        }
-    }
 }
 
 /// Outcome of trying to start a proxy live-check. `Busy` means the same proxy

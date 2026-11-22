@@ -41,7 +41,7 @@ mod combos;
 pub(crate) use combos::route_name_index_exact_prefix;
 pub(crate) use combos::stored_retry_until_success;
 mod proxies;
-pub(crate) use proxies::{ProxyEndpointConfig, ProxyEndpointGroup, load_proxy_endpoint_configs};
+pub(crate) use proxies::{ProxyEndpointGroup, load_proxy_endpoint_configs};
 mod cookie_policy;
 mod database;
 mod errors;

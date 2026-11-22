@@ -7,7 +7,7 @@
 //! rejected with a message that names the accepted forms.
 
 use super::*;
-use crate::config::{MAX_PROXY_ENDPOINTS, MAX_PROXY_NESTING_DEPTH};
+use crate::config::MAX_PROXY_ENDPOINTS;
 
 pub(super) const MAX_PROXY_ID_BYTES: usize = 128;
 pub(super) const MAX_PROXY_NAME_BYTES: usize = 256;
@@ -149,10 +149,10 @@ fn validate_endpoint_fields(endpoint: &mut ProxyEndpointInput) -> Result<(), &'s
             return Err("proxy username contains unsupported control characters");
         }
     }
-    if let Some(secret) = endpoint.secret.as_deref() {
-        if secret.len() > MAX_PROXY_SECRET_BYTES {
-            return Err("proxy password must not exceed 512 bytes");
-        }
+    if let Some(secret) = endpoint.secret.as_deref()
+        && secret.len() > MAX_PROXY_SECRET_BYTES
+    {
+        return Err("proxy password must not exceed 512 bytes");
     }
     if let Some(label) = endpoint.label.as_deref() {
         if label.len() > MAX_PROXY_LABEL_BYTES {
@@ -222,12 +222,4 @@ pub(crate) fn normalize_proxy_url(value: &str) -> Result<String, &'static str> {
         return Err("proxy URL must not include a path");
     }
     Ok(parsed.to_string())
-}
-
-/// Rejects an expanded reference graph that would nest deeper than the bound.
-pub(super) fn validate_nesting_depth(depth: usize) -> Result<(), &'static str> {
-    if depth > MAX_PROXY_NESTING_DEPTH {
-        return Err("embedded proxies are nested deeper than the supported limit");
-    }
-    Ok(())
 }

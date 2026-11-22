@@ -19,10 +19,10 @@ mod references;
 mod storage;
 mod validation;
 
-pub(crate) use backup::{validate_backup_proxy_entries, validate_proxy_candidate_and_ancestors};
+pub(crate) use backup::validate_backup_proxy_entries;
 use bulk::BulkProxyValidationStore;
 pub(crate) use check::check_proxy;
-pub(crate) use gateway::{ProxyEndpointConfig, ProxyEndpointGroup, load_proxy_endpoint_configs};
+pub(crate) use gateway::{ProxyEndpointGroup, load_proxy_endpoint_configs};
 use references::{
     PendingProxy, ProxyReferences, ensure_reference_graph, referencing_proxy_names,
     validate_proxy_references,
@@ -161,11 +161,7 @@ pub(super) struct ProxyOptionsQuery {
 }
 
 pub(super) async fn list_proxies(State(state): State<AppState>) -> ApiResult {
-    let mut proxies = state
-        .db
-        .read(|transaction| read_all_proxies(transaction))
-        .await
-        .map_err(internal)?;
+    let mut proxies = state.db.read(read_all_proxies).await.map_err(internal)?;
     let ids = proxies
         .iter()
         .map(|proxy| proxy.id.clone())
@@ -288,12 +284,11 @@ pub(super) async fn list_proxy_options(
                 }
             }
             let next_cursor = if has_more && !search_active { last_scanned } else { None };
-            if let Some(include_id) = include_id.as_deref() {
-                if !options.iter().any(|option| option["id"] == include_id) {
-                    if let Some(record) = transaction.get::<Record>(Table::Proxies, include_id)? {
-                        options.push(json!({"id": include_id, "name": record.text("name")?, "enabled": record.boolean("enabled")?}));
-                    }
-                }
+            if let Some(include_id) = include_id.as_deref()
+                && !options.iter().any(|option| option["id"] == include_id)
+                && let Some(record) = transaction.get::<Record>(Table::Proxies, include_id)?
+            {
+                options.push(json!({"id": include_id, "name": record.text("name")?, "enabled": record.boolean("enabled")?}));
             }
             Ok((options, next_cursor))
         })
@@ -658,7 +653,7 @@ fn read_all_proxies(
         return Err(StorageError::Busy);
     }
     let mut proxies = Vec::with_capacity(entries.len());
-    for (id, record) in entries {
+    for (id, _record) in entries {
         let Some(record) = transaction.get::<Record>(Table::Proxies, &id)? else {
             return Err(StorageError::Invalid(
                 "proxy name index points to a missing proxy".to_owned(),
@@ -749,29 +744,24 @@ pub(crate) fn set_provider_proxy_binding(
     previous_proxy_id: Option<&str>,
     next_proxy_id: Option<&str>,
 ) -> Result<(), StorageError> {
-    if let Some(previous) = previous_proxy_id {
-        if Some(previous) != next_proxy_id {
-            transaction.delete(
-                Table::ProxyProviderIndex,
-                &proxy_provider_index_key(previous, provider_id)?,
-            )?;
-        }
+    if let Some(previous) = previous_proxy_id
+        && Some(previous) != next_proxy_id
+    {
+        transaction.delete(
+            Table::ProxyProviderIndex,
+            &proxy_provider_index_key(previous, provider_id)?,
+        )?;
     }
-    if let Some(next) = next_proxy_id {
-        if Some(next) != previous_proxy_id {
-            transaction.put(
-                Table::ProxyProviderIndex,
-                &proxy_provider_index_key(next, provider_id)?,
-                &provider_id.to_owned(),
-            )?;
-        }
+    if let Some(next) = next_proxy_id
+        && Some(next) != previous_proxy_id
+    {
+        transaction.put(
+            Table::ProxyProviderIndex,
+            &proxy_provider_index_key(next, provider_id)?,
+            &provider_id.to_owned(),
+        )?;
     }
     Ok(())
-}
-
-/// Provider-side helper: validates every proxy a bulk import would bind.
-pub(super) fn proxy_endpoint_priority_bound() -> u32 {
-    MAX_PROXY_ENDPOINTS as u32
 }
 
 #[cfg(test)]

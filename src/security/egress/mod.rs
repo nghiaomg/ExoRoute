@@ -13,6 +13,6 @@ mod headers;
 mod url;
 
 pub(crate) use client::proxy_egress_from_record;
-pub use client::{ProxyEgress, provider_client, provider_client_with_proxy};
+pub use client::{ProviderClientOptions, ProxyEgress, provider_client, provider_client_with_proxy};
 pub use headers::{provider_auth_header_name, provider_custom_header_name};
-pub use url::{validate_provider_url, validate_provider_url_via_proxy, validate_proxy_url};
+pub use url::validate_provider_url;

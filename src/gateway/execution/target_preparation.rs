@@ -294,12 +294,14 @@ pub(super) async fn prepare_target<'a>(
         }
         let (url, client) = egress::provider_client_with_proxy(
             endpoint.as_str(),
-            state.config.allow_private_provider_urls,
-            scope.operational_settings.connect_timeout,
-            scope.operational_settings.request_timeout,
-            streaming,
-            concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
-            scope.operational_settings.upstream,
+            egress::ProviderClientOptions {
+                allow_local: state.config.allow_private_provider_urls,
+                connect_timeout: scope.operational_settings.connect_timeout,
+                request_timeout: scope.operational_settings.request_timeout,
+                streaming,
+                user_agent: concat!("ExoRoute/", env!("CARGO_PKG_VERSION")).to_owned(),
+                upstream: scope.operational_settings.upstream,
+            },
             Some(&first_proxy),
         )
         .await

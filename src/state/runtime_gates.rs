@@ -10,8 +10,21 @@ use crate::{
     },
 };
 use std::collections::HashMap;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::{sync::Arc, time::Instant};
+
+/// Monotonic generation bump compatible with the crate's MSRV (1.88).
+/// `try_update` is newer and `fetch_update` is deprecated on current toolchains.
+fn next_generation(counter: &AtomicU64) -> Option<u64> {
+    let mut current = counter.load(Ordering::Acquire);
+    loop {
+        let next = current.checked_add(1)?;
+        match counter.compare_exchange_weak(current, next, Ordering::AcqRel, Ordering::Acquire) {
+            Ok(_) => return Some(next),
+            Err(observed) => current = observed,
+        }
+    }
+}
 
 impl AppState {
     pub async fn try_provider_permit(&self, provider_id: &str) -> Option<DynamicSemaphorePermit> {
@@ -56,13 +69,7 @@ impl AppState {
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             if !breakers.contains_key(provider_id) {
-                let generation = self
-                    .gates
-                    .next_circuit_state_generation
-                    .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
-                        value.checked_add(1)
-                    })
-                    .ok()?;
+                let generation = next_generation(&self.gates.next_circuit_state_generation)?;
                 breakers.insert(
                     provider_id.to_owned(),
                     CircuitState {
@@ -76,11 +83,7 @@ impl AppState {
                 if Instant::now() < open_until || state.half_open_probe.is_some() {
                     return None;
                 }
-                let id = self
-                    .gates
-                    .next_circuit_probe_id
-                    .fetch_update(Ordering::AcqRel, Ordering::Acquire, |id| id.checked_add(1))
-                    .ok()?;
+                let id = next_generation(&self.gates.next_circuit_probe_id)?;
                 state.half_open_probe = Some(id);
                 probe_id = Some(id);
             }
@@ -169,6 +172,7 @@ impl AppState {
         self.gates.round_robin.lock().await.remove(route_id);
     }
 
+    #[cfg(test)]
     pub async fn proxy_endpoint_cursor(&self, proxy_id: &str) -> usize {
         self.gates
             .proxy_endpoint_cursors
@@ -338,15 +342,13 @@ impl AppState {
         let clock = checks.clock;
         if !checks.entries.contains_key(proxy_id)
             && checks.entries.len() >= MAX_TRACKED_PROXY_CHECKS
-        {
-            if let Some(stale_id) = checks
+            && let Some(stale_id) = checks
                 .entries
                 .iter()
                 .min_by_key(|(_, record)| record.recorded_clock)
                 .map(|(id, _)| id.clone())
-            {
-                checks.entries.remove(&stale_id);
-            }
+        {
+            checks.entries.remove(&stale_id);
         }
         checks.entries.insert(
             proxy_id.to_owned(),

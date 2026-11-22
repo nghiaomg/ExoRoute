@@ -50,7 +50,7 @@ pub(crate) async fn check_proxy(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult {
-    let master_key = state.config.master_key.clone();
+    let master_key = state.config.master_key;
     let proxy_id = id.clone();
     let expanded = state
         .db
@@ -115,12 +115,7 @@ pub(crate) async fn check_proxy(
             checked_at,
             results
                 .iter()
-                .map(|result| ProxyEndpointCheckOutcome {
-                    endpoint_id: result.endpoint_id.clone(),
-                    live: result.live,
-                    latency_millis: result.latency_millis,
-                    error: result.error.clone(),
-                })
+                .map(|result| ProxyEndpointCheckOutcome { live: result.live })
                 .collect(),
         )
         .await;

@@ -122,13 +122,15 @@ pub(super) async fn send_request(
             fallback_index += 1;
             let fallback_client = match crate::security::egress::provider_client_with_proxy(
                 attempt.endpoint.as_str(),
-                attempt.scope.state.config.allow_private_provider_urls,
-                attempt.scope.operational_settings.connect_timeout,
-                attempt.scope.operational_settings.request_timeout,
-                attempt.scope.canonical_stream
-                    || provider_adapters::wants_event_stream(&attempt.provider.adapter_id),
-                concat!("ExoRoute/", env!("CARGO_PKG_VERSION")),
-                attempt.scope.operational_settings.upstream,
+                crate::security::egress::ProviderClientOptions {
+                    allow_local: attempt.scope.state.config.allow_private_provider_urls,
+                    connect_timeout: attempt.scope.operational_settings.connect_timeout,
+                    request_timeout: attempt.scope.operational_settings.request_timeout,
+                    streaming: attempt.scope.canonical_stream
+                        || provider_adapters::wants_event_stream(&attempt.provider.adapter_id),
+                    user_agent: concat!("ExoRoute/", env!("CARGO_PKG_VERSION")).to_owned(),
+                    upstream: attempt.scope.operational_settings.upstream,
+                },
                 Some(fallback),
             )
             .await

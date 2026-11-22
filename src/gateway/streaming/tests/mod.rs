@@ -18,13 +18,15 @@ async fn non_continuity_stream_emits_client_keepalive_during_a_silent_pause() {
     let (_shutdown_sender, shutdown) = watch::channel(false);
     let mut reader = SseFrameReader::with_keepalive_interval(
         chunks,
-        Duration::from_secs(60),
+        SseReaderTiming {
+            idle_timeout: Duration::from_secs(60),
+            overall_timeout: None,
+            keepalive_interval: Duration::from_millis(5),
+        },
         false,
-        None,
         GatewayResourceLimits::default(),
         shutdown,
         None,
-        Duration::from_millis(5),
     );
     let event = tokio::time::timeout(Duration::from_secs(1), reader.next())
         .await

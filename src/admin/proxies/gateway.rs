@@ -10,7 +10,6 @@ use crate::{
 use std::collections::HashSet;
 
 pub(crate) struct ProxyEndpointConfig {
-    pub id: String,
     pub endpoint_id: String,
     pub record: Record,
 }
@@ -86,7 +85,7 @@ fn expand_proxy(
             ));
         }
         let mut flattened = Vec::with_capacity(rows.len());
-        for (endpoint_key, endpoint) in rows {
+        for (_endpoint_key, endpoint) in rows {
             if !endpoint.boolean("enabled")? {
                 continue;
             }
@@ -95,7 +94,6 @@ fn expand_proxy(
                 flattened.extend(nested);
             } else {
                 flattened.push(ProxyEndpointConfig {
-                    id: endpoint_key,
                     endpoint_id: endpoint.text("endpoint_id")?.to_owned(),
                     record: endpoint,
                 });
