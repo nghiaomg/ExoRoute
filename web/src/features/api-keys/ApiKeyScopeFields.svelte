@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { ChevronsUpDown, X } from '@lucide/svelte';
-  import Input from '../../components/Input.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import type { Translate } from '../../lib/format';
   import type { Provider } from '../../lib/types';
   import {
@@ -266,7 +266,7 @@
     background: var(--paper);
   }
   .scope-chip.missing {
-    background: rgba(249, 115, 22, 0.08);
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
   }
   .scope-chip-name {
     overflow: hidden;
@@ -280,7 +280,7 @@
     font: 600 10.5px var(--font-mono);
   }
   .scope-chip.missing code {
-    color: #b45309;
+    color: var(--accent-strong);
   }
   :global(.scope-chip-remove) {
     display: grid;
@@ -296,8 +296,8 @@
     cursor: pointer;
   }
   :global(.scope-chip-remove:hover:not(:disabled)) {
-    color: #c2410c;
-    background: rgba(249, 115, 22, 0.12);
+    color: var(--accent-deep);
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
   }
   :global(.scope-chip-remove:disabled) {
     cursor: not-allowed;
@@ -332,7 +332,7 @@
     cursor: pointer;
   }
   .scope-add-trigger:hover:not(:disabled) {
-    color: #c2410c;
+    color: var(--accent-deep);
   }
   /* In-flow suggestion panel; anchors to the add field's own wrapper. */
   .scope-add-panel {
@@ -348,7 +348,7 @@
     border: 1px solid var(--line);
     border-radius: 12px;
     background: var(--surface-popover, var(--surface));
-    box-shadow: 0 10px 24px rgb(0 0 0 / 0.14);
+    box-shadow: var(--shadow-popover);
   }
   .scope-add-option {
     display: flex;
@@ -403,7 +403,7 @@
   .scope-rules {
     height: auto;
     min-height: 84px;
-    padding: 9px 11px;
+    padding: 8px 10px;
     font-family: var(--font-mono);
     resize: vertical;
   }

@@ -5,6 +5,8 @@
 @import './styles/overview-metrics.css';
 @import './styles/overview-layout.css';
 @import './styles/overview-responsive.css';
+@import './styles/overview-control-center.css';
+@import './styles/api-keys-governance.css';
 @import './styles/dashboard-surfaces.css';
 @import './styles/modals-and-quota.css';
 @import './styles/quota-grid.css';

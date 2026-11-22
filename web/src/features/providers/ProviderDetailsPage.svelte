@@ -1,11 +1,13 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onMount } from 'svelte';
-  import { AlertTriangle, ArrowLeft, Check, Copy, KeyRound, Sliders, Trash2 } from '@lucide/svelte';
+  import { AlertTriangle } from '@lucide/svelte';
+  import { api } from '../../lib/api';
   import type { Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';
 import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labels';
-  import type { Provider } from '../../lib/types';
+  import type { GatewayCombo, Provider, ProviderBreakdown } from '../../lib/types';
+  import ProviderDetailHeader from './ProviderDetailHeader.svelte';
   import ProviderAvatar from './ProviderAvatar.svelte';
   import { resolveAuthPanel } from './auth-panel.registry';
   import ProviderConfigDialog from './ProviderConfigDialog.svelte';
@@ -21,13 +23,14 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
   export let onProviderChanged: () => void;
   export let onProviderUpdated: (provider: Provider) => void;
   export let onDelete: (provider: Provider) => void;
+  export let onNavigateToCombo: (id: string) => void = () => {};
 
   let configDialogOpen = false;
   let accountRefresh = 0;
   let keysRefresh = 0;
   let lastProvider = provider;
-  let copiedUrl = false;
-  let copyTimer: ReturnType<typeof setTimeout> | undefined;
+  let combos = [] as GatewayCombo[];
+  let providerStats = null as ProviderBreakdown | null;
 
   $: if (provider !== lastProvider) {
     lastProvider = provider;
@@ -51,20 +54,18 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
     }
   });
 
-  async function copyBaseUrl(): Promise<void> {
-    if (!provider?.base_url) return;
+  async function loadContext(): Promise<void> {
     try {
-      await navigator.clipboard.writeText(provider.base_url);
-      copiedUrl = true;
-      if (copyTimer) clearTimeout(copyTimer);
-      copyTimer = setTimeout(() => {
-        copiedUrl = false;
-      }, 2000);
-    } catch {
-      // Clipboard copy fallback
-    }
+      const [comboList, statistics] = await Promise.all([api.combos().catch(() => []), api.statistics('1d').catch(() => null)]);
+      combos = comboList;
+      providerStats = statistics?.providers.rows.find((row) => row.provider === provider.id) ?? null;
+    } catch { /* telemetry is optional on this page */ }
   }
-
+  async function toggleProvider(enabled: boolean): Promise<void> {
+    await api.updateProvider(provider.id, { enabled });
+    onProviderUpdated({ ...provider, enabled });
+    onProviderChanged();
+  }
   function handleAuthConnected(): void {
     accountRefresh += 1;
     keysRefresh += 1;
@@ -79,101 +80,7 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
 
 <div class="flex w-full flex-col gap-[20px]">
   <!-- Top Navigation & Header -->
-  <div class="flex items-center">
-    <Button type="button" class="back-link-btn" onclick={onBack}>
-      <ArrowLeft size={16} />
-      <span>{tr('Back to providers')}</span>
-    </Button>
-  </div>
-
-  <header class="flex flex-wrap items-center justify-between gap-[20px] rounded-[14px] bg-surface px-[28px] py-[24px] max-[860px]:flex-col max-[860px]:items-start [&_.codex-oauth-remote-help]:mt-[4px] [&_.codex-oauth-remote-help]:w-full [&_.codex-oauth-remote-help]:[flex-basis:100%]">
-    <div class="flex min-w-0 flex-1 items-center gap-[20px]">
-      <div class="shrink-0 grow-0 basis-[60px]">
-        <ProviderAvatar name={provider.name} logoUrl={provider.logo_url} adapterId={provider.adapter_id} providerId={provider.id} className="detail-avatar" />
-      </div>
-
-      <div class="grid min-w-0 flex-1 gap-[7px]">
-        <div class="flex flex-wrap items-center gap-[12px]">
-          <h1 class="m-0 text-[22px] font-bold leading-[1.2] text-ink [font-family:var(--font-heading)]">{provider.name}</h1>
-          <code class="rounded-[6px] px-[8px] py-[3px] text-[12px] text-accent-strong [background:color-mix(in_srgb,var(--accent)_10%,var(--surface))] [font-family:var(--font-mono)]">{provider.id}</code>
-          <span class="state-label" class:enabled={provider.enabled}>
-            <i></i>{tr(provider.enabled ? 'Enabled' : 'Disabled')}
-          </span>
-        </div>
-
-        <div class="flex min-w-0 items-center gap-[10px]">
-          <span class="max-w-[500px] truncate text-[12px] text-muted" title={provider.base_url}>{provider.base_url}</span>
-          <Button
-            type="button"
-            class="detail-copy-btn"
-            title={copiedUrl ? tr('URL copied') : tr('Copy URL')}
-            onclick={copyBaseUrl}
-          >
-            {#if copiedUrl}
-              <Check size={12} class="copy-success-icon" />
-              <span>{tr('URL copied')}</span>
-            {:else}
-              <Copy size={12} />
-              <span>{tr('Copy URL')}</span>
-            {/if}
-          </Button>
-        </div>
-
-        <div class="mt-[2px] flex flex-wrap items-center gap-[8px]">
-          <span class="protocol-pill {protocolBadgeClass(provider.preferred_protocol)}">{labelProtocol(provider.preferred_protocol, tr)}</span>
-          <span class="inline-flex max-w-full items-center gap-[5px] rounded-[6px] bg-surface-sunken px-[8px] py-[3px] text-[12px] text-muted">{labelAuthType(provider.auth_type || 'none', tr)}</span>
-          <span class="inline-flex max-w-full items-center gap-[5px] rounded-[6px] bg-surface-sunken px-[8px] py-[3px] text-[12px] text-muted">
-            {provider.api_key_count ?? (provider.api_key ? 1 : 0)} {tr(isOAuthProvider && provider.capabilities?.api_keys ? 'Credentials' : isOAuthProvider ? 'Connected accounts' : 'API keys')}
-          </span>
-          <span class="inline-flex max-w-full items-center gap-[5px] rounded-[6px] bg-surface-sunken px-[8px] py-[3px] text-[12px] text-muted">
-            {tr('Model prefix')}: <code>{provider.model_prefix ?? provider.id}</code>
-          </span>
-          {#if provider.invalid_api_key_count}
-            <span class="provider-key-warning">
-              {provider.invalid_api_key_count} {tr('invalid')}
-            </span>
-          {/if}
-          {#if isFreebuff}
-            <span class="provider-ban-risk-badge" title={tr('Account Ban Risk Warning')}>
-              <AlertTriangle size={12} />
-              {tr('High ban risk')}
-            </span>
-          {/if}
-        </div>
-      </div>
-    </div>
-
-    <div class="detail-hero-actions">
-      <Button
-        type="button"
-        class="secondary-button"
-        onclick={() => configDialogOpen = true}
-      >
-        <Sliders size={15} />
-        {tr('Provider Configurations')}
-      </Button>
-      {#if provider.capabilities?.api_keys === true}
-        <Button
-          type="button"
-          class="primary-button"
-          onclick={() => onManageKeys(provider)}
-        >
-          <KeyRound size={15} />
-          {tr('Manage keys')}
-        </Button>
-      {/if}
-      <Button
-        type="button"
-        class="detail-delete-btn"
-        title={tr('Delete {name}', { name: provider.name })}
-        onclick={() => onDelete(provider)}
-      >
-        <Trash2 size={15} />
-        {tr('Delete provider')}
-      </Button>
-    </div>
-  </header>
-
+  <ProviderDetailHeader {provider} {tr} {locale} {combos} stats={providerStats} onBack={onBack} onToggle={toggleProvider} onEdit={() => (configDialogOpen = true)} onManageKeys={() => onManageKeys(provider)} onDelete={() => onDelete(provider)} {onNavigateToCombo} />
   {#if isFreebuff}
     <aside class="provider-ban-warning-banner" role="alert">
       <div class="ban-warning-icon">
@@ -219,7 +126,7 @@ import { labelAuthType, labelProtocol, protocolBadgeClass } from '../../lib/labe
 
       {#if provider.capabilities?.api_keys === true}
         <section class="flex min-h-0 flex-col gap-[16px] rounded-[14px] bg-surface px-[24px] py-[22px]">
-          <ProviderKeysCard {provider} {tr} {locale} refreshToken={keysRefresh} onProviderChanged={handleProviderChanged} />
+          <ProviderKeysCard {provider} {tr} {locale} refreshToken={keysRefresh} onProviderChanged={handleProviderChanged} onAddKey={() => onManageKeys(provider)} />
         </section>
       {/if}
 

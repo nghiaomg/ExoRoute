@@ -215,6 +215,7 @@ async fn callback_accepts_a_valid_key_once_and_never_returns_the_secret() {
         assert_eq!(flow.status, ProviderApiKeyAuthFlowStatus::Received);
         let decrypted = decrypt_secret(
             state.config.master_key.as_ref(),
+            &crate::security::SecretContext::pending_provider_key("flow-2"),
             flow.encrypted_api_key.as_deref(),
         )
         .expect("decrypt test key")
@@ -278,7 +279,11 @@ async fn apply_persists_the_encrypted_key_once_and_never_returns_it() {
     flow.status = ProviderApiKeyAuthFlowStatus::Received;
     flow.key_name = Some("Studio key".to_owned());
     flow.encrypted_api_key = Some(
-        encrypt_secret(state.config.master_key.as_ref(), "cc-secret-test-value")
+        encrypt_secret(
+            state.config.master_key.as_ref(),
+            &crate::security::SecretContext::pending_provider_key(flow_id),
+            "cc-secret-test-value",
+        )
             .expect("encrypt pending API key")
             .expect("non-empty API key"),
     );
@@ -311,12 +316,21 @@ async fn apply_persists_the_encrypted_key_once_and_never_returns_it() {
                         .get::<Record>(Table::ProviderApiKeys, &id)?
                         .ok_or(crate::infra::storage::StorageError::NotFound)
                 })
-                .and_then(|record| Ok(record.bytes("secret")?.to_vec()))
+                .and_then(|record| {
+                    Ok((
+                        record.text("id")?.to_owned(),
+                        record.bytes("secret")?.to_vec(),
+                    ))
+                })
         })
         .await
         .expect("saved provider key");
-    let decrypted = decrypt_secret(state.config.master_key.as_ref(), Some(&saved_secret))
-        .expect("decrypt saved key")
+    let decrypted = decrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::provider_key(&saved_secret.0),
+        Some(&saved_secret.1),
+    )
+    .expect("decrypt saved key")
         .expect("stored key");
     assert_eq!(decrypted, "cc-secret-test-value");
     let key_prefix = crate::infra::db::provider_api_key_index_prefix("command-code", false)

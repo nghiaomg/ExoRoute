@@ -101,7 +101,14 @@ describe('dashboard requests live statistics', () => {
 });
 
 function statCardValue(container: HTMLElement, heading: string): string | undefined {
-  const title = Array.from(container.querySelectorAll('h2'))
+  const title = Array.from(container.querySelectorAll('h2.stat-title'))
     .find((node) => node.textContent?.trim() === heading);
-  return title?.parentElement?.querySelector('[data-stat-value]')?.textContent?.trim();
+  // The KPI span precedes the heading; its unit is a nested span with CSS
+  // spacing, so join the value text and unit explicitly for display text.
+  const kpi = title?.previousElementSibling;
+  if (!kpi) return undefined;
+  const value = Array.from(kpi.childNodes)
+    .find((node) => node.nodeType === Node.TEXT_NODE)?.textContent?.trim() ?? '';
+  const unit = kpi.querySelector('span')?.textContent?.trim();
+  return unit ? `${value} ${unit}` : value;
 }

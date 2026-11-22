@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
-import SelectOptions from '../../src/components/SelectOptions.svelte';
+import SelectOptions from '../../src/components/ui/SelectOptions.svelte';
 
 /**
  * SelectOptions is a native `<select>`: the accessible name comes from the

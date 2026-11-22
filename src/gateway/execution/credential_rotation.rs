@@ -69,8 +69,13 @@ pub(super) async fn resolve_credential_auth(
     }
     match credential.encrypted_secret.as_deref() {
         Some(encrypted) => {
-            match crate::security::decrypt_secret(state.config.master_key.as_ref(), Some(encrypted))
-            {
+            match crate::security::decrypt_secret(
+                state.config.master_key.as_ref(),
+                &crate::security::SecretContext::provider_key(
+                    credential.id.as_deref().unwrap_or_default(),
+                ),
+                Some(encrypted),
+            ) {
                 Ok(secret) => ResolvedAuth::Ready {
                     secret,
                     oauth_auth: None,

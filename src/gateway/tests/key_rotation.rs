@@ -363,7 +363,11 @@ async fn round_robin_providers_keep_the_configured_secret_fallback() {
     .await
     .expect("seed route");
     let provider_id = "provider".to_owned();
-    let secret = crate::security::encrypt_secret(Some(&[53_u8; 32]), "legacy-secret")
+    let secret = crate::security::encrypt_secret(
+        Some(&[53_u8; 32]),
+        &crate::security::SecretContext::provider("provider", "secret"),
+        "legacy-secret",
+    )
         .expect("encrypt provider secret")
         .expect("non-empty provider secret");
     database

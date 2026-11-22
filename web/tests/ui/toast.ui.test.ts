@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
-import Toast from '../../src/components/Toast.svelte';
+import Toast from '../../src/components/ui/Toast.svelte';
 import type { Translate } from '../../src/lib/format';
 
 const tr: Translate = (key, vars) =>

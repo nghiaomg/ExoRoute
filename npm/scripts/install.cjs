@@ -11,6 +11,19 @@ const { promisify } = require('node:util');
 const execFileAsync = promisify(execFile);
 const REPOSITORY = 'nghiaomg/ExoRoute';
 const MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024;
+const SIGNATURE_BUNDLE_MAX_BYTES = 1024 * 1024;
+const COSIGN_MINIMUM_VERSION = [3, 1, 3];
+const COSIGN_ISSUER = 'https://token.actions.githubusercontent.com';
+const WORKFLOW_IDENTITY_PREFIX =
+  'https://github.com/nghiaomg/ExoRoute/.github/workflows/release.yml@refs/tags/';
+const LATEST_WORKFLOW_IDENTITY_REGEXP =
+  '^https://github[.]com/nghiaomg/ExoRoute/[.]github/workflows/release[.]yml@refs/tags/v[0-9][0-9A-Za-z.+-]*$';
+const COSIGN_UNAVAILABLE_MESSAGE =
+  'Sigstore Cosign v3.1.3 or newer is required to verify ExoRoute release signatures. Install Cosign, then run this installer again.';
+const SIGNATURE_BUNDLE_ERROR =
+  'The release signature bundle (SHA256SUMS.sigstore.json) is missing or malformed.';
+const SIGNATURE_INVALID_ERROR =
+  'The release checksum signature is invalid or was issued by an untrusted workflow.';
 const ALLOWED_DOWNLOAD_HOSTS = new Set([
   'github.com',
   'objects.githubusercontent.com',
@@ -158,6 +171,95 @@ async function expectedHash(manifestPath, asset) {
   return matches[0][0].toLowerCase();
 }
 
+function meetsCosignMinimum(parts) {
+  for (let index = 0; index < COSIGN_MINIMUM_VERSION.length; index += 1) {
+    if (parts[index] > COSIGN_MINIMUM_VERSION[index]) return true;
+    if (parts[index] < COSIGN_MINIMUM_VERSION[index]) return false;
+  }
+  return true;
+}
+
+async function assertCosignAvailable(run) {
+  let versionOutput;
+  try {
+    ({ stdout: versionOutput } = await run('cosign', ['version'], {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024,
+      windowsHide: true
+    }));
+  } catch (error) {
+    if (error.code === 'ENOENT' || error.code === 'EACCES' || error.code === 'ENOTFOUND') {
+      throw new Error(COSIGN_UNAVAILABLE_MESSAGE, { cause: error });
+    }
+    throw new Error('Could not read the installed Cosign version.', { cause: error });
+  }
+  const match = /(?:^|\n)GitVersion:[ \t]*v(\d+)\.(\d+)\.(\d+)(?=[ \t]*(?:\r?\n|$))/.exec(
+    String(versionOutput ?? '')
+  );
+  if (!match) {
+    throw new Error('Could not parse the installed Cosign version.');
+  }
+  if (!meetsCosignMinimum(match.slice(1).map(Number))) {
+    throw new Error('Cosign v3.1.3 or newer is required to verify ExoRoute release signatures.');
+  }
+}
+
+async function assertValidSignatureBundle(bundlePath) {
+  let contents;
+  try {
+    const metadata = await fsp.stat(bundlePath);
+    if (!metadata.isFile() || metadata.size === 0 || metadata.size > SIGNATURE_BUNDLE_MAX_BYTES) {
+      throw new Error('bundle is empty, not a regular file, or too large');
+    }
+    contents = await fsp.readFile(bundlePath, 'utf8');
+  } catch (error) {
+    throw new Error(SIGNATURE_BUNDLE_ERROR, { cause: error });
+  }
+  try {
+    const parsed = JSON.parse(contents);
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('bundle is not a JSON object');
+    }
+  } catch (error) {
+    throw new Error(SIGNATURE_BUNDLE_ERROR, { cause: error });
+  }
+}
+
+/**
+ * Verifies the signed SHA256SUMS manifest exactly like install.sh / install.ps1:
+ * the Sigstore bundle must validate against the release workflow identity and
+ * the GitHub Actions OIDC issuer. Failure is always fatal.
+ */
+async function verifyManifestSignature(bundlePath, manifestPath, tag, { run = execFileAsync } = {}) {
+  if (tag !== 'latest' && !/^v[0-9][0-9A-Za-z.+-]*$/.test(tag)) {
+    throw new Error('Refusing to verify a signature for an invalid release tag.');
+  }
+  await assertValidSignatureBundle(bundlePath);
+  await assertCosignAvailable(run);
+  const identityArgs =
+    tag === 'latest'
+      ? ['--certificate-identity-regexp', LATEST_WORKFLOW_IDENTITY_REGEXP]
+      : ['--certificate-identity', `${WORKFLOW_IDENTITY_PREFIX}${tag}`];
+  const args = [
+    'verify-blob',
+    manifestPath,
+    '--bundle',
+    bundlePath,
+    ...identityArgs,
+    '--certificate-oidc-issuer',
+    COSIGN_ISSUER
+  ];
+  try {
+    await run('cosign', args, {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024,
+      windowsHide: true
+    });
+  } catch (error) {
+    throw new Error(SIGNATURE_INVALID_ERROR, { cause: error });
+  }
+}
+
 function assertExactEntries(entries, expected, archiveType) {
   const actual = entries.filter(Boolean).map((entry) => entry.trim()).sort();
   const wanted = [...expected].sort();
@@ -297,46 +399,77 @@ async function installBinary(binary, sourcePath) {
   }
 }
 
-async function main() {
-  const target = targetForCurrentRuntime();
-  const tag = releaseTag();
+async function main(dependencies = {}) {
+  const {
+    download = downloadFile,
+    verify = verifyManifestSignature,
+    extract = (archivePath, destination, info) =>
+      info.format === 'zip'
+        ? extractZip(archivePath, destination)
+        : extractTar(archivePath, destination, info.binary),
+    install = installBinary,
+    tag = releaseTag(),
+    target = targetForCurrentRuntime()
+  } = dependencies;
   const temporaryDirectory = await fsp.mkdtemp(path.join(os.tmpdir(), 'exoroute-npm-'));
   const archivePath = path.join(temporaryDirectory, target.archive);
   const manifestPath = path.join(temporaryDirectory, 'SHA256SUMS');
+  const bundlePath = path.join(temporaryDirectory, 'SHA256SUMS.sigstore.json');
   const extractDirectory = path.join(temporaryDirectory, 'extract');
   await fsp.mkdir(extractDirectory);
 
   try {
-    await downloadFile(
+    await download(
       releaseUrl(tag, target.archive),
       archivePath,
       MAX_DOWNLOAD_BYTES
     );
-    await downloadFile(
+    await download(
       releaseUrl(tag, 'SHA256SUMS'),
       manifestPath,
       64 * 1024
     );
+    await download(
+      releaseUrl(tag, 'SHA256SUMS.sigstore.json'),
+      bundlePath,
+      SIGNATURE_BUNDLE_MAX_BYTES
+    );
+    // Authenticate the manifest before trusting any hash from it or unpacking
+    // the archive; a forged mirror cannot substitute both files unnoticed.
+    await verify(bundlePath, manifestPath, tag);
     const expected = await expectedHash(manifestPath, target.archive);
     const actual = await sha256File(archivePath);
     if (actual !== expected) {
       throw new Error(`SHA-256 mismatch for ${target.archive}; the archive was not installed.`);
     }
 
-    if (target.format === 'zip') {
-      await extractZip(archivePath, extractDirectory);
-    } else {
-      await extractTar(archivePath, extractDirectory, target.binary);
-    }
+    await extract(archivePath, extractDirectory, target);
     await verifyExtractedFiles(extractDirectory, target.binary);
-    await installBinary(target.binary, path.join(extractDirectory, target.binary));
+    await install(target.binary, path.join(extractDirectory, target.binary));
     console.log(`Installed ExoRoute ${tag} for ${process.platform}/${process.arch}.`);
   } finally {
     await fsp.rm(temporaryDirectory, { recursive: true, force: true });
   }
 }
 
-main().catch((error) => {
-  console.error(`ExoRoute npm installation failed: ${error.message}`);
-  process.exitCode = 1;
-});
+module.exports = {
+  MAX_DOWNLOAD_BYTES,
+  SIGNATURE_BUNDLE_MAX_BYTES,
+  COSIGN_ISSUER,
+  WORKFLOW_IDENTITY_PREFIX,
+  LATEST_WORKFLOW_IDENTITY_REGEXP,
+  releaseTag,
+  releaseUrl,
+  downloadFile,
+  expectedHash,
+  sha256File,
+  verifyManifestSignature,
+  main
+};
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`ExoRoute npm installation failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

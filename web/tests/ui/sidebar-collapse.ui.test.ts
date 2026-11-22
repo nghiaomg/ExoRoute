@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
-import DashboardShell from '../../src/components/DashboardShell.svelte';
+import DashboardShell from '../../src/components/layout/DashboardShell.svelte';
 import type { Translate } from '../../src/lib/format';
 import type { DashboardPage } from '../../src/lib/navigation';
 

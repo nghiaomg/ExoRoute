@@ -230,7 +230,13 @@ async fn saving_distinct_and_reconnected_codex_accounts_keeps_existing_credentia
                 .into_iter()
                 .map(|(_, record)| {
                     let secret = record.bytes("secret").expect("Codex key secret");
-                    let serialized = security::decrypt_secret(master_key.as_ref(), Some(secret))
+                    let serialized = security::decrypt_secret(
+                        master_key.as_ref(),
+                        &crate::security::SecretContext::oauth_account(
+                            record.text("id").expect("key id"),
+                        ),
+                        Some(secret),
+                    )
                         .expect("decrypt Codex key")
                         .expect("Codex key payload");
                     let account: CodexAccount =
@@ -335,6 +341,7 @@ async fn saving_distinct_and_reconnected_codex_accounts_keeps_existing_credentia
     assert!(!saved.boolean("invalid").expect("invalid flag"));
     let serialized = security::decrypt_secret(
         state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(saved.text("id").expect("key id")),
         Some(saved.bytes("secret").expect("secret")),
     )
     .expect("decrypt reconnected Codex account")

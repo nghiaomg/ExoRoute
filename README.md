@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/nghiaomg/ExoRoute/releases/tag/v0.1.2"><img src="https://img.shields.io/badge/release-v0.1.2-blue.svg?style=flat-square" alt="Release v0.1.2" /></a>
-  <img src="https://img.shields.io/badge/language-Rust%202021-orange.svg?style=flat-square" alt="Language" />
+  <img src="https://img.shields.io/badge/language-Rust%202024-orange.svg?style=flat-square" alt="Language" />
   <img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/memory-Zero%20GC%20%7C%20Auto%20Reclaimed-green.svg?style=flat-square" alt="Resource Management" />
   <img src="https://img.shields.io/badge/frontend-Svelte%205%20%7C%20Tailwind-purple.svg?style=flat-square" alt="Frontend" />
@@ -139,7 +139,7 @@ ExoRoute natively supports 40 built-in presets — 22 cloud APIs, 10 gateways, a
 npm install -g exoroute
 exoroute
 ```
-*The npm launcher downloads the matching ExoRoute release for Linux, macOS, or Windows and verifies its SHA-256 checksum.*
+*The npm launcher downloads the matching ExoRoute release for Linux, macOS, or Windows, verifies the `SHA256SUMS.sigstore.json` Sigstore signature with Cosign v3.1.3+ against the ExoRoute release-workflow identity, then verifies the SHA-256 checksum before extracting the binary.*
 
 ### Option 2: Linux & macOS (Shell Script)
 ```sh

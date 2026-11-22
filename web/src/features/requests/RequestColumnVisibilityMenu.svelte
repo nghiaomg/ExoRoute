@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
+  import Checkbox from "../../components/ui/Checkbox.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { Eye, EyeOff } from '@lucide/svelte';
-  import Input from '../../components/Input.svelte';
   import type { Translate } from '../../lib/format';
   import {
     countHiddenColumns,
@@ -80,16 +80,14 @@
 
       <div class="req-vis-options">
         {#each HIDEABLE_REQUEST_COLUMNS as column (column.id)}
-          <label class="req-vis-option" class:checked={!hiddenColumns[column.id]}>
-            <Input
-              type="checkbox"
+          <div class="req-vis-option">
+            <Checkbox
               checked={!hiddenColumns[column.id]}
-              onchange={() => onToggleColumn(column.id)}
-              class="req-vis-checkbox"
-              ariaLabel={tr(column.labelKey)}
+              onCheckedChange={() => onToggleColumn(column.id)}
+              label={tr(column.labelKey)}
+              class="w-full!"
             />
-            <span class="req-vis-option-title">{tr(column.labelKey)}</span>
-          </label>
+          </div>
         {/each}
       </div>
     </div>
@@ -110,10 +108,10 @@
     height: 36px;
     min-height: 36px;
     padding: 0 12px;
-    border: 1px solid #e9eef0;
-    border-radius: 10px;
-    background: #fff;
-    color: #59646e;
+    border: 1px solid var(--line);
+    border-radius: var(--nb-radius);
+    background: var(--surface);
+    color: var(--ink);
     font-size: 13px;
     font-weight: var(--weight-medium);
     cursor: pointer;
@@ -121,30 +119,18 @@
   }
 
   :global(.req-vis-trigger:hover) {
-    background: #f5f8f9;
+    background: var(--surface-sunken);
+  }
+
+  :global(.req-vis-trigger:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   :global(.req-vis-trigger.active) {
-    background: color-mix(in srgb, var(--info) 10%, var(--surface));
-    border-color: color-mix(in srgb, var(--info) 30%, var(--surface));
+    background: color-mix(in srgb, var(--info) 12%, var(--surface));
+    border-color: color-mix(in srgb, var(--info) 35%, var(--line));
     color: var(--info);
-  }
-
-  :global(:root[data-theme='dark']) :global(.req-vis-trigger) {
-    background: #1f2133;
-    border-color: #2e3148;
-    color: #9499b3;
-  }
-
-  :global(:root[data-theme='dark'] .req-vis-trigger:hover) {
-    background: #272a40;
-    color: #e2e4ef;
-  }
-
-  :global(:root[data-theme='dark'] .req-vis-trigger.active) {
-    background: color-mix(in srgb, var(--info) 20%, #1f2133);
-    border-color: color-mix(in srgb, var(--info) 35%, transparent);
-    color: var(--info-soft);
   }
 
   /* The eye icon is rendered by the lucide child component, so the rule must
@@ -160,9 +146,9 @@
     min-width: 17px;
     height: 17px;
     padding: 0 4px;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     background: var(--info);
-    color: #fff;
+    color: var(--accent-contrast);
     font-size: 10px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
@@ -174,82 +160,48 @@
     left: 0;
     z-index: 40;
     min-width: 220px;
-    padding: 12px;
-    border: 1px solid #e9eaf0;
-    border-radius: 12px;
-    background: var(--surface);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-  }
-
-  :global(:root[data-theme='dark']) .req-vis-dropdown {
-    background: #181926;
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    padding: var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--nb-radius);
+    background: var(--surface-popover);
+    box-shadow: var(--shadow-popover);
   }
 
   .req-vis-header {
-    padding-bottom: 8px;
-    margin-bottom: 8px;
-    border-bottom: 1px solid #e9eaf0;
-  }
-
-  :global(:root[data-theme='dark']) .req-vis-header {
-    border-bottom-color: #282a3c;
+    padding-bottom: var(--space-2);
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid var(--line);
   }
 
   .req-vis-title {
     display: block;
     font-size: 12px;
     font-weight: 700;
-    color: #202330;
-  }
-
-  :global(:root[data-theme='dark']) .req-vis-title {
-    color: #f1f3f9;
+    color: var(--ink);
   }
 
   .req-vis-options {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-1);
   }
 
   .req-vis-option {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 6px 8px;
-    border-radius: 8px;
+    border-radius: var(--nb-radius);
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
-    color: #33374b;
+    color: var(--ink);
     user-select: none;
     transition: background-color 0.1s ease;
   }
 
-  :global(:root[data-theme='dark']) .req-vis-option {
-    color: #d1d5db;
-  }
-
   .req-vis-option:hover {
-    background: #f4f5f8;
-  }
-
-  :global(:root[data-theme='dark']) .req-vis-option:hover {
-    background: #202235;
-  }
-
-  :global(.req-vis-checkbox) {
-    width: 15px;
-    height: 15px;
-    cursor: pointer;
-    accent-color: #2563eb;
-    margin: 0;
-  }
-
-  .req-vis-option-title {
-    flex: 1;
+    background: var(--surface-sunken);
   }
 
   @media (max-width: 650px) {

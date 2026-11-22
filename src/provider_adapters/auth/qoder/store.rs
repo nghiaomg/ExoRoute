@@ -42,14 +42,18 @@ pub(crate) async fn save_qoder_account(
 
     let serialized = serde_json::to_string(&account)
         .map_err(|_| "could not encode Qoder account credentials".to_owned())?;
-    let encrypted = security::encrypt_secret(state.config.master_key.as_ref(), &serialized)
-        .map_err(|_| "could not encrypt Qoder account credentials".to_owned())?
+    let key_id = uuid::Uuid::new_v4().to_string();
+    let encrypted = security::encrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(&key_id),
+        &serialized,
+    )
+    .map_err(|_| "could not encrypt Qoder account credentials".to_owned())?
         .ok_or_else(|| "Qoder returned an empty account credential".to_owned())?;
     let now = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save Qoder account credentials".to_owned())?;
     let identity = account.identity();
     let display_name = account.display_name();
-    let key_id = uuid::Uuid::new_v4().to_string();
     let provider_id = provider_id.to_owned();
     let mut record = crate::admin::providers::provider_api_key_record(
         crate::admin::providers::ProviderApiKeyRecordData {
@@ -66,6 +70,8 @@ pub(crate) async fn save_qoder_account(
     );
     record.insert("credential_type", Field::Text("oauth".to_owned()));
     record.insert("oauth_account_identity", Field::Text(identity.clone()));
+    let master_key = state.config.master_key;
+    let serialized_update = serialized.clone();
     state
         .db
         .write(move |transaction| {
@@ -107,7 +113,15 @@ pub(crate) async fn save_qoder_account(
             }
             let was_invalid = existing.boolean("invalid")?;
             existing.insert("name", Field::Text(display_name.clone()));
-            existing.insert("secret", Field::Bytes(encrypted.clone()));
+            // Reconnect replaces the credential payload, so always re-encrypt
+            // it under the actual stored record id (legacy rows migrate here).
+            let stored_secret = crate::security::encrypt_for_storage(
+                master_key.as_ref(),
+                &crate::security::SecretContext::oauth_account(&existing_id),
+                &serialized_update,
+            )
+            .map_err(StorageError::Invalid)?;
+            existing.insert("secret", Field::Bytes(stored_secret));
             existing.insert("credential_type", Field::Text("oauth".to_owned()));
             existing.insert("oauth_account_identity", Field::Text(identity.clone()));
             existing.insert("invalid", Field::Bool(false));
@@ -202,7 +216,11 @@ pub(crate) async fn account_for_use(
     if stored.len() > MAX_ACCOUNT_BYTES {
         return Err("stored Qoder account data exceeded its size limit".to_owned());
     }
-    let serialized = security::decrypt_secret(state.config.master_key.as_ref(), Some(&stored))
+    let serialized = security::decrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(credential_id),
+        Some(&stored),
+    )
         .map_err(|_| "could not decrypt Qoder account; check EXOROUTE_MASTER_KEY".to_owned())?
         .ok_or_else(|| "Qoder account credentials are empty".to_owned())?;
     if serialized.len() > MAX_ACCOUNT_BYTES || serialized.len() > MAX_TOKEN_BYTES + 1024 {

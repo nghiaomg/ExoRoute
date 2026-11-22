@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Check, Command, Copy, ExternalLink, LoaderCircle, X } from '@lucide/svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
-  import Toast from '../../components/Toast.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import Toast from '../../components/ui/Toast.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -389,7 +389,7 @@ import { localizedError } from '../../lib/errors';
   <Toast {toast} {tr} onDismiss={dismissToast} />
 {/if}
 
-<ArkDialog
+<Dialog
   bind:open={callbackDialogOpen}
   closeLabel={tr('Close dialog')}
   title={tr('Connect account')}
@@ -464,4 +464,4 @@ import { localizedError } from '../../lib/errors';
       </Button>
     </div>
   </form>
-</ArkDialog>
+</Dialog>

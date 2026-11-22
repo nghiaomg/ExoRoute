@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import {
     CircleHelp,
@@ -11,10 +11,10 @@
     
     
   } from '@lucide/svelte';
-  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
-  import Input from '../../components/Input.svelte';
-  import SelectOptions from '../../components/SelectOptions.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import Input from '../../components/ui/Input.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import ContinuityGuideDialog from './ContinuityGuideDialog.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
@@ -126,9 +126,9 @@ import { localizedError } from '../../lib/errors';
   }
 
   async function applyDraft(confirmUnlimitedProviderConcurrency: boolean): Promise<void> {
-    if (busy || !draftIsValid || !hasChanges) return;
+    if (busy || !draftIsValid || !hasChanges || !limits) return;
     const requestedValues = { ...draft };
-    const expectedSaved = { ...limits!.saved };
+    const expectedSaved = { ...limits.saved };
     busy = 'saving';
     errorMessage = '';
     successMessage = '';
@@ -344,7 +344,7 @@ import { localizedError } from '../../lib/errors';
               </Button>
             </div>
             <div class="resource-continuity-control">
-              <ArkCheckbox
+              <Checkbox
                 checked={draft.stream_continuity_enabled}
                 disabled={busy !== ''}
                 ariaLabel={tr('Stream continuity')}
@@ -368,7 +368,7 @@ import { localizedError } from '../../lib/errors';
   {/if}
 </section>
 
-<ArkDialog
+<Dialog
   open={unlimitedWarningOpen}
   closeLabel={tr('Close dialog')}
   title={tr('Confirm unlimited processing')}
@@ -383,9 +383,9 @@ import { localizedError } from '../../lib/errors';
       <Button type="button" class="primary-button" onclick={confirmUnlimitedProcessing}>{tr('Apply unlimited processing')}</Button>
     </div>
   </div>
-</ArkDialog>
+</Dialog>
 
-<ArkDialog
+<Dialog
   open={unlimitedProviderWarningOpen}
   closeLabel={tr('Close dialog')}
   title={tr('Confirm unlimited provider concurrency')}
@@ -400,7 +400,7 @@ import { localizedError } from '../../lib/errors';
       <Button type="button" class="primary-button" onclick={confirmUnlimitedProviderConcurrency}>{tr('Apply unlimited provider concurrency')}</Button>
     </div>
   </div>
-</ArkDialog>
+</Dialog>
 
 <ContinuityGuideDialog
   tr={tr}

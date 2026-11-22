@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy } from 'svelte';
   import { ArrowUpRight, LoaderCircle, ShieldCheck } from '@lucide/svelte';
   import { api } from '../../lib/api';
@@ -44,11 +44,28 @@ import { localizedError } from '../../lib/errors';
       errorMessage = tr('Allow pop-ups to connect with Command Code Studio.');
       return;
     }
+    // Sever the opener before the third-party page loads so it cannot navigate
+    // or otherwise manipulate the dashboard tab (reverse tabnabbing). The blank
+    // popup is same-origin, so this is safe; close it if a browser rejects it.
+    try {
+      authWindow.opener = null;
+    } catch {
+      authWindow.close();
+      state = 'idle';
+      errorMessage = tr('Allow pop-ups to connect with Command Code Studio.');
+      return;
+    }
     popup = authWindow;
     try {
       const result = await api.startProviderApiKeyAuth(providerId);
       if (currentGeneration !== generation) {
         authWindow.close();
+        return;
+      }
+      if (!result.auth_url) {
+        closePopup();
+        state = 'idle';
+        errorMessage = tr('Could not start Command Code Studio sign-in.');
         return;
       }
       flowId = result.flow_id;

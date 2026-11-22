@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
-import Input from '../../src/components/Input.svelte';
-import ArkField from '../../src/components/ArkField.svelte';
-import ArkPasswordInput from '../../src/components/ArkPasswordInput.svelte';
+import Input from '../../src/components/ui/Input.svelte';
+import FormField from '../../src/components/ui/FormField.svelte';
+import PasswordInput from '../../src/components/ui/PasswordInput.svelte';
 
 describe('shared Input', () => {
   test('preserves the standard aria-label attribute', () => {
@@ -45,17 +45,17 @@ describe('shared Input', () => {
   });
 });
 
-describe('shared ArkField', () => {
+describe('shared FormField', () => {
   test('preserves field context, label and input callback', async () => {
     const onValueChange = vi.fn();
-    render(ArkField, { props: { label: 'Model ID', value: '', onValueChange } });
+    render(FormField, { props: { label: 'Model ID', value: '', onValueChange } });
     const field = screen.getByRole('textbox', { name: 'Model ID' });
     await fireEvent.input(field, { target: { value: 'provider/model' } });
     expect(onValueChange).toHaveBeenCalledWith('provider/model');
   });
 
   test('marks the field invalid with an announced error and muted helper text', () => {
-    render(ArkField, { props: { label: 'Model ID', helperText: 'Lowercase only', errorText: 'Required' } });
+    render(FormField, { props: { label: 'Model ID', helperText: 'Lowercase only', errorText: 'Required' } });
     const input = screen.getByRole('textbox', { name: 'Model ID' });
     expect(input.getAttribute('aria-invalid')).toBe('true');
     expect(screen.getByRole('alert').textContent).toBe('Required');
@@ -63,15 +63,15 @@ describe('shared ArkField', () => {
   });
 
   test('renders without the invalid flag when no error is set', () => {
-    render(ArkField, { props: { label: 'Model ID', helperText: 'Lowercase only' } });
+    render(FormField, { props: { label: 'Model ID', helperText: 'Lowercase only' } });
     expect(screen.getByRole('textbox', { name: 'Model ID' }).getAttribute('aria-invalid')).toBeNull();
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });
 
-describe('shared ArkPasswordInput', () => {
+describe('shared PasswordInput', () => {
   test('toggles password visibility with a pressed-state control', async () => {
-    render(ArkPasswordInput, { props: { label: 'Admin password', value: 's3cret' } });
+    render(PasswordInput, { props: { label: 'Admin password', value: 's3cret' } });
     const input = screen.getByLabelText('Admin password') as HTMLInputElement;
     expect(input.type).toBe('password');
 

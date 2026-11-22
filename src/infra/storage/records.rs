@@ -80,6 +80,10 @@ impl From<heed::Error> for StorageError {
         match error {
             heed::Error::Mdb(MdbError::MapFull) => StorageError::MapFull,
             heed::Error::Mdb(MdbError::NotFound) => StorageError::NotFound,
+            // A crashed process can leave reader slots occupied until the
+            // periodic reader check reclaims them. Treat slot exhaustion as
+            // transient backpressure, not a permanent backend failure.
+            heed::Error::Mdb(MdbError::ReadersFull) => StorageError::Busy,
             heed::Error::Mdb(_) => StorageError::Backend(error.to_string()),
             _ => StorageError::Backend(error.to_string()),
         }
@@ -355,4 +359,29 @@ pub struct SnapshotEntry {
     pub table: Table,
     pub key: String,
     pub value: Vec<u8>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn readers_full_is_transient_busy_and_other_codes_keep_their_mapping() {
+        assert!(matches!(
+            StorageError::from(heed::Error::Mdb(MdbError::ReadersFull)),
+            StorageError::Busy
+        ));
+        assert!(matches!(
+            StorageError::from(heed::Error::Mdb(MdbError::MapFull)),
+            StorageError::MapFull
+        ));
+        assert!(matches!(
+            StorageError::from(heed::Error::Mdb(MdbError::NotFound)),
+            StorageError::NotFound
+        ));
+        assert!(matches!(
+            StorageError::from(heed::Error::Mdb(MdbError::Invalid)),
+            StorageError::Backend(_)
+        ));
+    }
 }

@@ -5,11 +5,11 @@
 
 use super::{
     ApiKeyCallbackAcceptance, CALLBACK_BODY_LIMIT, CALLBACK_KEY_LIMIT, accept_callback_state,
-    pending_callback_adapter_id,
+    pending_callback_adapter_id, pending_callback_flow_id,
 };
 use crate::{
     provider_adapters,
-    security::{encrypt_secret, token_hash},
+    security::{SecretContext, encrypt_secret, token_hash},
     state::AppState,
 };
 use axum::{
@@ -80,7 +80,7 @@ async fn resolve_callback_flow(
     state: &AppState,
     callback_state: &str,
     origin: &str,
-) -> Result<(String, Vec<u8>), Box<Response>> {
+) -> Result<(String, Vec<u8>, String), Box<Response>> {
     let invalid_state = || {
         Box::new(callback_response(
             StatusCode::BAD_REQUEST,
@@ -103,7 +103,10 @@ async fn resolve_callback_flow(
             Some(origin.to_owned()),
         )));
     }
-    Ok((adapter_id, submitted_state_hash))
+    let flows = state.admin.provider_api_key_auth_flows.lock().await;
+    let flow_id = pending_callback_flow_id(&flows, &submitted_state_hash, Instant::now())
+        .ok_or_else(invalid_state)?;
+    Ok((adapter_id, submitted_state_hash, flow_id))
 }
 
 /// Parses the adapter-specific callback payload and enforces the shared
@@ -138,10 +141,15 @@ fn parse_callback_payload(
 
 fn encrypt_callback_key(
     state: &AppState,
+    flow_id: &str,
     api_key: &str,
     origin: &str,
 ) -> Result<Vec<u8>, Box<Response>> {
-    match encrypt_secret(state.config.master_key.as_ref(), api_key) {
+    match encrypt_secret(
+        state.config.master_key.as_ref(),
+        &SecretContext::pending_provider_key(flow_id),
+        api_key,
+    ) {
         Ok(Some(secret)) => Ok(secret),
         Ok(None) => Err(Box::new(callback_response(
             StatusCode::BAD_REQUEST,
@@ -170,7 +178,7 @@ pub(crate) async fn callback(State(state): State<AppState>, request: Request<Bod
         Ok(parsed) => parsed,
         Err(response) => return *response,
     };
-    let (adapter_id, submitted_state_hash) =
+    let (adapter_id, submitted_state_hash, flow_id) =
         match resolve_callback_flow(&state, &callback_state, origin).await {
             Ok(resolved) => resolved,
             Err(response) => return *response,
@@ -180,7 +188,7 @@ pub(crate) async fn callback(State(state): State<AppState>, request: Request<Bod
         Err(response) => return *response,
     };
     let api_key = payload.api_key.trim();
-    let encrypted_api_key = match encrypt_callback_key(&state, api_key, origin) {
+    let encrypted_api_key = match encrypt_callback_key(&state, &flow_id, api_key, origin) {
         Ok(secret) => secret,
         Err(response) => return *response,
     };

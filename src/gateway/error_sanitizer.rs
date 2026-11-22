@@ -140,6 +140,12 @@ fn provider_error_field_is_sensitive(field: &str) -> bool {
     matches!(
         normalized.as_str(),
         "apikey"
+            | "xapikey"
+            | "xgoogapikey"
+            | "xauthkey"
+            | "xsecretkey"
+            | "accesskey"
+            | "secretkey"
             | "authorization"
             | "token"
             | "accesstoken"
@@ -165,13 +171,77 @@ fn provider_error_field_is_sensitive(field: &str) -> bool {
     )
 }
 
+/// `key` is deliberately not a sensitive *field* name — prose such as
+/// "primary key" must survive redaction — but it is a credential-bearing query
+/// parameter inside a URL. This check is only used for query parameters.
+fn sensitive_query_parameter(name: &str) -> bool {
+    provider_error_field_is_sensitive(name) || name.eq_ignore_ascii_case("key")
+}
+
+/// Replaces credential-bearing URL query values with `[redacted]` while keeping
+/// the scheme, host, path and unrelated parameters. Trailing punctuation is
+/// preserved so an error message still reads naturally.
+fn redact_url_query_secrets(word: &str) -> String {
+    let bytes = word.as_bytes();
+    let mut result = String::with_capacity(word.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index] == b'?' || bytes[index] == b'&' {
+            let name_start = index + 1;
+            let mut equals = name_start;
+            while equals < bytes.len()
+                && bytes[equals] != b'='
+                && bytes[equals] != b'&'
+                && bytes[equals] != b'?'
+            {
+                equals += 1;
+            }
+            if equals < bytes.len()
+                && bytes[equals] == b'='
+                && sensitive_query_parameter(&word[name_start..equals])
+            {
+                result.push(bytes[index] as char);
+                result.push_str(&word[name_start..equals]);
+                result.push_str("=[redacted]");
+                let mut value_end = equals + 1;
+                while value_end < bytes.len()
+                    && bytes[value_end] != b'&'
+                    && bytes[value_end] != b'?'
+                {
+                    value_end += 1;
+                }
+                let mut punctuation = 0;
+                while value_end - punctuation > equals + 1
+                    && matches!(
+                        bytes[value_end - punctuation - 1],
+                        b'.' | b',' | b';' | b'!' | b')' | b']' | b'}' | b'"' | b'\''
+                    )
+                {
+                    punctuation += 1;
+                }
+                result.push_str(&word[value_end - punctuation..value_end]);
+                index = value_end;
+                continue;
+            }
+        }
+        let next = (index + 1..=word.len())
+            .find(|&position| word.is_char_boundary(position))
+            .unwrap_or(word.len());
+        result.push_str(&word[index..next]);
+        index = next;
+    }
+    result
+}
+
 fn redact_provider_error_text(text: &str) -> String {
     let mut result = String::with_capacity(text.len());
     let mut redact_next_tokens = 0usize;
-    for (index, word) in text.split_whitespace().enumerate() {
+    for (index, token) in text.split_whitespace().enumerate() {
         if index > 0 {
             result.push(' ');
         }
+        let redacted_token = redact_url_query_secrets(token);
+        let word = redacted_token.as_str();
         if redact_next_tokens > 0 {
             result.push_str("[redacted]");
             redact_next_tokens -= 1;

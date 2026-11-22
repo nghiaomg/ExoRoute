@@ -13,8 +13,8 @@ self-contained executable — no Docker, no Python runtime, no external database
 embedded LMDB environment and a dashboard compiled into the binary.
 
 This npm package is a **launcher**. It does not contain the gateway itself: installing it
-downloads the official release binary for your platform, verifies its checksum, and adds an
-`exoroute` command to your PATH.
+downloads the official release binary for your platform, verifies its Sigstore signature and
+checksum, and adds an `exoroute` command to your PATH.
 
 ```sh
 npm install -g exoroute
@@ -44,6 +44,7 @@ Then open <http://127.0.0.1:8686> and sign in.
 | Requirement | Detail |
 | --- | --- |
 | Node.js | 18 or newer. The package declares `"node": ">=18"`, and the installer needs the global `fetch` API. |
+| Cosign | Sigstore Cosign v3.1.3 or newer on `PATH`. It is required: the npm installer verifies the signed checksum manifest with the same policy as the shell and PowerShell installers and fails closed when Cosign is missing, too old, or rejects the signature. No new npm dependency is installed. |
 | Platform | A 64-bit target listed under [Supported platforms](#supported-platforms). 32-bit systems and Windows on ARM are not published. |
 | Network | HTTPS access to `github.com` and its release asset hosts while installing or upgrading. |
 | Permissions | Write access to the npm global prefix. No elevation beyond what a normal `npm install -g` already needs. |
@@ -159,22 +160,26 @@ In PowerShell, set it for the current session with
 partially installed binary behind:
 
 1. Resolves the target and release tag described above.
-2. Downloads the platform archive and the `SHA256SUMS` manifest into a private temporary
-   directory, following redirects only to GitHub release hosts. The archive is capped at
-   100 MiB and the manifest at 64 KiB, and the temporary directory is removed even when the
-   install fails.
-3. Requires the manifest to hold exactly one SHA-256 entry for the archive, hashes the
+2. Downloads the platform archive, the `SHA256SUMS` manifest, and the `SHA256SUMS.sigstore.json`
+   bundle into a private temporary directory, following redirects only to GitHub release hosts.
+   The archive is capped at 100 MiB, the manifest at 64 KiB, and the bundle at 1 MiB; the
+   temporary directory is removed even when the install fails.
+3. Requires Cosign v3.1.3 or newer and verifies the manifest against the bundle using the
+   GitHub Actions OIDC issuer and the ExoRoute release-workflow identity for the exact tag
+   (`latest` accepts any tagged release of that workflow). A missing, malformed, tampered, or
+   untrusted signature is fatal — nothing is extracted or installed. There is no opt-out.
+4. Requires the verified manifest to hold exactly one SHA-256 entry for the archive, hashes the
    archive, and compares the two. A mismatch is fatal and nothing is installed.
-4. Extracts the archive and requires a precisely known file list: the binary plus `LICENSE`
+5. Extracts the archive and requires a precisely known file list: the binary plus `LICENSE`
    and `README.md`. Unexpected, missing, duplicate, or symbolic-link entries are rejected,
    and every extracted file must be a regular file within the size limit.
-5. Copies the binary into the package's `vendor/` directory through a temporary file and an
+6. Copies the binary into the package's `vendor/` directory through a temporary file and an
    atomic rename, and marks it executable (`0755`) on Linux and macOS. An existing install
    that is not a regular file is never replaced.
 
-The npm package verifies checksums but deliberately **does not require Cosign**. The
-checksum manifest is signed by the release workflow with Sigstore; if you want that
-signature verified too, use the next section.
+The npm installer requires Cosign and verifies the Sigstore signature before it trusts any
+checksum from the manifest. If Cosign is unavailable, install it and re-run `npm install`; the
+next section also shows how to perform the same verification manually.
 
 ## Verifying a release yourself
 
@@ -200,8 +205,8 @@ issued for the exact tag ref, so a mismatch means the manifest is from another r
 Windows, use `Get-FileHash -Algorithm SHA256 <file>` or `certutil -hashfile <file> SHA256`
 instead of `sha256sum`.
 
-The launcher already performs the archive checksum check by itself; this manual path is for
-installs that also want the signature verified, or that do not use npm at all. Archives can
+The launcher already performs both the signature and checksum checks by itself; this manual
+path is for independent verification, or for installs that do not use npm. Archives can
 be downloaded directly from the
 [releases page](https://github.com/nghiaomg/ExoRoute/releases).
 

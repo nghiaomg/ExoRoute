@@ -19,6 +19,15 @@ const proxies: GatewayProxy[] = [
   },
 ];
 
+/** StatsCard's KPI span is the element immediately before its heading. */
+function statValue(heading: string): string {
+  const title = Array.from(document.querySelectorAll('h2.stat-title'))
+    .find((node) => node.textContent?.trim() === heading);
+  const value = title?.previousElementSibling?.textContent?.trim();
+  if (value === null || value === undefined) throw new Error(`Stat card "${heading}" not found`);
+  return value;
+}
+
 afterEach(() => vi.restoreAllMocks());
 
 describe('proxy overview cards', () => {
@@ -30,14 +39,16 @@ describe('proxy overview cards', () => {
     render(DashboardProxiesPage, { props: { tr, locale: 'en' } });
 
     expect(await screen.findByText('Total proxies')).toBeTruthy();
-    expect(screen.getByText('2', { selector: '[data-stat-value]' })).toBeTruthy();
+    expect(statValue('Total proxies')).toBe('2');
     expect(screen.getByRole('heading', { name: 'Enabled' })).toBeTruthy();
-    expect(screen.getAllByText('1', { selector: '[data-stat-value]' })).toHaveLength(2);
+    expect(statValue('Enabled')).toBe('1');
+    expect(statValue('Endpoints')).toBe('1');
     expect(screen.getByText('Across 2 proxy groups')).toBeTruthy();
     expect(screen.queryByText('Network usage')).toBeNull();
     expect(trafficStats).not.toHaveBeenCalled();
 
-    await fireEvent.click(screen.getByRole('button', { name: /Show enabled only/ }));
+    // Enabled-only filtering is now the status <select>, not a toggle button.
+    await fireEvent.change(screen.getByRole('combobox', { name: 'Filter by status' }), { target: { value: 'enabled' } });
     expect(screen.getByText('Residential')).toBeTruthy();
     expect(screen.queryByText('Backup')).toBeNull();
   });

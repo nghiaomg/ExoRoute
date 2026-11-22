@@ -1,16 +1,17 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import StatsCard from "../../components/StatsCard.svelte";
+  import Button from "../../components/ui/Button.svelte";
+  import Dialog from "../../components/ui/Dialog.svelte";
+  import StatsCard from "../../components/ui/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { GripVertical } from '@lucide/svelte';
   import { api } from '../../lib/api';
-  import Input from '../../components/Input.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import type { DashboardPage } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
   import type { Translate } from '../../lib/format';
   import { formatCount } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
-  import SelectOptions from '../../components/SelectOptions.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import ComboTargetModelSelect from './ComboTargetModelSelect.svelte';
   import ComboTargetSelect from './ComboTargetSelect.svelte';
   import type { ComboProviderOption, GatewayCombo, RouteBreakdown } from '../../lib/types';
@@ -55,7 +56,7 @@
   let strategyFilter = $state('all');
 
   // Combo dialog
-  let comboDialog = $state<HTMLDialogElement>();
+  let comboDialogOpen = $state(false);
   let editingCombo = $state<GatewayCombo | null>(null);
   let cfName = $state('');
   let cfStrategy = $state('priority');
@@ -67,7 +68,7 @@
   let cfError = $state('');
 
   // Delete dialog
-  let deleteDialog = $state<HTMLDialogElement>();
+  let deleteDialogOpen = $state(false);
   let deleteTarget = $state<GatewayCombo | null>(null);
   let deleteBusy = $state(false);
 
@@ -169,7 +170,7 @@
       cfAlias = '';
       cfTargets = [newTargetDraft()];
     }
-    comboDialog?.showModal();
+    comboDialogOpen = true;
   }
 
   function newTargetDraft(): TargetDraft {
@@ -291,7 +292,7 @@
         });
         showDashboardToast(tr('Combo "{name}" created', { name }));
       }
-      comboDialog?.close();
+      comboDialogOpen = false;
       await load();
     } catch (error) {
       cfError = error instanceof Error ? error.message : tr('Could not save combo.');
@@ -331,7 +332,7 @@
 
   function openDelete(combo: GatewayCombo): void {
     deleteTarget = combo;
-    deleteDialog?.showModal();
+    deleteDialogOpen = true;
   }
 
   async function confirmDelete(): Promise<void> {
@@ -341,7 +342,7 @@
       await api.deleteCombo(deleteTarget.id);
       combos = combos.filter((c) => c.id !== deleteTarget?.id);
       showDashboardToast(tr('Combo "{name}" deleted', { name: deleteTarget.name }));
-      deleteDialog?.close();
+      deleteDialogOpen = false;
     } catch (error) {
       showDashboardToast(error instanceof Error ? error.message : tr('Could not delete combo'));
     } finally {
@@ -387,7 +388,7 @@
   <section class="course-card surface" aria-label={tr('Load error')}>
     <div class="card-title-row"><h2>{tr('Could not load combos')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
-    <div class="modal-actions" style="padding-top:14px">
+    <div class="modal-actions">
       <Button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   </section>
@@ -480,15 +481,17 @@
 {/if}
 
 <!-- Create / edit combo -->
-<dialog class="modal modal-wide" bind:this={comboDialog} aria-labelledby="combo-dialog-title" onclose={() => { cfError = ''; }}>
-  <form class="modal-card combo-dialog" onsubmit={(e) => { e.preventDefault(); void saveCombo(); }}>
-    <div class="modal-heading">
-      <div>
-        <h2 id="combo-dialog-title">{editingCombo ? tr('Edit combo') : tr('New combo')}</h2>
-        <p>{tr('Chain provider targets with a routing strategy.')}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
+<Dialog
+  bind:open={comboDialogOpen}
+  title={editingCombo ? tr('Edit combo') : tr('New combo')}
+  kicker=""
+  wide
+  closeLabel={tr('Close dialog')}
+  class="combo-dialog"
+  onClose={() => { cfError = ''; }}
+>
+  <form class="modal-form" onsubmit={(e) => { e.preventDefault(); void saveCombo(); }}>
+    <p class="modal-description">{tr('Chain provider targets with a routing strategy.')}</p>
     <div class="modal-fields grid-cols-2! max-nav:grid-cols-1!">
       <label class="field prov-field-wide">
         {tr('Combo name')}
@@ -560,7 +563,6 @@
                 providerId={target.kind === 'provider' ? target.providerId : ''}
                 value={target.model}
                 disabledPlaceholder={target.kind === '' ? tr('Choose a target first.') : tr('Choose a provider first.')}
-                portalContainer={comboDialog}
                 {tr}
                 onChange={(model) => (target.model = model)}
               />
@@ -585,24 +587,16 @@
       <Button class="page-action primary" type="submit" disabled={cfBusy}>{cfBusy ? tr('Saving…') : tr('Save combo')}</Button>
     </div>
   </form>
-</dialog>
+</Dialog>
 
 <!-- Delete confirm -->
-<dialog class="modal" bind:this={deleteDialog} aria-labelledby="combo-delete-title">
-  <div class="modal-card">
-    <div class="modal-heading">
-      <div>
-        <h2 id="combo-delete-title">{tr('Delete combo?')}</h2>
-        <p>{tr('Requests routed through {name} will fail until a replacement exists.', { name: deleteTarget?.name ?? tr('this combo') })}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
-    <div class="modal-actions">
-      <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
-      <Button class="page-action danger border-db-accent-line! text-db-danger! hover:bg-db-accent-tint!" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete combo')}</Button>
-    </div>
+<Dialog bind:open={deleteDialogOpen} title={tr('Delete combo?')} kicker="" closeLabel={tr('Close dialog')}>
+  <p class="modal-description">{tr('Requests routed through {name} will fail until a replacement exists.', { name: deleteTarget?.name ?? tr('this combo') })}</p>
+  <div class="modal-actions">
+    <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
+    <Button class="page-action danger border-db-accent-line! text-db-danger! hover:bg-db-accent-tint!" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete combo')}</Button>
   </div>
-</dialog>
+</Dialog>
 
 <style>
   .target-drag-handle {
@@ -641,9 +635,9 @@
     align-items: flex-start;
     gap: 10px;
     padding: 12px;
-    border: 1px solid #e8edef;
+    border: 1px solid var(--line);
     border-radius: 10px;
-    background: #fbfcfc;
+    background: var(--surface);
     cursor: pointer;
   }
 
@@ -658,7 +652,7 @@
   }
 
   .combo-retry-setting strong {
-    color: #303b48;
+    color: var(--ink);
     font-size: var(--type-body);
   }
 

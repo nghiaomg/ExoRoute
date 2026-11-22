@@ -7,6 +7,7 @@ mod encoding;
 mod history;
 mod media;
 mod model_effort;
+mod native_options;
 mod responses_output;
 mod thinking_blocks;
 mod thinking_options;

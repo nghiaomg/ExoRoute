@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { ArrowDown, ArrowUp, GitBranch, Trash2 } from '@lucide/svelte';
-  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
-  import ArkField from '../../components/ArkField.svelte';
-  import SelectSearch from '../../components/SelectSearch.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
+  import FormField from '../../components/ui/FormField.svelte';
+  import SelectSearch from '../../components/ui/SelectSearch.svelte';
   import type { Translate } from '../../lib/format';
   import type { ProxyEndpoint, ProxyProviderOption } from '../../lib/types';
 
@@ -42,18 +42,20 @@
       <Button class="row-icon danger-hover" type="button" aria-label={tr('Remove endpoint')} title={tr('Remove endpoint')} onclick={onRemove}><Trash2 size={14}/></Button>
     </div>
   </header>
-  <div class="flex items-center gap-1 self-start rounded-[10px] bg-surface p-[3px]">
+  <div class="proxy-mode-track" role="group" aria-label={tr('Endpoint selection')}>
     <button
       type="button"
+      class="proxy-mode-segment"
       data-active={embedded ? 'false' : 'true'}
+      aria-pressed={!embedded}
       onclick={() => update({ ref_proxy_id: null })}
-      class="inline-flex min-h-[29px] cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-[5px] text-caption text-muted transition-colors hover:text-ink data-[active=true]:bg-db-tint-strong data-[active=true]:text-ink data-[active=true]:shadow-sm"
     >{tr('Proxy URL')}</button>
     <button
       type="button"
+      class="proxy-mode-segment"
       data-active={embedded ? 'true' : 'false'}
+      aria-pressed={embedded}
       onclick={() => update({ url: null, username: null, secret: null, ref_proxy_id: options[0]?.id ?? null })}
-      class="inline-flex min-h-[29px] cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-[5px] text-caption text-muted transition-colors hover:text-ink data-[active=true]:bg-db-tint-strong data-[active=true]:text-ink data-[active=true]:shadow-sm"
     ><GitBranch size={13}/>{tr('Embed proxy group')}</button>
   </div>
   {#if embedded}
@@ -75,11 +77,19 @@
     <p class="m-0 text-meta text-muted">{tr('The referenced proxy is expanded here in priority order. Cycles and excessive nesting are rejected.')}</p>
   {:else}
     <div class="grid grid-cols-2 gap-2.5 max-[640px]:grid-cols-1">
-      <ArkField class="col-span-full" label={tr('Proxy URL')} value={endpoint.url ?? ''} placeholder={tr('10.0.0.1:8080 or https://proxy.example:8443')} disabled={false} onValueChange={(value) => update({ url: value, ref_proxy_id: null })} />
-      <ArkField label={tr('Label (optional)')} value={endpoint.label ?? ''} placeholder={tr('Primary, backup…')} onValueChange={(value) => update({ label: value || null })} />
-      <ArkField label={tr('Username (optional)')} value={endpoint.username ?? ''} placeholder={tr('Proxy username')} onValueChange={(value) => update({ username: value || null })} />
-      <ArkField label={tr(endpoint.has_secret ? 'New password (leave blank to keep current)' : 'Password (optional)')} value={endpoint.secret ?? ''} type="password" placeholder={tr(endpoint.has_secret ? 'Saved securely' : 'Proxy password')} onValueChange={(value) => update({ secret: value || null })} />
+      <FormField class="col-span-full" label={tr('Proxy URL')} value={endpoint.url ?? ''} placeholder={tr('10.0.0.1:8080 or https://proxy.example:8443')} disabled={false} onValueChange={(value) => update({ url: value, ref_proxy_id: null })} />
+      <FormField label={tr('Label (optional)')} value={endpoint.label ?? ''} placeholder={tr('Primary, backup…')} onValueChange={(value) => update({ label: value || null })} />
+      <FormField label={tr('Username (optional)')} value={endpoint.username ?? ''} placeholder={tr('Proxy username')} onValueChange={(value) => update({ username: value || null })} />
+      <FormField label={tr(endpoint.has_secret ? 'New password (leave blank to keep current)' : 'Password (optional)')} value={endpoint.secret ?? ''} type="password" placeholder={tr(endpoint.has_secret ? 'Saved securely' : 'Proxy password')} onValueChange={(value) => update({ secret: value || null })} />
     </div>
   {/if}
-  <ArkCheckbox checked={endpoint.enabled} label={tr('Enable this endpoint')} onCheckedChange={(checked) => update({ enabled: checked === true })} />
+  <Checkbox checked={endpoint.enabled} label={tr('Enable this endpoint')} onCheckedChange={(checked) => update({ enabled: checked === true })} />
 </section>
+
+<style>
+  .proxy-mode-track { display:inline-flex; align-items:center; gap:3px; align-self:flex-start; padding:3px; border:1px solid var(--line); border-radius:10px; background:var(--surface-sunken); }
+  .proxy-mode-segment { display:inline-flex; min-height:29px; align-items:center; gap:6px; padding:5px 10px; border:1px solid transparent !important; border-radius:8px; background:transparent !important; color:var(--muted); font-size:var(--text-xs, 12px); cursor:pointer; transition:background-color .15s ease, color .15s ease, border-color .15s ease; }
+  .proxy-mode-segment:hover { color:var(--ink); }
+  .proxy-mode-segment[data-active='true'] { border-color:var(--accent) !important; background:color-mix(in srgb, var(--accent) 14%, var(--surface)) !important; color:var(--ink); font-weight:600; }
+  .proxy-mode-segment:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+</style>

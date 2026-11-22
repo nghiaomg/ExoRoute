@@ -66,7 +66,7 @@ describe('an authenticated visit to the login route', () => {
     render(App, {});
 
     await waitFor(() => expect(window.location.pathname).toBe('/overview'));
-    expect(await screen.findByText('Loading Overview…')).toBeTruthy();
+    expect(await screen.findByRole('status', { name: 'Loading Overview…' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Sign in' })).toBeNull();
   });
 
@@ -78,7 +78,7 @@ describe('an authenticated visit to the login route', () => {
     render(App, {});
 
     await waitFor(() => expect(window.location.pathname).toBe('/settings'));
-    expect(await screen.findByText('Loading Settings…')).toBeTruthy();
+    expect(await screen.findByRole('status', { name: 'Loading Settings…' })).toBeTruthy();
   });
 
   test('leaves an untrusted return path out of the destination', async () => {
@@ -112,7 +112,7 @@ describe('an authenticated visit to the login route', () => {
   });
 });
 
-describe('the documentation sign-in link', () => {
+describe('the documentation exit control', () => {
   test('returns an authenticated reader to the dashboard', async () => {
     session(AUTHENTICATED);
     holdFeatureChunks();
@@ -120,10 +120,10 @@ describe('the documentation sign-in link', () => {
 
     render(App, {});
 
-    fireEvent.click(await screen.findByRole('link', { name: /Admin sign in/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Back to dashboard/ }));
 
     await waitFor(() => expect(window.location.pathname).toBe('/overview'));
-    expect(await screen.findByText('Loading Overview…')).toBeTruthy();
+    expect(await screen.findByRole('status', { name: 'Loading Overview…' })).toBeTruthy();
   });
 
   test('still reaches the sign-in form for a visitor without a session', async () => {
@@ -132,14 +132,14 @@ describe('the documentation sign-in link', () => {
 
     render(App, {});
 
-    fireEvent.click(await screen.findByRole('link', { name: /Admin sign in/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Back to dashboard/ }));
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
     expect(window.location.pathname).toBe('/login');
   });
 });
 
-describe('the documentation navbar logo', () => {
+describe('the documentation exit control from an article', () => {
   test('returns an authenticated reader to the dashboard', async () => {
     session(AUTHENTICATED);
     holdFeatureChunks();
@@ -147,10 +147,10 @@ describe('the documentation navbar logo', () => {
 
     render(App, {});
 
-    fireEvent.click(await screen.findByRole('link', { name: 'ExoRoute overview' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Back to dashboard/ }));
 
     await waitFor(() => expect(window.location.pathname).toBe('/overview'));
-    expect(await screen.findByText('Loading Overview…')).toBeTruthy();
+    expect(await screen.findByRole('status', { name: 'Loading Overview…' })).toBeTruthy();
   });
 
   test('reaches the sign-in form for a visitor without a session', async () => {
@@ -159,21 +159,21 @@ describe('the documentation navbar logo', () => {
 
     render(App, {});
 
-    fireEvent.click(await screen.findByRole('link', { name: 'ExoRoute overview' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Back to dashboard/ }));
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
     expect(window.location.pathname).toBe('/login');
   });
 
-  // The logo no longer opens the documentation home, so the sidebar has to keep
-  // that page reachable.
+  // The exit control leaves documentation, so the sidebar has to keep the
+  // documentation home reachable.
   test('leaves the documentation home reachable from the sidebar', async () => {
     session(ANONYMOUS);
     visit('/docs/quickstart');
 
     render(App, {});
 
-    fireEvent.click(await screen.findByRole('link', { name: /^Overview / }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Overview' }));
 
     await waitFor(() => expect(window.location.pathname).toBe('/docs'));
   });

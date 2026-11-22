@@ -1,11 +1,11 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Check, Copy, Cpu, LoaderCircle, Search, Trash2, X, Zap } from '@lucide/svelte';
-  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
-  import EmptyState from '../../components/EmptyState.svelte';
-  import Input from '../../components/Input.svelte';
-  import Toast from '../../components/Toast.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
+  import EmptyState from '../../components/ui/EmptyState.svelte';
+  import Input from '../../components/ui/Input.svelte';
+  import Toast from '../../components/ui/Toast.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -256,7 +256,7 @@ import { localizedError } from '../../lib/errors';
 {#if filteredModels.length}
   <div class="model-test-toolbar">
     <div class="model-test-toolbar-select">
-      <ArkCheckbox checked={selectedVisibleCount === 0 ? false : allVisibleSelected ? true : 'indeterminate'} label={tr('Select all visible models')} onCheckedChange={(checked) => toggleVisibleModels(checked === true)} />
+      <Checkbox checked={selectedVisibleCount === 0 ? false : allVisibleSelected ? true : 'indeterminate'} label={tr('Select all visible models')} onCheckedChange={(checked) => toggleVisibleModels(checked === true)} />
     </div>
     {#if selectedModelKeys.length}
       <div class="model-test-toolbar-actions">
@@ -281,7 +281,7 @@ import { localizedError } from '../../lib/errors';
       {@const isDeleting = deletingModelKey === key}
       <article class="provider-model-card" class:selected={selectedKeysSet.has(key)}>
         <div class="model-card-header">
-          <ArkCheckbox
+          <Checkbox
             checked={selectedKeysSet.has(key)}
             disabled={deletingModelKey !== ''}
             ariaLabel={tr('Select {model} from {provider}', { model: model.model, provider: provider.name })}
@@ -393,3 +393,37 @@ import { localizedError } from '../../lib/errors';
 {#if toast}
   <Toast {toast} {tr} onDismiss={dismissToast} />
 {/if}
+
+<style>
+  /* Pill search: delegate focus styling to the outer rounded container.
+     The global input:focus-visible ring must not draw a rectangle inside it. */
+  .provider-model-filter .search-box {
+    border-radius: 9999px !important;
+    border: 1px solid var(--line) !important;
+    background: var(--surface-sunken);
+    box-shadow: none !important;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .provider-model-filter .search-box:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line)) !important;
+  }
+  .provider-model-filter .search-box:focus-within {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent) !important;
+  }
+  .provider-model-filter .search-box :global(input),
+  .provider-model-filter .search-box :global(input:focus),
+  .provider-model-filter .search-box :global(input:focus-visible) {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    color: var(--ink);
+    font-size: 12px;
+  }
+  .provider-model-filter .search-box :global(input::placeholder) { color: var(--muted); }
+</style>

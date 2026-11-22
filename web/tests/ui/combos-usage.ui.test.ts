@@ -37,6 +37,27 @@ afterEach(() => {
   delete (HTMLDialogElement.prototype as unknown as { close?: () => void }).close;
 });
 
+/** StatsCard renders its heading as a direct child of the card root div. */
+function statCardText(heading: HTMLElement): string {
+  const text = heading.parentElement?.textContent;
+  if (text === null || text === undefined) throw new Error('Stat card not found');
+  return text;
+}
+
+/** StatsCard's KPI span immediately precedes its heading. */
+function statCardValue(heading: HTMLElement): string {
+  const value = heading.previousElementSibling?.textContent?.trim();
+  if (value === null || value === undefined) throw new Error('Stat card value not found');
+  return value;
+}
+
+/** Combo rows are article elements carrying their enablement state. */
+function comboCardText(): string {
+  const text = document.querySelector('article[data-status]')?.textContent;
+  if (text === null || text === undefined) throw new Error('Combo row not found');
+  return text;
+}
+
 describe('combo usage attribution', () => {
   test('opens the target provider options from inside the combo dialog', async () => {
     vi.spyOn(api, 'combos').mockResolvedValue([]);
@@ -103,13 +124,16 @@ describe('combo usage attribution', () => {
     renderPage();
 
     const requestsCard = await screen.findByRole('heading', { name: 'Requests Routed' });
-    expect(requestsCard.closest('article')?.textContent).toContain('5');
-    expect(requestsCard.closest('article')?.textContent).not.toContain('99');
+    expect(statCardText(requestsCard)).toContain('5');
+    expect(statCardText(requestsCard)).not.toContain('99');
 
-    const comboCard = document.querySelector('.combo-card');
-    expect(comboCard?.textContent).toContain('5 requests');
-    expect(comboCard?.textContent).toContain('80% success');
-    expect(comboCard?.textContent).toContain('1 failed');
+    const comboCard = comboCardText();
+    expect(comboCard).toContain('5 requests');
+    expect(comboCard).toContain('80% success');
+    // The per-row card now shows requests and success; the routed failure
+    // count is reported by the aggregate Failures stat card.
+    const failuresCard = await screen.findByRole('heading', { name: 'Failures' });
+    expect(statCardValue(failuresCard)).toBe('1');
   });
 
   test('does not report zero traffic when statistics are unavailable or incomplete', async () => {
@@ -124,10 +148,11 @@ describe('combo usage attribution', () => {
     renderPage();
 
     const requestsCard = await screen.findByRole('heading', { name: 'Requests Routed' });
-    expect(requestsCard.closest('article')?.textContent).toContain('—');
-    expect(requestsCard.closest('article')?.textContent).toContain('Statistics are incomplete');
-    expect(document.querySelector('.combo-card')?.textContent).toContain('Statistics are incomplete');
-    expect(document.querySelector('.combo-card')?.textContent).not.toContain('0 failed');
+    expect(statCardText(requestsCard)).toContain('—');
+    expect(statCardText(requestsCard)).toContain('Statistics are incomplete');
+    // With an incomplete window the row must not claim zero traffic either.
+    expect(comboCardText()).not.toContain('no traffic yet');
+    expect(comboCardText()).not.toContain('0 failed');
   });
 
   test('labels an empty route breakdown as no traffic only when the range is complete', async () => {
@@ -141,7 +166,8 @@ describe('combo usage attribution', () => {
 
     renderPage();
 
-    await waitFor(() => expect(document.querySelector('.combo-card')?.textContent).toContain('no traffic yet'));
-    expect(document.querySelector('.combo-card')?.textContent).toContain('0 failed');
+    await waitFor(() => expect(comboCardText()).toContain('no traffic yet'));
+    const failuresCard = await screen.findByRole('heading', { name: 'Failures' });
+    expect(statCardValue(failuresCard)).toBe('0');
   });
 });

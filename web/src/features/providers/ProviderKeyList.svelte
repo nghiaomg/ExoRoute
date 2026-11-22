@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { ArrowDown, ArrowUp, Check, KeyRound, Pencil, Power, PowerOff, Trash2, X } from '@lucide/svelte';
-  import Input from '../../components/Input.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import { type Locale } from '../../lib/i18n';
   import { formatDate, type Translate } from '../../lib/format';
   import type { ProviderKey } from '../../lib/types';

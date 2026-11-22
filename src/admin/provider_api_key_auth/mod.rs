@@ -2,7 +2,7 @@ use super::{ApiResult, fail};
 use crate::{
     infra::storage::{Record, Table},
     provider_adapters,
-    security::{decrypt_secret, token_hash},
+    security::{SecretContext, decrypt_secret, token_hash},
     state::{AppState, PendingProviderApiKeyAuthFlow, ProviderApiKeyAuthFlowStatus},
 };
 use axum::{
@@ -21,6 +21,7 @@ mod flow;
 pub(super) use flow::{
     ApiKeyAuthApplyClaim, ApiKeyCallbackAcceptance, accept_callback_state,
     claim_api_key_auth_apply, pending_callback_adapter_id,
+    pending_callback_flow_id,
 };
 #[cfg(test)]
 use listener::loopback_addresses;
@@ -217,7 +218,11 @@ pub(super) async fn apply(
                 "provider adapter changed during sign-in",
             ));
         }
-        let api_key = decrypt_secret(state.config.master_key.as_ref(), Some(&encrypted_api_key))
+        let api_key = decrypt_secret(
+            state.config.master_key.as_ref(),
+            &SecretContext::pending_provider_key(&flow_id),
+            Some(&encrypted_api_key),
+        )
             .map_err(|_| {
                 fail(
                     StatusCode::SERVICE_UNAVAILABLE,

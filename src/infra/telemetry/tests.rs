@@ -445,7 +445,12 @@ async fn history_views_group_retained_rows_by_provider_status_cost_and_latency()
     assert_eq!(routes[0]["successes"], 2);
     assert_eq!(routes[0]["failures"], 1);
     assert!(
-        (routes[0]["success_rate"].as_f64().unwrap_or_default() - 200.0 / 3.0).abs() < f64::EPSILON
+        (routes[0]["success_rate"]
+            .as_f64()
+            .expect("success_rate should be numeric")
+            - 200.0 / 3.0)
+            .abs()
+            < 1e-9
     );
 
     // Changing the client-visible alias while keeping the serving model fixed

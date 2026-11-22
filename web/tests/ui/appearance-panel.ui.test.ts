@@ -77,7 +77,8 @@ describe('appearance theme radio group', () => {
   test('reduced-motion preference disables theme-card transitions and hover transform', () => {
     const css = readFileSync('src/features/settings/AppearancePanel.svelte', 'utf8');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(css).toContain('.appearance-theme-card { transition: none; }');
-    expect(css).toContain('.appearance-theme-card:hover { transform: none; }');
+    const reducedMotion = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(reducedMotion).toContain(':global(.appearance-theme-card) { transition: none; }');
+    expect(reducedMotion).toContain(':global(.appearance-theme-card:hover) { transform: none; }');
   });
 });

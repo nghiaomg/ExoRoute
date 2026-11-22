@@ -1,13 +1,13 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
   import { streamWorkspaceChat } from '../../lib/api/workspace-chat-stream';
   import type { Locale } from '../../lib/i18n';
   import type { Translate } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
-  import SelectSearch from '../../components/SelectSearch.svelte';
-  import Input from '../../components/Input.svelte';
+  import SelectSearch from '../../components/ui/SelectSearch.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import type {
     ChatAttachmentInput,
     WorkspaceChatInput,
@@ -39,6 +39,7 @@
 
   let sessions = $state<Session[]>([]);
   let activeSessionId = $state<number | null>(null);
+  let conversationSearch = $state('');
   let modelOptions = $state<WorkspaceChatModelOption[]>([]);
   let selectedModel = $state('');
   let messagesEl: HTMLElement;
@@ -130,6 +131,13 @@
 
   const activeSession = $derived(sessions.find((s) => s.id === activeSessionId) ?? null);
   const messages = $derived(activeSession?.messages ?? []);
+  const filteredSessions = $derived(
+    conversationSearch.trim()
+      ? sessions.filter((session) =>
+          `${session.title} ${session.modelLabel}`.toLowerCase().includes(conversationSearch.trim().toLowerCase()),
+        )
+      : sessions,
+  );
 
   function selectedOption(): WorkspaceChatModelOption | undefined {
     return modelOptions.find((m) => m.id === selectedModel);
@@ -371,34 +379,42 @@
   </div>
 </div>
 
-<div class="page-surface flex flex-col min-h-0">
-  <div class="surface flex min-h-[480px] h-[calc(100svh-320px)] overflow-hidden max-nav:h-auto max-nav:min-h-0 max-nav:flex-col">
-    <aside class="flex w-[250px] shrink-0 flex-col gap-2.5 border-r border-line bg-surface-sunken p-3 max-nav:order-2 max-nav:w-full max-nav:border-r-0 max-nav:border-t max-nav:border-line">
-      <Button class="flex items-center justify-center gap-[7px] min-h-[38px] rounded-xl border border-line bg-surface text-ink text-dash-body font-medium cursor-pointer transition-colors duration-150 hover:border-accent hover:text-accent hover:bg-db-accent-tint focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring" type="button" onclick={newChat}>
+<div class="page-surface chat-page flex flex-col min-h-0">
+  <div class="chat-shell">
+    <aside class="chat-history" aria-label={tr('Conversations')}>
+      <button class="chat-new-button" type="button" onclick={newChat}>
         <svg class="icon"><use href="#i-plus" /></svg>
-        {tr('New conversation')}
-      </Button>
-      <div class="grid flex-1 gap-1.5 overflow-y-auto content-start">
-        {#each sessions as session (session.id)}
+        <span>{tr('Cuộc trò chuyện mới')}</span>
+      </button>
+      <label class="chat-history-search">
+        <svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>
+        <input type="search" bind:value={conversationSearch} placeholder={tr('Search conversations')} aria-label={tr('Search conversations')} />
+      </label>
+      <div class="chat-history-list">
+        {#each filteredSessions as session (session.id)}
           <button
             type="button"
             onclick={() => selectSession(session.id)}
-            class="grid gap-[3px] rounded-[11px] border bg-transparent py-2.5 px-3 text-left cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {session.id === activeSessionId ? 'bg-surface border-line shadow-sm' : 'border-transparent hover:bg-surface'}"
+            class="chat-history-item"
+            class:active={session.id === activeSessionId}
+            aria-current={session.id === activeSessionId ? 'true' : undefined}
           >
-            <strong class="overflow-hidden text-ellipsis whitespace-nowrap text-ink text-label font-semibold">{session.title}</strong>
-            <span class="text-muted text-caption">{tr('{label} · {count} messages', { label: session.modelLabel || tr('no model'), count: session.messages.length })}</span>
+            <strong>{session.title}</strong>
+            <span>{tr('{label} · {count} messages', { label: session.modelLabel || tr('no model'), count: session.messages.length })}</span>
           </button>
         {:else}
-          <div class="grid flex-1 place-items-center p-6 text-center">
-            <p class="m-0 text-muted text-meta">{tr('No conversations yet.')}</p>
+          <div class="chat-history-empty">
+            <svg class="icon" aria-hidden="true"><use href="#i-chat" /></svg>
+            <p>{tr('No conversations yet.')}</p>
+            <small>{tr('Conversations you start appear here.')}</small>
           </div>
         {/each}
       </div>
     </aside>
 
-    <section class="flex min-w-0 min-h-0 flex-1 flex-col bg-db-tint-strong max-nav:min-h-[60svh]">
-      <div class="flex items-center gap-2.5 border-b border-line bg-surface px-4 py-2">
-        <span class="shrink-0 text-muted text-caption font-semibold uppercase tracking-[0.04em]">{tr('Model')}</span>
+    <section class="chat-workspace">
+      <div class="chat-toolbar">
+        <span class="chat-toolbar-label">{tr('Model')}</span>
         <div class="min-w-0 max-w-[520px] flex-1">
           <SelectSearch
             items={modelItems}
@@ -418,61 +434,57 @@
         {/if}
       </div>
 
-      <div class="flex-1 min-h-0 overflow-y-auto p-[18px] flex flex-col gap-3 {messages.length ? '[scrollbar-width:thin] [scrollbar-color:var(--text-dim)_transparent]' : '[scrollbar-width:none]'}" bind:this={messagesEl} aria-live="polite">
+      <div class="chat-messages" bind:this={messagesEl} aria-live="polite">
         {#if messages.length === 0}
-          <div class="m-auto grid justify-items-center gap-3 px-5 py-[30px] text-center">
-            <span class="grid size-12 place-items-center rounded-2xl border border-line bg-surface text-muted"><svg class="icon size-6!"><use href="#i-chat" /></svg></span>
-            <div class="grid gap-1">
-              <strong class="text-ink text-section-title">{tr('Start a conversation')}</strong>
-              <p class="m-0 text-dash-body text-muted">{tr('Messages are routed through the gateway exactly like production traffic.')}</p>
-            </div>
-            <div class="flex flex-wrap justify-center gap-2">
+          <div class="chat-empty">
+            <span class="chat-empty-icon"><svg class="icon"><use href="#i-chat" /></svg></span>
+            <h2>{tr('Start chatting with AI')}</h2>
+            <p>{tr('Experiment with AI models through the ExoRoute Gateway.')}</p>
+            <div class="chat-suggestions">
               {#each [
-                { label: tr('Summarize this text in 3 bullets'), text: 'Summarize this text in 3 bullets: ExoRoute is a protocol gateway that normalizes client and provider formats, adds retries, combos, quota tracking, and per-key scoping.' },
+                { label: tr('Summarize text into 3 bullet points'), text: 'Summarize this text in 3 bullet points: ExoRoute is a protocol gateway that normalizes client and provider formats, adds retries, combos, quota tracking, and per-key scoping.' },
                 { label: tr('Write a Python retry decorator'), text: 'Write a Python retry decorator with exponential backoff' },
                 { label: tr('Explain SSE vs WebSocket'), text: 'Explain SSE vs WebSocket for LLM streaming' },
               ] as suggestion (suggestion.label)}
-                <button
-                  type="button"
-                  class="rounded-full border border-line bg-surface px-3.5 py-2 text-muted text-meta cursor-pointer transition-[border-color,color,background-color] duration-150 hover:border-accent hover:text-accent hover:bg-db-accent-tint focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring"
-                  onclick={() => void send(suggestion.text)}
-                >{suggestion.label}</button>
+                <button type="button" class="chat-suggestion" onclick={() => void send(suggestion.text)}>{suggestion.label}</button>
               {/each}
             </div>
           </div>
         {/if}
         {#each messages as message (message.id)}
-          <div class="flex {message.role === 'user' ? 'justify-end' : 'justify-start'}">
-            <div class="max-w-[min(78%,640px)] rounded-[15px] px-[15px] py-[11px] text-dash-body leading-[1.45] whitespace-pre-wrap [word-break:break-word] {message.role === 'user' ? 'bg-ink text-canvas rounded-br-[5px]' : 'bg-surface text-ink border border-line rounded-bl-[5px]'}">{message.text}{#if message.streaming}<span class="inline-block w-2 h-3.5 ms-0.5 rounded-[2px] bg-accent align-[-2px] animate-chat-blink"></span>{/if}</div>
+          <div class="chat-message-row" class:user={message.role === 'user'}>
+            <div class="chat-bubble" class:error={message.error}>{message.text}{#if message.streaming}<span class="chat-caret" aria-hidden="true"></span>{/if}</div>
           </div>
         {/each}
       </div>
 
-      <form class="mx-3.5 mb-3.5 mt-2 flex items-center gap-1.5 rounded-2xl border border-line bg-surface px-2 py-1.5 transition-[border-color,box-shadow] duration-150 focus-within:border-accent focus-within:ring-3 focus-within:ring-db-accent-ring" onsubmit={(e) => { e.preventDefault(); void send(); }}>
-        <Button class="grid size-8! shrink-0 place-items-center rounded-full! border-0! bg-transparent! text-muted! cursor-pointer transition-colors duration-150 hover:bg-db-tint-strong! hover:text-ink! disabled:opacity-55 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[15px]!" type="button" title={tr('Attach image')} onclick={() => fileInput?.click()}>
-          <svg class="icon"><use href="#i-paperclip" /></svg>
-        </Button>
-        <Input bind:element={fileInput} type="file" accept="image/*" hidden onchange={onAttach} />
-        <textarea class="flex-1 min-h-8 max-h-[140px] resize-none border-0 bg-transparent! px-1.5 py-1.5 text-ink text-dash-body leading-[1.45] outline-none placeholder:text-muted"
-          bind:this={inputEl}
-          bind:value={composerText}
-          rows="1"
-          placeholder={tr('Message the model… (Enter to send, Shift+Enter for newline)')}
-          aria-label={tr('Message input')}
-          onkeydown={onKeydown}
-          oninput={autoGrow}
-          disabled={streaming}
-        ></textarea>
-        {#if streaming}
-          <Button class="grid size-9! shrink-0 place-items-center rounded-full! border-0! bg-db-danger! text-canvas! cursor-pointer transition-colors duration-150 hover:bg-accent-deep! disabled:opacity-55 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[14px]!" type="button" title={tr('Stop generating')} onclick={stop}>
-            <svg class="icon"><use href="#i-stop" /></svg>
+      <div class="chat-composer-dock">
+        <form class="chat-composer" onsubmit={(e) => { e.preventDefault(); void send(); }}>
+          <Button class="chat-attach" type="button" title={tr('Attach image')} onclick={() => fileInput?.click()}>
+            <svg class="icon"><use href="#i-paperclip" /></svg>
           </Button>
-        {:else}
-          <Button class="grid size-9! shrink-0 place-items-center rounded-full! border-0! bg-ink! text-canvas! cursor-pointer transition-colors duration-150 hover:bg-accent! disabled:opacity-40 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring [&_.icon]:size-[16px]!" type="submit" title={tr('Send')} disabled={!composerText.trim() || !selectedModel}>
-            <svg class="icon"><use href="#i-send" /></svg>
-          </Button>
-        {/if}
-      </form>
+          <Input bind:element={fileInput} type="file" accept="image/*" hidden onchange={onAttach} />
+          <textarea class="chat-textarea"
+            bind:this={inputEl}
+            bind:value={composerText}
+            rows="1"
+            placeholder={tr('Message the model… (Enter to send, Shift+Enter for newline)')}
+            aria-label={tr('Message input')}
+            onkeydown={onKeydown}
+            oninput={autoGrow}
+            disabled={streaming}
+          ></textarea>
+          {#if streaming}
+            <Button class="chat-send stop" type="button" title={tr('Stop generating')} onclick={stop}>
+              <svg class="icon"><use href="#i-stop" /></svg>
+            </Button>
+          {:else}
+            <Button class="chat-send" type="submit" title={tr('Send')} disabled={!composerText.trim() || !selectedModel}>
+              <svg class="icon"><use href="#i-send" /></svg>
+            </Button>
+          {/if}
+        </form>
+      </div>
     </section>
   </div>
 </div>
@@ -515,3 +527,129 @@
     </div>
   </form>
 </dialog>
+
+<style>
+  /* Scoped ExoRoute Chat workspace: clean SaaS surfaces, minimal borders. */
+  .chat-page { min-height: 0; }
+  .chat-shell {
+    display: grid;
+    grid-template-columns: 268px minmax(0, 1fr);
+    min-height: 480px;
+    height: calc(100svh - 320px);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+
+  .chat-history {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    min-height: 0;
+    padding: 14px 12px;
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+  }
+  :global(.chat-new-button) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    height: 40px;
+    flex: 0 0 40px;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    color: var(--accent-strong);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+  }
+  :global(.chat-new-button:hover) { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); border-color: var(--accent); }
+  .chat-history-search {
+    display: flex;
+    box-sizing: border-box;
+    height: 36px;
+    flex: 0 0 36px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface-sunken);
+    color: var(--muted);
+  }
+  .chat-history-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+  .chat-history-search input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); font-size: 12px; outline: none; }
+  .chat-history-list { display: grid; align-content: start; gap: 4px; flex: 1; min-height: 0; overflow-y: auto; }
+  .chat-history-item {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    padding: 10px 11px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .15s ease;
+  }
+  .chat-history-item:hover { background: var(--surface-sunken); }
+  .chat-history-item.active { border-color: color-mix(in srgb, var(--accent) 24%, var(--line)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+  .chat-history-item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 13px; font-weight: 600; }
+  .chat-history-item.active strong { color: var(--accent-strong); }
+  .chat-history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
+  .chat-history-empty { display: grid; justify-items: center; gap: 6px; padding: 32px 12px; text-align: center; color: var(--muted); }
+  .chat-history-empty p { margin: 0; font-size: 12px; font-weight: 600; color: var(--ink); }
+  .chat-history-empty small { font-size: 11px; line-height: 1.45; }
+
+  .chat-workspace { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--canvas); }
+  .chat-toolbar { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; min-height: 48px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .chat-toolbar-label { flex: 0 0 auto; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .chat-messages { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; overflow-y: auto; padding: 20px 18px; }
+  .chat-message-row { display: flex; justify-content: flex-start; }
+  .chat-message-row.user { justify-content: flex-end; }
+  .chat-bubble { max-width: min(78%, 680px); padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; border-bottom-left-radius: 4px; background: var(--surface); color: var(--ink); font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .chat-message-row.user .chat-bubble { border-color: var(--accent); border-radius: 12px; border-bottom-right-radius: 4px; background: var(--accent); color: var(--surface); }
+  .chat-bubble.error { border-color: color-mix(in srgb, var(--danger, #dc2626) 45%, var(--line)); }
+  .chat-caret { display: inline-block; width: 6px; height: 13px; margin-left: 3px; border-radius: 2px; background: var(--accent); vertical-align: -2px; animation: chat-blink 1s step-end infinite; }
+  @keyframes chat-blink { 50% { opacity: 0; } }
+
+  .chat-empty { display: grid; justify-items: center; align-content: center; gap: 10px; flex: 1; padding: 24px 16px; text-align: center; }
+  .chat-empty-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 15px; background: var(--surface-sunken); color: var(--accent); }
+  .chat-empty-icon .icon { width: 24px; height: 24px; }
+  .chat-empty h2 { margin: 4px 0 0; color: var(--ink); font-size: 19px; font-weight: 650; }
+  .chat-empty p { margin: 0; color: var(--muted); font-size: 13px; }
+  .chat-suggestions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: min(100%, 640px); margin-top: 12px; }
+  .chat-suggestion { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 12px; text-align: left; cursor: pointer; transition: border-color .15s ease, color .15s ease, background-color .15s ease; }
+  .chat-suggestion:hover { border-color: var(--accent); color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+
+  .chat-composer-dock { flex: 0 0 auto; padding: 10px 16px 14px; border-top: 1px solid var(--line); background: var(--surface); }
+  .chat-composer { display: flex; align-items: flex-end; gap: 8px; max-width: 760px; margin: 0 auto; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 6%, transparent); transition: border-color .15s ease, box-shadow .15s ease; }
+  .chat-composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+  :global(.chat-attach) { display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+  :global(.chat-attach:hover) { background: var(--surface-sunken); color: var(--ink); }
+  .chat-textarea { flex: 1; min-width: 0; min-height: 34px; max-height: 140px; padding: 7px 4px; border: 0; background: transparent; color: var(--ink); font-size: 13px; line-height: 1.5; resize: none; outline: none; }
+  .chat-textarea::placeholder { color: var(--muted); }
+  .chat-textarea:disabled { opacity: .6; }
+  :global(.chat-send) { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; border: 0; border-radius: 10px; background: var(--accent); color: var(--surface); cursor: pointer; transition: background-color .15s ease, opacity .15s ease; }
+  :global(.chat-send:hover:not(:disabled)) { background: var(--accent-strong); }
+  :global(.chat-send:disabled) { opacity: .45; cursor: not-allowed; }
+  :global(.chat-send.stop) { background: color-mix(in srgb, var(--danger, #dc2626) 85%, var(--ink)); }
+
+  @media (max-width: 920px) {
+    .chat-shell { grid-template-columns: 1fr; height: auto; min-height: 70svh; }
+    .chat-history { border-right: 0; border-bottom: 1px solid var(--line); max-height: 180px; }
+    .chat-history-list { max-height: 90px; }
+    .chat-suggestions { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .chat-shell { border-radius: 10px; }
+    .chat-toolbar, .chat-messages, .chat-composer-dock { padding-left: 12px; padding-right: 12px; }
+    .chat-bubble { max-width: 90%; }
+  }
+</style>

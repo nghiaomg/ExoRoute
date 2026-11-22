@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy } from 'svelte';
   import { LoaderCircle, RefreshCw, Save, X } from '@lucide/svelte';
-  import SelectOptions from '../../components/SelectOptions.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { labelProtocol } from '../../lib/labels';

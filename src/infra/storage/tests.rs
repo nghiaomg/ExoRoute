@@ -1000,3 +1000,70 @@ async fn storage_version_gate_refuses_only_unknown_newer_revisions() {
     );
     let _ = fs::remove_dir_all(root);
 }
+
+#[tokio::test]
+async fn reader_check_succeeds_on_a_live_environment() {
+    let root = test_path("reader-check");
+    let path = root.join("exoroute.lmdb");
+    let database = Database::open_for_test(&path, 4 * 1024 * 1024)
+        .await
+        .expect("open environment");
+    let reclaimed = database.reader_check().await.expect("reader check succeeds");
+    assert_eq!(reclaimed, 0, "a fresh environment has no stale readers");
+    // A live read transaction must not be reclaimed by the check.
+    let held = database
+        .read(|transaction| transaction.get::<u32>(Table::Meta, "storage_format_version"))
+        .await
+        .expect("read while checking");
+    assert!(held.is_some());
+    assert_eq!(
+        database
+            .reader_check()
+            .await
+            .expect("second reader check"),
+        0
+    );
+    drop(database);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn reopen_honors_an_oversize_persisted_map_marker() {
+    let root = test_path("oversize-marker");
+    let path = root.join("exoroute.lmdb");
+    let initial_map_size = 4 * 1024 * 1024;
+    let marked_size = initial_map_size * 4;
+    {
+        let database = Database::open_for_test(&path, initial_map_size)
+            .await
+            .expect("open initial environment");
+        database
+            .write(|transaction| {
+                transaction.put(Table::Providers, "kept", &"value".to_owned())
+            })
+            .await
+            .expect("seed data before marker");
+        drop(database);
+    }
+    // Simulate a crash that left a resize-intent marker for a larger map than
+    // the data actually occupies. Startup must honor the marker, not shrink.
+    write_map_size_marker(&path, marked_size).expect("write oversize marker");
+
+    let reopened = Database::open_with_map_bounds(&path, initial_map_size, 64 * 1024 * 1024)
+        .await
+        .expect("reopen with persisted oversize marker");
+    assert_eq!(
+        reopened.inner_for_test().map_size.load(Ordering::Acquire),
+        marked_size
+    );
+    assert_eq!(
+        reopened
+            .read(|transaction| transaction.get::<String>(Table::Providers, "kept"))
+            .await
+            .expect("read after marker reopen")
+            .as_deref(),
+        Some("value")
+    );
+    drop(reopened);
+    let _ = fs::remove_dir_all(root);
+}

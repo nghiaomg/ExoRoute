@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { CircleHelp, LoaderCircle, RotateCcw, Save, SlidersHorizontal } from '@lucide/svelte';
-  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
-  import Input from '../../components/Input.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -269,7 +269,7 @@ import { localizedError } from '../../lib/errors';
                 <CircleHelp size={13.5} />
               </Button>
             </div>
-            <ArkCheckbox checked={draft.circuit_breaker_enabled} disabled={busy !== ''} label={tr(draft.circuit_breaker_enabled ? 'Enabled' : 'Disabled')} onCheckedChange={(checked) => draft = { ...draft, circuit_breaker_enabled: checked === true }} />
+            <Checkbox checked={draft.circuit_breaker_enabled} disabled={busy !== ''} label={tr(draft.circuit_breaker_enabled ? 'Enabled' : 'Disabled')} onCheckedChange={(checked) => draft = { ...draft, circuit_breaker_enabled: checked === true }} />
             <small>{tr('Disabling it bypasses open circuits while preserving their failure state.')}</small>
           </div>
           {#each coreLimitFields as field (field.key)}
@@ -341,7 +341,7 @@ import { localizedError } from '../../lib/errors';
   {/if}
 </section>
 
-<ArkDialog
+<Dialog
   open={unlimitedWarningOpen}
   closeLabel={tr('Close dialog')}
   title={tr('Confirm unlimited gateway concurrency')}
@@ -356,6 +356,6 @@ import { localizedError } from '../../lib/errors';
       <Button type="button" class="primary-button" onclick={confirmUnlimited}>{tr('Apply unlimited gateway concurrency')}</Button>
     </div>
   </div>
-</ArkDialog>
+</Dialog>
 
   <ConfigHelpDialog {tr} help={activeHelp} onClose={() => { activeHelp = null; }} />

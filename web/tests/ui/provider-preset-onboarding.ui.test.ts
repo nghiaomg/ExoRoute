@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import DashboardProvidersPage from '../../src/features/providers/DashboardProvidersPage.svelte';
-import ProviderPresetSetupPage from '../../src/features/providers/ProviderPresetSetupPage.svelte';
+import ProviderPresetSetupDialog from '../../src/features/providers/ProviderPresetSetupDialog.svelte';
 import { api } from '../../src/lib/api';
 import type { Translate } from '../../src/lib/format';
 import type { Provider, ProviderPreset } from '../../src/lib/types';
@@ -53,28 +53,38 @@ describe('provider preset onboarding', () => {
     expect(createProvider).toHaveBeenCalledWith(expect.objectContaining({ adapter_id: 'openai', base_url: 'https://api.openai.com/v1', api_keys: [] }));
     expect(new URL(window.location.href).searchParams.get('id')).toBe('openai');
   });
-  test('endpoint-less preset opens the setup page without creating a provider', async () => {
+  test('endpoint-less preset opens the setup dialog without creating a provider', async () => {
     const existingProvider = provider(openAiPreset, 'openai', 'https://api.openai.com/v1');
     vi.spyOn(api, 'providers').mockResolvedValueOnce([existingProvider]);
     vi.spyOn(api, 'providerPresets').mockResolvedValue([openAiPreset, vertexPreset]);
     const createProvider = vi.spyOn(api, 'createProvider');
     renderPage();
     await fireEvent.click(await screen.findByRole('button', { name: 'Open Google Vertex AI details' }));
-    expect(document.querySelector('.provider-preset-setup')).toBeTruthy();
+    const dialog = document.querySelector('dialog[open]') as HTMLDialogElement;
+    expect(dialog).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Google Vertex AI' })).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Save provider' })).toBeTruthy();
     expect(createProvider).not.toHaveBeenCalled();
   });
   test('Vertex setup requires a service-account key and preserves auth protocol', async () => {
     const endpoint = 'https://us-central1-aiplatform.googleapis.com/v1/projects/demo';
     const createProvider = vi.spyOn(api, 'createProvider').mockResolvedValue({ ok: true, id: 'vertex_ai', key_tests: [] });
     const onCreated = vi.fn();
-    render(ProviderPresetSetupPage, { props: { preset: vertexPreset, tr, onBack: vi.fn(), onCreated } });
-    expect((screen.getByLabelText('Provider name') as HTMLInputElement).value).toBe('Google Vertex AI');
+    render(ProviderPresetSetupDialog, { props: { open: true, preset: vertexPreset, tr, onClose: vi.fn(), onCreated } });
+    expect(screen.getByRole('heading', { name: 'Google Vertex AI' })).toBeTruthy();
+    const save = screen.getByRole('button', { name: 'Save provider' }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    const serviceAccountKey = screen.getByLabelText('Service account key') as HTMLInputElement;
+    expect(serviceAccountKey.required).toBe(true);
+
     await fireEvent.input(screen.getByLabelText('Base URL'), { target: { value: endpoint } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
+    expect(save.disabled).toBe(true);
+    await fireEvent.click(save);
     expect(createProvider).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Service account key').hasAttribute('required')).toBe(true);
-    await fireEvent.input(screen.getByLabelText('Service account key'), { target: { value: 'test-service-account' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
+
+    await fireEvent.input(serviceAccountKey, { target: { value: 'test-service-account' } });
+    expect(save.disabled).toBe(false);
+    await fireEvent.click(save);
     await waitFor(() => expect(createProvider).toHaveBeenCalledOnce());
     expect(createProvider).toHaveBeenCalledWith(expect.objectContaining({ adapter_id: 'vertex_ai', base_url: endpoint, auth_type: 'vertex_service_account', api_keys: ['test-service-account'], preferred_protocol: 'google_generate_content' }));
     expect(onCreated).toHaveBeenCalledWith('vertex_ai');

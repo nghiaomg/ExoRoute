@@ -1,6 +1,7 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import StatsCard from "../../components/StatsCard.svelte";
+  import Button from "../../components/ui/Button.svelte";
+  import Dialog from "../../components/ui/Dialog.svelte";
+  import StatsCard from "../../components/ui/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
   import type { Locale } from '../../lib/i18n';
@@ -19,8 +20,8 @@
   import { requestsCsvFilename, requestsToCsv } from './request.csv';
   import { modelLogoSrc } from './model-logo';
   import { Network } from '@lucide/svelte';
-  import SelectOptions from '../../components/SelectOptions.svelte';
-  import Input from '../../components/Input.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import RequestColumnVisibilityMenu from './RequestColumnVisibilityMenu.svelte';
   import {
     loadHiddenColumns,
@@ -77,7 +78,6 @@
   let providerFilter = $state('all');
   let rangeFilter = $state<RangeFilter>('24h');
   let autoRefresh = $state(true);
-  let prevStatsRange: RangeFilter = '24h';
 
   // Display-only column hiding (see request.visibility.ts); never affects what
   // the page fetches, exports, or matches.
@@ -88,7 +88,8 @@
     saveHiddenColumns(hiddenColumns);
   }
 
-  let detailDialog = $state<HTMLDialogElement>();
+  let detailOpen = $state(false);
+  let dialogHost = $state<HTMLDivElement | null>(null);
   let detailRow = $state<RequestLog | RequestLiveRow | null>(null);
 
   const providerNameById = $derived(new Map(providers.map((p) => [p.id, p.name])));
@@ -311,8 +312,18 @@
 
   function openDetail(row: RequestLog | RequestLiveRow) {
     detailRow = row;
-    detailDialog?.showModal();
+    detailOpen = true;
   }
+
+  // Keep the established `req-dialog-title` label hook while using the shared
+  // Dialog primitive, whose own heading uses the generic `modal-title` id.
+  $effect(() => {
+    if (!detailOpen || !dialogHost) return;
+    const dialog = dialogHost.querySelector('dialog');
+    if (dialog && dialog.getAttribute('aria-labelledby') !== 'req-dialog-title') {
+      dialog.setAttribute('aria-labelledby', 'req-dialog-title');
+    }
+  });
 
   $effect(() => {
     if (autoRefresh) startLive();
@@ -331,14 +342,8 @@
     return unsub;
   });
 
-  // Refresh the active aggregate range whenever live request completion changes
-  // its server-side rollup; the refresher coalesces bursts and handles visibility.
-  $effect(() => {
-    if (rangeFilter === prevStatsRange) return;
-    prevStatsRange = rangeFilter;
-    void loadStatistics(rangeFilter);
-  });
-
+  // Range changes are handled explicitly in the filter buttons below; the
+  // refresher coalesces live rollup updates and initial load fetches once.
   onMount(() => { void loadFirstPage(); });
   onDestroy(() => {
     generation += 1;
@@ -373,7 +378,7 @@
   <section class="course-card surface" aria-label={tr('Load error')}>
     <div class="card-title-row"><h2>{tr('Could not load requests')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
-    <div class="modal-actions" style="padding-top:14px">
+    <div class="modal-actions">
       <Button class="page-action primary" type="button" onclick={loadFirstPage}>{tr('Retry')}</Button>
     </div>
   </section>
@@ -416,12 +421,13 @@
         />
         <div class="inline-flex shrink-0 gap-0.5 rounded-[10px] border border-line bg-surface-sunken p-[3px]" role="group" aria-label={tr('Statistics time range')}>
           {#each RANGE_OPTIONS as range (range)}
-            <button
+            <Button
               type="button"
+              stateClasses={{ active: rangeFilter === range }}
               aria-pressed={rangeFilter === range}
-              onclick={() => (rangeFilter = range)}
+              onclick={() => { if (rangeFilter !== range) { rangeFilter = range; void loadStatistics(range); } }}
               class="h-7 rounded-[7px] border-0 px-2.5 text-[13px] font-medium text-dash-body cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {rangeFilter === range ? 'bg-surface text-ink shadow-sm font-semibold' : 'bg-transparent text-muted hover:bg-db-tint-strong'}"
-            >{tr(RANGE_LABEL[range])}</button>
+            >{tr(RANGE_LABEL[range])}</Button>
           {/each}
         </div>
         <RequestColumnVisibilityMenu tr={tr} hiddenColumns={hiddenColumns} onToggleColumn={toggleVisibleColumn} />
@@ -442,7 +448,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each visibleRows as row (isLiveRequest(row) ? row.live_id : requestIdentity(row))}
+            {#each visibleRows as row, index (isLiveRequest(row) ? row.live_id : `${requestIdentity(row)}:${index}`)}
               {@const modelLogo = modelLogoSrc(row.model)}
               {@const proxyLabel = row.proxy_name?.trim() || row.proxy_id?.trim() || ''}
               <tr class:req-live={isLiveRequest(row)} onclick={() => openDetail(row)} class="group/row cursor-pointer transition-colors duration-150 hover:bg-db-tint-strong {isLiveRequest(row) ? 'bg-db-accent-tint hover:bg-db-accent-tint' : ''}">
@@ -459,7 +465,7 @@
                     <span class="inline-flex items-center px-1.5 py-0.5 rounded-full border border-db-accent-line bg-db-accent-tint text-accent-strong text-caption font-semibold leading-[1.25] uppercase" title={row.reasoning_effort}>{row.reasoning_effort}</span>
                   {/if}
                   {#if proxyLabel}
-                    <span class="inline-flex items-center gap-1 max-w-[150px] overflow-hidden px-[7px] py-0.5 rounded-full border border-[color-mix(in_srgb,var(--info)_30%,var(--surface))] bg-[color-mix(in_srgb,var(--info)_10%,var(--surface))] text-[var(--info)] text-caption font-semibold leading-[1.25] whitespace-nowrap [&_svg]:shrink-0 [html[data-theme=dark]_&]:border-[color-mix(in_srgb,var(--info)_35%,transparent)] [html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--info)_20%,#1a1b2e)] [html[data-theme=dark]_&]:text-[var(--info-soft)]" title={proxyLabel}><Network size={10} aria-hidden="true" />{proxyLabel}</span>
+                    <span class="inline-flex items-center gap-1 max-w-[150px] overflow-hidden px-[7px] py-0.5 rounded-full border border-info/30 bg-info/10 text-info! text-caption font-semibold leading-[1.25] whitespace-nowrap [&_svg]:shrink-0" title={proxyLabel}><Network size={10} aria-hidden="true" />{proxyLabel}</span>
                   {/if}
                   </span>
                 </td>
@@ -467,9 +473,9 @@
                 {#if !hiddenColumns.key}<td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0">{row.api_key_name || '—'}</td>{/if}
                 <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">{durationLabel(row)}</td>
                 <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">
-                  <span class="text-[#d97706]! font-semibold">{formatCount(row.input_tokens ?? 0, locale)}</span>
+                  <span class="text-info! font-semibold">{formatCount(row.input_tokens ?? 0, locale)}</span>
                   <span class="mx-1 text-text-dim">/</span>
-                  <span class="text-[#9333ea]! font-semibold">{formatCount(row.output_tokens ?? 0, locale)}</span>
+                  <span class="text-violet! font-semibold">{formatCount(row.output_tokens ?? 0, locale)}</span>
                   {#if cacheTokens(row) !== null}
                     <span class="inline-flex ms-[7px] px-[7px] py-0.5 rounded-full bg-chart-good/12! text-chart-good! text-caption font-semibold">{tr('Cache: {count}', { count: formatCount(cacheTokens(row) ?? 0, locale) })}</span>
                   {/if}
@@ -492,16 +498,16 @@
   </div>
 {/if}
 
-<!-- Request detail dialog -->
-<dialog class="modal modal-wide" bind:this={detailDialog} aria-labelledby="req-dialog-title">
-  <div class="modal-card">
-    <div class="modal-heading">
-      <div>
-        <h2 id="req-dialog-title">{tr('Request detail')}</h2>
-        <p>{detailRow ? (detailRow.route_alias || detailRow.model || tr('request')) : '—'}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
+<div bind:this={dialogHost}>
+  <Dialog
+    open={detailOpen}
+    title={tr('Request detail')}
+    closeLabel={tr('Close dialog')}
+    wide
+    onClose={() => { detailOpen = false; }}
+  >
+    <span id="req-dialog-title" hidden>{tr('Request detail')}</span>
+    <p class="text-muted text-meta m-0">{detailRow ? (detailRow.route_alias || detailRow.model || tr('request')) : '—'}</p>
     {#if detailRow}
       {@const live = isLiveRequest(detailRow)}
       {@const status = live ? 'LIVE' : String(detailRow.status ?? '—')}
@@ -521,8 +527,8 @@
         <section class="grid gap-2" aria-labelledby="req-detail-usage">
           <h3 id="req-detail-usage" class="m-0 text-muted text-caption font-semibold tracking-[0.04em] uppercase">{tr('Token usage')}</h3>
           <div class="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-2 max-nav:grid-cols-1">
-            <div class="grid gap-[7px] rounded-[11px] border border-line border-t-2 border-t-[#d97706] bg-surface p-3"><span class="text-muted text-caption">{tr('Tokens in')}</span><strong class="text-[#d97706]! font-mono! text-[17px] tabular-nums">{formatCount(detailRow.input_tokens ?? 0, locale)}</strong></div>
-            <div class="grid gap-[7px] rounded-[11px] border border-line border-t-2 border-t-[#9333ea] bg-surface p-3"><span class="text-muted text-caption">{tr('Tokens out')}</span><strong class="text-[#9333ea]! font-mono! text-[17px] tabular-nums">{formatCount(detailRow.output_tokens ?? 0, locale)}</strong></div>
+            <div class="grid gap-[7px] rounded-[11px] border border-line border-t-2 border-t-info bg-surface p-3"><span class="text-muted text-caption">{tr('Tokens in')}</span><strong class="text-info! font-mono! text-[17px] tabular-nums">{formatCount(detailRow.input_tokens ?? 0, locale)}</strong></div>
+            <div class="grid gap-[7px] rounded-[11px] border border-line border-t-2 border-t-violet bg-surface p-3"><span class="text-muted text-caption">{tr('Tokens out')}</span><strong class="text-violet! font-mono! text-[17px] tabular-nums">{formatCount(detailRow.output_tokens ?? 0, locale)}</strong></div>
             <div class="grid gap-[7px] rounded-[11px] border border-line border-t-2 border-t-chart-good bg-surface p-3"><span class="text-muted text-caption">{tr('Cache read')}</span><strong class="text-chart-good! font-mono! text-[17px] tabular-nums">{formatCount(detailRow.cached_tokens ?? detailRow.cache_input_tokens ?? 0, locale)}</strong></div>
           </div>
         </section>
@@ -545,6 +551,6 @@
     <div class="modal-actions">
       <Button class="page-action" type="button" data-close-modal>{tr('Close')}</Button>
     </div>
-  </div>
-</dialog>
+  </Dialog>
+</div>
 

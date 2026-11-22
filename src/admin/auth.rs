@@ -75,7 +75,15 @@ pub(super) async fn admin_login(
                 "admin authentication required",
             ));
         }
-        must_change || password_needs_change(&input.password)
+        must_change
+            || password_needs_change_async(input.password.clone())
+                .await
+                .map_err(|_| {
+                    fail(
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        "admin authentication is busy",
+                    )
+                })?
     } else {
         let configured_password = state.admin_key.read().await.clone();
         let Some(configured_password) = configured_password else {
@@ -99,7 +107,14 @@ pub(super) async fn admin_login(
                     "could not initialize admin authentication",
                 )
             })?;
-        let forced_change = password_needs_change(&input.password);
+        let forced_change = password_needs_change_async(input.password.clone())
+            .await
+            .map_err(|_| {
+                fail(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "could not initialize admin authentication",
+                )
+            })?;
         let bootstrap_record = Record::new()
             .with("password_hash", Field::Text(password_hash))
             .with("must_change_password", Field::Bool(forced_change))
@@ -258,6 +273,12 @@ pub(crate) fn password_needs_change(password: &str) -> bool {
     chars.len() < 12 || repeated || zxcvbn::zxcvbn(password, &[]).score() < zxcvbn::Score::Three
 }
 
+async fn password_needs_change_async(password: String) -> Result<bool, String> {
+    tokio::task::spawn_blocking(move || password_needs_change(&password))
+        .await
+        .map_err(|error| format!("password strength task failed: {error}"))
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct AdminPasswordInput {
@@ -292,7 +313,14 @@ pub(super) async fn change_admin_password(
     let password_length = password.chars().count();
     if !(12..=128).contains(&password_length)
         || password.trim().is_empty()
-        || password_needs_change(&password)
+        || password_needs_change_async(password.clone())
+            .await
+            .map_err(|_| {
+                fail(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "admin password service is busy; retry shortly",
+                )
+            })?
     {
         return Err(fail(
             StatusCode::BAD_REQUEST,
@@ -416,4 +444,92 @@ pub(super) async fn change_admin_password(
     .into_response();
     super::cookie_policy::set_refresh_cookie(&mut response, &state, &request, &session)?;
     Ok(response)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+
+    fn long_strong_password() -> String {
+        const ALPHABET: &[u8] =
+            b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+        (0..128)
+            .map(|index| ALPHABET[(index * 37 + 11) % ALPHABET.len()] as char)
+            .collect()
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn async_strength_check_keeps_current_thread_schedulable() {
+        let ran = Arc::new(AtomicBool::new(false));
+        let setter = tokio::spawn({
+            let ran = Arc::clone(&ran);
+            async move {
+                tokio::task::yield_now().await;
+                ran.store(true, Ordering::SeqCst);
+            }
+        });
+        let password = long_strong_password();
+        let expected = password_needs_change(&password);
+        let actual = password_needs_change_async(password)
+            .await
+            .expect("strength task must not fail");
+        assert_eq!(actual, expected);
+        assert!(
+            ran.load(Ordering::SeqCst),
+            "async strength check blocked the current-thread worker"
+        );
+        setter.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn async_strength_check_matches_sync_policy_on_boundaries() {
+        let cases = [
+            String::new(),
+            "password123".to_owned(),
+            "short".to_owned(),
+            "abcdefghijk".to_owned(),
+            "generated-random-credential-2026".to_owned(),
+            "a".repeat(128),
+            long_strong_password(),
+        ];
+        for password in cases {
+            let expected = password_needs_change(&password);
+            let actual = password_needs_change_async(password)
+                .await
+                .expect("strength task must not fail");
+            assert_eq!(actual, expected, "async policy diverged from sync policy");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn concurrent_async_strength_checks_match_sync_results() {
+        let cases = vec![
+            String::new(),
+            "password123".to_owned(),
+            "a".repeat(128),
+            long_strong_password(),
+            "generated-random-credential-2026".to_owned(),
+        ];
+        let expected: Vec<bool> = cases
+            .iter()
+            .map(|password| password_needs_change(password))
+            .collect();
+        let tasks: Vec<_> = cases
+            .into_iter()
+            .map(|password| tokio::spawn(password_needs_change_async(password)))
+            .collect();
+        let mut actual = Vec::with_capacity(tasks.len());
+        for task in tasks {
+            actual.push(
+                task.await
+                    .expect("strength task must not be cancelled")
+                    .expect("strength task must not fail"),
+            );
+        }
+        assert_eq!(actual, expected);
+    }
 }

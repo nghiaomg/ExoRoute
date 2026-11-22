@@ -90,6 +90,9 @@ pub(super) async fn telemetry_writer(
                 if let Err(error) = expire_provider_usage(&db, unix_minute()).await {
                     tracing::warn!(%error, "could not expire old provider usage meter buckets");
                 }
+                if let Err(error) = db.reader_check().await {
+                    tracing::warn!(%error, "could not reclaim stale LMDB reader slots");
+                }
                 crate::infra::storage::ensure_request_log_dictionary_trained(&db).await;
             }
         }

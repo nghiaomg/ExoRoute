@@ -150,7 +150,11 @@ pub(super) async fn load_account_for_use(
         return Err("stored OpenAI Codex account data exceeded its size limit".to_owned());
     }
     let serialized =
-        crate::security::decrypt_secret(state.config.master_key.as_ref(), Some(&encrypted))
+        crate::security::decrypt_secret(
+            state.config.master_key.as_ref(),
+            &crate::security::SecretContext::oauth_account(credential_id),
+            Some(&encrypted),
+        )
             .map_err(|_| {
                 "could not decrypt the OpenAI Codex account; check EXOROUTE_MASTER_KEY".to_owned()
             })?
@@ -172,7 +176,11 @@ pub(super) async fn load_account_for_use(
                 let serialized = serde_json::to_string(&account)
                     .map_err(|_| "could not encode the refreshed OpenAI account".to_owned())?;
                 let encrypted =
-                    crate::security::encrypt_secret(state.config.master_key.as_ref(), &serialized)
+                    crate::security::encrypt_secret(
+                        state.config.master_key.as_ref(),
+                        &crate::security::SecretContext::oauth_account(credential_id),
+                        &serialized,
+                    )
                         .map_err(|_| "could not encrypt the refreshed OpenAI account".to_owned())?
                         .ok_or_else(|| "OpenAI returned an empty refreshed account".to_owned())?;
                 let id = credential_id.to_owned();

@@ -4,7 +4,7 @@ use crate::{
     protocol::{self, UpstreamProtocol},
     provider_adapters::keys::ProviderCredentialType,
     provider_adapters::{self, AdapterSseError},
-    security::decrypt_secret,
+    security::{SecretContext, decrypt_secret},
     state::AppState,
 };
 use http::StatusCode;
@@ -229,7 +229,14 @@ pub(super) fn decode_provider(
             .map_err(|error| error.to_string())?
             .map(str::to_owned),
         custom_headers,
-        secret: decrypt_secret(master_key, secret_bytes)?,
+        secret: decrypt_secret(
+            master_key,
+            &SecretContext::provider(
+                record.text("id").map_err(|error| error.to_string())?,
+                "secret",
+            ),
+            secret_bytes,
+        )?,
         preferred_protocol: preferred.parse()?,
         supported_protocols: serde_json::from_str(protocols).map_err(|e| e.to_string())?,
         thinking_mode,

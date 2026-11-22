@@ -64,6 +64,7 @@ async fn effort_suffix_reaches_the_upstream_request() {
     assert_eq!(observed[0]["reasoning_effort"], json!("high"));
 
     // The history row records the effective attempt level, not just a client hint.
+    state.telemetry.flush().await.expect("flush request logs");
     let logs = database
         .db
         .read(|transaction| {
@@ -102,6 +103,7 @@ async fn effort_suffix_reaches_the_upstream_request() {
     assert_eq!(observed.len(), 2);
     assert_eq!(observed[1]["model"], json!("gpt-test"));
     assert_eq!(observed[1]["reasoning_effort"], json!("low"));
+    state.telemetry.flush().await.expect("flush request logs");
     let logs = database
         .db
         .read(|transaction| {

@@ -1,10 +1,7 @@
 //! Continuity background workers: bounded tasks that keep consuming an
 //! upstream stream after client disconnect, with cancellation handling.
 
-use super::records::{
-    BackgroundRequestSettings, append_event_with_settings, finish_run_with_settings,
-    mark_replay_incomplete,
-};
+use super::records::{BackgroundRequestSettings, JournalBatch};
 use crate::gateway::streaming::StreamOutcome;
 use crate::{
     infra::telemetry::AnalyticsCompletionGuard,
@@ -53,6 +50,7 @@ pub(in crate::gateway) async fn start_background_stream(
     cancellation: watch::Receiver<bool>,
     permit: DynamicSemaphorePermit,
 ) {
+    let journal = state.continuity_journal.clone();
     tokio::spawn(async move {
         let mut control = StreamWorkerControl {
             live_sender,
@@ -64,7 +62,7 @@ pub(in crate::gateway) async fn start_background_stream(
             state: state.clone(),
             run_id: run_id.clone(),
         };
-        consume_producer(state, run_id, producer, &mut control, None, None).await;
+        consume_producer(state, run_id, producer, &mut control, None, None, &journal).await;
     });
 }
 
@@ -85,6 +83,7 @@ pub(in crate::gateway) async fn start_background_request<F>(
     } = settings;
     let upstream = state.operational_settings().settings.upstream;
     let app_shutdown = state.shutdown_receiver();
+    let journal = state.continuity_journal.clone();
     // Construct this before spawning so an unpolled task dropped at shutdown
     // still records the admitted request as unsuccessful.
     let mut analytics_completion = analytics.map(|analytics| analytics.completion_guard());
@@ -127,6 +126,7 @@ pub(in crate::gateway) async fn start_background_request<F>(
                     0,
                     &control.live_sender,
                     &mut journal_available,
+                    &journal,
                 )
                 .await;
                 if let Some(completion) = analytics_completion.as_mut() {
@@ -146,6 +146,7 @@ pub(in crate::gateway) async fn start_background_request<F>(
                             "stream request exceeded the {}-second deadline",
                             upstream.continuity_request_timeout.as_secs()
                         ),
+                        &journal,
                     ).await;
                     if let Some(completion) = analytics_completion.as_mut() {
                         completion.finish(false);
@@ -170,6 +171,7 @@ pub(in crate::gateway) async fn start_background_request<F>(
                 &mut control,
                 Some(response),
                 "gateway could not start the event stream",
+                &journal,
             )
             .await;
             drop(live);
@@ -186,6 +188,7 @@ pub(in crate::gateway) async fn start_background_request<F>(
             &mut control,
             outcome,
             analytics_completion,
+            &journal,
         )
         .await;
     });
@@ -218,6 +221,7 @@ async fn fail_before_stream(
     control: &mut StreamWorkerControl,
     response: Option<Response>,
     fallback_message: &str,
+    journal: &JournalBatch,
 ) {
     let upstream = state.operational_settings().settings.upstream;
     let (status, body) = match response {
@@ -255,7 +259,7 @@ async fn fail_before_stream(
     let mut journal_available = true;
     let append_result = tokio::select! {
         _ = wait_for_cancellation(&mut control.app_shutdown) => return,
-        result = append_event_with_settings(&state.db, run_id, &payload, upstream) => result,
+        result = journal.append(run_id, &payload, upstream) => result,
     };
     if let Err(error) = append_result {
         journal_available = false;
@@ -263,7 +267,7 @@ async fn fail_before_stream(
         if *control.app_shutdown.borrow() {
             return;
         }
-        let _ = mark_replay_incomplete(&state.db, run_id, 1).await;
+        let _ = journal.mark_incomplete(run_id, 1).await;
     }
     if *control.app_shutdown.borrow() {
         return;
@@ -286,6 +290,7 @@ async fn fail_before_stream(
                 1,
                 &control.live_sender,
                 &mut journal_available,
+                journal,
             )
             .await;
         }
@@ -296,8 +301,7 @@ async fn fail_before_stream(
     }
     let finish_result = tokio::select! {
         _ = wait_for_cancellation(&mut control.app_shutdown) => return,
-        result = finish_run_with_settings(
-            &state.db,
+        result = journal.finish(
             run_id,
             "failed",
             Some("stream setup failed before the provider event stream started"),
@@ -316,6 +320,7 @@ async fn consume_producer(
     control: &mut StreamWorkerControl,
     outcome: Option<StreamOutcome>,
     mut analytics_completion: Option<AnalyticsCompletionGuard>,
+    journal: &JournalBatch,
 ) {
     let upstream = state.operational_settings().settings.upstream;
     let (_, body) = producer.into_parts();
@@ -338,6 +343,7 @@ async fn consume_producer(
                 sequence,
                 &control.live_sender,
                 &mut journal_available,
+                journal,
             )
             .await;
             if let Some(completion) = analytics_completion.as_mut() {
@@ -361,6 +367,7 @@ async fn consume_producer(
                             sequence,
                             &control.live_sender,
                             &mut journal_available,
+                            journal,
                         )
                         .await;
                         if let Some(completion) = analytics_completion.as_mut() {
@@ -385,7 +392,7 @@ async fn consume_producer(
                                     shutting_down = true;
                                     None
                                 }
-                                result = append_event_with_settings(&state.db, &run_id, &event_payload, upstream) => Some(result),
+                                result = journal.append(&run_id, &event_payload, upstream) => Some(result),
                             };
                             let Some(append_result) = append_result else {
                                 break;
@@ -397,7 +404,7 @@ async fn consume_producer(
                                     let fallback = sequence.saturating_add(1);
                                     tracing::warn!(%error, %run_id, "stream replay journal stopped accepting events; live stream will continue");
                                     if !*control.app_shutdown.borrow() {
-                                        let _ = mark_replay_incomplete(&state.db, &run_id, fallback).await;
+                                        let _ = journal.mark_incomplete(&run_id, fallback).await;
                                     }
                                     fallback
                                 }
@@ -425,6 +432,7 @@ async fn consume_producer(
                                     sequence,
                                     &control.live_sender,
                                     &mut journal_available,
+                                    journal,
                                 )
                                 .await;
                             }
@@ -445,7 +453,7 @@ async fn consume_producer(
                                 shutting_down = true;
                                 None
                             }
-                            result = finish_run_with_settings(&state.db, &run_id, "failed", Some("translated stream body failed"), upstream) => Some(result),
+                            result = journal.finish(&run_id, "failed", Some("translated stream body failed"), upstream) => Some(result),
                         };
                         if let Some(completion) = analytics_completion.as_mut() {
                             completion.finish(false);
@@ -469,7 +477,7 @@ async fn consume_producer(
                                 shutting_down = true;
                                 None
                             }
-                            result = finish_run_with_settings(&state.db, &run_id, status, error, upstream) => Some(result),
+                            result = journal.finish(&run_id, status, error, upstream) => Some(result),
                         };
                         if let Some(Err(error)) = finish_result {
                             tracing::warn!(%error, %run_id, "could not save completed stream status");
@@ -486,7 +494,7 @@ async fn consume_producer(
 
     if !shutting_down
         && !journal_available
-        && let Err(error) = mark_replay_incomplete(&state.db, &run_id, sequence).await
+        && let Err(error) = journal.mark_incomplete(&run_id, sequence).await
     {
         tracing::warn!(%error, %run_id, "could not finalize the incomplete stream replay journal");
     }
@@ -498,6 +506,7 @@ async fn finish_cancelled_run(
     sequence: i64,
     live_sender: &mpsc::Sender<Bytes>,
     journal_available: &mut bool,
+    journal: &JournalBatch,
 ) {
     state.remove_stream_cancellation(run_id);
     let upstream = state.operational_settings().settings.upstream;
@@ -507,24 +516,19 @@ async fn finish_cancelled_run(
         b"event: error\ndata: {\"error\":\"Stream cancelled by user\"}\n\n",
     );
     if *journal_available
-        && let Err(error) = append_event_with_settings(&state.db, run_id, &payload, upstream).await
+        && let Err(error) = journal.append(run_id, &payload, upstream).await
     {
         *journal_available = false;
         tracing::warn!(%error, %run_id, "stream replay journal failed while cancelling a stream");
-        let _ = mark_replay_incomplete(&state.db, run_id, cancellation_sequence).await;
+        let _ = journal.mark_incomplete(run_id, cancellation_sequence).await;
     }
     // Cancellation must release the upstream body and its permit even if a
     // client has stopped reading and the bounded live channel is full. The
     // journal keeps this terminal event available for the next connection.
     let _ = live_sender.try_send(payload);
-    if let Err(error) = finish_run_with_settings(
-        &state.db,
-        run_id,
-        "cancelled",
-        Some("cancelled by user"),
-        upstream,
-    )
-    .await
+    if let Err(error) = journal
+        .finish(run_id, "cancelled", Some("cancelled by user"), upstream)
+        .await
     {
         tracing::warn!(%error, %run_id, "could not save cancelled stream status");
     }

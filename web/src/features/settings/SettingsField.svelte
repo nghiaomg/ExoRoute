@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { CircleHelp } from '@lucide/svelte';
   import { type Translate } from '../../lib/format';
-  import Input from '../../components/Input.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import type { ConfigHelp } from './operational-settings.config';
 
   export let tr: Translate;

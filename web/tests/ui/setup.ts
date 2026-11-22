@@ -38,7 +38,7 @@ Element.prototype.scrollIntoView = () => {};
 // may scroll their content element, neither of which jsdom implements.
 Element.prototype.scrollTo = () => {};
 // jsdom implements dialog.close()/cancel-less semantics but not showModal(),
-// which the native-dialog system (shell delegation + ArkDialog replacement)
+// which the native-dialog system (shell delegation + Dialog replacement)
 // relies on; polyfill it as "mark open" — tests assert dialog[open].
 if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {
   HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement): void {

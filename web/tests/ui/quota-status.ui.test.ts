@@ -77,7 +77,7 @@ describe('quota status truthfulness', () => {
     renderPage();
 
     await screen.findByText('No configured provider reports usage data.');
-    expect(document.querySelector('.quota-card')).toBeNull();
+    expect(document.querySelector('article[id^="quota-card-"]')).toBeNull();
     expect(screen.queryByText('All providers healthy')).toBeNull();
   });
 
@@ -99,7 +99,7 @@ describe('quota status truthfulness', () => {
     renderPage();
 
     expect(await screen.findByText('Daily')).toBeTruthy();
-    expect(document.querySelector('.quota-card')).toBeTruthy();
+    expect(document.querySelector('article[id^="quota-card-"]')).toBeTruthy();
     expect(screen.queryByText('All providers healthy')).toBeNull();
   });
 });

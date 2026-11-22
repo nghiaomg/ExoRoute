@@ -1,16 +1,20 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
-  import Input from '../../components/Input.svelte';
+  import { pingGateway as pingGatewayRequest } from '../../lib/api/gateway';
+  import { localizedError } from '../../lib/errors';
+  import Input from '../../components/ui/Input.svelte';
   import type { DashboardPage } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
-  import { formatUptime, formatGatewayEndpoint } from '../../lib/format';
+  import { formatCount, formatUptime, formatGatewayEndpoint } from '../../lib/format';
   import type { Translate } from '../../lib/format';
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import type { Overview, RequestStatistics, PublicSettings } from '../../lib/types';
   import { DASHBOARD_VERSION } from '../../lib/version';
   import { errorCodes, faqTopics, filterHelpItems } from './helpTopics';
+  import { buildDiagnosticReport } from './diagnostics';
+  import DiagnosticPreview from './DiagnosticPreview.svelte';
 
   interface Props {
     tr: Translate;
@@ -25,6 +29,13 @@
   let query = $state('');
   let endpointCopied = $state(false);
   let copyTimer: ReturnType<typeof setTimeout> | undefined;
+  let previewOpen = $state(false);
+  let selectedProtocol = $state<string | null>(null);
+  let pingMs = $state<number | null>(null);
+  let pinging = $state(false);
+  let pingAbort: AbortController | null = null;
+  let active = true;
+  let health = $state<{ keyless: number; apiKeys: number } | null>(null);
 
   onMount(() => {
     void api.overview()
@@ -35,11 +46,17 @@
       .catch(() => (gatewayStatus = 'unavailable'));
     void api.statistics('1d').then((value) => (stats = value)).catch(() => {});
     void api.settings().then((value) => (settings = value)).catch(() => {});
+    void Promise.all([api.providers().catch(() => []), api.apiKeys({}).catch(() => ({ api_keys: [] }))]).then(([provs, keys]) => {
+      health = {
+        keyless: provs.filter((p) => p.enabled && !(p.api_key_count ?? 0)).length,
+        apiKeys: keys.api_keys.filter((k) => k.enabled).length,
+      };
+    }).catch(() => {});
   });
 
-  onDestroy(() => clearTimeout(copyTimer));
+  onDestroy(() => { active = false; pingAbort?.abort(); pingAbort = null; clearTimeout(copyTimer); });
 
-  const pageLabels: Record<DashboardPage, string> = {
+  const pageLabels: Partial<Record<DashboardPage, string>> = {
     overview: 'Overview',
     providers: 'Providers',
     combos: 'Combos',
@@ -53,7 +70,7 @@
   };
 
   function targetLabel(page: DashboardPage): string {
-    return pageLabels[page];
+    return pageLabels[page] ?? page;
   }
 
   const topics = $derived(faqTopics(tr));
@@ -76,9 +93,20 @@
   const matchCount = $derived(visibleTopics.length + visibleCodes.length);
 
   const successRate = $derived(stats ? `${stats.success_rate.toFixed(1)}%` : '—');
-  const latency = $derived(
-    stats && stats.average_latency_ms > 0 ? `${Math.round(stats.average_latency_ms)} ms` : '—',
-  );
+  const latencyValue = $derived(stats ? Math.round(stats.average_latency_ms) : null);
+  const latency = $derived(latencyValue == null ? '—' : `${formatCount(latencyValue, _locale)} ms`);
+  const latencyWarn = $derived(latencyValue != null && latencyValue > 15000);
+  const retention = $derived(typeof settings.request_log_retention_days === 'number' ? settings.request_log_retention_days : null);
+  const maxRows = $derived(typeof settings.request_log_max_rows === 'number' ? settings.request_log_max_rows : null);
+  const report = $derived(buildDiagnosticReport({ overview: overview, stats: stats, settings: settings, endpoint: endpointUrl, gatewayStatus: gatewayStatus, retention: retention, maxRows: maxRows }, tr));
+  const protocols = [
+    { path: '/v1/chat/completions', method: 'POST', label: 'Chat Completions', auth: 'Authorization: Bearer <KEY>' },
+    { path: '/v1/responses', method: 'POST', label: 'Responses', auth: 'Authorization: Bearer <KEY>' },
+    { path: '/v1/messages', method: 'POST', label: 'Anthropic Messages', auth: 'x-api-key: <KEY>\nanthropic-version: 2023-06-01' },
+    { path: '/v1/models', method: 'GET', label: 'Models', auth: 'Authorization: Bearer <KEY>' },
+  ];
+  const selectedProtocolInfo = $derived(protocols.find((p) => p.path === selectedProtocol) ?? null);
+
 
   async function copyText(value: string, message: string): Promise<void> {
     try {
@@ -104,19 +132,22 @@
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function copyDiagnostics(): void {
-    void copyText(
-      [
-        `ExoRoute ${DASHBOARD_VERSION}`,
-        `endpoint: ${endpointBase}`,
-        `gateway API: ${endpointUrl}`,
-        `providers: ${overview?.provider_count ?? '?'} combos: ${overview?.combo_count ?? '?'}`,
-        `requests: ${overview?.request_count ?? '?'}`,
-        `24h success rate: ${stats ? stats.success_rate.toFixed(1) : '?'}%`,
-        `24h average latency: ${stats ? Math.round(stats.average_latency_ms) : '?'} ms`,
-      ].join(' · '),
-      tr('Diagnostics copied'),
-    );
+  function copyDiagnostics(): void { previewOpen = true; }
+
+  async function pingGateway(): Promise<void> {
+    pingAbort?.abort();
+    const controller = new AbortController();
+    pingAbort = controller;
+    pinging = true; pingMs = null;
+    try {
+      pingMs = await pingGatewayRequest(endpointBase, { signal: controller.signal, timeoutMs: 8000 });
+    } catch (error) {
+      if (controller.signal.aborted || !active) return;
+      pingMs = -1;
+      showDashboardToast(localizedError(error, 'Could not reach the ExoRoute API. Check that the gateway is running and try again.', tr));
+    } finally {
+      if (pingAbort === controller) { pingAbort = null; pinging = false; }
+    }
   }
 
   const guides = $derived<Array<{ title: string; hint: string; icon: string; page: DashboardPage }>>([
@@ -124,6 +155,7 @@
     { title: tr('Create a combo'), hint: tr('Group models behind one name with failover.'), icon: 'i-layers', page: 'combos' },
     { title: tr('View requests'), hint: tr('Inspect outcomes, latency, and upstream errors.'), icon: 'i-clipboard', page: 'requests' },
     { title: tr('Try in Chat'), hint: tr('Send a prompt through the gateway from the dashboard.'), icon: 'i-terminal', page: 'chat' },
+
   ]);
 
   const docsLinks = $derived<Array<{ title: string; hint: string; icon: string; href: string }>>([
@@ -173,6 +205,7 @@
         <Button class="mini-add h-[38px]! rounded-[10px]! px-3.5! {endpointCopied ? 'bg-db-success-tint! text-db-success!' : ''}" type="button" onclick={copyEndpoint}>
           <svg class="icon" aria-hidden="true"><use href={endpointCopied ? '#i-check' : '#i-copy'} /></svg>{endpointCopied ? tr('Copied') : tr('Copy')}
         </Button>
+        <Button class="mini-add h-[38px]!" type="button" disabled={pinging} onclick={pingGateway}>{pinging ? tr('Testing…') : tr('Check endpoint')}{pingMs != null ? ` · ${pingMs < 0 ? tr('Unavailable') : pingMs + ' ms'}` : ''}</Button>
       </div>
       <div class="mt-1.5 grid grid-cols-1 gap-2.5 min-[681px]:grid-cols-2 min-[1100px]:grid-cols-4">
         {#each [
@@ -185,7 +218,7 @@
             type="button"
             class="group flex min-w-0 cursor-pointer flex-col gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent hover:bg-db-tint-strong"
             aria-label={`${item.method} ${endpointBase}${item.path}`}
-            onclick={() => void copyText(`${endpointBase}${item.path}`, tr('Endpoint copied'))}
+            onclick={() => (selectedProtocol = selectedProtocol === item.path ? null : item.path)}
           >
             <span class="flex min-w-0 items-center gap-2">
               <span class="shrink-0 rounded-[5px] px-[6px] py-px font-mono text-[10px] font-bold {item.method === 'GET' ? 'bg-db-success-tint text-db-success' : 'bg-db-accent-tint text-accent-strong'}">{item.method}</span>
@@ -196,6 +229,9 @@
           </button>
         {/each}
       </div>
+      {#if selectedProtocolInfo}
+        <div class="help-protocol-detail"><strong>{selectedProtocolInfo.method} {endpointBase}{selectedProtocolInfo.path}</strong><pre>{selectedProtocolInfo.auth}</pre><Button class="mini-add" type="button" onclick={() => void copyText(`${endpointBase}${selectedProtocolInfo.path}`, tr('Endpoint copied'))}>{tr('Copy')}</Button></div>
+      {:else}<p class="help-protocol-hint">{tr('Select a protocol tile to view its full URL, headers and cURL example.')}</p>{/if}
     </div>
   </section>
 
@@ -232,11 +268,20 @@
     </article>
   </section>
 
+  <section class="help-health" aria-label={tr('Configuration health')}>
+    <div class="help-health-head"><h2>{tr('Configuration health')}</h2><span class="help-health-badge" class:ok={health && health.keyless === 0 && health.apiKeys > 0}>{health && health.keyless === 0 && health.apiKeys > 0 ? tr('Checks passed') : tr('Needs attention')}</span></div>
+    <div class="help-health-items">
+      <button type="button" onclick={() => onNavigate('providers')}><span>{tr('Providers without API keys')}</span><strong>{health?.keyless ?? '—'}</strong><span>{tr('Providers')} →</span></button>
+      <button type="button" onclick={() => onNavigate('api-keys')}><span>{tr('Active API keys')}</span><strong>{health?.apiKeys ?? '—'}</strong><span>{tr('API keys')} →</span></button>
+      <button type="button" onclick={() => onNavigate('requests')}><span>{tr('Error rate')}</span><strong>{stats ? (100 - stats.success_rate).toFixed(1) + '%' : '—'}</strong><span>{tr('Requests')} →</span></button>
+    </div>
+  </section>
+
   <div class="grid grid-cols-[minmax(0,1.62fr)_minmax(0,1fr)] gap-[18px] items-start max-[1100px]:grid-cols-1">
     <section class="course-card surface flex flex-col max-[760px]:[&_.card-title-row]:flex-col! max-[760px]:[&_.card-title-row]:items-start!" aria-labelledby="help-reference-heading">
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div class="min-w-0">
-          <h2 id="help-reference-heading" class="m-0 overflow-hidden text-ellipsis whitespace-nowrap text-ink text-section-title font-semibold [letter-spacing:var(--tracking-tight)]">{tr('Troubleshooting')}</h2>
+          <h2 id="help-reference-heading" class="m-0 overflow-hidden text-ellipsis whitespace-nowrap text-ink text-section-title font-semibold tracking-normal">{tr('Troubleshooting')}</h2>
           <p class="card-subtitle whitespace-normal!">
             {query
               ? tr('{count} of {total} topics match your search.', { count: matchCount, total: topics.length + codes.length })
@@ -341,6 +386,7 @@
         </div>
       </section>
 
+      <a class="surface help-docs-shortcut" href="/docs"><svg class="icon"><use href="#i-book" /></svg><span><strong>{tr('Documentation')}</strong><small>{tr('API reference and guides')}</small></span><svg class="icon help-arrow"><use href="#i-arrow-right" /></svg></a>
       <section class="course-card surface flex flex-col gap-0.5 [&_.page-action]:self-start">
         <div class="card-title-row"><h2>{tr('System info')}</h2></div>
         <dl class="mt-1.5 mb-2.5 flex flex-col gap-[7px] [&>div]:flex [&>div]:justify-between [&>div]:gap-3 [&>div]:rounded-[10px] [&>div]:bg-db-tint-strong [&>div]:px-[11px] [&>div]:py-2 [&>div]:text-[12.5px] [&_dt]:text-muted [&_dd]:m-0 [&_dd]:overflow-hidden [&_dd]:text-ink [&_dd]:font-mono [&_dd]:text-[11.5px] [&_dd]:font-semibold [&_dd]:text-ellipsis [&_dd]:whitespace-nowrap">
@@ -356,4 +402,28 @@
       </section>
     </div>
   </div>
+<DiagnosticPreview {tr} {report} open={previewOpen} onClose={() => (previewOpen = false)} />
 </div>
+<style>
+
+  .help-health { display:grid; gap:10px; padding:16px 18px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+  .help-health-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .help-health-head h2 { margin:0; font-size:14px; color:var(--ink); }
+  .help-health-badge { padding:3px 9px; border:1px solid var(--accent-strong); border-radius:999px; color:var(--accent-strong); font-size:11px; }
+  .help-health-badge.ok { border-color:var(--chart-good); color:var(--chart-good); }
+  .help-health-items { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .help-health-items button { display:grid; gap:3px; padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--surface-sunken); color:var(--ink); font-size:11px; text-align:left; cursor:pointer; }
+  .help-health-items button span:first-child { color:var(--muted); }
+  .help-health-items button strong { font-size:15px; font-variant-numeric:tabular-nums; }
+  .help-health-items button span:last-child { color:var(--accent); }
+  .help-protocol-detail { display:grid; gap:6px; margin-top:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-sunken); font-size:12px; overflow-wrap:anywhere; }
+  .help-protocol-detail pre { margin:0; font:11px var(--font-mono); color:var(--muted); white-space:pre-wrap; }
+  .help-protocol-hint { margin:8px 0 0; color:var(--muted); font-size:11px; }
+  @media (max-width:900px){ .help-health-items { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:560px){ .help-health-items { grid-template-columns:1fr; } }
+
+
+  .help-docs-shortcut { display:flex; align-items:center; gap:10px; padding:12px 16px; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--ink); text-decoration:none; }
+  .help-docs-shortcut span { display:grid; gap:2px; }
+  .help-docs-shortcut small { color:var(--muted); font-size:11px; }
+</style>

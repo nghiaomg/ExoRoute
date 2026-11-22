@@ -104,3 +104,42 @@ fn non_stream_tool_calls_translate_through_canonical_form() {
     assert_eq!(responses["output"][0]["type"], "function_call");
     assert_eq!(responses["output"][0]["name"], "lookup");
 }
+
+#[test]
+fn invalid_function_names_are_rejected_before_replay() {
+    // Client tool declarations with characters outside the provider pattern
+    // must fail locally instead of surfacing as an opaque HTTP 400 later.
+    let bad = json!({
+        "model": "m",
+        "input": [],
+        "tools": [{"type": "function", "name": "bad name!", "parameters": {}}],
+    });
+    let error = decode_request(Protocol::Responses, &bad).expect_err("invalid tool name");
+    assert!(error.contains("tool name"), "{error}");
+
+    // A replayed function_call item in Responses input gets the same check.
+    let bad_call = json!({
+        "model": "m",
+        "input": [{
+            "type": "function_call",
+            "call_id": "call_1",
+            "name": "functions.shell execute",
+            "arguments": "{}",
+        }],
+    });
+    let error = decode_request(Protocol::Responses, &bad_call).expect_err("invalid tool call name");
+    assert!(error.contains("tool call name"), "{error}");
+
+    // Valid names keep their original spelling; colons are rejected for the
+    // OpenAI pattern even though Google allows them.
+    let good = json!({
+        "model": "m",
+        "input": [{
+            "type": "function_call",
+            "call_id": "call_1",
+            "name": "apply_patch.v2",
+            "arguments": "{}",
+        }],
+    });
+    assert!(decode_request(Protocol::Responses, &good).is_ok());
+}

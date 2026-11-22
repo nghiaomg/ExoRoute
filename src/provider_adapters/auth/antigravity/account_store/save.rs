@@ -15,12 +15,16 @@ pub(in crate::provider_adapters) async fn save_account(
         .and_then(normalize_account_identity);
     let serialized = serde_json::to_string(&account)
         .map_err(|_| "could not encode the Antigravity account credentials".to_owned())?;
-    let encrypted = security::encrypt_secret(state.config.master_key.as_ref(), &serialized)
-        .map_err(|_| "could not encrypt the Antigravity account credentials".to_owned())?
+    let key_id = uuid::Uuid::new_v4().to_string();
+    let encrypted = security::encrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(&key_id),
+        &serialized,
+    )
+    .map_err(|_| "could not encrypt the Antigravity account credentials".to_owned())?
         .ok_or_else(|| "Antigravity returned empty account credentials".to_owned())?;
     let created_at = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save the Antigravity account".to_owned())?;
-    let key_id = uuid::Uuid::new_v4().to_string();
     let display_name = account.display_name();
     let mut record = crate::admin::providers::provider_api_key_record(
         crate::admin::providers::ProviderApiKeyRecordData {
@@ -40,6 +44,8 @@ pub(in crate::provider_adapters) async fn save_account(
         record.insert("oauth_account_identity", Field::Text(identity.to_owned()));
     }
     let provider_id_owned = provider_id.to_owned();
+    let master_key = state.config.master_key;
+    let serialized_update = serialized.clone();
     state
         .db
         .write(move |transaction| {
@@ -147,7 +153,17 @@ pub(in crate::provider_adapters) async fn save_account(
 
                 let was_invalid = existing.boolean("invalid")?;
                 existing.insert("name", Field::Text(record.text("name")?.to_owned()));
-                existing.insert("secret", Field::Bytes(encrypted.clone()));
+                existing.insert(
+                "secret",
+                Field::Bytes(
+                    crate::security::encrypt_for_storage(
+                        master_key.as_ref(),
+                        &crate::security::SecretContext::oauth_account(&existing_id),
+                        &serialized_update,
+                    )
+                    .map_err(StorageError::Invalid)?,
+                ),
+            );
                 existing.insert("credential_type", Field::Text("oauth".to_owned()));
                 existing.insert("invalid", Field::Bool(false));
                 existing.insert("last_error", Field::Null);
@@ -239,8 +255,12 @@ pub(super) async fn persist_account_update(
 ) -> Result<(), String> {
     let serialized = serde_json::to_string(account)
         .map_err(|_| "could not encode refreshed Antigravity credentials".to_owned())?;
-    let encrypted = security::encrypt_secret(state.config.master_key.as_ref(), &serialized)
-        .map_err(|_| "could not encrypt refreshed Antigravity credentials".to_owned())?
+    let encrypted = security::encrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(credential_id),
+        &serialized,
+    )
+    .map_err(|_| "could not encrypt refreshed Antigravity credentials".to_owned())?
         .ok_or_else(|| "Antigravity returned empty refreshed credentials".to_owned())?;
     let id = credential_id.to_owned();
     let name = account.display_name();

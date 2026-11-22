@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
-import SelectSearch from '../../src/components/SelectSearch.svelte';
+import SelectSearch from '../../src/components/ui/SelectSearch.svelte';
 
 /**
  * SelectSearch is a hand-built searchable combobox: a closed selection shows

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { Check, Database, Download, LoaderCircle, Upload } from '@lucide/svelte';
-  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
-  import Input from '../../components/Input.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import DatabaseStepUpDialog from './DatabaseStepUpDialog.svelte';
   import { api, ApiError } from '../../lib/api';
   import { formatFileSize, type Translate } from '../../lib/format';
@@ -101,7 +101,7 @@ import { localizedError } from '../../lib/errors';
 <section class="settings-panel settings-wide database-panel">
   <div class="panel-heading"><span class="panel-icon violet-panel"><Database size={17} /></span><div><h2>{tr('Database backup')}</h2><p>{tr('Database backups are ExoRoute LMDB archives that include configuration, API keys, optionally request logs, and encrypted provider secrets.')}</p></div></div>
   <div class="database-content">
-    <div class="database-log-option"><ArkCheckbox checked={includeRequestLogs} disabled={busy !== ''} label={tr('Include request logs in export')} description={tr('When unchecked, request logs and traffic statistics are omitted, and lifetime API key counts reset in the exported backup.')} onCheckedChange={(checked) => includeRequestLogs = checked === true} /></div>
+    <div class="database-log-option"><Checkbox checked={includeRequestLogs} disabled={busy !== ''} label={tr('Include request logs in export')} description={tr('When unchecked, request logs and traffic statistics are omitted, and lifetime API key counts reset in the exported backup.')} onCheckedChange={(checked) => includeRequestLogs = checked === true} /></div>
     <div class="database-actions">
       <Button class="secondary-button" disabled={busy !== ''} onclick={requestExport}>{#if busy === 'export'}<LoaderCircle size={14} class="spin" />{tr('Exporting database…')}{:else}<Download size={14} />{tr('Export database')}{/if}</Button>
       <label class="secondary-button database-file-label" class:has-file={databaseFile !== null}><Upload size={14} />{tr('Choose database file')}<Input class="database-file-input" type="file" accept=".exoroute,application/vnd.exoroute.lmdb-backup" aria-label={tr('Choose database file')} disabled={busy !== ''} onchange={handleFileSelection} bind:element={fileInput} /></label>
@@ -117,7 +117,7 @@ import { localizedError } from '../../lib/errors';
   </div>
 </section>
 
-<ArkDialog
+<Dialog
   open={importDialogOpen}
   closeLabel={tr('Close dialog')}
   title={tr('Confirm database import')}
@@ -127,7 +127,7 @@ import { localizedError } from '../../lib/errors';
   <div class="modal-form">
     <div class="resource-limits-notice" role="alert">{tr('Importing this backup replaces all current gateway data. This cannot be undone.')}</div>
     <div class="resource-limits-notice" role="alert">{tr('Imported settings may enable unlimited total gateway or per-provider concurrency, which can exhaust RAM, CPU, or file descriptors.')}</div>
-    <ArkCheckbox
+    <Checkbox
       checked={confirmUnlimitedImport}
       label={tr('I accept the unlimited-concurrency resource risk if this backup enables it.')}
       disabled={busy !== ''}
@@ -138,7 +138,7 @@ import { localizedError } from '../../lib/errors';
       <Button type="button" class="primary-button" disabled={busy !== ''} onclick={importDatabase}>{#if busy === 'import'}<LoaderCircle size={14} class="spin" />{tr('Importing database…')}{:else}<Upload size={14} />{tr('Import database')}{/if}</Button>
     </div>
   </div>
-</ArkDialog>
+</Dialog>
 
 <DatabaseStepUpDialog
   open={stepUpOperation !== ''}

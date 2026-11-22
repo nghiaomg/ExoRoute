@@ -115,6 +115,19 @@ impl Database {
             }
             bootstrap_storage_version(&mut txn, &tables)?;
             txn.commit()?;
+            // Stale reader slots from a previous hard crash (notably on
+            // Windows, which has no robust-mutex cleanup) survive an ordinary
+            // reopen. Reclaim them while the caller still holds the exclusive
+            // process lock, before any transaction can claim a slot.
+            match env.clear_stale_readers() {
+                Ok(reclaimed) if reclaimed > 0 => {
+                    tracing::warn!(reclaimed, "reclaimed stale LMDB reader slots at startup");
+                }
+                Ok(_) => {}
+                Err(error) => {
+                    tracing::warn!(%error, "could not check LMDB reader slots at startup");
+                }
+            }
             secure_environment_files(&open_path)?;
             let actual_map_size = env.info().map_size;
             if actual_map_size < map_size || actual_map_size > map_size_limit {
@@ -270,6 +283,32 @@ impl Database {
                 result => return result,
             }
         }
+    }
+
+    /// Reclaims reader slots left behind by crashed processes. Runs on the
+    /// blocking pool under the resize read guard so it cannot race a resize.
+    pub async fn reader_check(&self) -> Result<usize, StorageError> {
+        let slot = self
+            .inner
+            .operation_slots
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| StorageError::Busy)?;
+        let resize_guard = self.inner.resize_gate.clone().read_owned().await;
+        let env = self.inner.env.clone();
+        let reclaimed = task::spawn_blocking(move || {
+            let _slot = slot;
+            let _resize_guard = resize_guard;
+            env.clear_stale_readers().map_err(StorageError::from)
+        })
+        .await
+        .map_err(|error| {
+            StorageError::Task(format!("LMDB reader check task failed: {error}"))
+        })??;
+        if reclaimed > 0 {
+            tracing::warn!(reclaimed, "reclaimed stale LMDB reader slots");
+        }
+        Ok(reclaimed)
     }
 
     pub(crate) async fn grow_map(&self, attempted_map_size: usize) -> Result<(), StorageError> {

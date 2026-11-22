@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Input from '../../components/Input.svelte';
-  import Button from "../../components/Button.svelte";
+  import Input from '../../components/ui/Input.svelte';
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Cpu, Download, LoaderCircle, RefreshCw, Save } from '@lucide/svelte';
   import { api } from '../../lib/api';
@@ -36,6 +36,10 @@ import { localizedError } from '../../lib/errors';
 
   $: modelTargets = models.map((model): ModelTestTarget => ({ model, provider_id: provider.id }));
   $: isOAuthProvider = provider.capabilities?.oauth_accounts === true;
+  $: modelPrefix = (provider?.model_prefix || provider?.id || '').replace(/\/+$/, '');
+  $: prefixStrippedDraft = manualModelDraft.startsWith(modelPrefix + '/') ? manualModelDraft.slice(modelPrefix.length + 1) : manualModelDraft;
+  $: routedPreview = prefixStrippedDraft.trim() ? `${modelPrefix}/${prefixStrippedDraft.trim()}` : `${modelPrefix}/`;
+  function onManualInput(value: string): void { manualModelDraft = value.startsWith(modelPrefix + '/') ? value.slice(modelPrefix.length + 1) : value; }
   $: savedModelCount = catalogState === 'idle' || catalogState === 'loading' ? provider.model_count || 0 : models.length;
   $: if (open && (!wasOpen || loadedProviderId !== provider.id)) {
     wasOpen = true;
@@ -158,7 +162,7 @@ import { localizedError } from '../../lib/errors';
   async function saveManualModel(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     if (savingManualModel) return;
-    const model = manualModelDraft.trim();
+    const model = prefixStrippedDraft.trim();
     if (!model) {
       manualModelNotice = tr('Provider model ID is required.');
       manualModelNoticeTone = 'error';
@@ -217,17 +221,19 @@ import { localizedError } from '../../lib/errors';
   </div>
 
   <form class="provider-manual-model-form" onsubmit={saveManualModel}>
-    <!-- Equivalent of the ArkField label.field markup: the submit button shares
+    <!-- Equivalent of the FormField label.field markup: the submit button shares
         the control row, so the wrapper hosts label/input/helper directly. -->
     <div class="provider-manual-model-field">
       <label class="provider-manual-model-label" for="provider-manual-model-id">{tr('Model ID')}</label>
       <div class="provider-manual-model-row">
+        <span class="prefix-addon" aria-hidden="true">{modelPrefix} /</span>
         <Input variant="field"
-          bind:value={manualModelDraft}
+          value={prefixStrippedDraft}
+          oninput={(e) => onManualInput(e.currentTarget.value)}
           class="provider-manual-model-input"
           id="provider-manual-model-id"
           maxlength={256}
-          placeholder={tr(provider.adapter_id === 'antigravity' ? 'e.g. ag/model-id' : 'e.g. provider/model-id')}
+          placeholder={tr('e.g. qwen-max')}
           aria-label={tr('Model ID')}
         />
         <Button type="submit" class="secondary-button compact" disabled={savingManualModel || deletingModel !== ''}>
@@ -235,7 +241,7 @@ import { localizedError } from '../../lib/errors';
           <span>{tr('Save model')}</span>
         </Button>
       </div>
-      <small class="provider-manual-model-help">{tr('Add a model ID manually when provider discovery is unavailable.')}</small>
+      <small class="provider-manual-model-help">{tr('Add a model ID manually when provider discovery is unavailable.')} {tr('Model preview')}: <code>{routedPreview}</code></small>
     </div>
   </form>
   {#if manualModelNotice}<div class="provider-import-feedback" class:success={manualModelNoticeTone === 'success'} class:error={manualModelNoticeTone === 'error'} role={manualModelNoticeTone === 'error' ? 'alert' : 'status'}>{manualModelNotice}</div>{/if}
@@ -247,8 +253,15 @@ import { localizedError } from '../../lib/errors';
   {:else if catalogState === 'error'}
     <div class="provider-model-empty" role="alert"><p>{catalogError}</p><Button class="secondary-button compact" onclick={loadCatalog}><RefreshCw size={14} />{tr('Retry loading models')}</Button></div>
   {:else if catalogState === 'empty'}
-    <div class="provider-model-empty"><Cpu size={19} /><p>{tr('No saved models for this provider. Import a list or add a model ID manually.')}</p><Button class="secondary-button compact" disabled={importFeedback?.state === 'loading' || deletingModel !== ''} onclick={importModels}><Download size={14} />{tr('Import models')}</Button></div>
+    <div class="provider-model-empty"><Cpu size={19} /><p>{tr('No saved models for this provider. Import a list or add a model ID manually.')}</p></div>
   {:else if catalogState === 'ready'}
     <ProviderModelTests provider={provider} models={modelTargets} {manualModels} {tr} onDeleteModel={deleteModel} />
   {/if}
 </section>
+
+<style>
+  .prefix-addon { display:inline-flex; align-items:center; padding:0 10px; border:1px solid var(--line); border-right:0; border-radius:8px 0 0 8px; background:var(--surface-sunken); color:var(--muted); font:12px var(--font-mono); white-space:nowrap; }
+  .provider-manual-model-row :global(input) { border-radius:0 8px 8px 0 !important; }
+  .provider-manual-model-row { display:flex; align-items:stretch; }
+  .provider-manual-model-help code { font-family:var(--font-mono); color:var(--accent); }
+</style>

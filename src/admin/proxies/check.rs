@@ -178,7 +178,13 @@ fn prepare_endpoints(
             .map(str::to_owned);
         let secret = match config.record.optional_bytes("secret") {
             Ok(None) => Ok(None),
-            Ok(Some(stored)) => decrypt_secret(master_key, Some(stored)),
+            Ok(Some(stored)) => decrypt_secret(
+                master_key,
+                &crate::security::SecretContext::proxy_endpoint(
+                    config.record.text("endpoint_id").unwrap_or(&endpoint_id),
+                ),
+                Some(stored),
+            ),
             Err(_) => Err("stored proxy endpoint credential is invalid".to_owned()),
         };
         let die_now = |error: String| EndpointCheckResult {

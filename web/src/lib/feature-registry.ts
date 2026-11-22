@@ -1,4 +1,4 @@
-import type { DashboardPage } from './navigation';
+import type { DashboardPage, DashboardPageRoute } from './navigation';
 
 /**
  * The resolved component is typed by the caller: a single shared type cannot
@@ -11,7 +11,7 @@ type FeatureLoader = () => Promise<unknown>;
  * the feature panels. Keep every entry a literal dynamic import so the bundler
  * can still emit one chunk per page.
  */
-const featureLoaders: Record<DashboardPage, FeatureLoader> = {
+const featureLoaders: Partial<Record<DashboardPage, FeatureLoader>> = {
   overview: () => import('../features/overview/DashboardOverviewPage.svelte'),
   providers: () => import('../features/providers/DashboardProvidersPage.svelte'),
   combos: () => import('../features/combos/DashboardCombosPage.svelte'),
@@ -25,6 +25,7 @@ const featureLoaders: Record<DashboardPage, FeatureLoader> = {
 };
 
 /** Lazy loader for one dashboard page's feature bundle. */
-export function featureComponentLoader(page: DashboardPage): FeatureLoader {
-  return featureLoaders[page];
+export function featureComponentLoader(page: DashboardPageRoute): FeatureLoader {
+  if (page === 'api-key-detail' || page.startsWith('api-key-detail:')) return featureLoaders['api-keys']!;
+  return featureLoaders[page as DashboardPage]!;
 }

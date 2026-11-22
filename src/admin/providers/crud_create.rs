@@ -15,7 +15,7 @@ use super::{
 use crate::{
     infra::storage::{Record, StorageError, Table},
     provider_adapters,
-    security::encrypt_secret,
+    security::{SecretContext, encrypt_secret},
     state::AppState,
 };
 use axum::{Json, extract::State, http::StatusCode};
@@ -72,7 +72,7 @@ pub(crate) async fn create_provider(
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?
             .unwrap_or_default();
     let encrypted_custom_headers =
-        encrypt_custom_headers(&normalized_custom_headers, state.config.master_key.as_ref())
+        encrypt_custom_headers(&normalized_custom_headers, &id, state.config.master_key.as_ref())
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
     let keys = provider_keys(&input);
     if state
@@ -110,6 +110,9 @@ pub(crate) async fn create_provider(
     };
     let auth_header =
         normalized_provider_auth_header(input.auth_header.as_deref(), &effective_auth_type);
+    let key_ids: Vec<String> = (0..keys.len())
+        .map(|_| uuid::Uuid::new_v4().to_string())
+        .collect();
     let mut key_tests = Vec::with_capacity(keys.len());
     let mut encrypted_keys = Vec::with_capacity(keys.len());
     for (index, key) in keys.iter().enumerate() {
@@ -127,8 +130,12 @@ pub(crate) async fn create_provider(
         )
         .await;
         encrypted_keys.push(
-            encrypt_secret(state.config.master_key.as_ref(), key)
-                .map_err(|error| fail(StatusCode::BAD_REQUEST, error))?
+            encrypt_secret(
+                state.config.master_key.as_ref(),
+                &SecretContext::provider_key(&key_ids[index]),
+                key,
+            )
+            .map_err(|error| fail(StatusCode::BAD_REQUEST, error))?
                 .ok_or_else(|| fail(StatusCode::BAD_REQUEST, "provider API key is empty"))?,
         );
         key_tests.push(json!({
@@ -158,7 +165,7 @@ pub(crate) async fn create_provider(
         } else {
             format!("Key {}", index + 1)
         };
-        let key_id = uuid::Uuid::new_v4().to_string();
+        let key_id = key_ids[index].clone();
         key_records.push(provider_api_key_record(ProviderApiKeyRecordData {
             id: &key_id,
             provider_id: &id,

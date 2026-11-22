@@ -8,7 +8,7 @@ use super::url::{
     ResolvedProviderUrl, build_pinned_client, build_proxy_client, resolve_provider_url,
     resolve_proxy_url, validate_provider_url, validate_provider_url_via_proxy, validate_proxy_url,
 };
-use crate::{config::UpstreamSettings, security::decrypt_secret};
+use crate::{config::UpstreamSettings, security::{SecretContext, decrypt_secret}};
 use reqwest::Url;
 use sha2::{Digest, Sha256};
 use std::{
@@ -226,6 +226,7 @@ pub(crate) fn proxy_egress_from_record(
         .map(str::to_owned);
     let secret = decrypt_secret(
         master_key,
+        &SecretContext::proxy_endpoint(endpoint_id),
         record
             .optional_bytes("secret")
             .map_err(|_| "Stored proxy endpoint credential is invalid".to_owned())?,

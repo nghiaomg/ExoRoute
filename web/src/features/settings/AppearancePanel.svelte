@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { Check, Palette } from '@lucide/svelte';
   import { THEMES, type ThemeId, type ThemePreference } from '../../lib/theme';
   import { type Translate } from '../../lib/format';

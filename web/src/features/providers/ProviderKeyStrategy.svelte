@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ListOrdered, RefreshCw } from '@lucide/svelte';
-  import SelectOptions from '../../components/SelectOptions.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import { type Translate } from '../../lib/format';
   import type { ProviderKeyStrategy } from '../../lib/types';
 

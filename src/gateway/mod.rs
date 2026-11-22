@@ -28,7 +28,7 @@ pub(super) use std::{
 };
 
 mod auth;
-mod continuity;
+pub(crate) mod continuity;
 mod error_sanitizer;
 mod errors;
 mod execution;

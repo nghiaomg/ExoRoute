@@ -335,7 +335,11 @@ async fn failed_provider_key_is_saved_with_warning_and_never_returned() {
             .any(|window| window == b"invalid-but-saved")
     );
     assert_eq!(
-        crate::security::decrypt_secret(state.config.master_key.as_ref(), Some(encrypted))
+        crate::security::decrypt_secret(
+            state.config.master_key.as_ref(),
+            &crate::security::SecretContext::provider_key(rows.1.text("id").expect("key id")),
+            Some(encrypted),
+        )
             .expect("decrypt stored key")
             .as_deref(),
         Some("invalid-but-saved")

@@ -181,6 +181,7 @@ async fn reconnecting_cline_account_overwrites_usable_and_invalid_rows() {
     );
     let serialized = security::decrypt_secret(
         state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(key.text("id").expect("account id")),
         Some(key.bytes("secret").expect("secret")),
     )
     .expect("decrypt Cline account")

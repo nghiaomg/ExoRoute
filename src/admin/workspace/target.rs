@@ -18,7 +18,7 @@ use crate::protocol::{
 };
 use crate::provider_adapters;
 use crate::provider_adapters::keys::ProviderApiKeyCursor;
-use crate::security::decrypt_secret;
+use crate::security::{SecretContext, decrypt_secret};
 use serde_json::Value;
 
 /// Bounded model-picker listing. The picker is advisory navigation, not a
@@ -271,6 +271,7 @@ async fn resolve_chat_credential(
             crate::provider_adapters::keys::ProviderCredentialType::ApiKey => {
                 if let Some(secret) = decrypt_secret(
                     state.config.master_key.as_ref(),
+                    &SecretContext::provider_key(&key.id),
                     Some(&key.encrypted_secret),
                 )
                 .map_err(|message| fail_request(StatusCode::INTERNAL_SERVER_ERROR, message))?
@@ -295,8 +296,15 @@ fn provider_secret_credential(
     auth_type: &str,
 ) -> Result<WorkspaceCredential, (StatusCode, Json<Value>)> {
     let legacy_secret = provider.optional_bytes("secret").map_err(internal)?;
-    let secret = decrypt_secret(state.config.master_key.as_ref(), legacy_secret)
-        .map_err(|message| fail_request(StatusCode::INTERNAL_SERVER_ERROR, message))?;
+    let secret = decrypt_secret(
+        state.config.master_key.as_ref(),
+        &SecretContext::provider(
+            provider.text("id").map_err(internal)?,
+            "secret",
+        ),
+        legacy_secret,
+    )
+    .map_err(|message| fail_request(StatusCode::INTERNAL_SERVER_ERROR, message))?;
     match secret {
         Some(secret) => Ok(WorkspaceCredential::ApiKey(secret)),
         None if auth_type == "none" => Ok(WorkspaceCredential::None),

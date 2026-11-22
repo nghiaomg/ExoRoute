@@ -117,14 +117,17 @@ test('token ratios split recorded usage and stay unknown without any', () => {
   assert.equal(tokenRatio(-5, null), null);
 });
 
-test('row keys prefer the stable identifiers and fall back to the timestamp', () => {
+test('row keys prefer stable identifiers and stay unique without them', () => {
   assert.equal(requestRowKey(liveRow({ live_id: 'live-9' })), 'live-9');
-  assert.equal(requestRowKey(finished({ id: 'log-9' })), 'log-9');
-  assert.equal(requestRowKey(finished({ id: undefined, request_id: 'req-9' })), 'req-9');
-  assert.equal(
-    requestRowKey(finished({ id: undefined, request_id: undefined, created_at: '2026-10-05T10:00:00.000Z' })),
-    '2026-10-05T10:00:00.000Z',
-  );
+  assert.equal(requestRowKey(finished({ id: 'log-9' })), 'log-9:2026-10-05T10:00:00.000Z:0');
+  assert.equal(requestRowKey(finished({ id: undefined, request_id: 'req-9' })), 'req-9:2026-10-05T10:00:00.000Z:0');
+  const anonymous = (index: number) =>
+    requestRowKey(
+      finished({ id: undefined, request_id: undefined, created_at: '2026-10-05T10:00:00.000Z' }),
+      index,
+    );
+  assert.equal(anonymous(0), ':2026-10-05T10:00:00.000Z:0');
+  assert.notEqual(anonymous(0), anonymous(1));
 });
 
 test('model monograms read from the model segment and survive empty ids', () => {

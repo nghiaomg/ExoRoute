@@ -9,7 +9,7 @@ use super::{
 use crate::admin::{ApiResult, fail, internal};
 use crate::infra::storage::{Field, Record, StorageError, Table};
 use crate::provider_adapters;
-use crate::security::encrypt_secret;
+use crate::security::{SecretContext, encrypt_secret};
 use crate::state::AppState;
 use axum::{
     Json,
@@ -356,8 +356,12 @@ pub(crate) async fn add_provider_key_with_id(
         },
     )
     .await;
-    let secret = encrypt_secret(state.config.master_key.as_ref(), api_key)
-        .map_err(|error| fail(StatusCode::BAD_REQUEST, error))?
+    let secret = encrypt_secret(
+        state.config.master_key.as_ref(),
+        &SecretContext::provider_key(&key_id),
+        api_key,
+    )
+    .map_err(|error| fail(StatusCode::BAD_REQUEST, error))?
         .ok_or_else(|| fail(StatusCode::BAD_REQUEST, "api_key is required"))?;
     let name = requested_name
         .map(str::trim)

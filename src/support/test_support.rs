@@ -200,7 +200,11 @@ pub async fn seed_provider_key(
     let secret = std::str::from_utf8(secret)
         .map_err(|_| StorageError::Invalid("test provider key is not UTF-8".to_owned()))?;
     let timestamp = db::utc_timestamp_now()?;
-    let secret = crate::security::encrypt_secret(Some(&[53_u8; 32]), secret)
+    let secret = crate::security::encrypt_secret(
+        Some(&[53_u8; 32]),
+        &crate::security::SecretContext::provider_key(key_id),
+        secret,
+    )
         .map_err(StorageError::Invalid)?
         .ok_or_else(|| StorageError::Invalid("test provider key is empty".to_owned()))?;
     let record = Record::new()

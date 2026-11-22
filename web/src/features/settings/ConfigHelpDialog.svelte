@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import ArkDialog from '../../components/ArkDialog.svelte';
+  import Button from "../../components/ui/Button.svelte";
+  import Dialog from '../../components/ui/Dialog.svelte';
   import type { Translate } from '../../lib/format';
   import type { ConfigHelp } from './operational-settings.config';
 
@@ -9,7 +9,7 @@
   export let onClose: () => void = () => {};
 </script>
 
-<ArkDialog
+<Dialog
   open={help !== null}
   closeLabel={tr('Close dialog')}
   title={help ? tr(help.titleKey) : ''}
@@ -51,5 +51,5 @@
       </div>
     </div>
   {/if}
-</ArkDialog>
+</Dialog>
 

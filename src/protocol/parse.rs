@@ -1,5 +1,28 @@
 use super::*;
 
+/// Maximum bytes in a tool/function name accepted by OpenAI-compatible APIs.
+pub(crate) const MAX_OPENAI_FUNCTION_NAME_BYTES: usize = 64;
+
+/// Validates a tool/function name against the pattern enforced by
+/// OpenAI-compatible providers (`^[a-zA-Z0-9_.-]+$`). Names arrive from client
+/// requests and upstream Responses events; without this check an invalid name
+/// is replayed into `input[].name` and fails deep in the provider request with
+/// an opaque error. Rejecting at the boundary keeps the failure actionable.
+pub(crate) fn validate_openai_function_name(name: &str, where_: &str) -> Result<(), String> {
+    let valid = !name.is_empty()
+        && name.len() <= MAX_OPENAI_FUNCTION_NAME_BYTES
+        && name
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'));
+    if valid {
+        Ok(())
+    } else {
+        Err(format!(
+            "{where_} name must use ASCII letters, digits, underscore, dash, or dot and be at most {MAX_OPENAI_FUNCTION_NAME_BYTES} bytes"
+        ))
+    }
+}
+
 pub(crate) fn parse_content(value: Option<&Value>) -> Result<Vec<ContentBlock>, String> {
     let Some(value) = value else {
         return Ok(Vec::new());
@@ -150,6 +173,12 @@ fn parse_tool_call_part(part: &Value) -> Result<ContentBlock, String> {
         Value::String(value) => serde_json::from_str(&value).unwrap_or(Value::String(value)),
         other => other,
     };
+    let name = part
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_owned();
+    validate_openai_function_name(&name, "tool call")?;
     Ok(ContentBlock::ToolCall {
         id: part
             .get("id")
@@ -157,11 +186,7 @@ fn parse_tool_call_part(part: &Value) -> Result<ContentBlock, String> {
             .and_then(Value::as_str)
             .unwrap_or("call")
             .to_owned(),
-        name: part
-            .get("name")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_owned(),
+        name,
         arguments,
     })
 }
@@ -409,6 +434,7 @@ pub(crate) fn parse_chat_tools(value: Option<&Value>) -> Result<Vec<Tool>, Strin
         .map(|tool| {
             let function = tool.get("function").unwrap_or(tool);
             let name = string_field(function, "name")?;
+            validate_openai_function_name(&name, "tool")?;
             let description = function
                 .get("description")
                 .and_then(Value::as_str)
@@ -437,6 +463,7 @@ pub(crate) fn parse_response_tools(value: Option<&Value>) -> Result<Vec<Tool>, S
                 return Err("only Responses function tools can be translated".to_owned());
             }
             let name = string_field(tool, "name")?;
+            validate_openai_function_name(&name, "tool")?;
             let parameters = tool
                 .get("parameters")
                 .cloned()

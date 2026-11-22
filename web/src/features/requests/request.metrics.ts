@@ -107,9 +107,11 @@ export function tokenRatio(input?: number | null, output?: number | null): Token
 }
 
 /// Stable identity for one table row, live or finished.
-export function requestRowKey(request: RequestLog | RequestLiveRow): string {
+export function requestRowKey(request: RequestLog | RequestLiveRow, index = 0): string {
   if (isLiveRequest(request)) return request.live_id;
-  return request.id ?? request.request_id ?? request.created_at;
+  // Finished logs can omit ids and share a created_at second. Including the
+  // render index keeps keyed each blocks unique without mutating the record.
+  return `${request.id ?? request.request_id ?? ''}:${request.created_at}:${index}`;
 }
 
 /// Two-letter monogram for a model id, taken from the model segment so

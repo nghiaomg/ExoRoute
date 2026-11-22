@@ -443,15 +443,29 @@ pub(super) async fn delete_api_key(
             transaction.delete(Table::ApiKeys, &id)?;
             transaction.delete(Table::ApiKeyIndex, &api_key_index_key(&created_at, &id)?)?;
             transaction.delete(Table::ApiKeyTokenIndex, &api_key_token_index_key(&hash))?;
-            let run_indexes = transaction.scan_prefix::<String>(
-                Table::StreamRunApiKeyIndex,
-                &format!("{id}/"),
-                1_000,
-            )?;
-            for (index, run_id) in run_indexes {
-                transaction.delete(Table::StreamRunApiKeyIndex, &index)?;
-                transaction.delete(Table::StreamRuns, &run_id)?;
-                transaction.delete_prefix(Table::StreamEvents, &format!("{run_id}/"))?;
+            // C-6: loop in bounded pages. A single 1,000-row scan left every
+            // additional run/event/index row orphaned after a key deletion.
+            let prefix = format!("{id}/");
+            loop {
+                let run_indexes = transaction.scan_prefix::<String>(
+                    Table::StreamRunApiKeyIndex,
+                    &prefix,
+                    256,
+                )?;
+                if run_indexes.is_empty() {
+                    break;
+                }
+                for (index, run_id) in run_indexes {
+                    if let Some(run) = transaction.get::<Record>(Table::StreamRuns, &run_id)? {
+                        crate::infra::db::deduct_stream_retained_bytes(
+                            transaction,
+                            run.optional_integer("retained_bytes")?.unwrap_or(0),
+                        )?;
+                    }
+                    transaction.delete(Table::StreamRunApiKeyIndex, &index)?;
+                    transaction.delete(Table::StreamRuns, &run_id)?;
+                    transaction.delete_prefix(Table::StreamEvents, &format!("{run_id}/"))?;
+                }
             }
             Ok(true)
         })
@@ -719,5 +733,110 @@ mod tests {
         .await
         .expect_err("malformed model rule is rejected");
         assert_eq!(malformed_rule.0, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn deleting_an_api_key_cascades_across_more_than_1000_stream_runs() {
+        let fixture = crate::support::test_support::TestDatabase::open().await;
+        let state = crate::state::AppState::new(fixture.config(), fixture.db.clone());
+        let key_id = "key-with-many-runs";
+        const RUNS: usize = 1_050;
+        const BYTES: i64 = 8;
+        fixture
+            .db
+            .write(move |transaction| {
+                transaction.put(
+                    Table::ApiKeys,
+                    key_id,
+                    &Record::new()
+                        .with("id", Field::Text(key_id.to_owned()))
+                        .with("name", Field::Text("many runs".to_owned()))
+                        .with("enabled", Field::Bool(true))
+                        .with("created_at", Field::Text("2026-01-01 00:00:00".to_owned()))
+                        .with("token_hash", Field::Bytes(vec![7; 32]))
+                        .with("request_count", Field::I64(0))
+                        .with("request_count_generation", Field::I64(0)),
+                )?;
+                transaction.put(
+                    Table::ApiKeyIndex,
+                    &api_key_index_key("2026-01-01 00:00:00", key_id)?,
+                    &key_id.to_owned(),
+                )?;
+                transaction.put(
+                    Table::ApiKeyTokenIndex,
+                    &api_key_token_index_key(&[7; 32]),
+                    &key_id.to_owned(),
+                )?;
+                for index in 0..RUNS {
+                    let run_id = format!("cascade-{index:04}");
+                    transaction.put(
+                        Table::StreamRuns,
+                        &run_id,
+                        &Record::new()
+                            .with("id", Field::Text(run_id.clone()))
+                            .with("api_key_id", Field::Text(key_id.to_owned()))
+                            .with("status", Field::Text("completed".to_owned()))
+                            .with("created_at", Field::Text("2026-01-01 00:00:00".to_owned()))
+                            .with("latest_sequence", Field::I64(1))
+                            .with("retained_through", Field::I64(1))
+                            .with("retained_bytes", Field::I64(BYTES))
+                            .with("replay_complete", Field::Bool(true))
+                            .with("error", Field::Null)
+                            .with("finished_at", Field::Text("2026-01-01 00:00:00".to_owned())),
+                    )?;
+                    transaction.put(
+                        Table::StreamEvents,
+                        &format!("{run_id}/00000000000000000001"),
+                        &Record::new()
+                            .with("sequence", Field::I64(1))
+                            .with("payload", Field::Bytes(vec![0; 8])),
+                    )?;
+                    transaction.put(
+                        Table::StreamRunApiKeyIndex,
+                        &format!("{key_id}/{run_id}"),
+                        &run_id.to_owned(),
+                    )?;
+                }
+                crate::infra::db::set_stream_retained_bytes(
+                    transaction,
+                    i64::try_from(RUNS).unwrap() * BYTES,
+                )
+            })
+            .await
+            .expect("seed stream runs for cascade");
+
+        let response = delete_api_key(State(state), axum::extract::Path(key_id.to_owned()))
+            .await
+            .expect("delete API key");
+        assert_eq!(response["ok"], json!(true));
+
+        let (runs, events, indexes, counter) = fixture
+            .db
+            .read(|transaction| {
+                Ok((
+                    transaction
+                        .scan_prefix::<Record>(Table::StreamRuns, "cascade-", RUNS + 10)?
+                        .len(),
+                    transaction
+                        .scan_prefix::<Record>(Table::StreamEvents, "cascade-", RUNS + 10)?
+                        .len(),
+                    transaction
+                        .scan_prefix::<String>(
+                            Table::StreamRunApiKeyIndex,
+                            "key-with-many-runs/",
+                            RUNS + 10,
+                        )?
+                        .len(),
+                    transaction
+                        .get::<i64>(Table::Meta, db::STREAM_RETAINED_BYTES_KEY)?
+                        .unwrap_or(0),
+                ))
+            })
+            .await
+            .expect("verify cascade");
+        assert_eq!(runs, 0, "no orphaned stream runs remain");
+        assert_eq!(events, 0, "no orphaned stream events remain");
+        assert_eq!(indexes, 0, "no orphaned stream index rows remain");
+        assert_eq!(counter, 0, "retained-byte counter was decremented");
     }
 }

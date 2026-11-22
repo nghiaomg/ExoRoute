@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { ArrowDown, ArrowUp, Layers3, Power, PowerOff, Server, ShieldCheck, Trash2, Zap } from '@lucide/svelte';
   import type { Translate } from '../../lib/format';
 

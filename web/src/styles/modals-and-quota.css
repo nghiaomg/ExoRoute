@@ -1,7 +1,19 @@
 .modal-card { position: relative; width: min(100%, 430px); max-height: calc(100vh - 40px); margin: 0; overflow-y: auto; padding: 20px; border: var(--nb-border); border-radius: 14px; background: #fff; box-shadow: var(--nb-shadow-lg); animation: rise-in .18s ease; }
 .modal-card.wide-modal { width: min(100%, 550px); }
+/* The native <dialog> UA padding/border makes a larger translucent frame
+   around the white card. Zero them for this dialog so the shell is one card. */
+dialog.modal:has(> .provider-create-dialog) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .modal-card.provider-create-dialog {
-  width: min(100%, 650px) !important;
+  /* Single centered shell: inherit the dialog's 100% card width so no gray
+     dialog surface protrudes past the white card (legacy 650px override). */
+  width: 100% !important;
+  max-width: 720px;
+  margin-inline: auto;
   max-height: calc(100vh - 36px);
   padding: 18px 22px !important;
   overflow: hidden !important;

@@ -33,8 +33,13 @@ pub(crate) async fn save_codex_account(
     let _save_guard = save_lock.lock().await;
     let serialized = serde_json::to_string(&account)
         .map_err(|_| "could not encode the OpenAI account credentials".to_owned())?;
-    let encrypted = crate::security::encrypt_secret(state.config.master_key.as_ref(), &serialized)
-        .map_err(|_| "could not encrypt the OpenAI account credentials".to_owned())?
+    let key_id = uuid::Uuid::new_v4().to_string();
+    let encrypted = crate::security::encrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(&key_id),
+        &serialized,
+    )
+    .map_err(|_| "could not encrypt the OpenAI account credentials".to_owned())?
         .ok_or_else(|| "OpenAI returned an empty account credential".to_owned())?;
     let index_prefix = crate::infra::db::provider_api_key_index_prefix(provider_id, false)
         .map_err(|_| "could not inspect existing OpenAI accounts".to_owned())?;
@@ -76,7 +81,11 @@ pub(crate) async fn save_codex_account(
                 .bytes("secret")
                 .map_err(|_| "could not inspect an existing OpenAI account".to_owned())?;
             let Some(secret) =
-                crate::security::decrypt_secret(state.config.master_key.as_ref(), Some(secret))
+                crate::security::decrypt_secret(
+                    state.config.master_key.as_ref(),
+                    &crate::security::SecretContext::oauth_account(&id),
+                    Some(secret),
+                )
                     .map_err(|_| "could not decrypt an existing OpenAI account".to_owned())?
             else {
                 continue;
@@ -93,7 +102,12 @@ pub(crate) async fn save_codex_account(
             .map_err(|_| "could not refresh the saved OpenAI account".to_owned())?;
         let provider_id = provider_id.to_owned();
         let display_name = display_name.clone();
-        let encrypted = encrypted.clone();
+        let encrypted = crate::security::encrypt_for_storage(
+            state.config.master_key.as_ref(),
+            &crate::security::SecretContext::oauth_account(&id),
+            &serialized,
+        )
+        ?;
         state
             .db
             .write(move |transaction| {
@@ -147,7 +161,6 @@ pub(crate) async fn save_codex_account(
 
     let created_at = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save the OpenAI account".to_owned())?;
-    let key_id = uuid::Uuid::new_v4().to_string();
     let mut record = crate::admin::providers::provider_api_key_record(
         crate::admin::providers::ProviderApiKeyRecordData {
             id: &key_id,

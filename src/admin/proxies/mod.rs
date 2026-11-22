@@ -367,6 +367,7 @@ pub(super) async fn bulk_create_proxies(
         for endpoint in proxy.endpoints.iter_mut() {
             endpoint.secret_ciphertext = crate::security::encrypt_secret(
                 state.config.master_key.as_ref(),
+                &crate::security::SecretContext::proxy_endpoint(&endpoint.endpoint_id),
                 endpoint.secret.as_deref().unwrap_or_default(),
             )
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
@@ -466,6 +467,7 @@ async fn create_item(state: AppState, mut input: ProxyInput) -> ProxyApiResult<S
     for endpoint in input.endpoints.iter_mut() {
         endpoint.secret_ciphertext = crate::security::encrypt_secret(
             state.config.master_key.as_ref(),
+            &crate::security::SecretContext::proxy_endpoint(&endpoint.endpoint_id),
             endpoint.secret.as_deref().unwrap_or_default(),
         )
         .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;
@@ -516,6 +518,7 @@ pub(super) async fn update_proxy(
     for endpoint in input.endpoints.iter_mut() {
         endpoint.secret_ciphertext = crate::security::encrypt_secret(
             state.config.master_key.as_ref(),
+            &crate::security::SecretContext::proxy_endpoint(&endpoint.endpoint_id),
             endpoint.secret.as_deref().unwrap_or_default(),
         )
         .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?;

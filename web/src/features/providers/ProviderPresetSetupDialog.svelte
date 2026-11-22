@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import ArkDialog from '../../components/ArkDialog.svelte';
-  import ArkField from '../../components/ArkField.svelte';
-  import Input from '../../components/Input.svelte';
+  import Button from "../../components/ui/Button.svelte";
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import FormField from '../../components/ui/FormField.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import { untrack } from 'svelte';
   import { api } from '../../lib/api';
   import type { Translate } from '../../lib/format';
@@ -74,7 +74,7 @@
   }
 </script>
 
-<ArkDialog
+<Dialog
   bind:open
   wide={true}
   preventClose={busy}
@@ -90,7 +90,7 @@
           <span>{tr('Provider name')}</span>
           <p class="form-help" style="margin:0">{preset.name}</p>
         </div>
-        <ArkField
+        <FormField
           class="prov-field-wide"
           label={tr('Base URL')}
           type="url"
@@ -117,4 +117,4 @@
       </div>
     </form>
   {/if}
-</ArkDialog>
+</Dialog>

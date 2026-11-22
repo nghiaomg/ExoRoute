@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SelectSearch from '../../components/SelectSearch.svelte';
+  import SelectSearch from '../../components/ui/SelectSearch.svelte';
   import type { GatewayCombo } from '../../lib/types';
   import type { Translate } from '../../lib/format';
 

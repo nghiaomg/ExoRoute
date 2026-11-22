@@ -31,12 +31,16 @@ pub(super) async fn save_cline_account(
     }
     let serialized = serde_json::to_string(&account)
         .map_err(|_| "could not encode Cline account credentials".to_owned())?;
-    let encrypted = security::encrypt_secret(state.config.master_key.as_ref(), &serialized)
-        .map_err(|_| "could not encrypt Cline account credentials".to_owned())?
+    let key_id = uuid::Uuid::new_v4().to_string();
+    let encrypted = security::encrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(&key_id),
+        &serialized,
+    )
+    .map_err(|_| "could not encrypt Cline account credentials".to_owned())?
         .ok_or_else(|| "Cline returned an empty account credential".to_owned())?;
     let now = crate::infra::db::utc_timestamp_now()
         .map_err(|_| "could not save Cline account credentials".to_owned())?;
-    let key_id = uuid::Uuid::new_v4().to_string();
     let mut record = crate::admin::providers::provider_api_key_record(
         crate::admin::providers::ProviderApiKeyRecordData {
             id: &key_id,
@@ -58,6 +62,7 @@ pub(super) async fn save_cline_account(
     let adapter_id = adapter_id.to_owned();
     let incoming_account = account.clone();
     let master_key = state.config.master_key;
+    let serialized_update = serialized.clone();
     state
         .db
         .write(move |transaction| {
@@ -152,7 +157,17 @@ pub(super) async fn save_cline_account(
                     crate::admin::providers::provider_api_key_identity_index_key(&existing)?;
                 let was_invalid = existing.boolean("invalid")?;
                 existing.insert("name", Field::Text(record.text("name")?.to_owned()));
-                existing.insert("secret", Field::Bytes(encrypted.clone()));
+                existing.insert(
+                "secret",
+                Field::Bytes(
+                    crate::security::encrypt_for_storage(
+                        master_key.as_ref(),
+                        &crate::security::SecretContext::oauth_account(&existing_id),
+                        &serialized_update,
+                    )
+                    .map_err(StorageError::Invalid)?,
+                ),
+            );
                 existing.insert("credential_type", Field::Text("oauth".to_owned()));
                 if let Some(identity) = account_identity.as_deref() {
                     existing.insert("oauth_account_identity", Field::Text(identity.to_owned()));
@@ -283,7 +298,10 @@ fn stored_cline_account_matches(
     let Ok(secret) = record.bytes("secret") else {
         return false;
     };
-    let Ok(Some(serialized)) = security::decrypt_secret(master_key, Some(secret)) else {
+    let context = security::SecretContext::oauth_account(
+        record.text("id").map_err(|_| ()).unwrap_or_default(),
+    );
+    let Ok(Some(serialized)) = security::decrypt_secret(master_key, &context, Some(secret)) else {
         return false;
     };
     let Ok(value) = serde_json::from_str::<Value>(&serialized) else {

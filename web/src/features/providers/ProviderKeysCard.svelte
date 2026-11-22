@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { AlertTriangle, LoaderCircle, KeyRound, RefreshCw } from '@lucide/svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
   import { api } from '../../lib/api';
   import type { Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';
@@ -16,6 +16,7 @@ import { localizedError } from '../../lib/errors';
   export let locale: Locale;
   export let refreshToken = 0;
   export let onProviderChanged: () => void;
+  export let onAddKey: () => void = () => {};
 
   let keys: ProviderKey[] = [];
   let keyToRemove: ProviderKey | null = null;
@@ -160,7 +161,7 @@ import { localizedError } from '../../lib/errors';
         ? 'Each request starts at the next enabled key, then falls back to the following keys.'
         : 'Keys are tried in this order. The first enabled key serves requests and the following keys are fallbacks.')}</p>
     </div>
-    <Button class="secondary-button compact" disabled={loading} onclick={load}><RefreshCw size={14} />{tr('Refresh keys')}</Button>
+    <div class="key-header-actions"><Button class="primary-button compact" type="button" onclick={onAddKey}>+ {tr('Add API key')}</Button><Button class="secondary-button compact" type="button" disabled={loading} onclick={load}><RefreshCw size={14} />{tr('Refresh keys')}</Button></div>
   </div>
 
   {#if isFreebuff}
@@ -190,7 +191,7 @@ import { localizedError } from '../../lib/errors';
       onMove={moveKey}
     />
   {:else}
-    <div class="provider-model-empty"><KeyRound size={19} /><p>{tr('No provider keys yet. Add one from Manage keys.')}</p></div>
+    <div class="provider-model-empty"><KeyRound size={19} /><p>{tr('Add a key to start sending requests')}</p><Button class="primary-button compact" type="button" onclick={onAddKey}>+ {tr('Add API key')}</Button></div>
   {/if}
 
   {#if pageCursors.length > 1 || nextCursor}
@@ -202,7 +203,7 @@ import { localizedError } from '../../lib/errors';
   {/if}
 </section>
 
-<ArkDialog
+<Dialog
   open={keyToRemove !== null}
   role="alertdialog"
   closeLabel={tr('Close dialog')}
@@ -228,5 +229,5 @@ import { localizedError } from '../../lib/errors';
       </Button>
     </div>
   </div>
-</ArkDialog>
+</Dialog>
 

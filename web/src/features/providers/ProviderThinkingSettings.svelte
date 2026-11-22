@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SelectOptions from '../../components/SelectOptions.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import { type Translate } from '../../lib/format';
   import type { ProviderThinkingMode } from '../../lib/types';
 

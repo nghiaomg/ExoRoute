@@ -1,8 +1,9 @@
-use super::records::RunSnapshot;
+use super::records::{JournalBatch, RunSnapshot, read_events_with_page_size};
 use super::*;
 use crate::{
     config::{GatewayResourceLimits, UpstreamSettings},
     gateway::{GatewayRequestContext, cancel_stream, continuity::BackgroundRequestSettings},
+    infra::db::{STREAM_RETAINED_BYTES_KEY, bootstrap::recover_abandoned_stream_runs},
     infra::storage::{Field, Record, StorageError, Table},
     security::api_key_scope::ApiKeyScope,
     state::AppState,
@@ -437,4 +438,295 @@ async fn replay_runs_expire_after_one_day() {
             .expect("load expired stream run")
             .is_none()
     );
+}
+
+/// Seeds `count` derived stream rows with uniform metadata for the capacity
+/// and recovery regressions. `status` and `age` control whether the rows are
+/// eligible for age-based pruning or restart recovery.
+async fn seed_stream_runs(
+    db: &crate::infra::storage::Database,
+    count: usize,
+    api_key_id: &str,
+    status: &str,
+    age: Duration,
+    retained_bytes: i64,
+) {
+    let created_at = if age.is_zero() {
+        crate::infra::db::utc_timestamp_now().expect("now")
+    } else {
+        crate::infra::db::utc_timestamp_before(age).expect("aged timestamp")
+    };
+    let api_key_id = api_key_id.to_owned();
+    let status = status.to_owned();
+    db.write(move |transaction| {
+        for index in 0..count {
+            let run_id = format!("seed-{index:04}");
+            let record = Record::new()
+                .with("id", Field::Text(run_id.clone()))
+                .with("api_key_id", Field::Text(api_key_id.clone()))
+                .with("status", Field::Text(status.clone()))
+                .with("created_at", Field::Text(created_at.clone()))
+                .with("latest_sequence", Field::I64(1))
+                .with("retained_through", Field::I64(1))
+                .with("retained_bytes", Field::I64(retained_bytes))
+                .with("replay_complete", Field::Bool(true))
+                .with("error", Field::Null)
+                .with("finished_at", Field::Text(created_at.clone()));
+            transaction.put(Table::StreamRuns, &run_id, &record)?;
+            transaction.put(
+                Table::StreamEvents,
+                &format!("{run_id}/00000000000000000001"),
+                &Record::new()
+                    .with("sequence", Field::I64(1))
+                    .with("payload", Field::Bytes(vec![0; usize::try_from(retained_bytes).unwrap_or(0)])),
+            )?;
+            transaction.put(
+                Table::StreamRunApiKeyIndex,
+                &format!("{api_key_id}/{run_id}"),
+                &run_id.to_owned(),
+            )?;
+        }
+        Ok(())
+    })
+    .await
+    .expect("seed stream runs");
+}
+
+#[tokio::test]
+async fn create_run_prunes_over_cap_expired_runs_before_checking_capacity() {
+    let (_database, state) = test_state().await;
+    seed_stream_runs(
+        &state.db,
+        1_050,
+        "owner",
+        "completed",
+        Duration::from_secs(2 * 24 * 60 * 60),
+        16,
+    )
+    .await;
+
+    create_run(&state.db, "fresh-run", "owner")
+        .await
+        .expect("over-cap expired runs are pruned before the capacity gate");
+    let snapshot = load_run(&state.db, "fresh-run", "owner")
+        .await
+        .expect("load fresh run")
+        .expect("fresh run exists");
+    assert_eq!(snapshot.status, "running");
+
+    let remaining = state
+        .db
+        .read(|transaction| transaction.scan_prefix::<Record>(Table::StreamRuns, "", 2_000))
+        .await
+        .expect("count remaining runs");
+    assert!(remaining.len() < 1_000, "pruning ran, cap is no longer hit");
+}
+
+#[tokio::test]
+async fn startup_recovery_processes_all_runs_and_reconciles_retained_bytes() {
+    let (_database, state) = test_state().await;
+    const RUNS: usize = 1_100;
+    const BYTES: i64 = 32;
+    seed_stream_runs(&state.db, RUNS, "owner", "running", Duration::ZERO, BYTES).await;
+
+    recover_abandoned_stream_runs(&state.db)
+        .await
+        .expect("paginated startup recovery");
+
+    let (runs, counter) = state
+        .db
+        .read(|transaction| {
+            Ok((
+                transaction.scan_prefix::<Record>(Table::StreamRuns, "seed-", RUNS + 10)?,
+                transaction
+                    .get::<i64>(Table::Meta, STREAM_RETAINED_BYTES_KEY)?
+                    .unwrap_or(0),
+            ))
+        })
+        .await
+        .expect("read recovery results");
+    assert_eq!(runs.len(), RUNS);
+    assert!(
+        runs.iter()
+            .all(|(_, record)| record.text("status").expect("status") != "running"),
+        "every run beyond the first page was recovered"
+    );
+    assert_eq!(counter, i64::try_from(RUNS).unwrap() * BYTES);
+}
+
+#[tokio::test]
+async fn batched_appends_preserve_order_and_track_retained_bytes() {
+    let (_database, state) = test_state().await;
+    create_run(&state.db, "batch-a", "owner")
+        .await
+        .expect("run a");
+    create_run(&state.db, "batch-b", "owner")
+        .await
+        .expect("run b");
+    let upstream = UpstreamSettings::default();
+    let journal_a = JournalBatch::start(state.db.clone());
+    let journal_b = JournalBatch::start(state.db.clone());
+
+    let payloads: Vec<Bytes> = (1..=20)
+        .flat_map(|index| {
+            [
+                Bytes::from(format!("data: a{index}\n\n")),
+                Bytes::from(format!("data: b{index}\n\n")),
+            ]
+        })
+        .collect();
+    let mut appends = Vec::with_capacity(payloads.len());
+    for (index, payload) in payloads.iter().enumerate() {
+        let (run_id, journal) = if index % 2 == 0 {
+            ("batch-a", &journal_a)
+        } else {
+            ("batch-b", &journal_b)
+        };
+        appends.push(journal.append(run_id, payload, upstream));
+    }
+    for result in futures_util::future::join_all(appends).await {
+        result.expect("batched append commits");
+    }
+    journal_a
+        .finish("batch-a", "completed", None, upstream)
+        .await
+        .expect("finish run a");
+    journal_b
+        .finish("batch-b", "completed", None, upstream)
+        .await
+        .expect("finish run b");
+
+    let mut expected_total = 0usize;
+    for run_id in ["batch-a", "batch-b"] {
+        let mut after = 0i64;
+        let mut events = Vec::new();
+        loop {
+            let page = read_events_with_page_size(&state.db, run_id, after, upstream)
+                .await
+                .expect("read journal page");
+            if page.is_empty() {
+                break;
+            }
+            after = page.last().map(|(sequence, _)| *sequence).unwrap_or(after);
+            events.extend(page);
+        }
+        assert_eq!(events.len(), 20);
+        for (index, (sequence, payload)) in events.into_iter().enumerate() {
+            assert_eq!(sequence, i64::try_from(index + 1).unwrap());
+            expected_total = expected_total.saturating_add(payload.len());
+        }
+        let snapshot = load_run(&state.db, run_id, "owner")
+            .await
+            .expect("load run")
+            .expect("run exists");
+        assert_eq!(snapshot.status, "completed");
+        assert_eq!(snapshot.latest_sequence, 20);
+        assert_eq!(snapshot.retained_through, 20);
+    }
+    let counter = state
+        .db
+        .read(|transaction| {
+            transaction
+                .get::<i64>(Table::Meta, STREAM_RETAINED_BYTES_KEY)
+                .map(|value| value.unwrap_or(0))
+        })
+        .await
+        .expect("read counter");
+    assert_eq!(
+        usize::try_from(counter).expect("counter fits usize"),
+        expected_total,
+        "Meta counter equals the sum of all retained event payloads"
+    );
+}
+
+#[tokio::test]
+async fn shared_journal_coalesces_across_streams_and_isolates_a_bad_op() {
+    let (_database, state) = test_state().await;
+    create_run(&state.db, "shared-a", "owner")
+        .await
+        .expect("run a");
+    create_run(&state.db, "shared-b", "owner")
+        .await
+        .expect("run b");
+    let journal = state.continuity_journal.clone();
+    let upstream = UpstreamSettings::default();
+
+    let mut workers = Vec::new();
+    for run in ["shared-a", "shared-b"] {
+        let journal = journal.clone();
+        workers.push(tokio::spawn(async move {
+            let mut sequences = Vec::new();
+            for index in 1..=8 {
+                let payload = Bytes::from(format!("data: {run}-{index}\n\n"));
+                sequences.push(
+                    journal
+                        .append(run, &payload, upstream)
+                        .await
+                        .expect("append through the shared journal"),
+                );
+            }
+            sequences
+        }));
+    }
+
+    // A logical failure for one run must be reported only to this caller and
+    // must not abort healthy ops queued around it.
+    let rejected = journal
+        .append(
+            "missing-run",
+            &Bytes::from_static(b"data: orphan\n\n"),
+            upstream,
+        )
+        .await;
+    assert!(rejected.is_err(), "a missing run yields a per-op error");
+
+    let mut handles = Vec::new();
+    for worker in workers {
+        let sequences = worker.await.expect("worker completes");
+        assert_eq!(
+            sequences,
+            (1..=8).collect::<Vec<i64>>(),
+            "per-run FIFO sequence numbers remain contiguous"
+        );
+        handles.push(sequences.len());
+    }
+    assert_eq!(handles, vec![8, 8]);
+
+    journal
+        .finish("shared-a", "completed", None, upstream)
+        .await
+        .expect("finish run a");
+    journal
+        .finish("shared-b", "completed", None, upstream)
+        .await
+        .expect("finish run b");
+
+    for run in ["shared-a", "shared-b"] {
+        let mut after = 0i64;
+        let mut events = Vec::new();
+        loop {
+            let page = read_events_with_page_size(&state.db, run, after, upstream)
+                .await
+                .expect("read replay page");
+            if page.is_empty() {
+                break;
+            }
+            after = page.last().map(|(sequence, _)| *sequence).unwrap_or(after);
+            events.extend(page);
+        }
+        assert_eq!(events.len(), 8, "both runs retained every event");
+        assert_eq!(
+            events
+                .iter()
+                .map(|(sequence, _)| *sequence)
+                .collect::<Vec<_>>(),
+            (1..=8).collect::<Vec<i64>>()
+        );
+        let snapshot = load_run(&state.db, run, "owner")
+            .await
+            .expect("load run")
+            .expect("run exists");
+        assert_eq!(snapshot.status, "completed");
+        assert_eq!(snapshot.latest_sequence, 8);
+    }
 }

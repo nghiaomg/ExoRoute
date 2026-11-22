@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import StatsCard from "../../components/StatsCard.svelte";
+  import Button from "../../components/ui/Button.svelte";
+  import StatsCard from "../../components/ui/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
-  import SelectOptions from '../../components/SelectOptions.svelte';
-  import Input from '../../components/Input.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import type { DashboardPage } from '../../lib/navigation';
   import type { Locale } from '../../lib/i18n';
   import type { Translate } from '../../lib/format';
@@ -13,6 +13,7 @@
   import { providerLogo } from './provider-logo';
   import ProviderDetailsPage from './ProviderDetailsPage.svelte';
   import ProviderPresetSetupDialog from './ProviderPresetSetupDialog.svelte';
+  import ProviderCreateDialog from './ProviderCreateDialog.svelte';
 
   interface Props {
     tr: Translate;
@@ -56,6 +57,7 @@
   let creatingPresetId = $state<string | null>(null);
   let setupPresetId = $state<string | null>(null);
   let setupDialogOpen = $state(false);
+  let createDialogOpen = $state(false);
 
   const presetById = $derived(new Map(presets.map((p) => [p.id, p])));
   const setupPreset = $derived(setupPresetId ? presetById.get(setupPresetId) ?? null : null);
@@ -140,6 +142,8 @@
       creatingPresetId = null;
     }
   }
+
+  function openCustomProvider(): void { createDialogOpen = true; }
 
   /** Custom providers lead the list; built-in categories follow in catalog order. */
   const CATEGORY_ORDER = ['custom', 'cloud_api', 'gateway', 'oauth'] as const;
@@ -359,7 +363,7 @@
 
   function fmtKeys(provider: Provider): string {
     const n = provider.api_key_count ?? 0;
-    return `${n} ${tr(n === 1 ? 'key' : 'keys')}`;
+    return tr(n === 1 ? '{count} key' : '{count} keys', { count: n });
   }
 
   function fmtLastUsed(key: ProviderKey): string {
@@ -401,6 +405,10 @@
     <p>{tr('Manage upstream AI providers, credentials, and synced models.')}</p>
   </div>
   <div class="heading-actions">
+    <Button class="action-button primary" type="button" onclick={openCustomProvider}>
+      <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
+      <span class="button-label">{tr('Add a custom provider')}</span>
+    </Button>
     <Button class="action-button" type="button" onclick={runAllTests} disabled={testRunning}>
       <span class="button-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
       <span class="button-label">{tr('Test all')}</span>
@@ -516,6 +524,15 @@
 {/if}
 {/if}
 </div>
+
+{#if createDialogOpen}
+  <ProviderCreateDialog
+    bind:open={createDialogOpen}
+    {presets}
+    {tr}
+    onSaved={(providerId) => { createDialogOpen = false; void finishPresetSetup(providerId); }}
+  />
+{/if}
 
 {#if setupPreset}
   <ProviderPresetSetupDialog

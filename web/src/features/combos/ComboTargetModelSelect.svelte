@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SelectSearch from '../../components/SelectSearch.svelte';
+  import SelectSearch from '../../components/ui/SelectSearch.svelte';
   import { afterUpdate, onDestroy } from 'svelte';
   import { api } from '../../lib/api';
   import type { Translate } from '../../lib/format';
@@ -40,7 +40,10 @@
 
   afterUpdate(() => {
     if (!focused) {
-      if (activeProvider || controller || timer || models.length || state !== 'idle') clearCatalog();
+      if (activeProvider || controller || timer || models.length || state !== 'idle') {
+        activeProvider = '';
+        clearCatalog();
+      }
       return;
     }
     if (providerId === activeProvider) return;

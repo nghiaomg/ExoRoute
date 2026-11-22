@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from '../../../src/components/Button.svelte';
+  import Button from '../../../src/components/ui/Button.svelte';
   export let onclick: () => void;
 </script>
 

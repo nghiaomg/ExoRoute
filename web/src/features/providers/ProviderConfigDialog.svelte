@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { Check, LoaderCircle, Plus, X } from '@lucide/svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
-  import ArkField from '../../components/ArkField.svelte';
-  import SelectSearch from '../../components/SelectSearch.svelte';
-  import Input from '../../components/Input.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import FormField from '../../components/ui/FormField.svelte';
+  import SelectSearch from '../../components/ui/SelectSearch.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import { api } from '../../lib/api';
   import { proxyApi } from '../../lib/api/proxies';
   import { type Translate } from '../../lib/format';
@@ -244,7 +244,7 @@
   }
 </script>
 
-<ArkDialog
+<Dialog
   bind:open
   wide={true}
   closeLabel={tr('Close dialog')}
@@ -257,7 +257,7 @@
     <form class="modal-form" onsubmit={saveAll}>
       <div class="detail-form-section">
         <div>
-          <ArkField
+          <FormField
             label={tr('Base URL')}
             bind:value={baseUrlDraft}
             type="url"
@@ -283,7 +283,7 @@
 
       <div class="detail-form-section">
         <div>
-          <ArkField
+          <FormField
             label={tr('Model prefix')}
             bind:value={modelPrefixDraft}
             maxlength={64}
@@ -321,7 +321,7 @@
 
       <div class="detail-form-section">
         <div>
-          <ArkField
+          <FormField
             label={tr('Logo image URL')}
             bind:value={logoDraft}
             type="url"
@@ -418,4 +418,4 @@
       </div>
     </form>
   {/if}
-</ArkDialog>
+</Dialog>

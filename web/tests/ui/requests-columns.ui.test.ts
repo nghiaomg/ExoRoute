@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import DashboardRequestsPage from '../../src/features/requests/DashboardRequestsPage.svelte';
-import RequestTableRow from '../../src/features/requests/RequestTableRow.svelte';
 import { api } from '../../src/lib/api';
 import type { RequestLiveRow, RequestLog, RequestLogPage } from '../../src/lib/types';
 import type { Translate } from '../../src/lib/format';
@@ -62,8 +61,15 @@ function renderPage(requests: RequestLog[] = []): ReturnType<typeof render> {
   });
 }
 
+/** Current production table/chip DOM: the legacy req-* classes were removed. */
 function headers(): Array<string | undefined> {
-  return Array.from(document.querySelectorAll('.req-table thead th')).map((th) => th.textContent?.trim());
+  return Array.from(document.querySelectorAll('table thead th')).map((th) => th.textContent?.trim());
+}
+function chipIn(row: Element | null | undefined, title: string): Element | undefined {
+  return Array.from(row?.querySelectorAll('span[title]') ?? []).find((el) => el.getAttribute('title') === title);
+}
+function chipText(row: Element | null | undefined, title: string): string | undefined {
+  return chipIn(row, title)?.textContent?.trim();
 }
 
 async function openHideMenu(): Promise<void> {
@@ -94,15 +100,15 @@ describe('requests proxy chip', () => {
     ]);
 
     const namedRow = (await screen.findByText('openai/gpt-5')).closest('tr');
-    expect(namedRow?.querySelector('.req-proxy-chip')?.textContent?.trim()).toBe('EU egress');
-    expect(namedRow?.querySelector('.req-proxy-chip')?.getAttribute('title')).toBe('EU egress');
+    expect(chipText(namedRow, 'EU egress')).toBe('EU egress');
+    expect(chipIn(namedRow, 'EU egress')?.getAttribute('title')).toBe('EU egress');
 
     const idOnlyRow = screen.getByText('openai/gpt-4o').closest('tr');
-    expect(idOnlyRow?.querySelector('.req-proxy-chip')?.textContent?.trim()).toBe('proxy-2');
+    expect(chipText(idOnlyRow, 'proxy-2')).toBe('proxy-2');
 
     const directRow = screen.getByText('anthropic/claude').closest('tr');
-    expect(directRow?.querySelector('.req-proxy-chip')).toBeNull();
-    expect(container.querySelector('.req-proxy-chip')).not.toBeNull();
+    expect(chipIn(directRow, 'proxy-2') ?? chipIn(directRow, 'EU egress')).toBeUndefined();
+    expect(chipIn(container, 'EU egress')).not.toBeUndefined();
   });
 
   test('live SSE rows render the proxy chip too', async () => {
@@ -132,34 +138,7 @@ describe('requests proxy chip', () => {
     });
 
     const liveTr = (await screen.findByText('live/proxy-model')).closest('tr');
-    expect(liveTr?.querySelector('.req-proxy-chip')?.textContent?.trim()).toBe('Pool A');
-  });
-});
-
-describe('unrouted request row proxy chip', () => {
-  function renderRow(request: RequestLog): ReturnType<typeof render> {
-    return render(RequestTableRow, {
-      props: { tr, locale: 'en', request, liveClockMs: Date.now() },
-    });
-  }
-
-  test('the alias cell shows the proxy chip next to the combo pill, with id fallback and absence', () => {
-    const named = renderRow(row({ id: 'row-named', proxy_id: 'proxy-3', proxy_name: 'EU pool' }));
-    const namedCell = named.container.querySelector('td.req-alias');
-    expect(namedCell?.querySelector('.req-alias-pill')).not.toBeNull();
-    expect(namedCell?.querySelector('.req-proxy-chip')?.textContent?.trim()).toBe('EU pool');
-    named.unmount();
-
-    const idOnly = renderRow(row({ id: 'row-id-only', route_alias: '', proxy_id: 'proxy-4', proxy_name: null }));
-    const idOnlyCell = idOnly.container.querySelector('td.req-alias');
-    expect(idOnlyCell?.querySelector('.req-proxy-chip')?.textContent?.trim()).toBe('proxy-4');
-    idOnly.unmount();
-
-    const direct = renderRow(row({ id: 'row-direct', route_alias: '' }));
-    const directCell = direct.container.querySelector('td.req-alias');
-    expect(directCell?.querySelector('.req-proxy-chip')).toBeNull();
-    expect(directCell?.querySelector('.muted-cell')?.textContent).toBe('—');
-    direct.unmount();
+    expect(chipText(liveTr, 'Pool A')).toBe('Pool A');
   });
 });
 
@@ -197,22 +176,22 @@ describe('requests hide-info menu', () => {
     renderPage([row({})]);
     await screen.findByText('openai/gpt-5');
 
-    expect(screen.getByText('openai/gpt-5').closest('tr')?.querySelector('.req-combo-chip')?.textContent).toBe('combo/served-model');
-    expect(document.querySelectorAll('.req-table thead th').length).toBe(8);
+    expect(chipText(screen.getByText('openai/gpt-5').closest('tr'), 'combo/served-model')).toBe('combo/served-model');
+    expect(document.querySelectorAll('table thead th').length).toBe(8);
 
     await openHideMenu();
     await toggleCheckbox('Combo');
 
     const updatedRow = screen.getByText('openai/gpt-5').closest('tr');
-    expect(updatedRow?.querySelector('.req-combo-chip')).toBeNull();
+    expect(chipIn(updatedRow, 'combo/served-model')).toBeUndefined();
     // Combo is a chip inside the model cell, not a column: nothing disappears.
-    expect(document.querySelectorAll('.req-table thead th').length).toBe(8);
+    expect(document.querySelectorAll('table thead th').length).toBe(8);
     expect(updatedRow?.textContent).toContain('openai/gpt-5');
     expect(headers()).toContain('Provider');
     expect(headers()).toContain('Key');
 
     await toggleCheckbox('Combo');
-    expect(screen.getByText('openai/gpt-5').closest('tr')?.querySelector('.req-combo-chip')?.textContent).toBe('combo/served-model');
+    expect(chipText(screen.getByText('openai/gpt-5').closest('tr'), 'combo/served-model')).toBe('combo/served-model');
   });
 
   test('the proxy chip is never hidden by the visibility toggles', async () => {
@@ -225,9 +204,9 @@ describe('requests hide-info menu', () => {
     await toggleCheckbox('Combo');
 
     const rowEl = screen.getByText('openai/gpt-5').closest('tr');
-    expect(rowEl?.querySelector('.req-proxy-chip')?.textContent?.trim()).toBe('EU egress');
+    expect(chipText(rowEl, 'EU egress')).toBe('EU egress');
     // Only the always-present columns remain: Time, Status, Model, Latency, Tokens, Cost.
-    expect(document.querySelectorAll('.req-table thead th').length).toBe(6);
+    expect(document.querySelectorAll('table thead th').length).toBe(6);
   });
 
   test('the hidden-columns choice persists across remount and garbage falls back to defaults', async () => {
@@ -257,7 +236,7 @@ describe('requests hide-info menu', () => {
     await waitFor(() => expect(screen.queryByText('openai/gpt-5')).not.toBeNull());
     expect(headers()).toContain('Provider');
     expect(headers()).toContain('Key');
-    expect(document.querySelectorAll('.req-table thead th').length).toBe(8);
+    expect(document.querySelectorAll('table thead th').length).toBe(8);
   });
 
   test('Escape and outside click close the menu', async () => {
@@ -280,6 +259,6 @@ describe('requests hide-info menu', () => {
     await waitFor(() => expect(document.querySelector('.empty-state')).not.toBeNull());
     expect(headers()).not.toContain('Provider');
     expect(headers()).not.toContain('Key');
-    expect(document.querySelector('.req-table td[colspan]')?.getAttribute('colspan')).toBe('6');
+    expect(document.querySelector('table td[colspan]')?.getAttribute('colspan')).toBe('6');
   });
 });

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { LoaderCircle, RefreshCw } from '@lucide/svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
   import type { Locale } from '../../lib/i18n';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -110,7 +110,7 @@ import { localizedError } from '../../lib/errors';
   {/if}
 </section>
 
-<ArkDialog
+<Dialog
   open={keyToRemove !== null}
   role="alertdialog"
   closeLabel={tr('Close dialog')}
@@ -136,4 +136,4 @@ import { localizedError } from '../../lib/errors';
       </Button>
     </div>
   </div>
-</ArkDialog>
+</Dialog>

@@ -58,6 +58,7 @@ credentials/
 # Runtime logs, exports, and backups
 *.log
 *.log.*
+scripts-tmp-*
 /logs/
 *.dump
 *.backup
@@ -88,6 +89,10 @@ docs/*
 # Official releases and changelogs
 !docs/releases/
 !docs/releases/**
+
+# Architecture guides are version-controlled engineering specifications.
+!docs/architecture/
+!docs/architecture/**
 
 # Generated page mockups (rebuilt by sketch/build-pages.mjs)
 /sketch/*.html

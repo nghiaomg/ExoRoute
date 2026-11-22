@@ -146,6 +146,24 @@ pub(crate) fn pending_callback_adapter_id(
         .map(|flow| flow.adapter_id.clone())
 }
 
+/// Returns the stable flow id matching a callback's state hash. The id is the
+/// AAD record binding for the pending API key so the ciphertext cannot be
+/// swapped into another sign-in flow.
+pub(crate) fn pending_callback_flow_id(
+    flows: &HashMap<String, PendingProviderApiKeyAuthFlow>,
+    submitted_state_hash: &[u8],
+    now: Instant,
+) -> Option<String> {
+    flows
+        .iter()
+        .find(|(_, flow)| {
+            flow.status == ProviderApiKeyAuthFlowStatus::Pending
+                && flow.expires_at > now
+                && secure_eq(&flow.state_hash, submitted_state_hash)
+        })
+        .map(|(flow_id, _)| flow_id.clone())
+}
+
 fn normalized_metadata(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_owned())

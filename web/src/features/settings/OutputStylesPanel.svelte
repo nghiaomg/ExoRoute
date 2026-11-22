@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { LoaderCircle, RotateCcw, Save, Sparkles } from '@lucide/svelte';
-  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
-  import SelectOptions from '../../components/SelectOptions.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import { ApiError, api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -266,7 +266,7 @@ import { localizedError } from '../../lib/errors';
         <div class="output-styles-list">
           {#each catalog as item}
             <div class="output-style-row">
-              <ArkCheckbox
+              <Checkbox
                 checked={draft[item.id] !== null}
                 ariaLabel={tr(item.label)}
                 onCheckedChange={(checked) => toggleStyle(item.id, checked === true)}

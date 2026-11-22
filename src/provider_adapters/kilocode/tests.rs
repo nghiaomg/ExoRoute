@@ -304,7 +304,11 @@ async fn save_oauth_credential(
         email: Some("operator@example.com".to_owned()),
     };
     let serialized = serde_json::to_string(&account).expect("encode account");
-    let encrypted = crate::security::encrypt_secret(Some(&TEST_MASTER_KEY), &serialized)
+    let encrypted = crate::security::encrypt_secret(
+        Some(&TEST_MASTER_KEY),
+        &crate::security::SecretContext::oauth_account(key_id),
+        &serialized,
+    )
         .expect("encrypt")
         .expect("non-empty encrypted account");
     let now = crate::infra::db::utc_timestamp_now().expect("timestamp");

@@ -82,11 +82,27 @@ impl RotatingErrorLog {
     }
 
     fn open(&self) -> Option<(File, u64)> {
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.path)
-            .ok()?;
+        let mut options = OpenOptions::new();
+        options.create(true).append(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let file = options.open(&self.path).ok()?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            // Files created by an older build may be group/world readable.
+            // Repairing is best effort: this sink is diagnostic-only and an I/O
+            // failure here must never break request handling (see module docs).
+            if let Ok(metadata) = file.metadata()
+                && (metadata.permissions().mode() & 0o777) != 0o600
+            {
+                let _ =
+                    std::fs::set_permissions(&self.path, std::fs::Permissions::from_mode(0o600));
+            }
+        }
         let written = file.metadata().map(|meta| meta.len()).unwrap_or(0);
         Some((file, written))
     }
@@ -195,6 +211,30 @@ mod tests {
         assert!(backup.contains("appended"));
         assert!(backup.contains("trigger"));
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "rotated\n");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn error_log_file_uses_owner_only_permissions_and_repairs_existing_files() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = temp_dir("mode");
+        let path = dir.join(LOG_FILE_NAME);
+        let mut log = RotatingErrorLog::new(path.clone(), 1024);
+        log.write_all(b"line\n").unwrap();
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600, "new error log must be owner-only: {mode:o}");
+        drop(log);
+
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let mut reopened = RotatingErrorLog::new(path.clone(), 1024);
+        reopened.write_all(b"more\n").unwrap();
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(
+            mode, 0o600,
+            "existing loose permissions must be repaired: {mode:o}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

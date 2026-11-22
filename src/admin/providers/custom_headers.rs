@@ -73,6 +73,7 @@ pub(crate) fn normalize_custom_headers_for_tests(
 
 pub(crate) fn encrypt_custom_headers(
     headers: &BTreeMap<String, String>,
+    record_id: &str,
     master_key: Option<&[u8; 32]>,
 ) -> Result<Option<Vec<u8>>, String> {
     if headers.is_empty() {
@@ -80,7 +81,11 @@ pub(crate) fn encrypt_custom_headers(
     }
     let serialized = serde_json::to_string(headers)
         .map_err(|_| "could not serialize provider custom headers".to_owned())?;
-    crate::security::encrypt_secret(master_key, &serialized)
+    crate::security::encrypt_secret(
+        master_key,
+        &crate::security::SecretContext::provider(record_id, "custom_headers"),
+        &serialized,
+    )
 }
 
 pub(crate) fn stored_custom_headers(
@@ -93,8 +98,15 @@ pub(crate) fn stored_custom_headers(
     else {
         return Ok(BTreeMap::new());
     };
-    let serialized = crate::security::decrypt_secret(master_key, Some(stored))?
-        .ok_or_else(|| "stored provider custom headers are empty".to_owned())?;
+    let serialized = crate::security::decrypt_secret(
+        master_key,
+        &crate::security::SecretContext::provider(
+            record.text("id").map_err(|error| error.to_string())?,
+            "custom_headers",
+        ),
+        Some(stored),
+    )?
+    .ok_or_else(|| "stored provider custom headers are empty".to_owned())?;
     let headers: BTreeMap<String, String> = serde_json::from_str(&serialized)
         .map_err(|_| "stored provider custom headers are invalid".to_owned())?;
     let entries = headers

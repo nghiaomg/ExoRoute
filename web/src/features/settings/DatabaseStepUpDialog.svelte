@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { Check, LoaderCircle } from '@lucide/svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
-  import ArkPasswordInput from '../../components/ArkPasswordInput.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import PasswordInput from '../../components/ui/PasswordInput.svelte';
   import { api } from '../../lib/api';
   import { type Translate } from '../../lib/format';
 import { localizedError } from '../../lib/errors';
@@ -46,7 +46,7 @@ import { localizedError } from '../../lib/errors';
   }
 </script>
 
-<ArkDialog
+<Dialog
   {open}
   closeLabel={tr('Close dialog')}
   title={tr('Confirm admin password')}
@@ -55,11 +55,11 @@ import { localizedError } from '../../lib/errors';
 >
   <form class="modal-form" onsubmit={verifyPassword}>
     <p class="modal-description">{tr(operation === 'export' ? 'Enter your admin password to authorize one database export.' : 'Enter your admin password to authorize this database import.')}</p>
-    <ArkPasswordInput label={tr('Admin password')} bind:value={password} autocomplete="current-password" visibilityToggleLabel={tr('Toggle password visibility')} required disabled={busy} />
+    <PasswordInput label={tr('Admin password')} bind:value={password} autocomplete="current-password" visibilityToggleLabel={tr('Toggle password visibility')} required disabled={busy} />
     {#if errorMessage}<div class="form-error" role="alert">{errorMessage}</div>{/if}
     <div class="modal-actions">
       <Button type="button" class="secondary-button" disabled={busy} onclick={close}>{tr('Cancel')}</Button>
       <Button type="submit" class="primary-button" disabled={busy || !password}>{#if busy}<LoaderCircle size={14} class="spin" />{tr('Verifying password…')}{:else}<Check size={14} />{tr('Continue')}{/if}</Button>
     </div>
   </form>
-</ArkDialog>
+</Dialog>

@@ -7,6 +7,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::watch;
 
+/// Client-facing SSE comment cadence. Well below strict clients' watchdogs.
+const CLIENT_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(15);
+
 /// A frame produced by the transport layer before protocol-specific decoding.
 /// The permit stays attached to the frame so semantic processing owns its
 /// lifetime and cancellation still releases the SSE processing slot.
@@ -52,9 +55,32 @@ impl SseFrameReader {
         shutdown: watch::Receiver<bool>,
         processing_slots: Option<Arc<DynamicSemaphore>>,
     ) -> Self {
+        Self::with_keepalive_interval(
+            chunks,
+            idle_timeout,
+            continuity_enabled,
+            overall_timeout,
+            resource_limits,
+            shutdown,
+            processing_slots,
+            CLIENT_KEEPALIVE_INTERVAL,
+        )
+    }
+
+    pub(crate) fn with_keepalive_interval(
+        chunks: UpstreamChunkStream,
+        idle_timeout: Duration,
+        continuity_enabled: bool,
+        overall_timeout: Option<Duration>,
+        resource_limits: GatewayResourceLimits,
+        shutdown: watch::Receiver<bool>,
+        processing_slots: Option<Arc<DynamicSemaphore>>,
+        keepalive_interval: Duration,
+    ) -> Self {
         let now = tokio::time::Instant::now();
-        let mut keepalive =
-            tokio::time::interval_at(now + Duration::from_secs(15), Duration::from_secs(15));
+        // Client-facing SSE comments keep strict clients' stream watchdogs
+        // alive during silent provider pauses, including non-continuity streams.
+        let mut keepalive = tokio::time::interval_at(now + keepalive_interval, keepalive_interval);
         keepalive.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         Self {
             chunks,
@@ -104,6 +130,7 @@ impl SseFrameReader {
                             Err(_) => return SseReadEvent::Error("upstream stream idle timeout".to_owned()),
                         }
                     }
+                    _ = self.keepalive.tick() => return SseReadEvent::KeepAlive,
                 }
             };
 

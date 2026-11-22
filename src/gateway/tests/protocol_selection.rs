@@ -102,6 +102,96 @@ fn decode_failure_messages_keep_redacted_provider_diagnostics() {
 }
 
 #[test]
+fn provider_error_redacts_hyphenated_key_headers() {
+    for body in [
+        br#"{"error":"x-api-key=sk-live-1234"}"#.as_slice(),
+        br#"{"error":"x-api-key: sk-live-1234"}"#.as_slice(),
+        br#"{"error":"x-goog-api-key=AIzaTest123"}"#.as_slice(),
+        br#"{"error":"x-goog-api-key: AIzaTest123"}"#.as_slice(),
+        br#"{"error":"x-auth-key=auth-secret"}"#.as_slice(),
+        br#"{"error":"x-secret-key: secret-value"}"#.as_slice(),
+        br#"{"error":"access-key=access-secret"}"#.as_slice(),
+    ] {
+        let redacted = sanitize_provider_error_body(body);
+        assert!(redacted.contains("[redacted]"), "{redacted}");
+        assert!(!redacted.contains("sk-live-1234"), "{redacted}");
+        assert!(!redacted.contains("AIzaTest123"), "{redacted}");
+        assert!(!redacted.contains("auth-secret"), "{redacted}");
+        assert!(!redacted.contains("secret-value"), "{redacted}");
+        assert!(!redacted.contains("access-secret"), "{redacted}");
+    }
+}
+
+#[test]
+fn provider_error_redacts_url_query_secrets_without_damaging_the_url() {
+    let body = br#"{"error":"request https://generativelanguage.googleapis.com/v1beta/models:streamGenerateContent?key=AIzaSecret123&alt=sse failed"}"#;
+    let redacted = sanitize_provider_error_body(body);
+    assert!(!redacted.contains("AIzaSecret123"), "{redacted}");
+    assert!(redacted.contains("key=[redacted]"), "{redacted}");
+    assert!(
+        redacted.contains(
+            "https://generativelanguage.googleapis.com/v1beta/models:streamGenerateContent"
+        ),
+        "{redacted}"
+    );
+    assert!(redacted.contains("alt=sse"), "{redacted}");
+
+    let multiple =
+        br#"{"error":"https://host.test/v1?model=gpt-4&api_key=sk-A&access_token=tok-B&alt=sse"}"#;
+    let redacted = sanitize_provider_error_body(multiple);
+    assert!(!redacted.contains("sk-A"), "{redacted}");
+    assert!(!redacted.contains("tok-B"), "{redacted}");
+    assert!(redacted.contains("api_key=[redacted]"), "{redacted}");
+    assert!(redacted.contains("access_token=[redacted]"), "{redacted}");
+    assert!(redacted.contains("model=gpt-4"), "{redacted}");
+    assert!(redacted.contains("alt=sse"), "{redacted}");
+}
+
+#[test]
+fn provider_error_redaction_preserves_edge_cases_and_plain_prose() {
+    let cases: &[(&[u8], &str, &[&str])] = &[
+        (
+            br#"{"error":"https://host.test/v1?key="}"#,
+            "key=[redacted]",
+            &[],
+        ),
+        (
+            br#"{"error":"https://host.test/v1?key=secret.&x=1"}"#,
+            "key=[redacted].&x=1",
+            &["secret"],
+        ),
+        (
+            br#"{"error":"https://host.test/v1?model=gpt-4&alt=sse"}"#,
+            "model=gpt-4&alt=sse",
+            &[],
+        ),
+        (
+            br#"{"error":"invalid primary key"}"#,
+            "invalid primary key",
+            &[],
+        ),
+        (
+            br#"{"error":"Authorization: Bearer sk-bearer-token"}"#,
+            "[redacted]",
+            &["sk-bearer-token"],
+        ),
+    ];
+    for (body, expected, forbidden) in cases {
+        let redacted = sanitize_provider_error_body(body);
+        assert!(
+            redacted.contains(expected),
+            "expected {expected:?} in {redacted}"
+        );
+        for secret in *forbidden {
+            assert!(
+                !redacted.contains(secret),
+                "leaked {secret:?} in {redacted}"
+            );
+        }
+    }
+}
+
+#[test]
 fn endpoint_url_respects_versioned_base_url() {
     assert_eq!(
         endpoint_url("https://example.com/v1/", Protocol::ChatCompletions)

@@ -1,12 +1,12 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import StatsCard from "../../components/StatsCard.svelte";
+  import Button from "../../components/ui/Button.svelte";
+  import StatsCard from "../../components/ui/StatsCard.svelte";
   import { onMount } from 'svelte';
   import { ArrowDown, ArrowUp, GitBranch, Plus, Save, Trash2 } from '@lucide/svelte';
-  import ArkCheckbox from '../../components/ArkCheckbox.svelte';
-  import Input from '../../components/Input.svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
-  import SelectOptions from '../../components/SelectOptions.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
+  import Input from '../../components/ui/Input.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import { proxyApi } from '../../lib/api/proxies';
   import { localizedError } from '../../lib/errors';
   import { showDashboardToast } from '../../lib/dashboard-ui';
@@ -257,13 +257,13 @@
   </div>
 {/if}
 
-<ArkDialog bind:open={editDialog} wide class="proxy-edit-dialog" title={tr(editingId ? 'Edit proxy' : 'Add proxy')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} preventClose={saving} onClose={() => { editDialog = false; }}>
+<Dialog bind:open={editDialog} wide class="proxy-edit-dialog" title={tr(editingId ? 'Edit proxy' : 'Add proxy')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} preventClose={saving} onClose={() => { editDialog = false; }}>
   <form class="modal-form" onsubmit={(event) => { event.preventDefault(); void save(); }}>
     <div class="grid items-start gap-4 min-[760px]:grid-cols-[minmax(0,290px)_minmax(0,1fr)]">
       <section class="grid content-start gap-3.5">
         <label class="field">{tr('Proxy name')}<Input maxlength={256} bind:value={draft.name} placeholder={tr('e.g. Residential pool')} required /></label>
         <label class="field">{tr('Endpoint selection')}<SelectOptions bind:value={draft.strategy} ariaLabel={tr('Endpoint selection')} items={[{ label: tr('Priority order'), value: 'priority' }, { label: tr('Round robin'), value: 'round_robin' }]} /></label>
-        <ArkCheckbox checked={draft.enabled} label={tr('Enable this proxy')} onCheckedChange={(checked) => draft.enabled = checked === true} />
+        <Checkbox checked={draft.enabled} label={tr('Enable this proxy')} onCheckedChange={(checked) => draft.enabled = checked === true} />
         <p class="mb-0 text-caption leading-relaxed text-muted">{tr('A group expands in place. Fallback happens only when connecting to an endpoint fails.')}</p>
       </section>
       <section class="grid min-w-0 content-start gap-3">
@@ -293,9 +293,9 @@
     </div>
     <div class="modal-actions"><Button class="secondary-button" type="button" onclick={() => editDialog = false}>{tr('Cancel')}</Button><Button class="primary-button" type="submit" disabled={saving}>{#if saving}<span class="spin">◌</span>{tr('Saving…')}{:else}<Save size={14}/>{tr('Save proxy')}{/if}</Button></div>
   </form>
-</ArkDialog>
+</Dialog>
 
-<ArkDialog bind:open={deleteDialog} title={tr('Delete proxy?')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} onClose={() => { deleteDialog = false; }}>
+<Dialog bind:open={deleteDialog} title={tr('Delete proxy?')} kicker={tr('Egress proxy')} closeLabel={tr('Close dialog')} onClose={() => { deleteDialog = false; }}>
   <div class="modal-form"><p>{tr('Delete {name}? Providers or proxy groups still using it will block deletion.', { name: deleting?.name ?? '' })}</p><div class="modal-actions"><Button class="secondary-button" type="button" onclick={() => deleteDialog = false}>{tr('Cancel')}</Button><Button class="danger-button" type="button" disabled={deleteBusy} onclick={() => void confirmDelete()}>{tr(deleteBusy ? 'Deleting…' : 'Delete proxy')}</Button></div></div>
-</ArkDialog>
+</Dialog>
 

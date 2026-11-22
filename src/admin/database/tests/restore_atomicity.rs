@@ -416,3 +416,98 @@ async fn restore_worker_reconciles_state_after_its_response_handle_is_dropped() 
         state.output_styles()
     );
 }
+
+#[tokio::test]
+async fn snapshot_round_trip_preserves_legacy_and_aad_bound_secrets() {
+    use crate::security::{SecretContext, decrypt_secret, encrypt_secret};
+    use crate::support::test_support::TestDatabase;
+    use chacha20poly1305::{
+        ChaCha20Poly1305, Nonce,
+        aead::{Aead, KeyInit},
+    };
+
+    const MASTER_KEY: [u8; 32] = [53u8; 32];
+    let source = TestDatabase::open().await;
+
+    let cipher = ChaCha20Poly1305::new((&MASTER_KEY).into());
+    let mut nonce = [0u8; 12];
+    rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut nonce);
+    let mut legacy = nonce.to_vec();
+    legacy.extend_from_slice(
+        &cipher
+            .encrypt(Nonce::from_slice(&nonce), b"legacy-secret".as_slice())
+            .expect("legacy encryption"),
+    );
+    let bound = encrypt_secret(
+        Some(&MASTER_KEY),
+        &SecretContext::provider_key("bound-key"),
+        "bound-secret",
+    )
+    .expect("v2 encryption")
+    .expect("non-empty ciphertext");
+
+    source
+        .db
+        .write(move |transaction| {
+            for (id, secret) in [("legacy-key", legacy.clone()), ("bound-key", bound.clone())] {
+                transaction.put(
+                    Table::ProviderApiKeys,
+                    id,
+                    &Record::new()
+                        .with("id", Field::Text(id.to_owned()))
+                        .with("secret", Field::Bytes(secret)),
+                )?;
+            }
+            Ok(())
+        })
+        .await
+        .expect("seed mixed-version secrets");
+
+    let entries = source
+        .db
+        .snapshot_entries(true, 64 * 1024 * 1024)
+        .await
+        .expect("bounded snapshot");
+    let target = TestDatabase::open().await;
+    target
+        .db
+        .replace_snapshot_entries(entries)
+        .await
+        .expect("restore snapshot");
+
+    let restored = target
+        .db
+        .read(|transaction| {
+            Ok((
+                transaction
+                    .get::<Record>(Table::ProviderApiKeys, "legacy-key")?
+                    .expect("legacy row"),
+                transaction
+                    .get::<Record>(Table::ProviderApiKeys, "bound-key")?
+                    .expect("bound row"),
+            ))
+        })
+        .await
+        .expect("read restored secrets");
+
+    assert_eq!(
+        decrypt_secret(
+            Some(&MASTER_KEY),
+            &SecretContext::provider_key("legacy-key"),
+            restored.0.optional_bytes("secret").expect("legacy secret field"),
+        )
+        .expect("legacy decryption after restore")
+        .as_deref(),
+        Some("legacy-secret")
+    );
+    assert_eq!(
+        decrypt_secret(
+            Some(&MASTER_KEY),
+            &SecretContext::provider_key("bound-key"),
+            restored.1.optional_bytes("secret").expect("bound secret field"),
+        )
+        .expect("v2 decryption after restore")
+        .as_deref(),
+        Some("bound-secret")
+    );
+}

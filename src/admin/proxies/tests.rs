@@ -294,3 +294,92 @@ async fn concurrent_proxy_check_returns_a_sanitized_conflict() {
     };
     assert_eq!(response["die_count"], 1);
 }
+
+#[tokio::test]
+async fn endpoint_reorder_keeps_aad_bound_secrets_decryptable() {
+    use crate::security::{SecretContext, decrypt_secret};
+
+    let fixture = TestDatabase::open().await;
+    let mut config = fixture.config();
+    config.master_key = Some([53_u8; 32]);
+    let state = AppState::new(config, fixture.db.clone());
+
+    let first_id = uuid::Uuid::new_v4().to_string();
+    let second_id = uuid::Uuid::new_v4().to_string();
+    let make_endpoint = |endpoint_id: String, port: u16, priority: u32, secret: &str| {
+        ProxyEndpointInput {
+            endpoint_id,
+            url: Some(format!("http://127.0.0.1:{port}")),
+            priority,
+            secret: Some(secret.to_owned()),
+            enabled: true,
+            ..ProxyEndpointInput::default()
+        }
+    };
+    let mut proxy = input(vec![
+        make_endpoint(first_id.clone(), 7801, 0, "alpha-secret"),
+        make_endpoint(second_id.clone(), 7802, 1, "beta-secret"),
+    ]);
+    proxy.id = "reorder-proxy".to_owned();
+    let id = created_proxy_id(&state, proxy).await;
+
+    let captured_id = id.clone();
+    let read_secrets = |database: crate::infra::storage::Database| {
+        let prefix = super::storage::proxy_endpoint_prefix(&captured_id).expect("endpoint prefix");
+        async move {
+            database
+                .read(move |transaction| {
+                    let endpoints = transaction.scan_prefix::<Record>(
+                        Table::ProxyEndpoints,
+                        &prefix,
+                        10,
+                    )?;
+                    let mut found = Vec::new();
+                    for (_, record) in endpoints {
+                        let endpoint_id = record.text("endpoint_id")?.to_owned();
+                        let secret = decrypt_secret(
+                            Some(&[53_u8; 32]),
+                            &SecretContext::proxy_endpoint(&endpoint_id),
+                            record.optional_bytes("secret")?,
+                        )
+                        .map_err(crate::infra::storage::StorageError::Invalid)?;
+                        found.push((endpoint_id, secret));
+                    }
+                    found.sort_by(|left, right| left.0.cmp(&right.0));
+                    Ok::<_, crate::infra::storage::StorageError>(found)
+                })
+                .await
+                .expect("read stored endpoint secrets")
+        }
+    };
+
+    let before = read_secrets(fixture.db.clone()).await;
+    let mut expected = vec![
+        (first_id.clone(), Some("alpha-secret".to_owned())),
+        (second_id.clone(), Some("beta-secret".to_owned())),
+    ];
+    expected.sort_by(|left, right| left.0.cmp(&right.0));
+    assert_eq!(before, expected);
+
+    // Reorder priorities but omit plaintext secrets; the storage layer copies
+    // the old ciphertext by stable endpoint id. AAD is bound to that id, not
+    // to the priority/ordinal LMDB key, so decryption must still succeed.
+    let update: ProxyInput = serde_json::from_value(json!({
+        "id": id,
+        "name": "Reordered proxy",
+        "strategy": "priority",
+        "enabled": true,
+        "endpoints": [
+            { "endpoint_id": second_id, "url": "http://127.0.0.1:7802", "priority": 0, "enabled": true, "has_secret": true },
+            { "endpoint_id": first_id, "url": "http://127.0.0.1:7801", "priority": 1, "enabled": true, "has_secret": true }
+        ]
+    }))
+    .expect("reorder input");
+    let reordered = update_proxy(State(state), Path(id), Json(update))
+        .await
+        .expect("proxy reorder succeeds");
+    assert_eq!(reordered["ok"], json!(true));
+
+    let after = read_secrets(fixture.db.clone()).await;
+    assert_eq!(after, before, "ciphertexts survive the priority reorder");
+}

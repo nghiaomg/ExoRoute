@@ -1,6 +1,6 @@
 /**
  * Live statistics refresh scheduling (request.stats.refresh.ts) and its
- * wiring into the Requests page.
+ * wiring into the production Dashboard Requests page.
  *
  * The scheduler must coalesce a burst of finished requests into a single
  * refetch, skip hidden tabs, refresh once when the tab becomes visible
@@ -144,12 +144,18 @@ test('dispose cancels the pending timer and the visibility subscription', () => 
   assert.equal(clock.pendingCount(), 0, 'visibility changes after dispose schedule nothing');
 });
 
-test('the page schedules on finished live events and disposes on unmount', () => {
-  const source = readFileSync(new URL('../src/features/requests/RequestsPage.svelte', import.meta.url), 'utf8');
+test('the production requests page schedules on finished live events and disposes on unmount', () => {
+  const source = readFileSync(new URL('../src/features/requests/DashboardRequestsPage.svelte', import.meta.url), 'utf8');
 
-  const onFinished = source.match(/onFinished: \(finished\) => \{[\s\S]*?\n    \},/);
-  assert.ok(onFinished, 'the live controller declares an onFinished handler');
-  assert.match(onFinished[0], /statisticsRefresher\.schedule\(\)/, 'a finished request schedules the statistics refetch');
+  // The production page subscribes with an inline SSE callback rather than the
+  // old controller's onFinished hook: pin the finished branch itself.
+  const liveHandler = source.match(/streamRequestLive\(\s*\(event\)\s*=>\s*\{[\s\S]*?liveAbort\.signal/);
+  assert.ok(liveHandler, 'the page registers a live SSE handler');
+  assert.match(
+    liveHandler[0],
+    /event\.type === 'finished'\)\s*statisticsRefresher\.schedule\(\);/,
+    'a finished request schedules the statistics refetch',
+  );
 
   const onDestroy = source.match(/onDestroy\(\(\) => \{[\s\S]*?\n  \}\);/);
   assert.ok(onDestroy, 'the page registers onDestroy');

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { Check, Clipboard, Copy } from '@lucide/svelte';
   import { onDestroy } from 'svelte';
   import type { DocsCodeSample } from './docsCopy';

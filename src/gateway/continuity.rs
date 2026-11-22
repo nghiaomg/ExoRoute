@@ -9,6 +9,7 @@ mod worker;
 pub(in crate::gateway) use records::{
     BackgroundRequestSettings, create_run_with_settings, finish_run, load_run_with_settings,
 };
+pub(crate) use records::JournalBatch;
 #[cfg(test)]
 pub(in crate::gateway) use records::{append_event, create_run, load_run};
 #[cfg(test)]

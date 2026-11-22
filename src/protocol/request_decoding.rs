@@ -1,4 +1,20 @@
+use super::parse::validate_openai_function_name;
 use super::*;
+
+/// Captures top-level request fields that have no slot in the canonical model.
+/// `metadata` is the only channel the encoders use for unmodeled options, so a
+/// field omitted here would never reach the upstream provider.
+fn unmodeled_metadata(body: &Value, modeled: &[&str]) -> BTreeMap<String, Value> {
+    let mut metadata = BTreeMap::new();
+    if let Some(object) = body.as_object() {
+        for (key, value) in object {
+            if !modeled.contains(&key.as_str()) {
+                metadata.insert(key.clone(), value.clone());
+            }
+        }
+    }
+    metadata
+}
 
 pub(super) fn decode_request(protocol: Protocol, body: &Value) -> Result<CanonicalRequest, String> {
     match protocol {
@@ -41,17 +57,19 @@ fn decode_chat_request(body: &Value) -> Result<CanonicalRequest, String> {
                     }
                     other => other,
                 };
+                let name = function
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_owned();
+                validate_openai_function_name(&name, "tool call")?;
                 content.push(ContentBlock::ToolCall {
                     id: call
                         .get("id")
                         .and_then(Value::as_str)
                         .unwrap_or("call")
                         .to_owned(),
-                    name: function
-                        .get("name")
-                        .and_then(Value::as_str)
-                        .unwrap_or("")
-                        .to_owned(),
+                    name,
                     arguments,
                 });
             }
@@ -73,27 +91,21 @@ fn decode_chat_request(body: &Value) -> Result<CanonicalRequest, String> {
         });
     }
     let tools = parse_chat_tools(body.get("tools"))?;
-    let mut metadata = BTreeMap::new();
-    if let Some(object) = body.as_object() {
-        for (key, value) in object {
-            if ![
-                "model",
-                "messages",
-                "tools",
-                "tool_choice",
-                "temperature",
-                "top_p",
-                "max_tokens",
-                "max_completion_tokens",
-                "stop",
-                "stream",
-            ]
-            .contains(&key.as_str())
-            {
-                metadata.insert(key.clone(), value.clone());
-            }
-        }
-    }
+    let metadata = unmodeled_metadata(
+        body,
+        &[
+            "model",
+            "messages",
+            "tools",
+            "tool_choice",
+            "temperature",
+            "top_p",
+            "max_tokens",
+            "max_completion_tokens",
+            "stop",
+            "stream",
+        ],
+    );
     Ok(CanonicalRequest {
         source_protocol: Protocol::ChatCompletions,
         model,
@@ -187,7 +199,20 @@ fn decode_responses_request(body: &Value) -> Result<CanonicalRequest, String> {
         max_tokens: optional_u32(body.get("max_output_tokens"), "max_output_tokens")?,
         stop: Vec::new(),
         stream: optional_bool(body.get("stream"), "stream")?.unwrap_or(false),
-        metadata: BTreeMap::new(),
+        metadata: unmodeled_metadata(
+            body,
+            &[
+                "model",
+                "instructions",
+                "input",
+                "tools",
+                "tool_choice",
+                "temperature",
+                "top_p",
+                "max_output_tokens",
+                "stream",
+            ],
+        ),
         output_styles_applied: false,
     })
 }
@@ -250,7 +275,21 @@ fn decode_messages_request(body: &Value) -> Result<CanonicalRequest, String> {
         max_tokens: optional_u32(body.get("max_tokens"), "max_tokens")?,
         stop: parse_string_list(body.get("stop_sequences")),
         stream: optional_bool(body.get("stream"), "stream")?.unwrap_or(false),
-        metadata: BTreeMap::new(),
+        metadata: unmodeled_metadata(
+            body,
+            &[
+                "model",
+                "system",
+                "messages",
+                "tools",
+                "tool_choice",
+                "temperature",
+                "top_p",
+                "max_tokens",
+                "stop_sequences",
+                "stream",
+            ],
+        ),
         output_styles_applied: false,
     })
 }

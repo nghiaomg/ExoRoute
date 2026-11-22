@@ -17,7 +17,7 @@ use super::{
 use crate::{
     infra::storage::{Field, Record, StorageError, Table},
     provider_adapters,
-    security::encrypt_secret,
+    security::{SecretContext, encrypt_secret},
     state::AppState,
 };
 use axum::{
@@ -61,7 +61,7 @@ pub(crate) async fn update_provider(
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?
             .unwrap_or(existing_custom_headers);
     let encrypted_custom_headers = if custom_headers_were_updated {
-        encrypt_custom_headers(&normalized_custom_headers, state.config.master_key.as_ref())
+        encrypt_custom_headers(&normalized_custom_headers, &id, state.config.master_key.as_ref())
             .map_err(|message| fail(StatusCode::BAD_REQUEST, message))?
     } else {
         None
@@ -103,11 +103,19 @@ pub(crate) async fn update_provider(
     };
     let auth_header =
         normalized_provider_auth_header(input.auth_header.as_deref(), effective_auth_type);
+    let key_ids: Vec<String> = (0..keys.len())
+        .map(|_| uuid::Uuid::new_v4().to_string())
+        .collect();
     let encrypted_keys = keys
         .iter()
-        .map(|key| {
-            encrypt_secret(state.config.master_key.as_ref(), key)
-                .map_err(|error| fail(StatusCode::BAD_REQUEST, error))
+        .enumerate()
+        .map(|(index, key)| {
+            encrypt_secret(
+                state.config.master_key.as_ref(),
+                &SecretContext::provider_key(&key_ids[index]),
+                key,
+            )
+            .map_err(|error| fail(StatusCode::BAD_REQUEST, error))
                 .and_then(|secret| {
                     secret.ok_or_else(|| fail(StatusCode::BAD_REQUEST, "provider API key is empty"))
                 })
@@ -173,7 +181,7 @@ pub(crate) async fn update_provider(
     let requested_proxy_change = requested_proxy_change.clone();
     let mut key_records = Vec::with_capacity(encrypted_keys.len());
     for (index, (secret, test)) in encrypted_keys.iter().zip(key_tests.iter()).enumerate() {
-        let key_id = uuid::Uuid::new_v4().to_string();
+        let key_id = key_ids[index].clone();
         let key_name = if index == 0 {
             "Added key".to_owned()
         } else {

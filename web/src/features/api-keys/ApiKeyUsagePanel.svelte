@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { Activity, CircleCheck, CircleX, Clock3, RefreshCw } from '@lucide/svelte';
   import { onMount } from 'svelte';
   import { api } from '../../lib/api';
@@ -143,43 +143,43 @@
     <div class="usage-kpis">
       <article class="usage-kpi">
         <span>{tr('Total requests')}<Activity size={14} /></span>
-        <strong>{formatCount(statistics.total_requests, locale)}</strong>
+        <strong class="numeric">{formatCount(statistics.total_requests, locale)}</strong>
         <small>{tr('Across the selected period')}</small>
       </article>
       <article class="usage-kpi">
         <span>{tr('Success rate')}<CircleCheck size={14} /></span>
-        <strong>{formatPercent(statistics.success_rate, locale)}</strong>
+        <strong class="numeric good">{formatPercent(statistics.success_rate, locale)}</strong>
         <small>{tr('{count} successful', { count: formatCount(statistics.successes, locale) })}</small>
       </article>
       <article class="usage-kpi">
         <span>{tr('Failed requests')}<CircleX size={14} /></span>
-        <strong>{formatCount(statistics.failures, locale)}</strong>
+        <strong class="numeric" class:bad={statistics.failures > 0}>{formatCount(statistics.failures, locale)}</strong>
         <small>{tr('Final client request outcome')}</small>
       </article>
       <article class="usage-kpi">
         <span>{tr('Average latency')}<Clock3 size={14} /></span>
-        <strong>{formatCount(Math.round(statistics.average_latency_ms), locale)}<em>ms</em></strong>
+        <strong class="numeric">{formatCount(Math.round(statistics.average_latency_ms), locale)}<em>ms</em></strong>
         <small>{tr('End-to-end request duration')}</small>
       </article>
     </div>
 
     <div class="usage-tokens">
-      <div><span>{tr('Input tokens')}</span><strong>{formatCount(statistics.input_tokens, locale)}</strong></div>
-      <div><span>{tr('Output tokens')}</span><strong>{formatCount(statistics.output_tokens, locale)}</strong></div>
-      <div><span>{tr('Cached tokens')}</span><strong>{formatCount(statistics.cached_tokens, locale)}</strong></div>
-      <div><span>{tr('Cache ratio')}</span><strong>{formatPercent(statistics.cache_ratio, locale)}</strong></div>
-      <div><span>{tr('Spend')}</span><strong>{formatCostMicroUsd(statistics.cost.cost_reported_micro_usd)}</strong></div>
+      <div><span>{tr('Input tokens')}</span><strong class="numeric">{formatCount(statistics.input_tokens, locale)}</strong></div>
+      <div><span>{tr('Output tokens')}</span><strong class="numeric">{formatCount(statistics.output_tokens, locale)}</strong></div>
+      <div><span>{tr('Cached tokens')}</span><strong class="numeric">{formatCount(statistics.cached_tokens, locale)}</strong></div>
+      <div><span>{tr('Cache ratio')}</span><strong class="numeric">{formatPercent(statistics.cache_ratio, locale)}</strong></div>
+      <div><span>{tr('Spend')}</span><strong class="numeric">{formatCostMicroUsd(statistics.cost.cost_reported_micro_usd)}</strong></div>
     </div>
 
     {#if modelRows.length}
-      <div class="usage-models">
+      <div class="usage-models usage-models-card">
         <h4>{tr('Requests by model for this key')}</h4>
         <ul>
           {#each modelRows as row (row.id)}
             <li>
               <div class="usage-model-row">
                 <span class="usage-model-name" title={row.label}>{row.label}</span>
-                <span class="usage-model-count">{formatCount(row.requests, locale)}</span>
+                <span class="usage-model-count numeric">{formatCount(row.requests, locale)} <span class="model-share">({row.share.toFixed(1)}%)</span></span>
               </div>
               <div class="usage-model-track">
                 <span style="width: {maxModelRequests > 0 ? Math.max(2, (row.requests / maxModelRequests) * 100) : 0}%"></span>
@@ -273,11 +273,20 @@
     cursor: default;
     opacity: 0.6;
   }
+  .numeric { font-variant-numeric: tabular-nums; }
+  .usage-kpi strong.good { color: var(--chart-good); }
+  .usage-kpi strong.bad { color: var(--accent-strong); }
+  .usage-models-card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+  .model-share { color: var(--muted); font-weight: 500; }
+  .usage-model-track { height: 8px; border-radius: 999px; background: var(--surface-sunken); }
+  .usage-model-track > span { background: var(--accent); }
   .usage-kpis {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 8px;
   }
+  @media (min-width: 640px) { .usage-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .usage-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
   .usage-kpi {
     display: grid;
     gap: 3px;
@@ -317,13 +326,14 @@
   }
   .usage-tokens {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 1px;
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 11px;
     background: var(--line);
   }
+  @media (min-width: 640px) { .usage-tokens { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
   .usage-tokens > div {
     display: grid;
     gap: 5px;

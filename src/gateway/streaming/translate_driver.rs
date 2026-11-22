@@ -91,7 +91,13 @@ pub(in crate::gateway::streaming) fn translation_stream(
                         .get("body")
                         .and_then(Value::as_str)
                         .unwrap_or("upstream error");
-                    let error = format!("upstream status {status_val}: {msg}");
+                    // The envelope body is untrusted text. Redact credential
+                    // material and bound the whole message (prefix included)
+                    // before it reaches the client error event or the request
+                    // log via StreamTerminal::Error.
+                    let error = super::errors::sanitize_stream_error_detail(&format!(
+                        "upstream status {status_val}: {msg}"
+                    ));
                     yield Ok(Bytes::from(encode_stream_error(config.client_protocol, &error)));
                     terminal = StreamTerminal::Error(error);
                     break 'read_stream;

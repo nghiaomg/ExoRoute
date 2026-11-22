@@ -220,8 +220,12 @@ async fn import_credential_probed_models(
     key_rows: &[Record],
 ) -> ApiResult {
     let mut credentials = Vec::new();
-    if let Some(secret) =
-        decrypt_secret(state.config.master_key.as_ref(), legacy_secret).map_err(|_| {
+    if let Some(secret) = decrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::provider(id, "secret"),
+        legacy_secret,
+    )
+    .map_err(|_| {
             fail(
                 StatusCode::BAD_REQUEST,
                 "could not decrypt provider credentials; check EXOROUTE_MASTER_KEY",
@@ -233,8 +237,14 @@ async fn import_credential_probed_models(
 
     for row in key_rows {
         let secret = row.bytes("secret").map_err(internal)?;
-        if let Some(secret) = decrypt_secret(state.config.master_key.as_ref(), Some(secret))
-            .map_err(|_| {
+        if let Some(secret) = decrypt_secret(
+            state.config.master_key.as_ref(),
+            &crate::security::SecretContext::provider_key(
+                row.text("id").map_err(internal)?,
+            ),
+            Some(secret),
+        )
+        .map_err(|_| {
                 fail(
                     StatusCode::BAD_REQUEST,
                     "could not decrypt provider credentials; check EXOROUTE_MASTER_KEY",

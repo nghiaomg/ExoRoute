@@ -1,3 +1,4 @@
+use super::parse::validate_openai_function_name;
 use super::*;
 
 #[cfg(test)]
@@ -256,6 +257,7 @@ fn decode_responses_response(
                     None => json!(""),
                 };
                 if !name.is_empty() {
+                    validate_openai_function_name(&name, "tool call")?;
                     content.push(ContentBlock::ToolCall {
                         id: item
                             .get("call_id")
@@ -269,6 +271,12 @@ fn decode_responses_response(
                 }
             }
             if item.get("type").and_then(Value::as_str) == Some("function_call") {
+                let name = item
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_owned();
+                validate_openai_function_name(&name, "tool call")?;
                 content.push(ContentBlock::ToolCall {
                     id: item
                         .get("call_id")
@@ -276,11 +284,7 @@ fn decode_responses_response(
                         .and_then(Value::as_str)
                         .unwrap_or("call")
                         .to_owned(),
-                    name: item
-                        .get("name")
-                        .and_then(Value::as_str)
-                        .unwrap_or("")
-                        .to_owned(),
+                    name,
                     arguments: item
                         .get("arguments")
                         .and_then(Value::as_str)

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { onDestroy } from 'svelte';
   import { Check, Copy, ExternalLink, LoaderCircle, Link } from '@lucide/svelte';
   import { api } from '../../lib/api';

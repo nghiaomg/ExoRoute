@@ -1,410 +1,266 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import StatsCard from "../../components/StatsCard.svelte";
+  import Button from '../../components/ui/Button.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
+  import StatsCard from '../../components/ui/StatsCard.svelte';
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
-  import Input from '../../components/Input.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import { localizedError } from '../../lib/errors';
-  import { formatCostMicroUsd, type Translate } from '../../lib/format';
-  import type { DashboardPage } from '../../lib/navigation';
+  import { formatCount, formatCompactTokenTotal, formatCostMicroUsd, type Translate } from '../../lib/format';
+  import type { DashboardPageRoute } from '../../lib/navigation';
   import { showDashboardToast } from '../../lib/dashboard-ui';
-  import SelectOptions from '../../components/SelectOptions.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import type { GatewayApiKey, RequestStatistics } from '../../lib/types';
   import type { Locale } from '../../lib/i18n';
-  import ApiKeyDetailSheet from './ApiKeyDetailSheet.svelte';
   import ApiKeyScopeFields from './ApiKeyScopeFields.svelte';
+  import ApiKeyInspector from './ApiKeyInspector.svelte';
+  import ApiKeyBreakdown from './ApiKeyBreakdown.svelte';
+  import ApiKeyDetailPage from './ApiKeyDetailPage.svelte';
   import { modelRulesText, parseModelRules } from './scope';
-
-  interface Props {
-    tr: Translate;
-    locale: Locale;
-    onNavigate: (page: DashboardPage) => void;
-  }
-  let { tr, locale, onNavigate }: Props = $props();
-
+  import { EMPTY_METRICS, filterAndSortKeys, formatIdleLabel, isStale, KEY_RANGES, metricsFromStatistics, type KeyMetrics, type KeyRange, type KeyScopeFilter, type KeySort, type KeyStatus } from './api-keys.data';
+  interface Props { tr: Translate; locale: Locale; page?: DashboardPageRoute; onNavigate: (page: DashboardPageRoute) => void }
+  let { tr, locale, page = 'api-keys', onNavigate }: Props = $props();
   let keys = $state<GatewayApiKey[]>([]);
   let nextCursor = $state<string | null>(null);
   let stats = $state<RequestStatistics | null>(null);
   let providerOptions = $state<{ id: string; name: string }[]>([]);
+  let metrics = $state<Record<string, KeyMetrics>>({});
   let loading = $state(true);
   let error = $state('');
   let searchQuery = $state('');
-  let statusFilter = $state('all');
-  let boardEl = $state<HTMLElement | null>(null);
-
-  let keyDialog = $state<HTMLDialogElement | null>(null);
-  let editDialog = $state<HTMLDialogElement | null>(null);
-  let confirmDialog = $state<HTMLDialogElement | null>(null);
-  let newName = $state('');
-  let newModels = $state('');
-  let newProviders = $state<string[]>([]);
+  let statusFilter = $state<KeyStatus | 'all'>('all');
+  let scopeFilter = $state<KeyScopeFilter>('all');
+  let sortBy = $state<KeySort>('traffic');
+  let view = $state<'table' | 'card'>('table');
+  let range = $state<KeyRange>('1d');
+  let scopeOpen = $state<string | null>(null);
+  let guideOpen = $state(true);
+  const gatewayBaseUrl = 'http://127.0.0.1:8686/v1';
+  let keyDialogOpen = $state(false);
+  let editDialogOpen = $state(false);
+  let confirmDialogOpen = $state(false);
+  let newName = $state(''); let newModels = $state(''); let newProviders = $state<string[]>([]);
   let createdKey = $state<{ name: string; key: string } | null>(null);
   let editTarget = $state<GatewayApiKey | null>(null);
-  let editName = $state('');
-  let editModels = $state('');
-  let editProviders = $state<string[]>([]);
-  let editEnabled = $state(true);
-  let confirmTarget = $state<GatewayApiKey | null>(null);
-  let confirmMode = $state<'disable' | 'delete'>('disable');
+  let editName = $state(''); let editModels = $state(''); let editProviders = $state<string[]>([]); let editEnabled = $state(true);
+  let confirmTarget = $state<GatewayApiKey | null>(null); let confirmMode = $state<'disable' | 'delete'>('disable');
   let busy = $state(false);
-  let detailKeyId = $state<string | null>(null);
-  const detailKey = $derived(detailKeyId ? keys.find((key) => key.id === detailKeyId) ?? null : null);
-
-  const scopeLabel = (key: GatewayApiKey) => {
-    if (!key.scope_restricted) return tr('all models');
-    const parts: string[] = [];
-    if (key.allowed_models?.length) parts.push(key.allowed_models.slice(0, 2).join(', ') + (key.allowed_models.length > 2 ? '…' : ''));
-    const providerCount = key.allowed_provider_ids?.length ?? 0;
-    if (providerCount) parts.push(providerCount > 1 ? tr('{count} providers', { count: providerCount }) : tr('{count} provider', { count: providerCount }));
-    return parts.join(' · ') || tr('restricted');
-  };
-  const visibleKeys = $derived(keys.filter((key) => {
-    const q = searchQuery.trim().toLowerCase();
-    if (q && !key.name.toLowerCase().includes(q) && !(key.last_used_at ?? '').toLowerCase().includes(q)) return false;
-    if (statusFilter === 'active') return key.enabled;
-    if (statusFilter === 'disabled') return !key.enabled;
-    return true;
-  }));
+  let inspectorKeyId = $state<string | null>(null);
+  let controller: AbortController | null = null;
+  const detailRouteId = $derived(page.startsWith('api-key-detail:') ? page.slice('api-key-detail:'.length) : null);
+  const detailKey = $derived(detailRouteId ? keys.find((key) => key.id === detailRouteId) ?? null : null);
+  const inspectorKey = $derived(inspectorKeyId ? keys.find((key) => key.id === inspectorKeyId) ?? null : null);
+  const visibleKeys = $derived(filterAndSortKeys(keys, { query: searchQuery, status: statusFilter, scope: scopeFilter, sort: sortBy }, metrics));
   const activeCount = $derived(keys.filter((k) => k.enabled).length);
-  const disabledCount = $derived(keys.length - activeCount);
-
+  const pausedCount = $derived(keys.filter((k) => !k.enabled).length);
+  const staleCount = $derived(keys.filter((k) => isStale(k)).length);
+  const failingCount = $derived(keys.filter((k) => (metrics[k.id]?.failures ?? 0) > 0).length);
+  const totalTokens = $derived(stats ? stats.input_tokens + stats.output_tokens + stats.cached_tokens : 0);
+  const costValue = $derived(stats ? formatCostMicroUsd(stats.cost.cost_reported_micro_usd) : '—');
+  function statusLabel(key: GatewayApiKey): string {
+    return key.enabled ? tr('Active') : tr('Paused');
+  }
+  function failureTone(failures: number, requests: number): 'mild' | 'strong' {
+    return requests > 0 && failures / requests >= 0.05 ? 'strong' : 'mild';
+  }
+  function idleText(key: GatewayApiKey): string { return formatIdleLabel(key, tr); }
+  async function loadMetrics(signal?: AbortSignal): Promise<void> {
+    const next: Record<string, KeyMetrics> = {};
+    const queue = [...keys.slice(0, 30)];
+    const worker = async () => {
+      while (queue.length) {
+        const key = queue.shift()!;
+        try { next[key.id] = metricsFromStatistics(await api.apiKeyStatistics(key.id, range, signal) as unknown as RequestStatistics); }
+        catch { next[key.id] = { ...EMPTY_METRICS, error: true }; }
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    metrics = next;
+  }
   async function load(signal?: AbortSignal) {
-    loading = true;
-    error = '';
+    loading = true; error = '';
     try {
-      const [page, s, provs] = await Promise.all([
-        api.apiKeys({}, signal),
-        api.statistics('1d', signal).catch(() => null),
-        api.providers().catch(() => null),
-      ]);
-      keys = page.api_keys;
-      nextCursor = page.next_cursor ?? null;
-      stats = s;
+      const [page, s, provs] = await Promise.all([api.apiKeys({}, signal), api.statistics(range, signal).catch(() => null), api.providers().catch(() => null)]);
+      keys = page.api_keys; nextCursor = page.next_cursor ?? null; stats = s;
       providerOptions = (provs ?? []).map((p) => ({ id: p.id, name: p.name }));
-      // The selected detail is derived from this refreshed page of records.
-    } catch (cause) {
-      error = localizedError(cause, 'Could not load API keys.', tr);
-    } finally {
-      loading = false;
-    }
+      await loadMetrics(signal);
+    } catch (cause) { error = localizedError(cause, 'Could not load API keys.', tr); }
+    finally { loading = false; }
   }
-  onMount(() => {
-    const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
-  });
-  onDestroy(() => {});
-
-  function openCreate() {
-    newName = '';
-    newModels = '';
-    newProviders = [];
-    createdKey = null;
-    keyDialog?.showModal();
-  }
+  onMount(() => { controller = new AbortController(); void load(controller.signal); });
+  onDestroy(() => { controller?.abort(); });
+  function openCreate() { newName = ''; newModels = ''; newProviders = []; createdKey = null; keyDialogOpen = true; }
   async function submitCreate(event: SubmitEvent) {
-    event.preventDefault();
-    if (!newName.trim() || busy) return;
-    busy = true;
+    event.preventDefault(); if (!newName.trim() || busy) return; busy = true;
     try {
-      const scope = {
-        allowed_models: parseModelRules(newModels),
-        allowed_provider_ids: newProviders,
-      };
-      const created = await api.createApiKey(newName.trim(), scope);
+      const created = await api.createApiKey(newName.trim(), { allowed_models: parseModelRules(newModels), allowed_provider_ids: newProviders });
       createdKey = { name: created.name, key: created.key };
-      showDashboardToast(tr('API key created — copy it now, it is shown once'));
-      await load();
-    } catch (cause) {
-      showDashboardToast(localizedError(cause, 'Could not create API key.', tr));
-    } finally {
-      busy = false;
-    }
+      showDashboardToast(tr('API key created — copy it now, it is shown once')); await load();
+    } catch (cause) { showDashboardToast(localizedError(cause, 'Could not create API key.', tr)); } finally { busy = false; }
   }
   async function copyText(text: string, label: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      showDashboardToast(tr('{label} copied', { label }));
-    } catch {
-      showDashboardToast(tr('Copy failed'));
-    }
+    try { await navigator.clipboard.writeText(text); showDashboardToast(tr('{label} copied', { label })); }
+    catch { showDashboardToast(tr('Copy failed')); }
   }
   function openEdit(key: GatewayApiKey) {
-    editTarget = key;
-    editName = key.name;
-    editModels = modelRulesText(key.allowed_models);
-    editProviders = [...(key.allowed_provider_ids ?? [])];
-    editEnabled = key.enabled;
-    editDialog?.showModal();
+    editTarget = key; editName = key.name; editModels = modelRulesText(key.allowed_models);
+    editProviders = [...(key.allowed_provider_ids ?? [])]; editEnabled = key.enabled; editDialogOpen = true;
   }
   async function submitEdit(event: SubmitEvent) {
-    event.preventDefault();
-    if (!editTarget || busy) return;
-    busy = true;
+    event.preventDefault(); if (!editTarget || busy) return; busy = true;
     try {
-      await api.updateApiKey(editTarget.id, {
-        name: editName.trim() || undefined,
-        enabled: editEnabled,
-        allowed_models: parseModelRules(editModels),
-        allowed_provider_ids: editProviders,
-      });
-      editDialog?.close();
-      showDashboardToast(tr('Key updated'));
-      await load();
-    } catch (cause) {
-      showDashboardToast(localizedError(cause, 'Could not update API key.', tr));
-    } finally {
-      busy = false;
-    }
+      await api.updateApiKey(editTarget.id, { name: editName.trim() || undefined, enabled: editEnabled, allowed_models: parseModelRules(editModels), allowed_provider_ids: editProviders });
+      editDialogOpen = false; showDashboardToast(tr('Key updated')); await load();
+    } catch (cause) { showDashboardToast(localizedError(cause, 'Could not update API key.', tr)); } finally { busy = false; }
   }
-  function askConfirm(key: GatewayApiKey, mode: 'disable' | 'delete') {
-    confirmTarget = key;
-    confirmMode = mode;
-    confirmDialog?.showModal();
+  async function toggleEnabled(key: GatewayApiKey) {
+    if (busy) return; busy = true;
+    try { await api.updateApiKey(key.id, { enabled: !key.enabled }); showDashboardToast(tr('Key updated')); await load(); }
+    catch (cause) { showDashboardToast(localizedError(cause, 'Action failed.', tr)); } finally { busy = false; }
   }
-  /** Deletion removes the row, so leave its detail page first. */
-  function openDetail(key: GatewayApiKey) {
-    detailKeyId = key.id;
-  }
-
-  function closeDetail(): void {
-    detailKeyId = null;
-  }
+  function askConfirm(key: GatewayApiKey, mode: 'disable' | 'delete') { confirmTarget = key; confirmMode = mode; confirmDialogOpen = true; }
   async function runConfirm() {
-    if (!confirmTarget || busy) return;
-    busy = true;
+    if (!confirmTarget || busy) return; busy = true;
     try {
-      if (confirmMode === 'delete') {
-        await api.deleteApiKey(confirmTarget.id);
-        if (detailKey?.id === confirmTarget.id) closeDetail();
-        showDashboardToast(tr('Deleted "{name}"', { name: confirmTarget.name }));
-      } else {
-        await api.updateApiKey(confirmTarget.id, { enabled: false });
-        showDashboardToast(tr('Disabled "{name}"', { name: confirmTarget.name }));
-      }
-      confirmDialog?.close();
-      await load();
-    } catch (cause) {
-      showDashboardToast(localizedError(cause, 'Action failed.', tr));
-    } finally {
-      busy = false;
-    }
+      if (confirmMode === 'delete') { await api.deleteApiKey(confirmTarget.id); if (detailKey?.id === confirmTarget.id) onNavigate('api-keys'); if (inspectorKeyId === confirmTarget.id) inspectorKeyId = null; showDashboardToast(tr('Deleted "{name}"', { name: confirmTarget.name })); }
+      else { await api.updateApiKey(confirmTarget.id, { enabled: false }); showDashboardToast(tr('Disabled "{name}"', { name: confirmTarget.name })); }
+      confirmDialogOpen = false; await load();
+    } catch (cause) { showDashboardToast(localizedError(cause, 'Action failed.', tr)); } finally { busy = false; }
   }
   function exportKeys() {
     const rows = [['name', 'id', 'enabled', 'created_at', 'last_used_at', 'scope']];
-    for (const k of keys) rows.push([k.name, k.id, String(k.enabled), k.created_at, k.last_used_at ?? '', scopeLabel(k)]);
+    for (const k of keys) rows.push([k.name, k.id, String(k.enabled), k.created_at, k.last_used_at ?? '', (k.allowed_models ?? []).join('|')]);
     const blob = new Blob([rows.map((r) => r.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(',')).join('\n')], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'exoroute-api-keys.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'exoroute-api-keys.csv'; a.click(); URL.revokeObjectURL(a.href);
     showDashboardToast(tr('Exported API keys CSV'));
   }
 </script>
 
-{#if detailKey}
-  <ApiKeyDetailSheet
+{#if detailRouteId}
+  <ApiKeyDetailPage
     apiKey={detailKey}
+    keyId={detailRouteId}
+    loading={loading}
+    error={error}
     {tr}
     {locale}
-    onUpdated={() => void load()}
-    onBack={closeDetail}
+    onBack={() => onNavigate('api-keys')}
+    onEdit={openEdit}
+    onToggle={toggleEnabled}
+    {onNavigate}
+    onRetry={() => load()}
   />
 {:else}
 <div class="page-heading">
-  <div class="heading-copy">
-    <h1>{tr('API keys')}</h1>
-    <p>{tr('Client credentials for the gateway. Secrets are shown once at creation.')}</p>
-  </div>
+  <div class="heading-copy"><h1>{tr('API keys')}</h1><p>{tr('Client credentials for the gateway. Secrets are shown once at creation.')}</p></div>
   <div class="heading-actions">
-    <Button class="action-button" type="button" onclick={exportKeys}>
-      <span class="button-icon"><svg class="icon"><use href="#i-download" /></svg></span>
-      <span class="button-label">{tr('Export')}</span>
-    </Button>
-    <Button class="action-button primary" type="button" onclick={openCreate}>
-      <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
-      <span class="button-label">{tr('New API key')}</span>
-    </Button>
+    <Button class="action-button" type="button" onclick={exportKeys}><span class="button-icon"><svg class="icon"><use href="#i-download" /></svg></span><span class="button-label">{tr('Export')}</span></Button>
+    <Button class="action-button primary" type="button" onclick={openCreate}><span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span><span class="button-label">{tr('New API key')}</span></Button>
   </div>
 </div>
-
 <div class="page-surface">
-  {#if error}
-    <div class="empty-state">{error} <Button class="mini-add" type="button" onclick={() => load()}>{tr('Retry')}</Button></div>
+  {#if error}<div class="empty-state">{error} <Button class="mini-add" type="button" onclick={() => load()}>{tr('Retry')}</Button></div>
   {:else}
-    <section class="stats-grid" aria-label={tr('API key overview')}>
-      <StatsCard index={1} eyebrow={tr('Keys')} badgeTone="dot" badge={String(activeCount)} value={activeCount} title={tr('Active Keys')} trend={tr('Showing {count} API keys on this page', { count: keys.length })} />
-      <StatsCard index={2} eyebrow={tr('Traffic')} badge={stats ? tr('24H') : undefined} value={stats ? stats.total_requests.toLocaleString() : '—'} title={tr('Requests Today')} trend={tr('Across all keys · 24h')} />
-      <StatsCard index={3} eyebrow={tr('Spend')} value={stats ? formatCostMicroUsd(stats.cost.cost_reported_micro_usd) : '—'} title={tr('Spend Today')} trend={tr('Estimated upstream cost')} />
-      <StatsCard index={4} eyebrow={tr('Reliability')} value={stats ? stats.failures.toLocaleString() : '—'} title={tr('Failures Today')} trend={stats ? `${stats.success_rate.toFixed(1)}% ${tr('success')}` : tr('24h window')} />
-    </section>
+    <section class="key-guide" class:collapsed={!guideOpen} aria-label={tr('How to use API keys')}>
+    <button type="button" class="guide-toggle" aria-expanded={guideOpen} onclick={() => (guideOpen = !guideOpen)}><strong>{tr('How to use API keys')}</strong><span>{guideOpen ? '−' : '+'}</span></button>
+    {#if guideOpen}<div class="guide-body">
+      <div><span>{tr('Step')} 1</span><p>{tr('Create a key')} — {tr('New API key')}</p></div>
+      <div><span>{tr('Step')} 2</span><p>{tr('Set Base URL')}: <code>{gatewayBaseUrl}</code> <Button class="mini-add" type="button" onclick={() => copyText(gatewayBaseUrl, tr('Copy base URL'))}>{tr('Copy base URL')}</Button></p></div>
+      <div><span>{tr('Step')} 3</span><p>{tr('Pass the key as a Bearer token')}: <code>Authorization: Bearer &lt;key&gt;</code></p></div>
+    </div>{/if}
+  </section>
 
-    <section class="course-card surface keys-board" id="keys-board" bind:this={boardEl} aria-labelledby="keys-heading">
-      <div class="card-title-row"><h2 id="keys-heading">{tr('Keys')}</h2></div>
-      <p class="card-subtitle">{tr('Showing {count} API keys on this page', { count: keys.length })}{nextCursor ? ` · ${tr('more available')}` : ''}</p>
+  <section class="stats-grid" aria-label={tr('API key overview')}>
+      <StatsCard index={1} eyebrow={tr('Keys')} badgeTone="dot" badge={String(activeCount)} value={formatCount(keys.length, locale)} title={tr('Active Keys')} trend={`${activeCount} ${tr('Active')} · ${pausedCount} ${tr('Paused')} · ${failingCount} ${tr('keys with recent errors')}`} />
+      <StatsCard index={2} eyebrow={tr('Traffic')} badge={KEY_RANGES.find((r) => r.key === range)?.label} value={stats ? formatCount(stats.total_requests, locale) : '—'} title={tr('Requests')} trend={tr('Request volume in the selected time window')} />
+      <StatsCard index={3} eyebrow={tr('Spend')} value={costValue} title={tr('Spend')} trend={stats ? `${tr('Input')} / ${tr('Output')} / ${tr('Cache')}: ${formatCompactTokenTotal(totalTokens, locale)}` : tr('Cost unavailable')} />
+<button type="button" class="kpi-clickable" onclick={() => (statusFilter = statusFilter === 'erroring' ? 'all' : 'erroring')} title={tr('Keys with errors')}>
+              <StatsCard index={4} eyebrow={tr('Reliability')} badgeTone={failingCount > 0 ? 'chip' : 'success'} badge={failingCount > 0 ? `${failingCount} ${tr('failed')}` : undefined} value={stats ? formatCount(stats.failures, locale) : '—'} title={tr('Failures Today')} trend={stats ? `${stats.success_rate.toFixed(1)}% ${tr('success')}` : tr('24h window')} />
+      </button>
+    </section>
+    <ApiKeyBreakdown tr={tr} {locale} {keys} {range} onRangeChange={(r) => (range = r)} onInspect={(key) => onNavigate(`api-key-detail:${key.id}`)} />
+    <section class="course-card surface keys-board" aria-labelledby="keys-heading">
+      <div class="card-title-row"><h2 id="keys-heading">{tr('Keys')}</h2><div class="view-switch"><button type="button" aria-pressed={view === 'table'} class:active={view === 'table'} onclick={() => (view = 'table')}>{tr('Table view')}</button><button type="button" aria-pressed={view === 'card'} class:active={view === 'card'} onclick={() => (view = 'card')}>{tr('Card view')}</button></div></div>
       <div class="page-toolbar items-center">
         <Input class="w-[min(280px,100%)] flex-[1_1_200px]" type="search" placeholder={tr('Search keys…')} aria-label={tr('Search API keys')} bind:value={searchQuery} />
-        <SelectOptions
-          class="prov-select"
-          ariaLabel={tr('Filter keys')}
-          bind:value={statusFilter}
-          items={[{ label: tr('All keys'), value: 'all' }, { label: tr('Active'), value: 'active' }, { label: tr('Disabled'), value: 'disabled' }]}
-        />
+        <SelectOptions class="prov-select" ariaLabel={tr('Filter keys')} bind:value={statusFilter} items={[{ label: tr('All statuses'), value: 'all' }, { label: tr('Active'), value: 'active' }, { label: tr('Paused keys'), value: 'paused' }, { label: tr('Keys with errors'), value: 'erroring' }, { label: tr('Stale keys'), value: 'stale' }]} />
+        <SelectOptions class="prov-select" ariaLabel={tr('All scopes')} bind:value={scopeFilter} items={[{ label: tr('All scopes'), value: 'all' }, { label: tr('Any model'), value: 'any' }, { label: tr('Restricted models'), value: 'restricted' }]} />
+        <SelectOptions class="prov-select" ariaLabel={tr('Sort by')} bind:value={sortBy} items={[{ label: tr('Most traffic'), value: 'traffic' }, { label: tr('Most failures'), value: 'failures' }, { label: tr('Last used recently'), value: 'lastUsed' }, { label: tr('Name A–Z'), value: 'name' }]} />
       </div>
-      <div class="mt-3.5 grid grid-cols-[repeat(3,minmax(0,1fr))] items-start gap-2.5 max-[1100px]:grid-cols-2 max-nav:grid-cols-1">
+      {#if view === 'table'}
+      <div class="key-table-wrap">
+        <table class="key-table">
+          <thead><tr><th>{tr('Key name & prefix')}</th><th>{tr('Operational status')}</th><th>{tr('Model scope')}</th><th>{tr('Traffic & tokens')}</th><th>{tr('Reliability')}</th><th>{tr('Last used')}</th><th>{tr('Actions')}</th></tr></thead>
+          <tbody>
+          {#each visibleKeys as key (key.id)}
+            <tr class="key-row" onclick={() => onNavigate(`api-key-detail:${key.id}`)} tabindex="0" onkeydown={(e) => e.key === 'Enter' && onNavigate(`api-key-detail:${key.id}`)}>
+              <td><button type="button" class="key-name" onclick={() => onNavigate(`api-key-detail:${key.id}`)}>{key.name}</button><div class="key-prefix"><code>{key.id.slice(0, 8)}…</code><button type="button" title={tr('Copy prefix')} onclick={() => copyText(key.id, tr('Key prefix'))}><svg class="icon"><use href="#i-copy" /></svg></button></div></td>
+              <td><span class="status-badge {key.enabled ? 'complete' : 'pending'}" title={tr('Operational status')}><i></i>{statusLabel(key)}</span>{#if isStale(key)}<span class="badge-warn">{tr('Stale')}</span>{/if}</td>
+              <td>
+                {#if !key.scope_restricted}<span class="badge">{tr('Any model')}</span>
+                {:else}<div class="scope-cell"><span class="badge">{key.allowed_models?.[0] ?? tr('Restricted models')}</span>{#if (key.allowed_models?.length ?? 0) > 1}<button type="button" class="badge more" onclick={() => (scopeOpen = scopeOpen === key.id ? null : key.id)}>+{(key.allowed_models?.length ?? 0) - 1}</button>{/if}</div>
+                  {#if scopeOpen === key.id}<div class="scope-popover">{#each key.allowed_models ?? [] as model}<code>{model}</code>{/each}</div>{/if}{/if}
+              </td>
+              <td class="numeric">{metrics[key.id]?.loaded ? `${formatCount(metrics[key.id].requests, locale)} ${tr('requests')}` : '—'}<div class="muted">{metrics[key.id]?.loaded ? `${formatCompactTokenTotal(metrics[key.id].tokens, locale)} ${tr('Tokens')}` : ''}</div></td>
+              <td class="numeric">{metrics[key.id]?.loaded ? (metrics[key.id].successRate?.toFixed(1) ?? '—') + '%' : '—'}{#if (metrics[key.id]?.failures ?? 0) > 0}<button type="button" class="badge-warn error-badge {failureTone(metrics[key.id].failures, metrics[key.id].requests)}" title={tr('Failed requests using this key')} onclick={(e) => { e.stopPropagation(); onNavigate(`api-key-detail:${key.id}`); }}>{formatCount(metrics[key.id].failures, locale)} {tr('failed')}</button>{/if}</td>
+              <td title={key.last_used_at ?? ''}>{idleText(key)}</td>
+              <td class="row-actions"><button type="button" class="action-detail" title={tr('Details')} aria-label={tr('Details')} onclick={(e) => { e.stopPropagation(); onNavigate(`api-key-detail:${key.id}`); }}>{tr('Details')}</button><button type="button" title={tr('Edit key')} aria-label={tr('Edit key')} onclick={(e) => { e.stopPropagation(); openEdit(key); }}><svg class="icon"><use href="#i-edit" /></svg></button><button type="button" title={key.enabled ? tr('Pause') : tr('Resume')} aria-label={key.enabled ? tr('Pause') : tr('Resume')} onclick={(e) => { e.stopPropagation(); key.enabled ? askConfirm(key, 'disable') : toggleEnabled(key); }}>{#if key.enabled}<span class="pause-mark">II</span>{:else}<svg class="icon"><use href="#i-play" /></svg>{/if}</button><button type="button" class="danger" title={tr('Delete permanently')} aria-label={tr('Delete permanently')} onclick={(e) => { e.stopPropagation(); askConfirm(key, 'delete'); }}><svg class="icon"><use href="#i-trash" /></svg></button></td>
+            </tr>
+          {/each}
+          </tbody>
+        </table>
+      </div>
+      {:else}
+      <div class="key-cards">
         {#each visibleKeys as key (key.id)}
-          <article class="course-row key-card min-w-0 items-start flex-wrap {!key.enabled ? 'opacity-72' : ''}">
-            <!-- The row opens a full-page detail view; adjacent actions stay independent. -->
-            <Button
-              class="key-card-trigger"
-              type="button"
-              aria-label={tr('Open {name} details', { name: key.name })}
-              onclick={() => openDetail(key)}
-            >
-              <span class="course-icon"><svg class="icon"><use href="#i-key" /></svg></span>
-              <span class="course-copy">
-                <strong>{key.name} <span class="ms-1.5 px-[7px] py-0.5 rounded-full bg-surface-sunken text-muted text-caption font-medium align-[1px]">{scopeLabel(key)}</span></strong>
-                <span>{key.id.slice(0, 8)}… · {key.last_used_at ? tr('Used {date}', { date: key.last_used_at }) : tr('Never used')} · {key.request_count ?? 0} {tr('requests')}</span>
-              </span>
-            </Button>
-            <span class="status {key.enabled ? 'complete' : 'pending'}">{key.enabled ? tr('Active') : tr('Disabled')}</span>
-            <div class="course-actions">
-              <Button class="icon-action" type="button" title={tr('Edit key')} onclick={() => openEdit(key)}><svg class="icon"><use href="#i-edit" /></svg></Button>
-              {#if key.enabled}
-                <Button class="icon-action danger hover:text-db-danger! hover:bg-db-accent-tint!" type="button" title={tr('Disable key')} onclick={() => askConfirm(key, 'disable')}><svg class="icon"><use href="#i-x-circle" /></svg></Button>
-              {:else}
-                <Button class="icon-action danger hover:text-db-danger! hover:bg-db-accent-tint!" type="button" title={tr('Delete permanently')} onclick={() => askConfirm(key, 'delete')}><svg class="icon"><use href="#i-trash" /></svg></Button>
-              {/if}
-            </div>
+          <article class="key-card">
+            <button type="button" class="key-name" onclick={() => onNavigate(`api-key-detail:${key.id}`)}>{key.name}</button>
+            <div class="key-prefix"><code>{key.id.slice(0, 8)}…</code><button type="button" title={tr('Copy prefix')} onclick={() => copyText(key.id, tr('Key prefix'))}><svg class="icon"><use href="#i-copy" /></svg></button></div>
+            <p><span class="status {key.enabled ? 'complete' : 'pending'}">{statusLabel(key)}</span>{#if isStale(key)} <span class="badge-warn">{tr('Stale')}</span>{/if}</p>
+            <p class="muted">{idleText(key)}</p>
+            <div class="card-metrics"><span>{metrics[key.id]?.loaded ? formatCount(metrics[key.id].requests, locale) : '—'} {tr('Requests')}</span><span>{metrics[key.id]?.loaded ? formatCompactTokenTotal(metrics[key.id].tokens, locale) : '—'} {tr('Tokens')}</span></div>
+            <div class="card-actions"><Button class="mini-add" type="button" onclick={() => openEdit(key)}>{tr('Edit key')}</Button><Button class="mini-add" type="button" onclick={() => askConfirm(key, 'delete')}>{tr('Revoke')}</Button></div>
           </article>
         {/each}
-        {#if loading}
-          <div class="empty-state">{tr('Loading…')}</div>
-        {:else if visibleKeys.length === 0}
-          <div class="empty-state">{tr('No keys match the current filters.')}</div>
-        {/if}
       </div>
+      {/if}
+      {#if loading}<div class="empty-state">{tr('Loading…')}</div>{:else if visibleKeys.length === 0}<div class="empty-state">{keys.length ? tr('No keys match the current filters.') : tr('No keys yet')}</div>{/if}
     </section>
   {/if}
 </div>
-
-<!-- New API key -->
-<dialog class="modal" bind:this={keyDialog} aria-labelledby="key-dialog-title">
-  <form class="modal-card" onsubmit={submitCreate}>
-    <div class="modal-heading">
-      <div>
-        <h2 id="key-dialog-title">{createdKey ? tr('Key created') : tr('New API key')}</h2>
-        <p>{createdKey ? tr('Copy it now — it will not be shown again.') : tr('Create a client credential. The secret is shown once.')}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
-    {#if createdKey}
-      <div class="mt-4 flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface-sunken px-[18px] py-4">
-        <strong>{createdKey.name}</strong>
-        <div class="mt-1 flex items-center gap-2.5">
-          <code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-text-dim bg-surface px-3.5 py-2.5 text-[13px] tracking-[0.02em] select-all">{createdKey.key}</code>
-          <Button class="page-action" type="button" onclick={() => copyText(createdKey!.key, tr('API key'))}><svg class="icon"><use href="#i-copy" /></svg> {tr('Copy')}</Button>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <Button class="page-action primary" type="button" onclick={() => keyDialog?.close()}>{tr('Done')}</Button>
-      </div>
-    {:else}
-      <div class="modal-fields">
-        <label class="field provd-wide">{tr('Key name')}<Input type="text" required placeholder={tr('e.g. staging-app')} bind:value={newName} /></label>
-        <div class="field provd-wide api-key-create-scope">
-          <ApiKeyScopeFields modelRulesId="new-api-key-model-rules" {tr} providers={providerOptions} bind:selectedProviderIds={newProviders} bind:modelRules={newModels} />
-        </div>
-      </div>
-      <div class="modal-actions">
-        <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
-        <Button class="page-action primary" type="submit" disabled={busy || !newName.trim()}>{tr('Create key')}</Button>
-      </div>
-    {/if}
-  </form>
-</dialog>
-
-<!-- Edit key -->
-<dialog class="modal modal-wide w-[min(94vw,680px)]! max-h-[calc(100dvh-32px)]! overflow-visible! max-[640px]:w-[min(94vw,480px)]! max-[640px]:max-h-[calc(100dvh-20px)]!" bind:this={editDialog} aria-labelledby="edit-dialog-title">
-  <form class="modal-card max-h-[calc(100dvh-32px)]! gap-4! overflow-hidden! rounded-[inherit] [grid-template-rows:auto_minmax(0,1fr)_auto]! px-6! py-[22px]! max-[640px]:max-h-[calc(100dvh-20px)]! max-[640px]:gap-3! max-[640px]:px-4! max-[640px]:py-4!" onsubmit={submitEdit}>
-    <div class="modal-heading">
-      <div>
-        <h2 id="edit-dialog-title">{tr('Edit API key')}</h2>
-        <p>{editTarget ? tr('Adjust name, scope and state for "{name}".', { name: editTarget.name }) : ''}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
-    <div class="modal-fields grid-cols-[minmax(0,1fr)_minmax(0,1fr)]! gap-3.5! min-h-0 overflow-y-auto pt-px pr-[3px] pb-1 pl-px content-start max-[640px]:grid-cols-1! max-[640px]:gap-2.5!">
-      <label class="field col-span-full min-w-0 m-0 rounded-xl border border-line bg-surface-sunken p-3.5 max-[640px]:p-3">
-        {tr('Key name')}
-        <Input type="text" required bind:value={editName} />
-      </label>
-      <div class="col-span-full min-w-0 m-0 rounded-xl border border-line bg-surface-sunken p-3.5 max-[640px]:p-3 max-[640px]:col-span-1 [&_.scope-fields]:grid-cols-2! max-[640px]:[&_.scope-fields]:grid-cols-1! [&_.api-key-scope-models]:col-span-full! [&_.api-key-scope-providers]:col-span-full! [&_.scope-rules]:min-h-[106px]!">
-        <ApiKeyScopeFields
-          {tr}
-          providers={providerOptions}
-          modelRulesId="edit-api-key-model-rules"
-          bind:selectedProviderIds={editProviders}
-          bind:modelRules={editModels}
-        />
-      </div>
-      <label class="col-span-full flex min-w-0 m-0 items-center gap-[11px] rounded-xl border border-line bg-surface-sunken p-3.5 cursor-pointer max-[640px]:p-3 focus-within:outline-2 focus-within:outline-accent focus-within:outline-offset-2">
-        <Input type="checkbox" bind:checked={editEnabled} />
-        <span>
-          <strong>{tr('Key enabled')}</strong>
-        </span>
-      </label>
-    </div>
-    <div class="modal-actions pt-3 border-t border-line">
-      <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
-      <Button class="page-action primary" type="submit" disabled={busy}>{tr('Save')}</Button>
-    </div>
-  </form>
-</dialog>
-
-<!-- Disable / delete confirm -->
-<dialog class="modal" bind:this={confirmDialog} aria-labelledby="confirm-title">
-  <div class="modal-card">
-    <div class="modal-heading">
-      <div>
-        <h2 id="confirm-title">{confirmMode === 'delete' ? tr('Delete API key?') : tr('Disable API key?')}</h2>
-        <p>{confirmTarget ? (confirmMode === 'delete'
-          ? tr('Permanently delete "{name}"? This cannot be undone.', { name: confirmTarget.name })
-          : tr('Requests using "{name}" will start failing immediately.', { name: confirmTarget.name })) : ''}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
-    <div class="modal-actions">
-      <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
-      <Button class="page-action danger" type="button" onclick={runConfirm} disabled={busy}>{confirmMode === 'delete' ? tr('Delete permanently') : tr('Disable key')}</Button>
-    </div>
-  </div>
-</dialog>
-
 {/if}
 
-<style>
-  /* The row's copy cluster is the detail trigger. It is a real button so the
-     whole clickable area is keyboard reachable and announced; the status pill
-     and action buttons beside it stay separate controls. */
-  :global(.key-card-trigger) {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    align-items: center;
-    gap: 9px;
-    padding: 0;
-    color: inherit;
-    border: 0;
-    background: transparent;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-  :global(.key-card-trigger:focus-visible) {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-    border-radius: 8px;
-  }
-</style>
+<ApiKeyInspector tr={tr} {locale} apiKey={inspectorKey} metrics={inspectorKey ? metrics[inspectorKey.id] ?? EMPTY_METRICS : EMPTY_METRICS} onClose={() => (inspectorKeyId = null)} {onNavigate} />
+
+<!-- New API key (preserved reauth + one-time secret reveal) -->
+<Dialog bind:open={keyDialogOpen} title={createdKey ? tr('Key created') : tr('New API key')} kicker="" closeLabel={tr('Close dialog')}>
+  <form class="modal-form" onsubmit={submitCreate}>
+    <p class="modal-description">{createdKey ? tr('Copy it now — it will not be shown again.') : tr('Create a client credential. The secret is shown once.')}</p>
+    {#if createdKey}
+      <div class="mt-4 flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface-sunken px-[18px] py-4"><strong>{createdKey.name}</strong><div class="mt-1 flex items-center gap-2.5"><code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-text-dim bg-surface px-3.5 py-2.5 text-[13px] tracking-[0.02em] select-all">{createdKey.key}</code><Button class="page-action" type="button" onclick={() => copyText(createdKey!.key, tr('API key'))}><svg class="icon"><use href="#i-copy" /></svg> {tr('Copy')}</Button></div></div>
+      <div class="modal-actions"><Button class="page-action primary" type="button" onclick={() => (keyDialogOpen = false)}>{tr('Done')}</Button></div>
+    {:else}
+      <div class="modal-fields"><label class="field provd-wide">{tr('Key name')}<Input type="text" required placeholder={tr('e.g. staging-app')} bind:value={newName} /></label><div class="field provd-wide api-key-create-scope"><ApiKeyScopeFields modelRulesId="new-api-key-model-rules" {tr} providers={providerOptions} bind:selectedProviderIds={newProviders} bind:modelRules={newModels} /></div></div>
+      <div class="modal-actions"><Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button><Button class="page-action primary" type="submit" disabled={busy || !newName.trim()}>{tr('Create key')}</Button></div>
+    {/if}
+  </form>
+</Dialog>
+
+<!-- Edit key -->
+<Dialog bind:open={editDialogOpen} title={tr('Edit API key')} kicker="" wide closeLabel={tr('Close dialog')} class="w-[min(94vw,680px)]! max-h-[calc(100dvh-32px)]! overflow-visible! max-[640px]:w-[min(94vw,480px)]!">
+  <form class="modal-form max-h-[calc(100dvh-32px)]! gap-4! overflow-hidden! rounded-[inherit] [grid-template-rows:auto_minmax(0,1fr)_auto]! px-6! py-[22px]! max-[640px]:px-4!" onsubmit={submitEdit}>
+    <p class="modal-description">{editTarget ? tr('Adjust name, scope and state for "{name}".', { name: editTarget.name }) : ''}</p>
+    <div class="modal-fields grid-cols-[minmax(0,1fr)_minmax(0,1fr)]! gap-3.5! min-h-0 overflow-y-auto max-[640px]:grid-cols-1!">
+      <label class="field col-span-full">{tr('Key name')}<Input type="text" required bind:value={editName} /></label>
+      <div class="col-span-full rounded-xl border border-line bg-surface-sunken p-3.5"><ApiKeyScopeFields {tr} providers={providerOptions} modelRulesId="edit-api-key-model-rules" bind:selectedProviderIds={editProviders} bind:modelRules={editModels} /></div>
+      <label class="col-span-full flex items-center gap-3 cursor-pointer"><Input type="checkbox" bind:checked={editEnabled} /><span><strong>{tr('Key enabled')}</strong></span></label>
+    </div>
+    <div class="modal-actions pt-3 border-t border-line"><Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button><Button class="page-action primary" type="submit" disabled={busy}>{tr('Save')}</Button></div>
+  </form>
+</Dialog>
+
+<!-- Disable / delete confirm -->
+<Dialog bind:open={confirmDialogOpen} title={confirmMode === 'delete' ? tr('Delete API key?') : tr('Disable API key?')} kicker="" closeLabel={tr('Close dialog')}>
+  <p class="modal-description">{confirmTarget ? (confirmMode === 'delete' ? tr('Permanently delete "{name}"? This cannot be undone.', { name: confirmTarget.name }) : tr('Requests using "{name}" will start failing immediately.', { name: confirmTarget.name })) : ''}</p>
+  <div class="modal-actions"><Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button><Button class="page-action danger" type="button" onclick={runConfirm} disabled={busy}>{confirmMode === 'delete' ? tr('Delete permanently') : tr('Disable key')}</Button></div>
+</Dialog>

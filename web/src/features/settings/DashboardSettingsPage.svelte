@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import StatsCard from "../../components/StatsCard.svelte";
+  import Button from "../../components/ui/Button.svelte";
+  import StatsCard from "../../components/ui/StatsCard.svelte";
   import { onMount } from 'svelte';
   import { Cpu, Database, Palette, Server, SlidersHorizontal, Sparkles } from '@lucide/svelte';
   import { api } from '../../lib/api';
-  import Input from '../../components/Input.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import { localizedError } from '../../lib/errors';
   import type { DashboardPage } from '../../lib/navigation';
   import { showDashboardToast } from '../../lib/dashboard-ui';

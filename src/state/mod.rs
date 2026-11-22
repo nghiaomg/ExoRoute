@@ -6,6 +6,7 @@
 //! field.
 
 use crate::config::{Config, GatewayResourceLimits, OperationalSettings};
+use crate::gateway::continuity::JournalBatch;
 use crate::infra::db::OperationalSettingsRecord;
 use crate::infra::storage::Database;
 use crate::infra::telemetry::Telemetry;
@@ -243,6 +244,9 @@ pub struct AppState {
     pub(crate) upstream_live_count_refresh_lock: Arc<Mutex<()>>,
     pub telemetry: Telemetry,
     pub db: Database,
+    /// Gateway-wide bounded continuity journal. Shared so SSE stream workers
+    /// coalesce their writes into one LMDB transaction per flush window.
+    pub(crate) continuity_journal: JournalBatch,
     pub started_at: Instant,
     pub request_count: Arc<AtomicU64>,
 }
@@ -441,6 +445,7 @@ impl AppState {
             upstream_live_count_initialized: Arc::new(AtomicBool::new(false)),
             upstream_live_count_refresh_lock: Arc::new(Mutex::new(())),
             telemetry,
+            continuity_journal: JournalBatch::start(db.clone()),
             db,
             started_at,
             request_count: Arc::new(AtomicU64::new(0)),

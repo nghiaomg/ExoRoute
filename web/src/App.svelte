@@ -1,11 +1,10 @@
 <script lang="ts">
-  import Button from "./components/Button.svelte";
+  import Button from "./components/ui/Button.svelte";
   import { onMount } from 'svelte';
-  import DashboardShell from './components/DashboardShell.svelte';
-  import DashboardAppShell from './components/dashboard/DashboardAppShell.svelte';
-  import LoginPage from './components/LoginPage.svelte';
+  import DashboardAppShell from './components/layout/DashboardAppShell.svelte';
+  import LoginPage from './features/auth/LoginPage.svelte';
   import ProviderOAuthCallbackFlow from './features/providers/ProviderOAuthCallbackFlow.svelte';
-  import DocsShell from './features/docs/DocsShell.svelte';
+  import DocsLayout from './features/docs/DocsLayout.svelte';
   import DocsHomePage from './features/docs/DocsHomePage.svelte';
   import DocsQuickstartPage from './features/docs/DocsQuickstartPage.svelte';
   import DocsIntegrationsPage from './features/docs/DocsIntegrationsPage.svelte';
@@ -15,9 +14,8 @@
   import { createSessionRetryCountdown, restoreSessionOnce } from './lib/auth-flow';
   import { featureComponentLoader } from './lib/feature-registry';
   import { getStoredLocale, saveLocale, t, type Locale } from './lib/i18n';
-  import { isDocsPage, pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type DocsPage, type FeatureActionRequest, type Page } from './lib/navigation';
+  import { isDocsPage, pageAfterLogin, pageFromPath, pagePaths, type DashboardPage, type DashboardPageRoute, type DocsPage, type FeatureActionRequest, type Page } from './lib/navigation';
   import type { Translate } from './lib/format';
-  import { getStoredSidebarCollapsed, saveSidebarCollapsed } from './lib/sidebar';
   import {
     applyThemePreference,
     getStoredThemePreference,
@@ -33,7 +31,10 @@
   // Pages rendered in the current dashboard shell. Keep the set explicit so a
   // future route can opt into the legacy shell while its feature is migrated.
   const dashboardShellPages = new Set<DashboardPage>(['overview', 'providers', 'combos', 'proxies', 'quota', 'requests', 'chat', 'api-keys', 'settings', 'help']);
-  $: useDashboardShell = dashboardPage(currentPage) && dashboardShellPages.has(currentPage);
+  function isApiKeyDetailRoute(page: Page | DashboardPageRoute): boolean {
+    return page === 'api-key-detail' || page.startsWith('api-key-detail:');
+  }
+  $: useDashboardShell = dashboardPage(currentPage) && (dashboardShellPages.has(currentPage as DashboardPage) || isApiKeyDetailRoute(currentPage));
 
   function handleConnectionChange(state: ConnectionState): void {
     connectionState = state;
@@ -52,10 +53,12 @@
     quota: 'Quota',
     requests: 'Requests',
     'api-keys': 'Gateway API keys',
+    'api-key-detail': 'Key details',
     settings: 'Settings',
     chat: 'Chat',
     help: 'Help Center',
     docs: 'Documentation',
+    'docs-overview': 'Documentation',
     'docs-quickstart': 'Quickstart',
     'docs-integrations': 'Integrations',
     'docs-reference': 'API reference',
@@ -64,9 +67,8 @@
   let locale: Locale = 'en';
   let themePreference: ThemePreference = typeof window !== 'undefined' ? getStoredThemePreference() : 'system';
   let theme: ThemeId = typeof window !== 'undefined' ? resolveTheme(themePreference) : 'light';
-  let sidebarCollapsed = typeof window !== 'undefined' ? getStoredSidebarCollapsed() : false;
   let tr: Translate;
-  let currentPage: Page = 'login';
+  let currentPage: Page | DashboardPageRoute = 'login';
   let authBootstrap: 'checking' | 'ready' | 'unavailable' = typeof window === 'undefined' ? 'ready' : 'checking';
   let sessionCheckStatus: 'checking' | 'rate_limited' | 'unavailable' | null = null;
   let sessionRetryAfterSeconds = 0;
@@ -82,9 +84,9 @@
   let nextActionId = 0;
   let actionRequest: FeatureActionRequest | null = null;
   let activeFeature: ComponentType | null = null;
-  let activeFeaturePage: DashboardPage | null = null;
+  let activeFeaturePage: DashboardPageRoute | null = null;
   let activeFeatureRefreshKey = -1;
-  let featureLoadError: DashboardPage | null = null;
+  let featureLoadError: DashboardPageRoute | null = null;
   let authVersion = 0;
   let providerOAuthNotice = '';
   let providerOAuthNoticeTone: 'info' | 'success' | 'error' = 'info';
@@ -92,16 +94,28 @@
   $: tr = (key, vars) => t(locale, key, vars);
   $: preferences = { locale, theme, themePreference, scheme: themeScheme(theme), setLocale: changeLocale, toggleTheme, setTheme: changeTheme, setThemePreference: changeThemePreference };
   $: gateway = { state: connectionState, address: gatewayAddress };
-  $: pageTitle = tr(mustChangePassword && currentPage === 'login' ? 'Set a new admin password' : pageTitles[currentPage]);
+  function currentPageTitle(): string {
+    if (mustChangePassword && currentPage === 'login') return tr('Set a new admin password');
+    if (isApiKeyDetailRoute(currentPage)) return tr('Key details');
+    return tr(pageTitles[currentPage as Page]);
+  }
+  // Keep the reactive dependencies inline: Svelte cannot track reads made
+  // inside currentPageTitle(), so `$: pageTitle = currentPageTitle()` would
+  // compute once and leave the document title stuck on the login page.
+  $: pageTitle = mustChangePassword && currentPage === 'login'
+    ? tr('Set a new admin password')
+    : isApiKeyDetailRoute(currentPage)
+      ? tr('Key details')
+      : tr(pageTitles[currentPage as Page]);
   $: if (authBootstrap !== 'checking' && dashboardPage(currentPage) && (activeFeaturePage !== currentPage || activeFeatureRefreshKey !== refreshKey)) {
     activeFeaturePage = null;
     activeFeature = null;
     featureLoadError = null;
     activeFeatureRefreshKey = refreshKey;
-    void loadFeatureComponent(currentPage);
+    void loadFeatureComponent(currentPage as DashboardPageRoute);
   }
 
-  async function loadFeatureComponent(page: DashboardPage): Promise<void> {
+  async function loadFeatureComponent(page: DashboardPageRoute): Promise<void> {
     const requestedPage = page;
     const requestedRefreshKey = refreshKey;
     try {
@@ -138,11 +152,6 @@
     theme = applyThemePreference(next);
   }
 
-  function toggleSidebar(): void {
-    sidebarCollapsed = !sidebarCollapsed;
-    saveSidebarCollapsed(sidebarCollapsed);
-  }
-
   function changeLocale(nextLocale: Locale): void {
     locale = nextLocale;
     document.documentElement.lang = nextLocale;
@@ -160,8 +169,14 @@
     gatewayAddress = `${host}:${port}`;
   }
 
-  function dashboardPage(page: Page): page is DashboardPage {
-    return page !== 'login' && !isDocsPage(page);
+  function dashboardPage(page: Page | DashboardPageRoute): page is DashboardPageRoute {
+    return page !== 'login' && !isDocsPage(page as Page);
+  }
+
+  function dashboardPathFor(page: DashboardPageRoute): string {
+    return isApiKeyDetailRoute(page)
+      ? `/api-keys/${encodeURIComponent(page.slice('api-key-detail:'.length))}`
+      : pagePaths[page as DashboardPage];
   }
 
   /**
@@ -202,12 +217,12 @@
     connectionState = 'idle';
   }
 
-  function navigateTo(page: DashboardPage, updatePath = true): void {
+  function navigateTo(page: DashboardPageRoute, updatePath = true): void {
     if (!getAdminAccessToken()) {
-      redirectToLogin(page);
+      redirectToLogin(isApiKeyDetailRoute(page) ? 'api-keys' : page as DashboardPage);
       return;
     }
-    const path = pagePaths[page];
+    const path = dashboardPathFor(page);
     if (updatePath && window.location.pathname !== path) window.history.pushState(null, '', path);
     currentPage = page;
     actionRequest = null;
@@ -281,7 +296,6 @@
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
     themePreference = getStoredThemePreference();
     theme = applyThemePreference(themePreference);
-    sidebarCollapsed = getStoredSidebarCollapsed();
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemThemeChange = (e: MediaQueryListEvent): void => {
@@ -300,7 +314,7 @@
     const syncWithLocation = (): void => {
       if (authBootstrap === 'checking') return;
       const page = pageFromPath(window.location.pathname);
-      if (isDocsPage(page)) {
+      if (isDocsPage(page as Page)) {
         currentPage = page;
         actionRequest = null;
         connectionState = 'idle';
@@ -322,11 +336,11 @@
         return;
       }
       if (!getAdminAccessToken()) {
-        redirectToLogin(page);
+        redirectToLogin(isApiKeyDetailRoute(page) ? 'api-keys' : page as DashboardPage);
         return;
       }
-      if (window.location.pathname !== pagePaths[page] || window.location.hash) {
-        window.history.replaceState(null, '', pagePaths[page]);
+      if (window.location.pathname !== dashboardPathFor(page as DashboardPageRoute) || window.location.hash) {
+        window.history.replaceState(null, '', dashboardPathFor(page as DashboardPageRoute));
       }
       currentPage = page;
       actionRequest = null;
@@ -336,14 +350,14 @@
       setAdminAccessToken('');
       mustChangePassword = false;
       currentPassword = '';
-      if (dashboardPage(currentPage)) redirectToLogin(currentPage);
+      if (dashboardPage(currentPage)) redirectToLogin(isApiKeyDetailRoute(currentPage) ? 'api-keys' : currentPage as DashboardPage);
       else currentPage = 'login';
     };
 
     const handlePasswordChangeRequired = (): void => {
       mustChangePassword = true;
       currentPassword = '';
-      if (dashboardPage(currentPage)) redirectToLogin(currentPage);
+      if (dashboardPage(currentPage)) redirectToLogin(isApiKeyDetailRoute(currentPage) ? 'api-keys' : currentPage as DashboardPage);
       else currentPage = 'login';
     };
 
@@ -413,9 +427,9 @@
 
 {#if authBootstrap === 'checking'}
   <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Checking admin session…')}</p></section></main>
-{:else if isDocsPage(currentPage)}
-  <DocsShell
-    page={currentPage}
+{:else if isDocsPage(currentPage as Page)}
+  <DocsLayout
+    page={currentPage as DocsPage}
     {locale}
     {preferences}
     providerCount={providerCount}
@@ -425,9 +439,8 @@
       else if (dashboardPage(target)) navigateTo(target);
     }}
     onExitDocs={leaveDocs}
-    onSignOut={getAdminAccessToken() ? signOut : undefined}
   >
-    {#if currentPage === 'docs'}
+    {#if currentPage === 'docs' || currentPage === 'docs-overview'}
       <DocsHomePage {locale} onNavigate={navigateToDocs} />
     {:else if currentPage === 'docs-quickstart'}
       <DocsQuickstartPage {locale} />
@@ -436,11 +449,11 @@
     {:else}
       <DocsReferencePage {locale} />
     {/if}
-  </DocsShell>
+  </DocsLayout>
 {:else if currentPage === 'login'}
   <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
 {:else if useDashboardShell}
-  <DashboardAppShell page={currentPage as DashboardPage} {providerCount} gatewayAddress={gateway.address} {tr} {locale} onLocaleChange={changeLocale} onNavigate={(target) => navigateTo(target as DashboardPage)} onSignOut={signOut}>
+  <DashboardAppShell page={isApiKeyDetailRoute(currentPage) ? 'api-keys' : currentPage as DashboardPage} {providerCount} gatewayAddress={gateway.address} {tr} {locale} onLocaleChange={changeLocale} onNavigate={(target) => navigateTo(target as DashboardPage)} onSignOut={signOut}>
     {#if providerOAuthNotice}
       <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
         <span>{providerOAuthNotice}</span>
@@ -462,8 +475,8 @@
         <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
       {:else if currentPage === 'settings'}
         <svelte:component this={activeFeature} {tr} {theme} {themePreference} onThemeChange={changeTheme} onThemePreferenceChange={changeThemePreference} onNavigate={navigateTo} onAuthenticationReset={handleAuthenticationReset} />
-      {:else if currentPage === 'api-keys'}
-        <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} />
+      {:else if currentPage === 'api-keys' || isApiKeyDetailRoute(currentPage)}
+        <svelte:component this={activeFeature} {tr} {locale} page={currentPage} onNavigate={navigateTo} />
       {:else if currentPage === 'help'}
         <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} />
       {:else if currentPage === 'chat'}
@@ -479,48 +492,9 @@
         </div>
       </section>
     {:else}
-      <section class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-nav:grid-cols-2 max-nav:gap-2" role="status" aria-label={tr('Loading {page}…', { page: pageTitles[currentPage] })}>
+      <section class="grid min-h-0 grid-cols-[repeat(4,minmax(0,1fr))] gap-[2%] max-nav:grid-cols-2 max-nav:gap-2" role="status" aria-label={tr('Loading {page}…', { page: currentPageTitle() })}>
         {#each [0, 1, 2, 3] as i (i)}<div class="min-w-0 min-h-[152px] rounded-[17px] border border-line bg-surface p-[18px]" style="min-height:132px"></div>{/each}
       </section>
     {/if}
   </DashboardAppShell>
-{:else}
-  <DashboardShell currentPage={currentPage} title={pageTitle} {tr} {preferences} {gateway} {providerCount} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} onNavigate={navigateTo} onRefresh={refreshCurrentPage} onSignOut={signOut}>
-    {#if providerOAuthNotice}
-      <div class="provider-oauth-callback-banner" class:success={providerOAuthNoticeTone === 'success'} class:error={providerOAuthNoticeTone === 'error'} role={providerOAuthNoticeTone === 'error' ? 'alert' : 'status'}>
-        <span>{providerOAuthNotice}</span>
-        <Button type="button" class="icon-button" aria-label={tr('Dismiss notification')} onclick={() => providerOAuthNotice = ''}>×</Button>
-      </div>
-    {/if}
-    {#if activeFeature && activeFeaturePage === currentPage && activeFeatureRefreshKey === refreshKey}
-        {#if currentPage === 'overview'}
-          <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onCreateRequest={requestCreate} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} onGatewayAddressChange={updateGatewayAddress} />
-        {:else if currentPage === 'providers'}
-          <svelte:component this={activeFeature} {tr} {locale} {actionRequest} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
-        {:else if currentPage === 'combos'}
-          <svelte:component this={activeFeature} {tr} {actionRequest} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
-        {:else if currentPage === 'quota'}
-          <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onProviderCountChange={handleProviderCountChange} />
-        {:else if currentPage === 'requests'}
-          <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
-        {:else if currentPage === 'api-keys'}
-          <svelte:component this={activeFeature} {tr} {locale} onNavigate={navigateTo} />
-        {:else if currentPage === 'settings'}
-          <svelte:component this={activeFeature} {tr} {locale} {theme} {themePreference} onThemeChange={changeTheme} onThemePreferenceChange={changeThemePreference} onNavigate={navigateTo} onConnectionChange={handleConnectionChange} onAuthenticationReset={handleAuthenticationReset} onGatewayAddressChange={updateGatewayAddress} />
-        {:else if currentPage === 'chat'}
-          <svelte:component this={activeFeature} {tr} {locale} onConnectionChange={handleConnectionChange} />
-        {/if}
-      {:else if featureLoadError === currentPage}
-        <main class="auth-bootstrap session-check-screen" role="alert">
-          <section class="session-check-card">
-            <h1>{tr('Could not load this page.')}</h1>
-            <p>{tr('Check the server, then try again.')}</p>
-            <Button class="primary-button" type="button" onclick={refreshCurrentPage}>{tr('Retry')}</Button>
-            <Button class="secondary-button" type="button" onclick={reloadDashboard}>{tr('Reload page')}</Button>
-          </section>
-        </main>
-      {:else}
-        <main class="auth-bootstrap session-check-screen" role="status"><section class="session-check-card"><span class="auth-bootstrap-spinner"></span><p>{tr('Loading {page}…', { page: pageTitles[currentPage] })}</p></section></main>
-      {/if}
-  </DashboardShell>
 {/if}

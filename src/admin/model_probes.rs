@@ -434,6 +434,7 @@ async fn test_api_key_credentials(
     while let Some(key) = current_key.take() {
         let secret = match decrypt_secret(
             state.config.master_key.as_ref(),
+            &crate::security::SecretContext::provider_key(&key.id),
             Some(&key.encrypted_secret),
         ) {
             Ok(secret) => secret,
@@ -480,7 +481,11 @@ async fn test_api_key_credentials(
             Ok(value) => value,
             Err(error) => return model_test_database_error(provider_id, model, error),
         };
-        let secret = match decrypt_secret(state.config.master_key.as_ref(), legacy_secret) {
+        let secret = match decrypt_secret(
+            state.config.master_key.as_ref(),
+            &crate::security::SecretContext::provider(&provider_id, "secret"),
+            legacy_secret,
+        ) {
             Ok(secret) => secret,
             Err(error) => {
                 return ModelTestResult {
@@ -559,6 +564,7 @@ async fn test_mixed_credentials(
             crate::provider_adapters::keys::ProviderCredentialType::ApiKey => {
                 match decrypt_secret(
                     state.config.master_key.as_ref(),
+                    &crate::security::SecretContext::provider_key(&credential.id),
                     Some(&credential.encrypted_secret),
                 ) {
                     Ok(Some(secret)) => {

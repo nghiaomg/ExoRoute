@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
-  import SelectSearch from '../../components/SelectSearch.svelte';
+  import Button from "../../components/ui/Button.svelte";
+  import SelectSearch from '../../components/ui/SelectSearch.svelte';
   import { afterUpdate, onDestroy } from 'svelte';
   import { LoaderCircle } from '@lucide/svelte';
   import { api } from '../../lib/api';

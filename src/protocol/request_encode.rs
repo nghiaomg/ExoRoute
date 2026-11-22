@@ -1,6 +1,87 @@
 use super::parse::{CanonicalToolChoice, parse_tool_choice};
-use super::request_metadata::{SAFE_PASSTHROUGH_OPTIONS, apply_responses_metadata};
+use super::request_metadata::{
+    MAX_SAFE_PASSTHROUGH_VALUE_CHARS, SAFE_PASSTHROUGH_OPTIONS, apply_responses_metadata,
+};
 use super::*;
+
+/// Native options that are meaningful in Responses or Messages requests but
+/// cannot be represented in every protocol. A Responses/Messages source with
+/// one of these historically had it dropped on a cross-protocol translation;
+/// keep that behavior instead of turning a formerly valid request into an
+/// error. Chat-sourced requests keep the stricter unknown-option check below.
+const CROSS_PROTOCOL_NATIVE_OPTIONS: &[&str] = &[
+    "previous_response_id",
+    "store",
+    "parallel_tool_calls",
+    "top_k",
+    "thinking",
+    "enable_thinking",
+    "reasoning",
+    "reasoning_effort",
+    "effort",
+    "verbosity",
+    "response_format",
+    "truncation",
+    "user",
+    "text",
+    "background",
+    "include",
+    "container",
+    "output_config",
+    "max_tool_calls",
+    "safety_identifier",
+    "prompt",
+    "service_tier",
+];
+
+/// Responses options that `apply_responses_metadata` normalizes rather than
+/// forwarding byte-for-byte. Every other Responses-native field is forwarded
+/// verbatim so same-protocol requests keep their own options.
+const RESPONSES_NORMALIZED_OPTIONS: &[&str] = &[
+    "effort",
+    "reasoning_effort",
+    "reasoning",
+    "thinking",
+    "enable_thinking",
+    "verbosity",
+    "response_format",
+    "store",
+    "parallel_tool_calls",
+    "prompt_cache_key",
+];
+
+fn unsafe_forwarding_option(key: &str) -> bool {
+    let lower = key.to_ascii_lowercase();
+    !SAFE_PASSTHROUGH_OPTIONS
+        .iter()
+        .any(|name| name.eq_ignore_ascii_case(&lower))
+        && (lower.contains("key")
+            || lower.contains("token")
+            || lower.contains("authorization")
+            || lower.contains("secret"))
+}
+
+/// Responses identifiers are routing hints, not content. Validate them before
+/// forwarding so a malformed JSON value cannot reach the provider body.
+fn validate_native_identifier(key: &str, value: &Value) -> Result<(), String> {
+    let Some(text) = value.as_str() else {
+        return if value.is_null() {
+            Ok(())
+        } else {
+            Err(format!("request option '{key}' must be a string"))
+        };
+    };
+    if text.trim().is_empty()
+        || !text.is_ascii()
+        || text.chars().count() > MAX_SAFE_PASSTHROUGH_VALUE_CHARS
+    {
+        return Err(format!(
+            "request option '{key}' must be a non-empty ASCII string of at most {MAX_SAFE_PASSTHROUGH_VALUE_CHARS} characters"
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn encode_openai_family_request(
     protocol: Protocol,
     request: &CanonicalRequest,
@@ -9,9 +90,16 @@ pub(crate) fn encode_openai_family_request(
     if protocol != request.source_protocol
         && protocol != Protocol::Responses
         && request.metadata.keys().any(|key| {
-            !super::request_metadata::CHAT_ONLY_DROPPED_OPTIONS
+            let native_droppable = matches!(
+                request.source_protocol,
+                Protocol::Responses | Protocol::Messages
+            ) && CROSS_PROTOCOL_NATIVE_OPTIONS
                 .iter()
-                .any(|name| key.eq_ignore_ascii_case(name))
+                .any(|name| key.eq_ignore_ascii_case(name));
+            !native_droppable
+                && !super::request_metadata::CHAT_ONLY_DROPPED_OPTIONS
+                    .iter()
+                    .any(|name| key.eq_ignore_ascii_case(name))
                 && !super::request_metadata::SAFE_PASSTHROUGH_OPTIONS
                     .iter()
                     .any(|name| key.eq_ignore_ascii_case(name))
@@ -33,19 +121,25 @@ pub(crate) fn encode_openai_family_request(
             let messages: Vec<Value> = request.messages.iter().map(encode_chat_message).collect();
             let tools: Vec<Value> = request.tools.iter().map(|tool| json!({"type":"function","function":{"name":tool.name,"description":tool.description,"parameters":tool.parameters}})).collect();
             let mut result = json!({"model":model,"messages":messages,"stream":request.stream});
-            for (key, value) in &request.metadata {
-                let lower = key.to_ascii_lowercase();
-                if !SAFE_PASSTHROUGH_OPTIONS
-                    .iter()
-                    .any(|name| name.eq_ignore_ascii_case(&lower))
-                    && (lower.contains("key")
-                        || lower.contains("token")
-                        || lower.contains("authorization")
-                        || lower.contains("secret"))
-                {
-                    return Err(format!("request option '{key}' cannot be forwarded safely"));
+            // Only Chat-sourced requests carry Chat-shaped options. Other
+            // sources reach this branch through the cross-protocol allowance
+            // for native options that cannot be represented in Chat; those
+            // were dropped before metadata capture and stay dropped here.
+            if request.source_protocol == Protocol::ChatCompletions {
+                for (key, value) in &request.metadata {
+                    let lower = key.to_ascii_lowercase();
+                    if !SAFE_PASSTHROUGH_OPTIONS
+                        .iter()
+                        .any(|name| name.eq_ignore_ascii_case(&lower))
+                        && (lower.contains("key")
+                            || lower.contains("token")
+                            || lower.contains("authorization")
+                            || lower.contains("secret"))
+                    {
+                        return Err(format!("request option '{key}' cannot be forwarded safely"));
+                    }
+                    result[key] = value.clone();
                 }
-                result[key] = value.clone();
             }
             copy_options(request, &mut result, false);
             if !tools.is_empty() {
@@ -125,7 +219,53 @@ pub(crate) fn encode_openai_family_request(
             if let Some(choice) = &request.tool_choice {
                 result["tool_choice"] = encode_tool_choice(choice, Protocol::Responses)?;
             }
-            apply_responses_metadata(&request.metadata, &mut result, model)?;
+            // Responses-native options are already part of the upstream
+            // contract. Forward them verbatim rather than treating them as
+            // translation options, while still letting `apply_responses_metadata`
+            // normalize the shared option aliases. Messages-sourced options are
+            // kept out of that normalization so previously dropped fields do
+            // not turn a translation into an error; Chat keeps its existing
+            // strict option validation.
+            let metadata: BTreeMap<String, Value> = match request.source_protocol {
+                Protocol::Responses => {
+                    let mut normalized = BTreeMap::new();
+                    let mut native = Vec::new();
+                    for (key, value) in &request.metadata {
+                        if RESPONSES_NORMALIZED_OPTIONS
+                            .iter()
+                            .any(|name| key.eq_ignore_ascii_case(name))
+                        {
+                            normalized.insert(key.clone(), value.clone());
+                        } else if result.get(key).is_none() {
+                            if unsafe_forwarding_option(key) {
+                                return Err(format!(
+                                    "request option '{key}' cannot be forwarded safely"
+                                ));
+                            }
+                            if key.eq_ignore_ascii_case("previous_response_id") {
+                                validate_native_identifier(key, value)?;
+                            }
+                            native.push((key.clone(), value.clone()));
+                        }
+                    }
+                    for (key, value) in native {
+                        result[key] = value;
+                    }
+                    normalized
+                }
+                Protocol::Messages => request
+                    .metadata
+                    .iter()
+                    .filter(|(key, _)| {
+                        RESPONSES_NORMALIZED_OPTIONS
+                            .iter()
+                            .any(|name| key.eq_ignore_ascii_case(name))
+                    })
+                    .map(|(key, value)| (key.clone(), value.clone()))
+                    .collect(),
+                Protocol::ChatCompletions => request.metadata.clone(),
+            };
+            apply_responses_metadata(&metadata, &mut result, model)?;
             copy_options(request, &mut result, true);
             Ok(result)
         }
@@ -172,6 +312,17 @@ pub(crate) fn encode_openai_family_request(
             }
             if let Some(v) = request.top_p {
                 result["top_p"] = json!(v);
+            }
+            if request.source_protocol == Protocol::Messages {
+                for (key, value) in &request.metadata {
+                    if result.get(key).is_some() {
+                        continue;
+                    }
+                    if unsafe_forwarding_option(key) {
+                        return Err(format!("request option '{key}' cannot be forwarded safely"));
+                    }
+                    result[key] = value.clone();
+                }
             }
             Ok(result)
         }

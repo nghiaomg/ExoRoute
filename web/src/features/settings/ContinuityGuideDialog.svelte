@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Button from "../../components/Button.svelte";
+  import Button from "../../components/ui/Button.svelte";
   import { RefreshCw, ShieldCheck, Zap } from '@lucide/svelte';
-  import ArkDialog from '../../components/ArkDialog.svelte';
+  import Dialog from '../../components/ui/Dialog.svelte';
   import { type Translate } from '../../lib/format';
 
   export let tr: Translate;
@@ -10,7 +10,7 @@
   export let continuityCapacity = 16;
 </script>
 
-<ArkDialog
+<Dialog
   {open}
   class="continuity-guide-dialog"
   closeLabel={tr('Close dialog')}
@@ -109,4 +109,4 @@ Last-Event-ID: &lt;last_event_id&gt;</pre>
       </Button>
     </div>
   </div>
-</ArkDialog>
+</Dialog>

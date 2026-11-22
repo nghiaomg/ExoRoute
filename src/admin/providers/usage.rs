@@ -6,7 +6,7 @@ use super::{DEFAULT_PROVIDER_KEY_PAGE_SIZE, provider_api_key_order_position};
 use crate::admin::{ApiResult, fail, internal};
 use crate::infra::storage::{Record, Table};
 use crate::provider_adapters;
-use crate::security::decrypt_secret;
+use crate::security::{SecretContext, decrypt_secret};
 use crate::state::AppState;
 use axum::{
     Json,
@@ -345,7 +345,11 @@ pub(super) async fn provider_api_key_usage_for_key(
             .await;
         }
     };
-    let result = match decrypt_secret(state.config.master_key.as_ref(), Some(&encrypted_secret)) {
+    let result = match decrypt_secret(
+        state.config.master_key.as_ref(),
+        &SecretContext::provider_key(&key.id),
+        Some(&encrypted_secret),
+    ) {
         Ok(Some(credential)) => {
             provider_adapters::fetch_api_key_usage(adapter_id, state, base_url, &credential).await
         }

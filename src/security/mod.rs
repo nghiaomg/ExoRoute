@@ -9,4 +9,6 @@ mod credential_secrets;
 pub(crate) mod egress;
 pub(crate) mod rate_limit;
 
-pub use credential_secrets::{decrypt_secret, encrypt_secret, secure_eq, token_hash};
+pub use credential_secrets::{
+    SecretContext, decrypt_secret, encrypt_for_storage, encrypt_secret, secure_eq, token_hash,
+};

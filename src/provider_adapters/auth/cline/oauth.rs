@@ -98,7 +98,11 @@ pub async fn account_for_use(
     if encrypted.len() > MAX_ACCOUNT_BYTES {
         return Err("stored Cline account data exceeded its size limit".to_owned());
     }
-    let serialized = security::decrypt_secret(state.config.master_key.as_ref(), Some(&encrypted))
+    let serialized = security::decrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(credential_id),
+        Some(&encrypted),
+    )
         .map_err(|_| "could not decrypt Cline account; check EXOROUTE_MASTER_KEY".to_owned())?
         .ok_or_else(|| "Cline account credentials are empty".to_owned())?;
     if serialized.len() > MAX_ACCOUNT_BYTES {
@@ -183,8 +187,12 @@ pub(super) async fn refresh_account(
     let serialized = serde_json::to_string(&refreshed).map_err(|_| {
         RefreshError::Temporary("could not encode refreshed Cline account".to_owned())
     })?;
-    let encrypted = security::encrypt_secret(state.config.master_key.as_ref(), &serialized)
-        .map_err(|_| {
+    let encrypted = security::encrypt_secret(
+        state.config.master_key.as_ref(),
+        &crate::security::SecretContext::oauth_account(credential_id),
+        &serialized,
+    )
+    .map_err(|_| {
             RefreshError::Temporary("could not encrypt refreshed Cline account".to_owned())
         })?
         .ok_or_else(|| {

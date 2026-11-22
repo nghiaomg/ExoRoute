@@ -121,6 +121,7 @@ const english: DocsCopy = {
   },
   nav: {
     docs: { label: 'Overview', description: 'What ExoRoute does and how the pieces fit.' },
+    'docs-overview': { label: 'Overview', description: 'What ExoRoute does and how the pieces fit.' },
     'docs-quickstart': { label: 'Quickstart', description: 'Install, configure, and send your first request.' },
     'docs-integrations': { label: 'Integrations', description: 'Connect SDKs, coding tools, and clients.' },
     'docs-reference': { label: 'API reference', description: 'Endpoints, authentication, models, and limits.' },
@@ -498,6 +499,7 @@ const vietnamese: DocsCopy = {
   },
   nav: {
     docs: { label: 'Tổng quan', description: 'ExoRoute làm gì và các thành phần kết nối ra sao.' },
+    'docs-overview': { label: 'Tổng quan', description: 'ExoRoute làm gì và các thành phần kết nối ra sao.' },
     'docs-quickstart': { label: 'Bắt đầu nhanh', description: 'Cài đặt, cấu hình và gửi request đầu tiên.' },
     'docs-integrations': { label: 'Tích hợp', description: 'Kết nối SDK, editor, CLI và các client.' },
     'docs-reference': { label: 'API reference', description: 'Endpoint, xác thực, model và giới hạn.' },
