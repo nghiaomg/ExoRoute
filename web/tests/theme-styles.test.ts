@@ -107,7 +107,6 @@ test('applyTheme sets the requested visual theme and exact browser theme color',
     applyTheme(theme.id);
     assert.equal(dataset.theme, theme.scheme);
     assert.equal(dataset.palette, theme.id);
-    assert.equal(dataset.themeStyle, theme.id);
     assert.equal(style.colorScheme, theme.scheme);
     assert.equal(metaColor, theme.metaColor);
   }
@@ -145,6 +144,13 @@ test('first-paint bootstrap resolves System, explicit palettes, and blocked stor
   assert.deepEqual(themeIds, THEMES.map(({ id }) => id), 'first-paint bootstrap ids match the theme catalog');
   const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script, 'inline synchronous bootstrap exists before styles and app bundle');
+  assert.ok(
+    script.includes(`localStorage.getItem('${THEME_STORAGE_KEY}')`),
+    'first-paint bootstrap reads the shared theme storage key',
+  );
+  assert.ok(!script.includes('themeStyle'), 'first-paint bootstrap does not write the dead data-theme-style attribute');
+  const runtimeSource = readFileSync(new URL('../src/lib/theme.ts', import.meta.url), 'utf8');
+  assert.ok(!runtimeSource.includes('themeStyle'), 'runtime theme application does not write data-theme-style');
   const runBootstrap = (savedTheme: string | null, dark: boolean, storageBlocked = false) => {
     const root = { dataset: {} as Record<string, string>, style: {} as Record<string, string>, lang: '', dir: '' };
     const meta = { content: '', setAttribute(_name: string, value: string) { this.content = value; } };
@@ -166,17 +172,20 @@ test('first-paint bootstrap resolves System, explicit palettes, and blocked stor
   const systemDark = runBootstrap(null, true);
   assert.equal(systemDark.root.dataset.theme, 'dark');
   assert.equal(systemDark.root.dataset.palette, 'dark');
+  assert.equal(systemDark.root.style.colorScheme, 'dark', 'system dark first-paint color-scheme');
   assert.equal(systemDark.meta.content, themeById('dark').metaColor);
 
   const systemLightStorageBlocked = runBootstrap(null, false, true);
   assert.equal(systemLightStorageBlocked.root.dataset.theme, 'light');
   assert.equal(systemLightStorageBlocked.root.dataset.palette, 'light');
+  assert.equal(systemLightStorageBlocked.root.style.colorScheme, 'light', 'blocked-storage first-paint color-scheme');
   assert.equal(systemLightStorageBlocked.meta.content, themeById('light').metaColor);
 
   for (const theme of THEMES) {
     const explicit = runBootstrap(theme.id, !theme.scheme || theme.scheme === 'light');
     assert.equal(explicit.root.dataset.theme, theme.scheme, `${theme.id} first-paint scheme`);
     assert.equal(explicit.root.dataset.palette, theme.id, `${theme.id} first-paint palette`);
+    assert.equal(explicit.root.style.colorScheme, theme.scheme, `${theme.id} first-paint color-scheme`);
     assert.equal(explicit.meta.content, theme.metaColor, `${theme.id} first-paint theme color`);
   }
 });

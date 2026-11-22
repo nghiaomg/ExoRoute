@@ -247,8 +247,7 @@ pub(super) fn proxy_issue_message(issue: &ProxyReferenceIssue) -> String {
             format!("embedded proxy '{proxy_id}' does not exist")
         }
         ProxyReferenceIssue::TooManyEndpoints { expanded } => format!(
-            "expanded proxy has {expanded} endpoints, above the supported limit of {}",
-            MAX_PROXY_ENDPOINTS
+            "expanded proxy has {expanded} endpoints, above the supported limit of {MAX_PROXY_ENDPOINTS}"
         ),
         ProxyReferenceIssue::GraphTooLarge => {
             "embedded proxy graph is larger than the supported limit".to_owned()

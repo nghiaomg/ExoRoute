@@ -177,7 +177,6 @@ export function applyTheme(id: ThemeId): void {
     const root = document.documentElement;
     root.dataset.theme = theme.scheme;
     root.dataset.palette = theme.id;
-    root.dataset.themeStyle = theme.id;
     root.style.colorScheme = theme.scheme;
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {

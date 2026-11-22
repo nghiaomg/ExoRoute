@@ -229,7 +229,7 @@ pub(crate) async fn refresh_account(
         apply_token_payload(account, &value);
         return Ok(());
     }
-    let url = format!("{}{}", SOCIAL_BASE_URL, SOCIAL_REFRESH_PATH);
+    let url = format!("{SOCIAL_BASE_URL}{SOCIAL_REFRESH_PATH}");
     let (status, value) = post_json(state, &url, &json!({ "refreshToken": refresh_token })).await?;
     if !status.is_success() {
         return Err(format!(
@@ -305,7 +305,7 @@ pub(crate) async fn import_refresh_token(
     };
     // Social refresh is the only path that accepts a bare refresh token; an
     // OIDC refresh token without its client credentials cannot be validated.
-    let url = format!("{}{}", SOCIAL_BASE_URL, SOCIAL_REFRESH_PATH);
+    let url = format!("{SOCIAL_BASE_URL}{SOCIAL_REFRESH_PATH}");
     let (status, value) = post_json(state, &url, &json!({ "refreshToken": refresh_token })).await?;
     if !status.is_success() {
         return Err(format!(

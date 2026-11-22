@@ -23,7 +23,6 @@
         const root = document.documentElement;
         root.dataset.theme = scheme;
         root.dataset.palette = palette;
-        root.dataset.themeStyle = palette;
         root.style.colorScheme = scheme;
         document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[palette]);
         try {

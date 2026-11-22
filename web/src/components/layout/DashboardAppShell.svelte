@@ -269,7 +269,7 @@
           </nav>
         </aside>
         <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-        <div class="max-nav:fixed max-nav:inset-0 max-nav:z-[45] max-nav:bg-[#12182066] max-nav:backdrop-blur-[2px]" hidden={!mobileOpen} onclick={() => setMobileOpen(false)}></div>
+        <div class="max-nav:fixed max-nav:inset-0 max-nav:z-[45] max-nav:bg-surface-backdrop max-nav:backdrop-blur-[2px]" hidden={!mobileOpen} onclick={() => setMobileOpen(false)}></div>
 
         <section class="grid min-w-0 min-h-0 max-nav:min-h-[100svh] max-nav:[grid-template-rows:56px_auto] max-nav:gap-2.5 nav:h-full nav:ml-[252px] nav:gap-[1.8%] nav:pe-6 nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] {collapsed ? 'nav:ml-[92px]' : ''}">
           <header class="flex h-full min-w-0 items-center justify-between gap-[18px] rounded-[16px] bg-surface px-[2.3%] max-nav:gap-2 max-nav:rounded-[13px] max-nav:px-[9px]">

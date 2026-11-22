@@ -21,8 +21,8 @@
   --accent-deep: #c2410c;
   --accent-soft: #fdba74;
   --accent-glow: #fb923c;
-  --accent-contrast: #ffffff;
-  --info: #6366f1;
+  --accent-contrast: #111827;
+  --info: #4f46e5;
   --info-soft: #a5b4fc;
   --canvas: #f6f7fb;
   --surface: #ffffff;
@@ -34,7 +34,7 @@
   --surface-modal: rgba(255, 255, 255, 0.96);
   --surface-backdrop: rgba(24, 27, 40, 0.38);
   --text-dim: #6b7185;
-  --focus-ring: color-mix(in srgb, var(--accent) 78%, white);
+  --focus-ring: var(--accent-strong);
   --shadow-raised: 0 8px 28px rgba(20, 24, 38, 0.14);
   --shadow-popover: 0 16px 40px rgba(20, 24, 38, 0.18);
   --scrollbar-thumb: #cbcfdc;
@@ -121,6 +121,7 @@
   --ink: #f0f2f8;
   --muted: #8e93aa;
   --text-dim: #9aa0b6;
+  --info: #818cf8;
   --line: rgba(255, 255, 255, 0.07);
   --canvas: #07080c;
   --surface: #111320;
