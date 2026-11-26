@@ -1,0 +1,182 @@
+/* Theme Styles — flat, token-driven palette geometry.
+ *
+ * Colors live in tokens.css / palettes.css. This file only establishes shared
+ * control and surface states plus each palette's radius scale. No drop shadows,
+ * glows, text shadows, or hover border-width changes.
+ */
+
+:root[data-palette] .combo-card,
+:root[data-palette] .section-card,
+:root[data-palette] .side-card,
+:root[data-palette] .quick-action-strip,
+:root[data-palette] .api-key-card,
+:root[data-palette] .api-key-summary,
+:root[data-palette] .detail-card,
+:root[data-palette] .preset-card,
+:root[data-palette] .provider-model-card,
+:root[data-palette] .detail-hero-banner,
+:root[data-palette] .combo-target-card,
+:root[data-palette] .settings-panel,
+:root[data-palette] .state-card,
+:root[data-palette] .metric-card,
+:root[data-palette] .table-card,
+:root[data-palette] .login-card,
+:root[data-palette] .appearance-theme-card,
+:root[data-palette] .summary-metric-card,
+:root[data-palette] .app-toast,
+:root[data-palette] .quota-skeleton-section,
+:root[data-palette] .quota-skeleton-card,
+:root[data-palette] .quota-empty-state,
+:root[data-palette] .quota-provider-section {
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+:root[data-palette] .combo-card:hover,
+:root[data-palette] .section-card:hover,
+:root[data-palette] .api-key-card:hover,
+:root[data-palette] .detail-card:hover,
+:root[data-palette] .preset-card:hover,
+:root[data-palette] .provider-model-card:hover,
+:root[data-palette] .state-card:hover,
+:root[data-palette] .metric-card:hover,
+:root[data-palette] .summary-metric-card:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover, var(--surface-raised));
+  box-shadow: none;
+}
+
+:root[data-palette] .primary-button,
+:root[data-palette] .login-submit {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: var(--radius-sm, 6px);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+:root[data-palette] .primary-button:hover:not(:disabled),
+:root[data-palette] .login-submit:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  box-shadow: none;
+}
+
+:root[data-palette] .secondary-button {
+  border: 1px solid var(--border-subtle, var(--line));
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-sm, 6px);
+  box-shadow: none;
+}
+
+:root[data-palette] .secondary-button:hover:not(:disabled) {
+  background: var(--surface-hover, var(--surface-raised));
+  border-color: var(--accent);
+  box-shadow: none;
+}
+
+:root[data-palette] .strategy-badge,
+:root[data-palette] .protocol-pill,
+:root[data-palette] .metric-chip,
+:root[data-palette] .provider-avatar,
+:root[data-palette] .combo-icon,
+:root[data-palette] .app-toast-mark,
+:root[data-palette] .login-icon {
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface-sunken);
+  color: var(--accent-strong);
+  box-shadow: none;
+}
+
+:root[data-palette] .search-box,
+:root[data-palette] .login-form input,
+:root[data-palette] .modal-form input,
+:root[data-palette] .provider-key-rename input {
+  border: 1px solid var(--border-subtle, var(--line));
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+/* Neutralize shared shadow tokens for every palette: surfaces are separated
+   by 1px borders and background hierarchy, not elevation or glow. */
+:root[data-palette] {
+  --nb-border: 1px solid var(--border-subtle, var(--line));
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --shadow-raised: none;
+  --shadow-popover: none;
+}
+
+/* Each palette keeps a distinct geometry; only radii remain palette-specific. */
+:root[data-palette='light'] {
+  --nb-radius: 10px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+}
+:root[data-palette='minimal-light'] {
+  --nb-radius: 8px;
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+}
+:root[data-palette='dark'] {
+  --nb-radius: 12px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+:root[data-palette='tokyo-night'] {
+  --nb-radius: 6px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+}
+:root[data-palette='catppuccin'] {
+  --nb-radius: 12px;
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+}
+:root[data-palette='linear'] {
+  --nb-radius: 6px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+}
+:root[data-palette='cyber-neon'] {
+  --nb-radius: 3px;
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+}
+
+/* Catppuccin uses its soft 10px step for controls instead of a pill radius. */
+:root[data-palette='catppuccin'] .primary-button,
+:root[data-palette='catppuccin'] .login-submit,
+:root[data-palette='catppuccin'] .secondary-button {
+  border-radius: var(--radius-md, 10px);
+}

@@ -1,0 +1,204 @@
+/* Theme overrides: settings — flat, token-driven, no shadows or importance overrides. */
+
+/* Settings nav and hero surfaces (one rule per role; no duplicated blocks). */
+:root[data-theme='dark'] .settings-view .settings-nav-tabs {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .settings-view .settings-nav-tab { color: var(--muted); }
+:root[data-theme='dark'] .settings-view .settings-nav-tab:hover:not(.active):not([data-selected]) {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--ink);
+}
+:root[data-theme='dark'] .settings-view .settings-nav-tab.active,
+:root[data-theme='dark'] .settings-view .settings-nav-tab[data-selected] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .settings-view .settings-hero-card,
+:root[data-theme='dark'] .settings-view .settings-panel,
+:root[data-theme='dark'] .settings-view .resource-limits-panel,
+:root[data-theme='dark'] .settings-view .database-panel {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .settings-view .settings-hero-card:hover { background: var(--surface-hover, var(--surface-raised)); }
+:root[data-theme='dark'] .settings-view .settings-hero-card:active { transform: scale(0.985); }
+:root[data-theme='dark'] .settings-view .hero-card-icon {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--muted);
+}
+:root[data-theme='dark'] .settings-view .hero-card-icon.status-live,
+:root[data-theme='dark'] .settings-view .config-status-chip.chip-active {
+  background: color-mix(in srgb, var(--chart-good) 12%, var(--surface));
+  border-color: var(--chart-good);
+  color: var(--chart-good);
+}
+:root[data-theme='dark'] .settings-view .hero-card-label,
+:root[data-theme='dark'] .settings-view .hero-card-sub,
+:root[data-theme='dark'] .settings-view .panel-heading p,
+:root[data-theme='dark'] .settings-view .settings-row span,
+:root[data-theme='dark'] .settings-view .side-card-caption,
+:root[data-theme='dark'] .settings-view .resource-limits-description,
+:root[data-theme='dark'] .settings-view .resource-limit-field > small { color: var(--muted); }
+:root[data-theme='dark'] .settings-view .hero-card-value,
+:root[data-theme='dark'] .settings-view .panel-heading h2,
+:root[data-theme='dark'] .settings-view .settings-row strong,
+:root[data-theme='dark'] .settings-view .side-card-title,
+:root[data-theme='dark'] .settings-view .resource-limits-active strong,
+:root[data-theme='dark'] .settings-view .resource-limit-field { color: var(--ink); }
+:root[data-theme='dark'] .settings-view .panel-icon {
+  background: color-mix(in srgb, var(--info) 14%, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--info);
+}
+:root[data-theme='dark'] .settings-view .panel-icon.violet-panel { color: var(--info-soft); }
+:root[data-theme='dark'] .settings-view .panel-icon.amber { color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+:root[data-theme='dark'] .settings-view .settings-row:nth-child(even) { background: var(--surface-raised); }
+:root[data-theme='dark'] .settings-view .settings-badge-code,
+:root[data-theme='dark'] .settings-view .config-tile-code,
+:root[data-theme='dark'] .settings-view .database-file-label.has-file {
+  background: color-mix(in srgb, var(--info) 12%, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--info-soft);
+}
+:root[data-theme='dark'] .settings-view .settings-badge-uptime,
+:root[data-theme='dark'] .settings-view .config-status-chip,
+:root[data-theme='dark'] .settings-view .config-tile,
+:root[data-theme='dark'] .settings-view .resource-limit-field,
+:root[data-theme='dark'] .settings-view .database-log-option,
+:root[data-theme='dark'] .settings-view .database-file-label {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--muted);
+}
+:root[data-theme='dark'] .settings-view .config-tile-label { color: var(--ink); }
+:root[data-theme='dark'] .settings-view .settings-note {
+  background: color-mix(in srgb, var(--info) 8%, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--ink);
+}
+:root[data-theme='dark'] .settings-view .settings-note svg { color: var(--info); }
+:root[data-theme='dark'] .settings-view .resource-limits-active { background: var(--surface-raised); color: var(--muted); }
+:root[data-theme='dark'] .settings-view .database-file-label:hover { background: var(--surface-hover, var(--surface-raised)); border-color: var(--accent); }
+:root[data-theme='dark'] .settings-view .resource-limit-input input,
+:root[data-theme='dark'] .settings-view .resource-limit-input select {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border-subtle, var(--line));
+}
+
+/* API-key cards. */
+:root[data-theme='dark'] .api-key-summary,
+:root[data-theme='dark'] .api-key-card,
+:root[data-theme='dark'] .api-key-card-dates > div {
+  background: var(--surface);
+  border: none;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .api-key-card:hover { background: var(--surface-hover, var(--surface-raised)); }
+:root[data-theme='dark'] .api-key-summary strong,
+:root[data-theme='dark'] .api-key-card-heading h2,
+:root[data-theme='dark'] .api-key-card-dates strong { color: var(--ink); }
+:root[data-theme='dark'] .api-key-summary span:not(.api-key-summary-icon),
+:root[data-theme='dark'] .api-key-card-dates span { color: var(--muted); }
+:root[data-theme='dark'] .api-key-card-heading code {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: none;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .api-key-summary-icon,
+:root[data-theme='dark'] .api-key-card-icon { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+:root[data-theme='dark'] .api-key-revoke {
+  border: none;
+  box-shadow: none;
+  background: var(--surface-raised);
+  color: var(--muted);
+}
+:root[data-theme='dark'] .api-key-revoke:hover { background: color-mix(in srgb, var(--chart-critical) 14%, var(--surface)); color: var(--chart-critical); }
+:root[data-theme='dark'] .resource-continuity-control { color: var(--ink); }
+:root[data-theme='dark'] .resource-limits-notice {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid var(--accent);
+}
+:root[data-theme='dark'] .resource-limits-error,
+:root[data-theme='dark'] .resource-limits-validation { color: var(--chart-critical); }
+:root[data-theme='dark'] .resource-limits-error {
+  background: color-mix(in srgb, var(--chart-critical) 12%, var(--surface));
+  border: 1px solid var(--chart-critical);
+}
+:root[data-theme='dark'] .resource-limits-success {
+  color: var(--chart-good);
+  background: color-mix(in srgb, var(--chart-good) 12%, var(--surface));
+  border: 1px solid var(--chart-good);
+}
+
+/* Overview side columns and mini rows. */
+:root[data-theme='dark'] .compact-btn,
+:root[data-theme='dark'] .text-button { color: var(--accent); cursor: pointer; }
+:root[data-theme='dark'] .compact-btn:hover,
+:root[data-theme='dark'] .text-button:hover { color: var(--accent-strong); }
+:root[data-theme='dark'] .combo-mini-item,
+:root[data-theme='dark'] .provider-mini-row {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+:root[data-theme='dark'] .combo-mini-item:hover,
+:root[data-theme='dark'] .provider-mini-row:hover { background: var(--surface-hover, var(--surface-raised)); border: none; box-shadow: none; transform: none; }
+:root[data-theme='dark'] .combo-mini-item:active,
+:root[data-theme='dark'] .provider-mini-row:active { background: var(--surface-raised); border: none; box-shadow: none; transform: none; }
+:root[data-theme='dark'] .combo-mini-top strong,
+:root[data-theme='dark'] .route-mini-main strong { color: var(--ink); }
+:root[data-theme='dark'] .strategy-pill {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: none;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .mini-target-chip,
+:root[data-theme='dark'] .mini-target-more,
+:root[data-theme='dark'] .route-more-pill {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .mini-target-chip .target-idx,
+:root[data-theme='dark'] .route-mini-path,
+:root[data-theme='dark'] .side-empty-state p { color: var(--muted); }
+:root[data-theme='dark'] .mini-target-chip code { color: var(--accent); }
+:root[data-theme='dark'] .route-target-pill {
+  background: color-mix(in srgb, var(--info) 12%, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--info-soft);
+}
+:root[data-theme='dark'] .provider-mini-avatar {
+  background: color-mix(in srgb, var(--info) 14%, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+  color: var(--info-soft);
+}
+:root[data-theme='dark'] .provider-mini-avatar.has-image { background: var(--surface-raised); }
+:root[data-theme='dark'] .provider-mini-info strong { color: var(--ink); }
+:root[data-theme='dark'] .provider-mini-info small,
+:root[data-theme='dark'] .provider-mini-meta { color: var(--muted); }
+:root[data-theme='dark'] .state-dot { background: var(--line); }
+:root[data-theme='dark'] .state-dot.active { background: var(--chart-good); box-shadow: none; }
+
+/* Keyboard focus and motion. */
+:root[data-theme='dark'] :focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent-soft));
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='dark'] .compact-btn,
+  :root[data-theme='dark'] .text-button,
+  :root[data-theme='dark'] .combo-mini-item,
+  :root[data-theme='dark'] .provider-mini-row { transition: none; }
+}

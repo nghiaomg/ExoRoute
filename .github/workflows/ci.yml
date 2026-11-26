@@ -1,0 +1,114 @@
+name: CI
+
+# `release.yml` only runs when a `v*` tag is pushed, so branch and pull-request
+# work used to reach a release tag without any automated verification. This gate
+# runs the same checks on every change to a long-lived branch, which is what
+# turns "the checks passed when someone ran them" into a fact about the commit.
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an in-flight run's result irrelevant.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  boundaries:
+    name: Source boundaries
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 22
+
+      - name: Check source boundaries
+        run: node scripts/check_source_boundaries.mjs
+
+  dashboard:
+    name: Dashboard
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # `npm test` runs the node:test and vitest suites, which the release
+      # workflow already runs; keeping it here is what makes a broken frontend
+      # test fail on the pull request instead of on release day.
+      - name: Check, test, and build the dashboard
+        working-directory: web
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run build
+
+      # The Rust binary embeds `web/dist` with RustEmbed, so the Rust job cannot
+      # compile without the dashboard the job above just produced.
+      - name: Upload built dashboard
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: web-dist
+          path: web/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  rust:
+    name: Rust
+    needs: dashboard
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Download built dashboard
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: 1.88.0
+          components: rustfmt, clippy
+
+      # The gate below compiles the workspace five times (clippy, test, check,
+      # check --release). Without a cache every push recompiles every dependency
+      # from scratch, which is minutes of runner time per push; pinning the action
+      # by commit keeps that speedup inside the same supply-chain rule as the
+      # official actions above. v2.9.2.
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy with warnings denied
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run Rust tests
+        run: cargo test --workspace --all-features --locked
+
+      - name: Check all targets and features
+        run: cargo check --workspace --all-targets --all-features --locked
+
+      - name: Check the release profile
+        run: cargo check --release --locked

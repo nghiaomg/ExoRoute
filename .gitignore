@@ -1,0 +1,99 @@
+# Rust build output
+/target/
+
+# Frontend dependencies and generated build output
+/web/node_modules/
+/web/.svelte-kit/
+/web/dist/
+
+# npm launcher downloaded binary
+/npm/vendor/
+
+# Local tooling metadata
+/.freebuff/
+/.vite/
+/.zcode/
+.dshwolf/
+
+# Local application data and databases
+/.exoroute/
+/backups/
+/data/*
+!/data/.gitkeep
+!/data/provider-presets.yaml
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.lmdb/
+*.mdb
+*.mdb-*
+
+# Local environment files. Keep the checked-in template safe and secret-free.
+.env
+.env.*
+!.env.example
+.envrc
+*.token
+
+# Secret and credential material
+*.secret
+*.secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+ssh_host_*_key
+secrets/
+credentials/
+
+# Runtime logs, exports, and backups
+*.log
+*.log.*
+scripts-tmp-*
+/logs/
+*.dump
+*.backup
+*.bak
+*.exoroute
+*-backup.zip
+*_backup.zip
+*-backup.tar.gz
+*_backup.tar.gz
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Vendored reference projects (hundreds of megabytes of other projects' source)
+# are local only. This is `docs/*` rather than `docs/` on purpose: git cannot
+# re-include a path whose parent directory is itself excluded, and a bare
+# `docs/` excludes the directory rather than its entries.
+docs/*
+!web/src/features/docs/
+!web/src/features/docs/**
+
+# Design records are tracked so the reasoning behind an integration survives a
+# fresh clone, a new contributor, and the next investigation.
+!docs/design/
+!docs/design/**
+
+# Official releases and changelogs
+!docs/releases/
+!docs/releases/**
+
+# Architecture guides are version-controlled engineering specifications.
+!docs/architecture/
+!docs/architecture/**
+
+# Generated page mockups (rebuilt by sketch/build-pages.mjs)
+/sketch/*.html
+!/sketch/main.html

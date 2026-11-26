@@ -1,0 +1,293 @@
+/* Theme overrides: shell — flat, token-driven, no shadows or importance overrides. */
+
+/* Output styles and settings rows. */
+:root[data-theme='dark'] .output-style-row,
+:root[data-theme='dark'] .settings-view .database-log-option {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .output-style-row:hover {
+  background: var(--surface-hover, var(--surface-raised));
+}
+:root[data-theme='dark'] .output-style-copy strong { color: var(--ink); }
+:root[data-theme='dark'] .output-style-copy small,
+:root[data-theme='dark'] .output-style-level { color: var(--muted); }
+
+@media (max-width: 768px) {
+  :root[data-theme='dark'] .settings-view .settings-row {
+    border-bottom: 1px solid var(--border-subtle, var(--line));
+    background: transparent;
+  }
+  :root[data-theme='dark'] .settings-view .settings-row:last-child { border-bottom: none; }
+  :root[data-theme='dark'] .settings-view .settings-nav-tabs,
+  :root[data-theme='dark'] .settings-view .settings-hero-card,
+  :root[data-theme='dark'] .settings-view .config-tile,
+  :root[data-theme='dark'] .settings-view .resource-limit-field,
+  :root[data-theme='dark'] .settings-view .database-log-option,
+  :root[data-theme='dark'] .settings-view .resource-limits-active {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle, var(--line));
+  }
+  :root[data-theme='dark'] .settings-view .settings-hero-card:active,
+  :root[data-theme='dark'] .settings-view .settings-nav-tab:active { transform: scale(0.975); }
+  :root[data-theme='dark'] .settings-view .output-style-level { border-top: 1px solid var(--border-subtle, var(--line)); }
+  :root[data-theme='dark'] .settings-view .resource-limit-input input,
+  :root[data-theme='dark'] .settings-view .resource-limit-input select {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border-subtle, var(--line));
+  }
+}
+
+/* Notices. */
+:root[data-theme='dark'] .update-notice-text span,
+:root[data-theme='dark'] .failure-notice-text span { color: var(--muted); }
+:root[data-theme='dark'] .update-notice-link {
+  border-color: var(--border-subtle, var(--line));
+  background: var(--surface-raised);
+  color: var(--accent);
+}
+:root[data-theme='dark'] .update-notice-link:hover { background: var(--surface-hover, var(--surface-raised)); }
+:root[data-theme='dark'] .failure-notice-icon,
+:root[data-theme='dark'] .failure-notice-link {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+:root[data-theme='dark'] .failure-notice-link:hover { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+
+/* Mobile shell. */
+:root[data-theme='dark'] .mobile-brand .brand-word,
+:root[data-theme='dark'] .mobile-sheet-title,
+:root[data-theme='dark'] .mobile-sheet-status-info strong,
+:root[data-theme='dark'] .mobile-sheet-footer .profile-copy strong { color: var(--ink); }
+:root[data-theme='dark'] .mobile-brand .brand-word span { color: var(--accent); }
+:root[data-theme='dark'] .mobile-menu-btn {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--muted);
+}
+:root[data-theme='dark'] .mobile-menu-btn:hover,
+:root[data-theme='dark'] .mobile-sheet-close:hover { color: var(--ink); background: var(--surface-hover, var(--surface-raised)); }
+:root[data-theme='dark'] .mobile-bottom-nav {
+  background: var(--surface-shell);
+  border-top: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .mobile-nav-item,
+:root[data-theme='dark'] .mobile-sheet-close,
+:root[data-theme='dark'] .mobile-sheet-section-title,
+:root[data-theme='dark'] .mobile-sheet-status-info small,
+:root[data-theme='dark'] .mobile-sheet-footer .profile-copy small { color: var(--muted); }
+:root[data-theme='dark'] .mobile-nav-item.active { color: var(--accent); }
+:root[data-palette] .mobile-nav-item.active { color: var(--accent); box-shadow: none; }
+:root[data-palette] .mobile-nav-dot { box-shadow: none; }
+:root[data-theme='dark'] .mobile-nav-dot,
+:root[data-theme='dark'] .mobile-badge { background: var(--accent); }
+:root[data-theme='dark'] .mobile-sheet-backdrop { background: var(--surface-backdrop); }
+:root[data-theme='dark'] .mobile-sheet {
+  background: var(--surface-modal, var(--surface-raised));
+  border-top: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .mobile-sheet-handle { background: var(--line); }
+:root[data-theme='dark'] .mobile-sheet-header { border-bottom-color: var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .mobile-sheet-nav-item,
+:root[data-theme='dark'] .mobile-sheet-status,
+:root[data-theme='dark'] .mobile-sheet-footer {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .mobile-sheet-nav-item { color: var(--muted); }
+:root[data-theme='dark'] .mobile-sheet-nav-item:hover,
+:root[data-palette] .mobile-sheet-nav-item.active {
+  background: var(--surface-hover, var(--surface-raised));
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .mobile-sheet-nav-item .nav-count {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--accent);
+}
+:root[data-theme='dark'] .mobile-sheet-footer .avatar {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+/* Continuity help. */
+:root[data-theme='dark'] .continuity-help-trigger,
+:root[data-theme='dark'] .config-help-trigger {
+  background: var(--surface-raised);
+  color: var(--muted);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .continuity-help-trigger:hover,
+:root[data-theme='dark'] .config-help-trigger:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  border-color: var(--accent);
+}
+:root[data-theme='dark'] .continuity-hero {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border-color: var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .continuity-hero-badge { color: var(--accent); }
+:root[data-theme='dark'] .continuity-hero-desc,
+:root[data-theme='dark'] .continuity-card-body p,
+:root[data-theme='dark'] .step-content p,
+:root[data-theme='dark'] .continuity-limits li { color: var(--muted); }
+:root[data-theme='dark'] .continuity-section-title,
+:root[data-theme='dark'] .continuity-card-body h4,
+:root[data-theme='dark'] .step-content h5 { color: var(--ink); }
+:root[data-theme='dark'] .continuity-card,
+:root[data-theme='dark'] .continuity-step {
+  background: var(--surface-raised);
+  border-color: var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .continuity-card-icon.is-emerald { color: var(--chart-good); background: color-mix(in srgb, var(--chart-good) 14%, var(--surface)); }
+:root[data-theme='dark'] .continuity-card-icon.is-amber { color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+:root[data-theme='dark'] .continuity-card-icon.is-blue { color: var(--info); background: color-mix(in srgb, var(--info) 14%, var(--surface)); }
+:root[data-theme='dark'] .continuity-code {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--info);
+}
+
+/* Danger button and provider-ban warnings. */
+:root[data-theme='dark'] .primary-button.danger {
+  border-color: var(--chart-critical);
+  background: var(--chart-critical);
+  color: var(--accent-contrast);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .provider-ban-warning-banner,
+:root[data-theme='dark'] .provider-key-ban-notice,
+:root[data-theme='dark'] .provider-ban-risk-badge {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .provider-ban-warning-banner .ban-warning-icon,
+:root[data-theme='dark'] .provider-ban-warning-banner .ban-warning-title { color: var(--accent); }
+
+/* Mobile provider details. */
+@media (max-width: 650px) {
+  :root[data-theme='dark'] .back-link-btn,
+  :root[data-theme='dark'] .detail-url-row,
+  :root[data-theme='dark'] .detail-copy-btn,
+  :root[data-theme='dark'] .detail-card,
+  :root[data-theme='dark'] .provider-key-item,
+  :root[data-theme='dark'] .provider-key-controls .row-icon,
+  :root[data-theme='dark'] .model-routing-table tr,
+  :root[data-theme='dark'] .model-copy-btn,
+  :root[data-theme='dark'] .provider-model-card {
+    background: var(--surface-raised);
+    border: none;
+    box-shadow: none;
+  }
+  :root[data-theme='dark'] .detail-url-text,
+  :root[data-theme='dark'] .back-link-btn,
+  :root[data-theme='dark'] .detail-copy-btn,
+  :root[data-theme='dark'] .provider-key-controls .row-icon,
+  :root[data-theme='dark'] .model-copy-btn { color: var(--muted); }
+  :root[data-theme='dark'] .model-routing-table td:first-child code {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border: none;
+  }
+}
+
+/* Flat surface guarantees for view-level cards and chips. */
+:root[data-theme='dark'] .overview-view .section-card,
+:root[data-theme='dark'] .overview-view .side-card,
+:root[data-theme='dark'] .overview-view .quick-action-strip,
+:root[data-theme='dark'] .overview-view .quick-strip-btn,
+:root[data-theme='dark'] .overview-view .combo-mini-item,
+:root[data-theme='dark'] .overview-view .provider-mini-row,
+:root[data-theme='dark'] .overview-view .mini-target-chip,
+:root[data-theme='dark'] .overview-view .strategy-pill,
+:root[data-theme='dark'] .api-keys-view .api-key-summary,
+:root[data-theme='dark'] .api-keys-view .api-key-card,
+:root[data-theme='dark'] .api-keys-view .api-key-card-heading code,
+:root[data-theme='dark'] .api-keys-view .api-key-card-dates > div,
+:root[data-theme='dark'] .api-keys-view .api-key-revoke,
+:root[data-theme='dark'] .providers-view .detail-hero-banner,
+:root[data-theme='dark'] .providers-view .detail-card,
+:root[data-theme='dark'] .providers-view .preset-card,
+:root[data-theme='dark'] .providers-view .provider-card,
+:root[data-theme='dark'] .providers-view .metric-chip,
+:root[data-theme='dark'] .providers-view .back-link-btn,
+:root[data-theme='dark'] .providers-view .detail-copy-btn,
+:root[data-theme='dark'] .providers-view .detail-delete-btn,
+:root[data-theme='dark'] .providers-view .provider-key-item,
+:root[data-theme='dark'] .providers-view .provider-model-card,
+:root[data-theme='dark'] .providers-view .model-routing-table tr,
+:root[data-theme='dark'] .combos-view .combo-card,
+:root[data-theme='dark'] .combos-view .summary-metric-card,
+:root[data-theme='dark'] .combos-view .combo-icon,
+:root[data-theme='dark'] .combos-view .strategy-badge,
+:root[data-theme='dark'] .combos-view .combo-meta,
+:root[data-theme='dark'] .combos-view .pipeline-target-item,
+:root[data-theme='dark'] .combos-view .target-model-chip,
+:root[data-theme='dark'] .combos-view .empty-state,
+:root[data-theme='dark'] .combo-target-card,
+:root[data-theme='dark'] .target-icon-btn,
+:root[data-theme='dark'] .add-target-dashed-btn,
+:root[data-theme='dark'] .config-help-desc-box,
+:root[data-theme='dark'] .config-help-violation-box {
+  border: none;
+  box-shadow: none;
+}
+
+/* Config help diagnostics. */
+:root[data-theme='dark'] .config-help-desc-box,
+:root[data-theme='dark'] .config-help-violation-box .violation-code { background: var(--surface-raised); }
+:root[data-theme='dark'] .config-help-desc-box p,
+:root[data-theme='dark'] .config-help-violation-box .violation-text,
+:root[data-theme='dark'] .config-help-meta-row .meta-val { color: var(--ink); }
+:root[data-theme='dark'] .config-help-violation-box,
+:root[data-theme='dark'] .config-help-violation-box .violation-badge {
+  background: color-mix(in srgb, var(--chart-critical) 12%, var(--surface));
+  color: var(--chart-critical);
+}
+:root[data-theme='dark'] .config-help-violation-box .violation-label { color: var(--chart-critical); }
+:root[data-theme='dark'] .config-help-meta-row .meta-label { color: var(--muted); }
+
+/* API-key detail surfaces. */
+:root[data-theme='dark'] .api-key-detail-page .api-key-hero,
+:root[data-theme='dark'] .api-key-details-kpi,
+:root[data-theme='dark'] .api-key-details-tokens > div,
+:root[data-theme='dark'] .api-key-donut-wrap,
+:root[data-theme='dark'] .api-key-empty-notice,
+:root[data-theme='dark'] .api-key-table {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .api-key-avatar {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--accent);
+}
+:root[data-theme='dark'] .api-key-details-kpi > strong,
+:root[data-theme='dark'] .api-key-details-tokens strong,
+:root[data-theme='dark'] .recent-title { color: var(--ink); }
+:root[data-theme='dark'] .api-key-empty-notice { color: var(--muted); }
+:root[data-theme='dark'] .req-model code {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+}
+
+/* Keyboard focus remains visible without elevation. */
+:root[data-theme='dark'] :focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent-soft));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='dark'] .mobile-sheet-nav-item,
+  :root[data-theme='dark'] .config-help-trigger { transition: none; }
+}

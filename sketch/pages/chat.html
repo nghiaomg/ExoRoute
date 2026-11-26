@@ -1,0 +1,268 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">Chat</h1>
+                  <p id="page-description">Test models through the gateway before wiring them into production.</p>
+                </div>
+                <div class="heading-actions">
+                  <button class="action-button" type="button" data-open-modal="chat-settings-dialog">
+                    <span class="button-icon"><svg class="icon"><use href="#i-sliders" /></svg></span>
+                    <span class="button-label">Parameters</span>
+                  </button>
+                  <button class="action-button primary" type="button" id="chat-new">
+                    <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
+                    <span class="button-label">New chat</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="page-surface chat-surface">
+                <div class="chat-layout surface">
+                  <aside class="chat-side">
+                    <button class="chat-new-btn" type="button" id="chat-new-side">
+                      <svg class="icon"><use href="#i-plus" /></svg>
+                      New conversation
+                    </button>
+                    <div class="chat-sessions" id="chat-sessions">
+                      <button class="chat-session active" type="button" data-session="current">
+                        <strong>Summarize Q3 report</strong>
+                        <span>gemini-2.5-flash · 4 messages</span>
+                      </button>
+                      <button class="chat-session" type="button" data-session="code">
+                        <strong>Debug SSE stream</strong>
+                        <span>claude-sonnet-4 · 12 messages</span>
+                      </button>
+                      <button class="chat-session" type="button" data-session="ideas">
+                        <strong>Combo naming ideas</strong>
+                        <span>gpt-4o-mini · 7 messages</span>
+                      </button>
+                    </div>
+                  </aside>
+
+                  <section class="chat-main">
+                    <div class="chat-model-bar">
+                      <span class="chat-model-label">Model</span>
+                      <select id="chat-model" class="chat-model-select" aria-label="Select model">
+                        <option value="gemini-2.5-flash">gemini-2.5-flash · gemini</option>
+                        <option value="gpt-4o-mini">gpt-4o-mini · openai</option>
+                        <option value="claude-sonnet-4">claude-sonnet-4 · anthropic</option>
+                        <option value="deepseek-chat">deepseek-chat · deepseek</option>
+                        <option value="llama-3.3-70b">llama-3.3-70b · lmstudio</option>
+                      </select>
+                      <span class="chat-via" id="chat-via">via combo: fast-lane</span>
+                    </div>
+
+                    <div class="chat-messages" id="chat-messages" aria-live="polite">
+                      <div class="chat-empty" id="chat-empty">
+                        <svg class="icon chat-empty-icon"><use href="#i-video" /></svg>
+                        <strong>Start a conversation</strong>
+                        <p>Messages are routed through the gateway exactly like production traffic.</p>
+                        <div class="chat-suggestions">
+                          <button class="chat-suggestion" type="button">Summarize this text in 3 bullets</button>
+                          <button class="chat-suggestion" type="button">Write a Python retry decorator</button>
+                          <button class="chat-suggestion" type="button">Explain SSE vs WebSocket</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <form class="chat-composer" id="chat-form">
+                      <button class="icon-action" type="button" id="chat-attach" title="Attach context (mock)">
+                        <svg class="icon"><use href="#i-paperclip" /></svg>
+                      </button>
+                      <textarea id="chat-input" rows="1" placeholder="Message the model… (Enter to send, Shift+Enter for newline)" aria-label="Message input"></textarea>
+                      <button class="chat-send" id="chat-send" type="submit" title="Send">
+                        <svg class="icon"><use href="#i-send" /></svg>
+                      </button>
+                      <button class="chat-stop" id="chat-stop" type="button" title="Stop generating" hidden>
+                        <svg class="icon"><use href="#i-stop" /></svg>
+                      </button>
+                    </form>
+                  </section>
+                </div>
+              </div>
+
+              <!-- Chat parameters dialog -->
+              <dialog class="modal" id="chat-settings-dialog" aria-labelledby="chat-settings-title">
+                <form class="modal-card" id="chat-settings-form">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="chat-settings-title">Chat parameters</h2>
+                      <p>Applied to the next request through the gateway.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-fields chat-settings-fields">
+                    <label class="field">
+                      Temperature
+                      <input id="cs-temp" type="range" min="0" max="2" step="0.1" value="0.7" />
+                      <span class="range-value" id="cs-temp-value">0.7</span>
+                    </label>
+                    <label class="field">
+                      Max tokens
+                      <input id="cs-max" type="number" min="64" max="128000" step="64" value="4096" />
+                    </label>
+                    <label class="field prov-field-wide">
+                      System prompt
+                      <textarea id="cs-system" rows="3" placeholder="You are a helpful routing assistant…">You are a concise assistant testing the ExoRoute gateway.</textarea>
+                    </label>
+                    <label class="field chat-check">
+                      <input id="cs-stream" type="checkbox" checked />
+                      Stream response (SSE)
+                    </label>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action primary" type="submit">Apply</button>
+                  </div>
+                </form>
+              </dialog>
+
+              <script>
+                (() => {
+                  const messages = document.getElementById('chat-messages');
+                  const empty = document.getElementById('chat-empty');
+                  const form = document.getElementById('chat-form');
+                  const input = document.getElementById('chat-input');
+                  const sendBtn = document.getElementById('chat-send');
+                  const stopBtn = document.getElementById('chat-stop');
+                  const modelSelect = document.getElementById('chat-model');
+                  const via = document.getElementById('chat-via');
+                  let streaming = null;
+
+                  const RESPONSES = {
+                    default: 'This is a simulated gateway response. In the real app this streams from the selected provider through ExoRoute, with retries and failover handled automatically.',
+                    hello: 'Hello! I am routed through ExoRoute. Try asking about combos, quota, or request debugging.',
+                    code: 'Here is a small Python retry decorator you could drop into a worker:\n\n```python\nimport time, random\n\ndef retry(times=3, backoff=0.5):\n    def deco(fn):\n        def wrapper(*a, **kw):\n            for i in range(times):\n                try:\n                    return fn(*a, **kw)\n                except Exception:\n                    if i == times - 1: raise\n                    time.sleep(backoff * (2 ** i))\n        return wrapper\n    return deco\n```\n\nNote: for inference calls, only retry when the upstream confirms the request was not accepted — otherwise you may double-bill.',
+                    sse: 'SSE (Server-Sent Events) keeps a single HTTP connection open and streams `data:` frames — simple, auto-reconnects, one-directional. WebSockets give you bidirectional messaging but need a persistent socket and custom framing. For LLM token streaming, SSE is the standard choice: it is what OpenAI, Anthropic, and this gateway all speak.',
+                    summarize: '- ExoRoute is a protocol gateway that normalizes client and provider formats.\n- It adds retries, combos, quota tracking, and per-key scoping.\n- The dashboard embeds LMDB storage and serves a Svelte admin UI.',
+                  };
+                  function pickResponse(text) {
+                    const t = text.toLowerCase();
+                    if (t.includes('hello') || t.includes('hi ')) return RESPONSES.hello;
+                    if (t.includes('python') || t.includes('code') || t.includes('decorator') || t.includes('function')) return RESPONSES.code;
+                    if (t.includes('sse') || t.includes('websocket') || t.includes('stream')) return RESPONSES.sse;
+                    if (t.includes('summar') || t.includes('bullet')) return RESPONSES.summarize;
+                    return RESPONSES.default;
+                  }
+
+                  function scrollBottom() { messages.scrollTop = messages.scrollHeight; }
+
+                  function addMessage(role, text) {
+                    empty.style.display = 'none';
+                    const div = document.createElement('div');
+                    div.className = `chat-msg ${role}`;
+                    const bubble = document.createElement('div');
+                    bubble.className = 'chat-bubble';
+                    bubble.textContent = text;
+                    div.appendChild(bubble);
+                    messages.appendChild(div);
+                    scrollBottom();
+                    return bubble;
+                  }
+
+                  function streamResponse(text) {
+                    const div = document.createElement('div');
+                    div.className = 'chat-msg assistant';
+                    const bubble = document.createElement('div');
+                    bubble.className = 'chat-bubble streaming';
+                    const cursor = document.createElement('span');
+                    cursor.className = 'chat-cursor';
+                    bubble.appendChild(cursor);
+                    div.appendChild(bubble);
+                    messages.appendChild(div);
+                    scrollBottom();
+
+                    let i = 0;
+                    streaming = setInterval(() => {
+                      i += 2 + Math.floor(Math.random() * 5);
+                      const done = i >= text.length;
+                      bubble.textContent = text.slice(0, i);
+                      bubble.appendChild(cursor);
+                      scrollBottom();
+                      if (done) {
+                        clearInterval(streaming);
+                        streaming = null;
+                        bubble.classList.remove('streaming');
+                        cursor.remove();
+                        bubble.textContent = text;
+                        sendBtn.hidden = false;
+                        stopBtn.hidden = true;
+                        showToast(`Responded via ${modelSelect.value} (${(text.length / 40).toFixed(1)}s mock)`);
+                      }
+                    }, 24);
+                    stopBtn.hidden = false;
+                    sendBtn.hidden = true;
+                  }
+
+                  function send(text) {
+                    const value = (text ?? input.value).trim();
+                    if (!value || streaming) return;
+                    addMessage('user', value);
+                    input.value = '';
+                    input.style.height = 'auto';
+                    streamResponse(pickResponse(value));
+                  }
+
+                  form.addEventListener('submit', (e) => { e.preventDefault(); send(); });
+                  input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+                  });
+                  input.addEventListener('input', () => {
+                    input.style.height = 'auto';
+                    input.style.height = `${Math.min(input.scrollHeight, 140)}px`;
+                  });
+                  stopBtn.addEventListener('click', () => {
+                    if (streaming) {
+                      clearInterval(streaming);
+                      streaming = null;
+                      stopBtn.hidden = true;
+                      sendBtn.hidden = false;
+                      const bubble = messages.querySelector('.chat-bubble.streaming');
+                      if (bubble) {
+                        bubble.classList.remove('streaming');
+                        bubble.querySelector('.chat-cursor')?.remove();
+                        bubble.textContent += ' ▌[stopped]';
+                      }
+                      showToast('Generation stopped');
+                    }
+                  });
+
+                  // Suggestions + session switching
+                  document.querySelectorAll('.chat-suggestion').forEach((btn) => {
+                    btn.addEventListener('click', () => send(btn.textContent));
+                  });
+                  document.getElementById('chat-new').addEventListener('click', newChat);
+                  document.getElementById('chat-new-side').addEventListener('click', newChat);
+                  function newChat() {
+                    if (streaming) { clearInterval(streaming); streaming = null; }
+                    messages.innerHTML = '';
+                    empty.style.display = '';
+                    messages.appendChild(empty);
+                    document.querySelectorAll('.chat-session').forEach((s) => s.classList.remove('active'));
+                    showToast('New conversation started');
+                  }
+                  document.getElementById('chat-sessions').addEventListener('click', (e) => {
+                    const btn = e.target.closest('.chat-session');
+                    if (!btn) return;
+                    document.querySelectorAll('.chat-session').forEach((s) => s.classList.remove('active'));
+                    btn.classList.add('active');
+                    newChat();
+                    showToast(`Opened "${btn.querySelector('strong').textContent}" (mock history)`);
+                  });
+
+                  // Model → routing label
+                  modelSelect.addEventListener('change', () => {
+                    via.textContent = `via combo: ${modelSelect.value.startsWith('llama') ? 'local-first' : 'smart-default'}`;
+                  });
+
+                  // Parameters dialog
+                  const temp = document.getElementById('cs-temp');
+                  const tempValue = document.getElementById('cs-temp-value');
+                  temp.addEventListener('input', () => { tempValue.textContent = temp.value; });
+                  document.getElementById('chat-settings-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    showToast(`Parameters applied — temp ${temp.value}, max ${document.getElementById('cs-max').value} tokens`);
+                    document.getElementById('chat-settings-dialog').close();
+                  });
+                  document.getElementById('chat-attach').addEventListener('click', () => showToast('Context attachments are not part of this mock'));
+                })();
+              </script>

@@ -1,0 +1,108 @@
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <script>
+      const appLayout = document.querySelector('.app-layout');
+      const sidebar = document.querySelector('.sidebar');
+      const backdrop = document.querySelector('.sidebar-backdrop');
+      const menuButton = document.querySelector('.mobile-menu-btn');
+
+      const setNavOpen = (open) => {
+        sidebar.classList.toggle('open', open);
+        backdrop.hidden = !open;
+        menuButton.setAttribute('aria-expanded', String(open));
+      };
+
+      document.querySelector('.collapse-button').addEventListener('click', () => {
+        appLayout.classList.toggle('collapsed');
+      });
+
+      menuButton.addEventListener('click', () => {
+        setNavOpen(!sidebar.classList.contains('open'));
+      });
+      backdrop.addEventListener('click', () => setNavOpen(false));
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          setNavOpen(false);
+          document.querySelectorAll('dialog[open]').forEach((d) => d.close());
+        }
+      });
+      window.matchMedia('(min-width: 681px)').addEventListener('change', (event) => {
+        if (event.matches) setNavOpen(false);
+      });
+
+      // Highlight the nav entry for this page (provider detail maps to Providers).
+      const navPage = document.body.dataset.page === 'provider' ? 'providers' : document.body.dataset.page;
+      const activeNav = document.querySelector(`.nav-button[data-page="${navPage}"]`);
+      if (activeNav) {
+        activeNav.classList.add('active');
+        activeNav.setAttribute('aria-current', 'page');
+      }
+
+      // Shared toast helper used by every page fragment.
+      window.showToast = (message, ms = 2600) => {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = message;
+        toast.hidden = false;
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => { toast.hidden = true; }, ms);
+      };
+
+      // Shared modal helpers: any <dialog class="modal"> closes via
+      // [data-close], [data-action="close-dialog"], backdrop click, or Esc.
+      document.querySelectorAll('dialog.modal').forEach((dialog) => {
+        dialog.addEventListener('click', (event) => {
+          if (event.target === dialog) dialog.close();
+        });
+      });
+      document.addEventListener('click', (event) => {
+        const opener = event.target.closest('[data-open-modal]');
+        if (opener) {
+          const target = document.getElementById(opener.dataset.openModal);
+          if (target && target.tagName === 'DIALOG') target.showModal();
+          return;
+        }
+        const closer = event.target.closest('[data-close-modal]');
+        if (closer) {
+          const dialog = closer.closest('dialog');
+          if (dialog) dialog.close();
+        }
+      });
+
+      // Topbar search: filters the requests table on the requests page,
+      // otherwise jumps to requests.html with the query prefilled.
+      const topSearch = document.getElementById('request-search');
+      if (topSearch) {
+        topSearch.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter') return;
+          const q = topSearch.value.trim();
+          if (document.body.dataset.page === 'requests') {
+            const reqSearch = document.getElementById('req-search');
+            if (reqSearch) {
+              reqSearch.value = q;
+              reqSearch.dispatchEvent(new Event('input', { bubbles: true }));
+              reqSearch.focus();
+            }
+          } else if (q) {
+            location.href = `requests.html?q=${encodeURIComponent(q)}`;
+          }
+        });
+      }
+
+      // Topbar icon buttons + profile.
+      document.querySelector('.top-actions [aria-label="Messages"]')?.addEventListener('click', () => showToast('No new messages'));
+      document.querySelector('.top-actions [aria-label="Notifications"]')?.addEventListener('click', () => showToast('3 unread notifications (mock)'));
+      document.querySelector('.profile')?.addEventListener('click', () => showToast('Profile settings are part of the full app'));
+
+      // Sidebar GENERAL actions (API keys / Settings / Docs / Help are
+      // real pages now; only Log Out stays an action).
+      document.querySelector('[data-nav-action="logout"]')?.addEventListener('click', () => showToast('Signed out (mock)'));
+    </script>
+  </body>
+</html>

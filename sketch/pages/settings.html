@@ -1,0 +1,327 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">Settings</h1>
+                  <p id="page-description">Gateway-wide configuration. Changes apply after saving.</p>
+                </div>
+                <div class="heading-actions">
+                  <span class="dirty-badge" id="dirty-badge" hidden>Unsaved changes</span>
+                  <button class="action-button" type="button" id="settings-reset">
+                    <span class="button-icon"><svg class="icon"><use href="#i-refresh" /></svg></span>
+                    <span class="button-label">Reset</span>
+                  </button>
+                  <button class="action-button primary" type="button" id="settings-save" disabled>
+                    <span class="button-icon"><svg class="icon"><use href="#i-check" /></svg></span>
+                    <span class="button-label">Save changes</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="page-surface">
+                <section class="stats-grid" aria-label="Settings overview">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-server" /></svg></span>
+                      <span class="stat-number">8686</span>
+                    </div>
+                    <h2>Listen Port</h2>
+                    <div class="stat-trend">127.0.0.1 — local only</div>
+                    <button class="details-link" type="button" data-jump="sec-server">Server <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-shield" /></svg></span>
+                      <span class="stat-number">On</span>
+                    </div>
+                    <h2>Auth Required</h2>
+                    <div class="stat-trend">Admin session enforced</div>
+                    <button class="details-link" type="button" data-jump="sec-auth">Security <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-layers" /></svg></span>
+                      <span class="stat-number">2</span>
+                    </div>
+                    <h2>Active Protocols</h2>
+                    <div class="stat-trend">OpenAI + Anthropic</div>
+                    <button class="details-link" type="button" data-jump="sec-routing">Routing <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-database" /></svg></span>
+                      <span class="stat-number">LMDB</span>
+                    </div>
+                    <h2>Storage</h2>
+                    <div class="stat-trend">~/.exoroute/exoroute.lmdb</div>
+                    <button class="details-link" type="button" data-jump="sec-data">Data &amp; backup <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <div class="settings-grid">
+                  <!-- Server -->
+                  <section class="course-card surface settings-card" id="sec-server">
+                    <div class="card-title-row">
+                      <h2>Server</h2>
+                      <span class="status complete">Running</span>
+                    </div>
+                    <p class="card-subtitle">Bind address and request limits.</p>
+                    <div class="settings-fields">
+                      <label class="field">
+                        Host
+                        <input type="text" value="127.0.0.1" data-setting />
+                      </label>
+                      <label class="field">
+                        Port
+                        <input type="number" value="8686" min="1024" max="65535" data-setting />
+                      </label>
+                      <label class="field">
+                        Max body size (MB)
+                        <input type="number" value="32" min="1" max="512" data-setting />
+                      </label>
+                      <label class="field check-row">
+                        <input type="checkbox" checked data-setting />
+                        Enable HTTP/2 prior knowledge
+                      </label>
+                      <label class="field provd-wide check-row">
+                        <input type="checkbox" data-setting />
+                        Allow remote bind (exposes admin API — not recommended)
+                      </label>
+                    </div>
+                  </section>
+
+                  <!-- Auth & security -->
+                  <section class="course-card surface settings-card" id="sec-auth">
+                    <div class="card-title-row">
+                      <h2>Auth &amp; security</h2>
+                      <span class="status complete">Secure</span>
+                    </div>
+                    <p class="card-subtitle">Session and origin policy for the admin dashboard.</p>
+                    <div class="settings-fields">
+                      <label class="field">
+                        Session timeout (hours)
+                        <input type="number" value="12" min="1" max="168" data-setting />
+                      </label>
+                      <label class="field">
+                        Rate limit — admin API (req/min)
+                        <input type="number" value="120" min="10" max="6000" data-setting />
+                      </label>
+                      <label class="field provd-wide">
+                        Allowed origins (comma separated)
+                        <input type="text" value="http://127.0.0.1:8686, http://localhost:8686" data-setting />
+                      </label>
+                      <label class="field check-row">
+                        <input type="checkbox" checked data-setting />
+                        Require authentication for all endpoints
+                      </label>
+                      <label class="field check-row">
+                        <input type="checkbox" checked data-setting />
+                        Audit log admin mutations
+                      </label>
+                    </div>
+                  </section>
+
+                  <!-- Routing defaults -->
+                  <section class="course-card surface settings-card" id="sec-routing">
+                    <div class="card-title-row">
+                      <h2>Routing defaults</h2>
+                    </div>
+                    <p class="card-subtitle">Fallbacks applied when a combo does not specify its own.</p>
+                    <div class="settings-fields">
+                      <label class="field">
+                        Default strategy
+                        <select data-setting>
+                          <option value="priority" selected>Priority</option>
+                          <option value="weighted">Weighted</option>
+                          <option value="round-robin">Round robin</option>
+                          <option value="least-latency">Least latency</option>
+                        </select>
+                      </label>
+                      <label class="field">
+                        Global max retries
+                        <input type="number" value="3" min="0" max="10" data-setting />
+                      </label>
+                      <label class="field">
+                        Request timeout (seconds)
+                        <input type="number" value="120" min="5" max="600" data-setting />
+                      </label>
+                      <label class="field provd-wide">
+                        Circuit breaker — default threshold
+                        <input type="number" value="5" min="1" max="50" data-setting />
+                      </label>
+                    </div>
+                  </section>
+
+                  <!-- Logging & telemetry -->
+                  <section class="course-card surface settings-card" id="sec-logging">
+                    <div class="card-title-row">
+                      <h2>Logging &amp; telemetry</h2>
+                    </div>
+                    <p class="card-subtitle">Request logs, rollups, and diagnostics.</p>
+                    <div class="settings-fields">
+                      <label class="field">
+                        Log level
+                        <select data-setting>
+                          <option value="error">Error</option>
+                          <option value="warn">Warn</option>
+                          <option value="info" selected>Info</option>
+                          <option value="debug">Debug</option>
+                        </select>
+                      </label>
+                      <label class="field">
+                        Retention (days)
+                        <input type="number" value="30" min="1" max="365" data-setting />
+                      </label>
+                      <label class="field check-row">
+                        <input type="checkbox" checked data-setting />
+                        Store request payloads (truncated to 8 KB)
+                      </label>
+                      <label class="field check-row">
+                        <input type="checkbox" checked data-setting />
+                        Record per-model latency rollups
+                      </label>
+                      <label class="field provd-wide check-row">
+                        <input type="checkbox" data-setting />
+                        Debug upstream wire format (very verbose)
+                      </label>
+                    </div>
+                  </section>
+
+                  <!-- Data & backup -->
+                  <section class="course-card surface settings-card" id="sec-data">
+                    <div class="card-title-row">
+                      <h2>Data &amp; backup</h2>
+                    </div>
+                    <p class="card-subtitle">LMDB environment stored locally under ~/.exoroute.</p>
+                    <div class="settings-fields">
+                      <label class="field provd-wide">
+                        Environment path
+                        <input type="text" value="C:\Users\TRUNG NGHIA\.exoroute\exoroute.lmdb" readonly class="readonly-field" />
+                      </label>
+                      <div class="provd-wide data-actions">
+                        <button class="page-action" type="button" id="backup-now">
+                          <svg class="icon"><use href="#i-download" /></svg> Backup now
+                        </button>
+                        <button class="page-action" type="button" id="export-data">
+                          <svg class="icon"><use href="#i-export" /></svg> Export data
+                        </button>
+                        <button class="page-action" type="button" id="compact-db">
+                          <svg class="icon"><use href="#i-refresh" /></svg> Compact LMDB
+                        </button>
+                      </div>
+                      <p class="card-subtitle provd-wide" id="data-status">Last backup: never · DB size: 48 MB · 3 providers, 4 combos</p>
+                    </div>
+                  </section>
+
+                  <!-- Danger zone -->
+                  <section class="course-card surface settings-card settings-danger" id="sec-danger">
+                    <div class="card-title-row">
+                      <h2>Danger zone</h2>
+                      <span class="status error">Irreversible</span>
+                    </div>
+                    <p class="card-subtitle">Factory reset wipes providers, combos, keys, logs, and the LMDB environment.</p>
+                    <div class="settings-fields">
+                      <label class="field provd-wide">
+                        Type <code>RESET</code> to confirm
+                        <input type="text" id="reset-confirm" placeholder="RESET" autocomplete="off" />
+                      </label>
+                      <div class="provd-wide">
+                        <button class="page-action danger" type="button" id="factory-reset" disabled>Factory reset</button>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              <!-- Reset confirm -->
+              <dialog class="modal" id="reset-dialog" aria-labelledby="reset-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="reset-title">Factory reset?</h2>
+                      <p>All providers, combos, API keys, request logs, and the LMDB environment will be permanently deleted. This cannot be undone.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action danger" id="reset-execute" type="button">Delete everything</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <script>
+                (() => {
+                  const saveBtn = document.getElementById('settings-save');
+                  const dirtyBadge = document.getElementById('dirty-badge');
+                  const resetInput = document.getElementById('reset-confirm');
+                  const resetBtn = document.getElementById('factory-reset');
+
+                  // Dirty tracking
+                  document.querySelectorAll('[data-setting]').forEach((el) => {
+                    const mark = () => {
+                      dirtyBadge.hidden = false;
+                      saveBtn.disabled = false;
+                    };
+                    el.addEventListener('input', mark);
+                    el.addEventListener('change', mark);
+                  });
+                  saveBtn.addEventListener('click', () => {
+                    dirtyBadge.hidden = true;
+                    saveBtn.disabled = true;
+                    showToast('Settings saved — gateway reloading configuration');
+                  });
+                  document.getElementById('settings-reset').addEventListener('click', () => {
+                    document.querySelectorAll('[data-setting]').forEach((el) => {
+                      if (el.type === 'checkbox') el.checked = el.defaultChecked;
+                      else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                      else el.value = el.defaultValue;
+                    });
+                    dirtyBadge.hidden = true;
+                    saveBtn.disabled = true;
+                    showToast('Settings reverted to defaults');
+                  });
+
+                  // Anchor jumps from stat cards
+                  document.querySelectorAll('[data-jump]').forEach((el) => {
+                    el.addEventListener('click', () => {
+                      document.getElementById(el.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                  });
+
+                  // Data actions
+                  document.getElementById('backup-now').addEventListener('click', (e) => {
+                    const btn = e.currentTarget;
+                    btn.disabled = true;
+                    btn.innerHTML = '<svg class="icon"><use href="#i-refresh" /></svg> Backing up…';
+                    setTimeout(() => {
+                      btn.disabled = false;
+                      btn.innerHTML = '<svg class="icon"><use href="#i-download" /></svg> Backup now';
+                      document.getElementById('data-status').textContent = `Last backup: just now · DB size: 48 MB`;
+                      showToast('Backup completed → ~/.exoroute/backups/ (mock)');
+                    }, 1400);
+                  });
+                  document.getElementById('export-data').addEventListener('click', () => {
+                    showToast('Exported providers + combos to exoroute-export.json (mock)');
+                  });
+                  document.getElementById('compact-db').addEventListener('click', (e) => {
+                    e.currentTarget.disabled = true;
+                    setTimeout(() => {
+                      e.currentTarget.disabled = false;
+                      document.getElementById('data-status').textContent = 'Last backup: just now · DB compacted: 48 MB → 41 MB';
+                      showToast('LMDB compacted — freed 7 MB');
+                    }, 1600);
+                  });
+
+                  // Factory reset
+                  resetInput.addEventListener('input', () => {
+                    resetBtn.disabled = resetInput.value.trim() !== 'RESET';
+                  });
+                  resetBtn.addEventListener('click', () => {
+                    if (resetBtn.disabled) return;
+                    document.getElementById('reset-dialog').showModal();
+                  });
+                  document.getElementById('reset-execute').addEventListener('click', () => {
+                    document.getElementById('reset-dialog').close();
+                    showToast('Factory reset queued — gateway will restart empty (mock)');
+                  });
+                })();
+              </script>

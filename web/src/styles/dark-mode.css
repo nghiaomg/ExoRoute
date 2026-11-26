@@ -1,0 +1,20 @@
+/* Dark-mode base stroke resets.
+ *
+ * The light theme is Soft Neo-Brutalism: 2px ink borders with hard offset
+ * shadows. For unscoped dark elements, these ink strokes are suppressed so
+ * the designated theme systems in theme-styles.css have full freedom to declare
+ * their own borders, glass panels, ambient glows, or precision hairlines.
+ */
+
+:root[data-theme='dark']:not([data-palette]) *:not(:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select)),
+:root[data-theme='dark']:not([data-palette]) ::before,
+:root[data-theme='dark']:not([data-palette]) ::after {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme='dark'] *:focus-visible:not(input):not(textarea):not(select) {
+  outline: 2px solid var(--accent-glow) !important;
+  outline-offset: 2px !important;
+}

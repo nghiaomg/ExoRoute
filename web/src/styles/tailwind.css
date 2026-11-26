@@ -1,0 +1,101 @@
+/* Tailwind v4 entry for the dashboard shell migration.
+   Preflight is deliberately NOT imported: the legacy global stylesheets
+   (src/styles/*.css via styles.css) and the theme layer rely on the current
+   cascade, and a global reset would restyle every non-migrated surface.
+   Import partials explicitly instead of `@import "tailwindcss"`. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/*
+  Token bridge: every utility references the existing theme custom properties
+  instead of copying values, so the seven palettes keep flipping through
+  html[data-theme] / html[data-palette] (tokens.css + palettes.css) with no
+  `dark:` variants and no per-theme rules here. Dashboard-local aliases
+  (--db-*) are defined on .dashboard-app by the generated shell CSS; colors
+  that resolve through color-mix() track the active theme automatically.
+*/
+@theme {
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-text-dim: var(--text-dim);
+  --color-line: var(--line);
+  --color-paper: var(--paper);
+  --color-canvas: var(--canvas);
+
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-shell: var(--surface-shell);
+  --color-surface-popover: var(--surface-popover);
+  --color-surface-modal: var(--surface-modal);
+  --color-surface-backdrop: var(--surface-backdrop);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
+  --color-accent-contrast: var(--accent-contrast);
+
+  --color-db-tint: var(--db-tint);
+  --color-db-tint-strong: var(--db-tint-strong);
+  --color-db-accent-tint: var(--db-accent-tint);
+  --color-db-accent-line: var(--db-accent-line);
+  --color-db-accent-ring: var(--db-accent-ring);
+  --color-db-accent-glow: var(--db-accent-glow);
+  --color-db-danger: var(--db-danger);
+  --color-db-danger-tint: var(--db-danger-tint);
+  --color-db-success: var(--db-success);
+  --color-db-success-tint: var(--db-success-tint);
+
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-violet: var(--violet);
+  --color-mint: var(--mint);
+  --color-brand-orange: var(--brand-orange);
+  --color-chart-good: var(--chart-good);
+  --color-chart-critical: var(--chart-critical);
+
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-heading);
+  --font-mono: var(--font-mono);
+
+  /* Dashboard type scale (clamp-based, defined on .dashboard-app). */
+  --text-page-title: var(--type-page-title);
+  --text-section-title: var(--type-section-title);
+  --text-kpi: var(--type-kpi);
+  --text-label: var(--type-label);
+  --text-dash-body: var(--type-body);
+  --text-meta: var(--type-meta);
+  --text-caption: var(--type-caption);
+
+  /* Shell breakpoints: 681px is the existing mobile/expanded boundary. */
+  --breakpoint-nav: 681px;
+
+  --animate-req-pulse: req-pulse 1.2s ease-in-out infinite;
+  --animate-chat-blink: chat-blink 0.9s steps(2) infinite;
+  --animate-help-pulse: help-pulse 2.2s ease-in-out infinite;
+
+  @keyframes req-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  @keyframes chat-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes help-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+}

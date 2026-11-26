@@ -1,0 +1,426 @@
+/* Soft Neo-Brutalism treatment for the Settings View.
+   Panels, tiles, chips and buttons keep ink borders + hard offset shadows;
+   only rows, labels and code badges stay flat. */
+.settings-view .database-log-option,
+.settings-view .resource-continuity-control,
+.settings-view .output-style-row > label,
+.settings-view .resource-limits-actions .primary-button,
+.settings-view .resource-limits-actions .secondary-button,
+.settings-view .settings-nav-tab {
+  border: var(--nb-border) !important;
+  box-shadow: var(--nb-shadow-sm) !important;
+}
+.settings-view .settings-nav-tab:hover,
+.settings-view .primary-button:hover:not(:disabled),
+.settings-view .secondary-button:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--nb-shadow-md) !important;
+}
+.settings-view .settings-nav-tab:active,
+.settings-view .primary-button:active:not(:disabled),
+.settings-view .secondary-button:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: var(--nb-shadow-sm) !important;
+}
+
+.settings-view {
+  display: grid;
+  gap: 20px;
+}
+
+/* Modern Segmented Navigation Tabs */
+.settings-tabs-root {
+  display: grid;
+  gap: 20px;
+}
+.settings-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface-sunken);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.settings-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+.settings-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s ease, color 0.18s ease;
+  border: none;
+}
+.settings-nav-tab:hover:not(.active):not([data-selected]) {
+  background: var(--line);
+  color: var(--ink);
+}
+.settings-nav-tab.active,
+.settings-nav-tab[data-selected] {
+  background: var(--accent-strong);
+  color: var(--surface);
+}
+
+/* Tab Panes */
+.settings-tab-pane {
+  display: none;
+}
+.settings-tab-pane.active,
+.settings-tab-pane[data-state="active"] {
+  display: grid;
+  gap: 18px;
+  animation: fade-in 0.2s ease-out;
+}
+.settings-tab-pane[hidden],
+.settings-tab-pane[data-state="inactive"] {
+  display: none !important;
+}
+
+/* Quick Status Hero Banner */
+.settings-hero-banner {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.settings-hero-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.settings-hero-card:hover {
+  background: var(--surface-sunken);
+}
+.settings-hero-card:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+.hero-card-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  color: var(--muted);
+  background: var(--surface-sunken);
+}
+.hero-card-icon.status-live {
+  color: var(--chart-good);
+  background: color-mix(in srgb, var(--chart-good) 10%, var(--surface));
+}
+.hero-card-info {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.hero-card-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.hero-card-value {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hero-card-sub {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dual Grid for Server & Security */
+.settings-grid-dual {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Panels */
+.settings-view .settings-panel {
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.settings-view .panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: none !important;
+}
+.settings-view .panel-heading h2 {
+  margin: 0 0 3px;
+  color: var(--ink);
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+}
+.settings-view .panel-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.settings-view .panel-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 10%, var(--surface));
+  flex-shrink: 0;
+}
+.settings-view .panel-icon.violet-panel {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+.settings-view .panel-icon.amber {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+
+.settings-view .settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 54px;
+  padding: 12px 22px;
+  border-bottom: none !important;
+  background: transparent;
+}
+.settings-view .settings-row:nth-child(even) {
+  background: var(--surface-raised);
+}
+.settings-view .settings-row strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.settings-view .settings-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.settings-badge-code {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+.settings-badge-uptime {
+  color: var(--ink);
+  background: var(--surface-sunken);
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.secure-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--chart-good) !important;
+}
+.secure-value.warning-value {
+  color: var(--accent-strong) !important;
+}
+
+/* Public Configuration Grid */
+.public-config-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 22px 22px;
+}
+.config-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-sunken);
+  cursor: pointer;
+}
+.config-tile-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.config-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--line);
+}
+.config-status-chip.chip-active {
+  color: var(--chart-good);
+  background: color-mix(in srgb, var(--chart-good) 14%, var(--surface));
+}
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.config-tile-code {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Note Banner */
+.settings-view .settings-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  color: var(--accent-deep);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  font-size: 12px;
+  line-height: 1.5;
+}
+.settings-view .settings-note svg {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─── Settings page: compact minimal typography scale ─── */
+/* Scoped under .dashboard-app so these out-rank the shared dashboard rules
+   (.dashboard-app .heading-copy h1, .card-title-row h2, StatsCard utilities)
+   without touching other pages. */
+.dashboard-app .settings-view .heading-copy h1 {
+  font-size: 20px;
+  font-weight: 600;
+}
+.dashboard-app .settings-view .heading-copy p {
+  font-size: 12px;
+}
+
+/* Summary stat cards (StatsCard): smaller KPI, tighter card, lighter title. */
+.dashboard-app .settings-view .group\/stat {
+  min-height: 118px;
+  padding: 14px 16px;
+}
+.dashboard-app .settings-view .group\/stat > div:first-child {
+  margin-bottom: 10px;
+}
+.dashboard-app .settings-view .group\/stat > span {
+  font-size: 20px;
+  font-weight: 600;
+}
+.dashboard-app .settings-view .group\/stat .stat-title {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-app .settings-view .group\/stat > div:last-child {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+/* Detail cards: smaller section titles, subtitles and form controls. */
+.dashboard-app .settings-view .card-title-row h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.dashboard-app .settings-view .card-subtitle {
+  font-size: 12px;
+}
+.dashboard-app .settings-view .field {
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-app .settings-view .field input,
+.dashboard-app .settings-view .field select,
+.dashboard-app .settings-view .field textarea {
+  min-height: 34px;
+  font-size: 12px;
+}
+.dashboard-app .settings-view .page-action {
+  min-height: 32px;
+  font-size: 12px;
+}
+
+/* ─── Combo target rows: compact 32px controls ─── */
+.dashboard-app .combo-target-rows .switch-track {
+  width: 32px;
+  height: 16px;
+}
+.dashboard-app .combo-target-rows .switch-thumb {
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+}
+.dashboard-app .combo-target-rows .icon-action {
+  width: 32px;
+  height: 32px;
+}
+.dashboard-app .combo-target-rows .icon-action .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ─── Combo dialog: compact typography & controls ─── */
+.dashboard-app .combo-dialog .form-note {
+  font-size: 12px;
+}
+.dashboard-app .combo-dialog .page-action {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-app .combo-dialog .modal-actions .page-action {
+  min-height: 32px;
+}

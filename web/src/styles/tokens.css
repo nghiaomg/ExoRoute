@@ -1,0 +1,152 @@
+:root {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #222538;
+  background: var(--canvas);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Theme Color Tokens */
+  --ink: #222538;
+  --muted: #646b80;
+  --line: #e9eaf0;
+  --paper: #fff;
+
+  /* Accent palette tokens. Every theme recolors the dashboard by overriding
+     these (plus the surface tokens in the dark block below); semantic status
+     colors such as --chart-good and --chart-critical stay fixed. */
+  --accent: #f97316;
+  --accent-strong: #ea580c;
+  --accent-deep: #c2410c;
+  --accent-soft: #fdba74;
+  --accent-glow: #fb923c;
+  --accent-contrast: #111827;
+  --info: #4f46e5;
+  --info-soft: #a5b4fc;
+  --canvas: #f6f7fb;
+  --surface: #ffffff;
+  --surface-hover: #f1f2f7;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f1f2f7;
+  --surface-glass-base: #ffffff;
+  --surface-shell: #ffffff;
+  --surface-popover: #ffffff;
+  --surface-modal: #fbfcfe;
+  --surface-backdrop: rgba(24, 27, 40, 0.38);
+  --border-subtle: #dfe3ec;
+  --text-dim: #6b7185;
+  --focus-ring: var(--accent-strong);
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --scrollbar-thumb: #cbcfdc;
+  --scrollbar-thumb-hover: #81879b;
+  --violet: var(--accent);
+  --violet-dark: var(--accent-strong);
+  --mint: #36c59b;
+  --brand-orange: var(--accent);
+
+  /* Chart tokens. Every data mark uses one hue: rank and length carry the
+     magnitude, so a chart never needs a categorical palette and a series can
+     never be misread by swapping colours when a filter changes the row order.
+     The accent clears the lightness band, the chroma floor and 3:1 contrast
+     against both chart surfaces (#fff light, #0c0e16 dark) under the dataviz
+     palette validator. Status colours are the reserved fixed steps and are
+     only ever used as a redundant dot beside a written label, never as the
+     only thing distinguishing two marks. */
+  --chart-series: var(--accent-strong);
+  --chart-series-soft: var(--accent);
+  --chart-good: #0ca30c;
+  --chart-critical: #d03b3b;
+  --chart-grid: #e9eaf0;
+
+  /* Typography Environment Tokens */
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --text-2xs: 12px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+
+  /* Font Weights */
+  --font-light: 500;
+  --font-regular: 500;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  /* Line Heights */
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Shell layout: the topbar and .content-wrap share one content column, so both
+     keep identical left/right edges at every breakpoint. --content-max-width is
+     the column's border box; --content-gutter is its horizontal padding. */
+  --content-max-width: 1440px;
+  --content-gutter: 43px;
+
+  /* Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  color: var(--ink);
+  background: var(--canvas);
+  --ink: #f0f2f8;
+  --muted: #8e93aa;
+  --text-dim: #9aa0b6;
+  --info: #818cf8;
+  --line: rgba(255, 255, 255, 0.07);
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --canvas: #07080c;
+  --surface: #111320;
+  --surface-hover: #181b2a;
+  --surface-raised: #1e2030;
+  --surface-sunken: #0f111a;
+  --surface-glass-base: #0e101a;
+  --surface-shell: #0c0d14;
+  --surface-popover: #1b1c29;
+  --surface-modal: #1a1d2b;
+  --surface-backdrop: rgba(4, 5, 8, 0.78);
+  --focus-ring: var(--accent-soft);
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --scrollbar-thumb: #353952;
+  --scrollbar-thumb-hover: #60657e;
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --chart-grid: rgba(255, 255, 255, 0.09);
+}

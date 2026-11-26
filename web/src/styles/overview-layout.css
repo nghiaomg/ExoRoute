@@ -1,0 +1,274 @@
+/* ─── Setup Hub ─── */
+.quick-heading {
+  margin-top: 32px;
+}
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.setup-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 124px;
+  padding: 18px 22px;
+  text-align: left;
+  border: none;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.setup-card:hover {
+  border: none;
+  background: var(--surface-sunken);
+  box-shadow: none;
+}
+.setup-card:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+.setup-step {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  color: var(--accent-soft);
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: var(--font-extrabold);
+  letter-spacing: 0.5px;
+}
+
+/* ─── Overview Glassmorphism Layout & Cards ─── */
+.overview-view {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.overview-view .section-card {
+  background: var(--surface);
+  border: none !important;
+  box-shadow: none !important;
+}
+.overview-view .setup-card {
+  background: var(--surface);
+  border: none !important;
+  box-shadow: none !important;
+  transition: background-color 0.16s ease;
+}
+.overview-view .setup-card:hover {
+  background: var(--surface-sunken);
+}
+.overview-view .setup-card:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+.overview-view .combo-mini-item,
+.overview-view .provider-mini-row {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.15s ease;
+}
+.overview-view .combo-mini-item:hover,
+.overview-view .provider-mini-row:hover {
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface)) !important;
+}
+.overview-view .combo-mini-item:active,
+.overview-view .provider-mini-row:active {
+  transform: none;
+}
+.overview-view .mini-target-chip {
+  background: var(--surface-sunken) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.overview-view .empty-inline {
+  background: var(--surface-raised);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+.overview-view .secondary-button {
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-popover) !important;
+  background: color-mix(in srgb, var(--surface-raised) 75%, transparent);
+}
+.overview-view .secondary-button:hover {
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+.setup-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  margin-bottom: 2px;
+}
+.setup-icon.mint-icon { color: var(--chart-good); background: color-mix(in srgb, var(--chart-good) 10%, var(--surface)); }
+.setup-icon.blue-icon { color: var(--info); background: color-mix(in srgb, var(--info) 10%, var(--surface)); }
+.setup-icon.violet-icon { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.setup-card strong {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+.setup-card > span:not(.setup-step):not(.setup-icon) {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  padding-right: 20px;
+}
+.setup-arrow {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  color: var(--accent-soft);
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+.setup-card:hover .setup-arrow {
+  transform: translateX(4px);
+  color: var(--violet);
+}
+
+/* ─── Cockpit Quick Action Strip ─── */
+.quick-action-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  border: none !important;
+  box-shadow: none !important;
+  flex-shrink: 0;
+  user-select: none;
+}
+.quick-strip-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  padding-right: 14px;
+  border: none !important;
+  flex-shrink: 0;
+}
+.quick-strip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--info);
+}
+.quick-strip-items {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.quick-strip-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 16px;
+  min-height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  -webkit-tap-highlight-color: transparent;
+}
+.quick-strip-btn:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  color: var(--ink);
+}
+.quick-strip-btn:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+.quick-step-num {
+  font-size: 10px;
+  font-weight: 800;
+  color: #9aa0b6;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+.quick-step-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.quick-step-icon.mint-icon { color: var(--chart-good); background: color-mix(in srgb, var(--chart-good) 10%, var(--surface)); }
+.quick-step-icon.blue-icon { color: var(--info); background: color-mix(in srgb, var(--info) 10%, var(--surface)); }
+.quick-step-icon.violet-icon { color: var(--violet); background: color-mix(in srgb, var(--violet) 10%, var(--surface)); }
+.quick-step-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.quick-step-arrow {
+  color: var(--text-dim);
+  flex-shrink: 0;
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+.quick-strip-btn:hover .quick-step-arrow {
+  color: var(--info);
+  transform: translateX(2px);
+}
+
+/* ─── Cockpit Metric Strip Inner Structure ─── */
+.metric-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.metric-info-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.metric-bottom {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ─── Overview page: compact card typography ─── */
+.dashboard-app.dashboard-page-overview .card-title-row h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.dashboard-app.dashboard-page-overview .card-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+}

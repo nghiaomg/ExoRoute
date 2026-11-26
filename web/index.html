@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6f7fb" />
+    <script>
+      (() => {
+        const themeIds = ['light', 'dark', 'tokyo-night', 'catppuccin', 'linear', 'cyber-neon', 'minimal-light'];
+        const darkIds = new Set(['dark', 'tokyo-night', 'catppuccin', 'linear', 'cyber-neon']);
+        const themeColors = {
+          light: '#f6f7fb', dark: '#11121b', 'tokyo-night': '#1a1b26',
+          catppuccin: '#1e1e2e', linear: '#111111', 'cyber-neon': '#0a0a0f',
+          'minimal-light': '#f8fafc',
+        };
+        let saved = null;
+        try { saved = localStorage.getItem('exoroute.theme'); } catch {}
+        const id = themeIds.includes(saved) ? saved : 'system';
+        const scheme = id === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : (darkIds.has(id) ? 'dark' : 'light');
+        const palette = id === 'system' ? scheme : id;
+        const root = document.documentElement;
+        root.dataset.theme = scheme;
+        root.dataset.palette = palette;
+        root.style.colorScheme = scheme;
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColors[palette]);
+        try {
+          const savedLocale = localStorage.getItem('exoroute.locale');
+          if (savedLocale) {
+            root.lang = savedLocale;
+            if (savedLocale === 'ar') root.dir = 'rtl';
+          }
+        } catch {}
+      })();
+    </script>
+    <meta name="description" content="ExoRoute gateway administration" />
+    <title>ExoRoute — Gateway</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ExoRoute" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

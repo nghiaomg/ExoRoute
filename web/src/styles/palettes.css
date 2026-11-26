@@ -1,0 +1,245 @@
+/* Palette themes.
+ *
+ * data-theme keeps the base scheme ('light' | 'dark') so every scheme-scoped
+ * rule in the existing stylesheets keeps applying unchanged; data-palette
+ * selects a palette layer that overrides the color tokens on top of that
+ * scheme. The two classic themes (light / dark) define no palette layer and
+ * render exactly as before. Palettes only need to restate the tokens they
+ * recolor; everything else (glass panels, focus rings, selection, charts)
+ * follows through the shared tokens in styles/tokens.css.
+ *
+ * main.ts imports this file after dark-mode.css so these token blocks win the
+ * cascade at equal specificity.
+ */
+
+/* ── Tokyo Night ───────────────────────────────────────────────────────── */
+:root[data-theme='dark'][data-palette='tokyo-night'] {
+  --canvas: #1a1b26;
+  --surface: #24283b;
+  --surface-hover: #2a2f45;
+  --surface-raised: #292e42;
+  --surface-sunken: #16161e;
+  --surface-glass-base: #1e2030;
+  --surface-shell: #20243a;
+  --surface-popover: #24283b;
+  --surface-modal: #2a3048;
+  --surface-backdrop: rgba(14, 15, 24, 0.78);
+  --border-subtle: #38405c;
+  --focus-ring: #a9c1ff;
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --scrollbar-thumb: #3b4260;
+  --scrollbar-thumb-hover: #596386;
+  --ink: #c0caf5;
+  --muted: #9aa2c8;
+  --text-dim: #9aa5ce;
+  --line: rgba(169, 177, 214, 0.13);
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --accent: #7aa2f7;
+  --accent-contrast: #0b1220;
+  --accent-strong: #5f80cf;
+  --accent-deep: #3d59a1;
+  --accent-soft: #7dcfff;
+  --accent-glow: #89ddff;
+  --info: #bb9af7;
+  --info-soft: #cdb9fb;
+  --chart-series: #7aa2f7;
+  --chart-series-soft: #7dcfff;
+  --chart-grid: rgba(169, 177, 214, 0.13);
+}
+:root[data-theme='dark'][data-palette='tokyo-night'] body {
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'][data-palette='tokyo-night'] body::before {
+  background-image: none;
+}
+:root[data-theme='dark'][data-palette='tokyo-night'] .overview-hero {
+  background: var(--surface-raised) !important;
+}
+
+/* ── Catppuccin Mocha ──────────────────────────────────────────────────── */
+:root[data-theme='dark'][data-palette='catppuccin'] {
+  --canvas: #1e1e2e;
+  --surface: #313244;
+  --surface-hover: #383a4d;
+  --surface-raised: #45475a;
+  --surface-sunken: #181825;
+  --surface-glass-base: #181825;
+  --surface-shell: #181825;
+  --surface-popover: #313244;
+  --surface-modal: #3c3f52;
+  --surface-backdrop: rgba(12, 12, 20, 0.8);
+  --border-subtle: #414365;
+  --focus-ring: #b4befe;
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --scrollbar-thumb: #45475a;
+  --scrollbar-thumb-hover: #585b70;
+  --ink: #cdd6f4;
+  --muted: #9fa6c2;
+  --text-dim: #b0b6d0;
+  --line: rgba(205, 214, 244, 0.1);
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --accent: #89b4fa;
+  --accent-contrast: #11111b;
+  --accent-strong: #6d95e8;
+  --accent-deep: #3f5ba9;
+  --accent-soft: #b4befe;
+  --accent-glow: #89dceb;
+  --info: #cba6f7;
+  --info-soft: #d7b9fb;
+  --chart-series: #89b4fa;
+  --chart-series-soft: #74c7ec;
+  --chart-grid: rgba(205, 214, 244, 0.1);
+}
+:root[data-theme='dark'][data-palette='catppuccin'] body {
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'][data-palette='catppuccin'] body::before {
+  background-image: none;
+}
+
+/* ── Linear ────────────────────────────────────────────────────────────── */
+:root[data-theme='dark'][data-palette='linear'] {
+  --canvas: #111111;
+  --surface: #1a1a1c;
+  --surface-hover: #222226;
+  --surface-raised: #222226;
+  --surface-sunken: #0d0d0f;
+  --surface-glass-base: #161618;
+  --surface-shell: #111111;
+  --surface-popover: #222226;
+  --surface-modal: #26262b;
+  --surface-backdrop: rgba(0, 0, 0, 0.76);
+  --border-subtle: rgba(255, 255, 255, 0.14);
+  --focus-ring: #9ba3ff;
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --scrollbar-thumb: #3f3f46;
+  --scrollbar-thumb-hover: #62626c;
+  --ink: #e5e5e5;
+  --muted: #a1a1aa;
+  --text-dim: #adadb7;
+  --line: rgba(255, 255, 255, 0.08);
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --accent: #5e6ad2;
+  --accent-contrast: #ffffff;
+  --accent-strong: #4f58bd;
+  --accent-deep: #3f47a1;
+  --accent-soft: #a3aaf2;
+  --accent-glow: #8a92ef;
+  --info: #818cf8;
+  --info-soft: #a5b4fc;
+  --chart-series: #5e6ad2;
+  --chart-series-soft: #8a92ef;
+  --chart-grid: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme='dark'][data-palette='linear'] body {
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'][data-palette='linear'] body::before {
+  background-image: none;
+}
+
+/* ── Cyber Neon ────────────────────────────────────────────────────────── */
+:root[data-theme='dark'][data-palette='cyber-neon'] {
+  --canvas: #0a0a0f;
+  --surface: #12121a;
+  --surface-hover: #1c1c28;
+  --surface-raised: #1a1a26;
+  --surface-sunken: #08080c;
+  --surface-glass-base: #0e0e16;
+  --surface-shell: #08080c;
+  --surface-popover: #12121a;
+  --surface-modal: #1a1a24;
+  --surface-backdrop: rgba(3, 3, 8, 0.84);
+  --border-subtle: rgba(0, 245, 213, 0.18);
+  --focus-ring: #7dffec;
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --scrollbar-thumb: #33334a;
+  --scrollbar-thumb-hover: #585878;
+  --ink: #e0e0ff;
+  --muted: #a0a0c2;
+  --text-dim: #a4a4c2;
+  --line: rgba(224, 224, 255, 0.1);
+  --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  --accent: #00f5d5;
+  --accent-strong: #00cbb0;
+  --accent-deep: #00967f;
+  --accent-soft: #7dffec;
+  --accent-glow: #4dffe0;
+  --accent-contrast: #052019;
+  --info: #b388ff;
+  --info-soft: #d1b8ff;
+  --chart-series: #00f5d5;
+  --chart-series-soft: #b388ff;
+  --chart-grid: rgba(224, 224, 255, 0.1);
+}
+:root[data-theme='dark'][data-palette='cyber-neon'] body {
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'][data-palette='cyber-neon'] body::before {
+  background-image: none;
+}
+
+/* ── Minimal Light ─────────────────────────────────────────────────────── */
+:root[data-theme='light'][data-palette='minimal-light'] {
+  --canvas: #f8fafc;
+  --ink: #0f172a;
+  --muted: #5b6a80;
+  --text-dim: #64748b;
+  --line: #e2e8f0;
+  --border-subtle: #cbd5e1;
+  --accent: #3b82f6;
+  --accent-strong: #2563eb;
+  --accent-deep: #1d4ed8;
+  --accent-soft: #93c5fd;
+  --accent-glow: #60a5fa;
+  --accent-contrast: #0f172a;
+  --info: #4f46e5;
+  --info-soft: #a5b4fc;
+  --chart-series: #2563eb;
+  --chart-series-soft: #3b82f6;
+  --chart-grid: #e2e8f0;
+  --surface-shell: #f1f5f9;
+  --surface-hover: #f1f5f9;
+  --surface-popover: #ffffff;
+  --surface-modal: #f8fafc;
+  --surface-backdrop: rgba(15, 23, 42, 0.34);
+  --focus-ring: #1d4ed8;
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+}
+:root[data-theme='light'][data-palette='minimal-light'] .sidebar {
+  background: #f1f5f9;
+}
+:root[data-theme='light'][data-palette='minimal-light'] body::before {
+  background-image: none;
+}
+:root[data-theme='dark'][data-palette='catppuccin'] .overview-hero {
+  background: var(--surface-raised) !important;
+}
+:root[data-theme='dark'][data-palette='linear'] .overview-hero {
+  background: var(--surface-raised) !important;
+}
+:root[data-theme='dark'][data-palette='cyber-neon'] .overview-hero {
+  background: var(--surface-raised) !important;
+}

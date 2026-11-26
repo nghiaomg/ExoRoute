@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StatsCard · 10 hướng thiết kế</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui'] } } } };
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .mono { font-family: 'DM Mono', monospace; }
+    .pick { box-sizing: border-box; min-width: 0; min-height: 152px; padding: 18px !important; border-radius: 17px !important; transition: transform .2s ease, box-shadow .2s ease; }
+    .pick:hover { transform: translateY(-3px); }
+    .pick.selected { outline: 2px solid #f97316; outline-offset: 4px; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body class="min-h-screen bg-[#f6f7fb] text-[#222538] selection:bg-orange-200 selection:text-[#222538]">
+  <main class="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-12">
+    <header class="mb-9 flex flex-col gap-6 border-b border-[#e9eaf0] pb-8 md:flex-row md:items-end md:justify-between">
+      <div>
+        <div class="mono mb-4 flex items-center gap-2 text-[11px] uppercase tracking-[.22em] text-[#f97316]"><span class="h-2 w-2 rounded-full bg-[#f97316]"></span> EXOROUTE / COMPONENT LAB</div>
+        <h1 class="text-4xl font-semibold tracking-[-.055em] sm:text-5xl">StatsCard<span class="text-[#f97316]">.</span></h1>
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-[#646b80] sm:text-base">10 bố cục khác nhau cho thẻ thống kê, dùng nền trung tính và cam nhấn theo theme ExoRoute. Chọn một phương án để đánh dấu; dữ liệu chỉ là minh họa.</p>
+      </div>
+      <div class="mono flex items-center gap-3 text-xs text-[#646b80]"><span id="selected-label">Chưa chọn</span><span class="h-1 w-1 rounded-full bg-white/25"></span><span>10 CONCEPTS</span></div>
+    </header>
+
+    <section aria-label="Mười biến thể StatsCard" class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <!-- 01 Editorial -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="01 Editorial" class="pick group cursor-pointer rounded-2xl border border-[#e9eaf0] bg-white p-6 hover:border-[#f97316]/50">
+        <div class="mb-10 flex items-start justify-between"><span class="mono text-[10px] tracking-[.18em] text-[#646b80]">01 / EDITORIAL</span><span class="rounded-full border border-[#f97316]/25 px-2.5 py-1 text-[10px] text-[#f97316]">+12.8%</span></div>
+        <div class="text-[clamp(2.7rem,7vw,4rem)] font-semibold leading-none tracking-[-.07em]">128,492</div><div class="mt-3 text-sm text-[#646b80]">Requests today</div>
+        <div class="mt-8 flex items-end justify-between border-t border-[#e9eaf0] pt-4"><span class="text-xs text-[#646b80]">vs. previous day</span><svg viewBox="0 0 100 34" class="h-9 w-28 text-[#f97316]" fill="none"><path d="M1 29 17 25 31 27 45 14 59 19 74 8 87 12 99 3" stroke="currentColor" stroke-width="2"/><path d="M1 29 17 25 31 27 45 14 59 19 74 8 87 12 99 3V34H1Z" fill="currentColor" opacity=".1"/></svg></div>
+      </article>
+
+      <!-- 02 Midnight -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="02 Midnight" class="pick cursor-pointer overflow-hidden rounded-2xl border border-[#e9eaf0] bg-white p-6 shadow-[0_18px_55px_-35px_#788aff] hover:border-[#f97316]/40">
+        <div class="flex items-center justify-between"><span class="text-xs font-medium text-[#646b80]">SYSTEM HEALTH</span><span class="flex items-center gap-1.5 text-[11px] text-[#347d46]"><i class="h-1.5 w-1.5 rounded-full bg-[#347d46]"></i>Operational</span></div>
+        <div class="mt-8 flex items-center gap-4"><div class="grid h-12 w-12 place-items-center rounded-xl bg-[#f97316]/10 text-[#f97316]"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div><div><div class="text-4xl font-semibold tracking-tight">99.96<span class="text-2xl text-[#f97316]">%</span></div><div class="mt-1 text-xs text-[#646b80]">Uptime · last 30 days</div></div></div>
+        <div class="mt-7 flex gap-1"><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]/30"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span><span class="h-1.5 flex-1 rounded-full bg-[#347d46]"></span></div>
+      </article>
+
+      <!-- 03 Terminal -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="03 Terminal" class="pick cursor-pointer rounded-xl border border-[#e9eaf0] bg-[#f1f2f7] p-6 font-mono hover:border-[#f97316]/50">
+        <div class="mb-7 flex gap-1.5"><i class="h-2.5 w-2.5 rounded-full bg-[#ff6c60]"></i><i class="h-2.5 w-2.5 rounded-full bg-[#f4c65e]"></i><i class="h-2.5 w-2.5 rounded-full bg-[#62ce7c]"></i><span class="ml-auto text-[10px] text-[#646b80]">metrics://gateway</span></div>
+        <div class="text-xs text-[#f97316]/65">$ exoroute stats --window=1h</div><div class="mt-5 text-[10px] uppercase tracking-[.15em] text-[#646b80]">successful_requests</div><div class="mt-1 text-4xl font-medium tracking-[-.06em] text-[#f97316]">8,204<span class="animate-pulse">_</span></div>
+        <div class="mt-5 grid grid-cols-2 border-t border-[#e9eaf0] pt-4 text-[11px]"><div><div class="text-[#646b80]">error_rate</div><div class="mt-1 text-[#222538]">0.14%</div></div><div class="border-l border-[#e9eaf0] pl-4"><div class="text-[#646b80]">req_per_sec</div><div class="mt-1 text-[#222538]">2.28</div></div></div>
+      </article>
+
+      <!-- 04 Minimal -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="04 Minimal" class="pick cursor-pointer rounded-2xl bg-white p-7 text-[#252822] hover:shadow-xl hover:shadow-black/20">
+        <div class="flex items-center justify-between"><span class="text-xs font-semibold tracking-wide text-[#646b80]">CONNECTED PROVIDERS</span><span class="grid h-8 w-8 place-items-center rounded-full bg-[#f1f2f7] text-[#646b80]">↗</span></div>
+        <div class="mt-9 text-6xl font-medium tracking-[-.08em]">06</div><div class="mt-2 text-sm text-[#646b80]">2 local <span class="mx-1 text-[#b0b2a8]">/</span> 4 cloud</div>
+        <div class="mt-8 flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-[#6c8f55]"></span><span class="text-xs font-medium text-[#646b80]">All providers ready</span></div>
+      </article>
+
+      <!-- 05 Ring -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="05 Ring" class="pick cursor-pointer rounded-2xl border border-[#e9eaf0] bg-white p-6 hover:border-[#e9eaf0]">
+        <div class="mb-5 flex items-center justify-between"><span class="text-xs text-[#646b80]">Monthly budget</span><span class="text-xs text-[#646b80]">$1,000</span></div>
+        <div class="flex items-center gap-6"><div class="relative grid h-28 w-28 shrink-0 place-items-center"><svg class="absolute inset-0 -rotate-90" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#343a32" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="#f97316" stroke-width="8" stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="95"/></svg><div class="text-center"><div class="text-2xl font-semibold">64%</div><div class="text-[10px] text-[#646b80]">used</div></div></div><div><div class="text-3xl font-semibold tracking-tight">$640</div><div class="mt-1 text-xs text-[#646b80]">$360 remaining</div><div class="mt-3 text-xs text-[#f97316]">On track this month</div></div></div>
+      </article>
+
+      <!-- 06 Split -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="06 Split" class="pick cursor-pointer overflow-hidden rounded-2xl border border-[#e9eaf0] bg-white hover:border-[#e9eaf0]">
+        <div class="grid min-h-48 grid-cols-[1fr_auto]"><div class="p-6"><div class="text-xs text-[#646b80]">AVG. LATENCY</div><div class="mt-5 text-5xl font-semibold tracking-[-.07em]">184<span class="ml-1 text-xl font-normal text-[#646b80]">ms</span></div><div class="mt-3 inline-flex rounded-md bg-[#347d46]/10 px-2 py-1 text-[11px] text-[#347d46]">↓ 18ms <span class="ml-1 text-emerald-100/45">this week</span></div></div><div class="flex w-20 flex-col items-center justify-center gap-2 border-l border-[#e9eaf0] bg-white/[.025]"><div class="w-7 rounded-t bg-[#f97316]/35" style="height:22px"></div><div class="w-7 rounded-t bg-[#f97316]/45" style="height:33px"></div><div class="w-7 rounded-t bg-[#f97316]/55" style="height:27px"></div><div class="w-7 rounded-t bg-[#f97316]/70" style="height:44px"></div><div class="w-7 rounded-t bg-[#f97316]" style="height:36px"></div></div></div>
+      </article>
+
+      <!-- 07 Alert -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="07 Alert" class="pick cursor-pointer rounded-2xl border border-orange-200 bg-orange-50 p-6 hover:border-orange-400">
+        <div class="flex items-center gap-2 text-xs font-medium text-orange-700"><span class="grid h-7 w-7 place-items-center rounded-lg bg-orange-200/40">!</span> NEEDS ATTENTION</div><div class="mt-7 flex items-end justify-between"><div><div class="text-5xl font-semibold tracking-[-.07em] text-orange-900">17</div><div class="mt-2 text-sm text-orange-900/55">Failed requests</div></div><div class="text-right"><div class="text-xs text-orange-700/60">last hour</div><div class="mt-2 text-sm font-semibold text-orange-700">+6.2%</div></div></div><div class="mt-6 rounded-lg border border-orange-200/50 bg-[#222538]/[.03] px-3 py-2 text-xs text-orange-900/65">Most common: <b class="font-medium text-orange-900">429 · rate limit</b></div>
+      </article>
+
+      <!-- 08 Light -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="08 Light" class="pick cursor-pointer rounded-[28px] bg-white p-6 text-[#222538] hover:shadow-xl hover:shadow-black/10">
+        <div class="flex items-start justify-between"><div><div class="text-xs font-semibold uppercase tracking-[.13em] text-[#646b80]">Active API keys</div><div class="mt-5 text-5xl font-semibold tracking-[-.07em]">24</div></div><div class="grid h-11 w-11 place-items-center rounded-2xl bg-[#222538]/5 text-[#f97316]"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8 3 3-2 2 2 2-3 3-2-2-3 3"/></svg></div></div>
+        <div class="mt-7 flex items-center justify-between rounded-2xl bg-[#222538]/5 px-4 py-3"><div class="flex -space-x-2"><span class="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-[#f97316]/20 text-[9px]">A</span><span class="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-[#347d46]/20 text-[9px]">B</span><span class="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-orange-200 text-[9px]">C</span></div><span class="text-xs font-medium text-[#646b80]">3 expiring soon →</span></div>
+      </article>
+
+      <!-- 09 Data -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="09 Data" class="pick cursor-pointer rounded-xl border border-[#e9eaf0] bg-white p-6 hover:border-[#e9eaf0]">
+        <div class="flex items-center justify-between"><span class="mono text-[10px] uppercase tracking-[.16em] text-[#646b80]">Traffic distribution</span><span class="mono text-[10px] text-[#646b80]">24H</span></div><div class="mt-5 flex items-baseline gap-2"><span class="text-4xl font-semibold tracking-tight">42.8k</span><span class="text-xs text-[#347d46]">+8.4%</span></div>
+        <div class="mt-6 flex h-16 items-end gap-[3px]" aria-label="Traffic bars"><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:22%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:32%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:25%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:42%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:35%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:50%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:30%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:38%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:58%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:44%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:35%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:63%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:47%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:54%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:39%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:69%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:52%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:45%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:74%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:58%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:64%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:46%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:80%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:61%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:55%"></span><span class="flex-1 rounded-t-[2px] bg-[#222538]/10" style="height:72%"></span><span class="flex-1 rounded-t-[2px] bg-[#f97316]" style="height:49%"></span><span class="flex-1 rounded-t-[2px] bg-[#f97316]" style="height:87%"></span><span class="flex-1 rounded-t-[2px] bg-[#f97316]" style="height:68%"></span><span class="flex-1 rounded-t-[2px] bg-[#f97316]" style="height:76%"></span><span class="flex-1 rounded-t-[2px] bg-[#f97316]" style="height:59%"></span><span class="flex-1 rounded-t-[2px] bg-[#f97316]" style="height:94%"></span></div><div class="mono mt-3 flex justify-between text-[9px] text-[#646b80]"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>NOW</span></div>
+      </article>
+
+      <!-- 10 Bold -->
+      <article tabindex="0" role="button" aria-pressed="false" data-name="10 Bold" class="pick cursor-pointer overflow-hidden rounded-2xl bg-[#f97316] p-6 text-[#222538] hover:shadow-[0_18px_50px_-25px_#f97316]">
+        <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-[.16em] text-white/80">Tokens processed</span><span class="grid h-9 w-9 place-items-center rounded-full bg-[#222538] text-white">↗</span></div><div class="mt-8 text-6xl font-bold tracking-[-.09em]">2.4<span class="text-3xl">M</span></div><div class="mt-1 text-sm font-medium text-white/80">Across all models today</div><div class="mt-7 flex items-center justify-between border-t border-white/25 pt-4"><span class="text-xs font-semibold">+16.3% <span class="font-normal text-white/70">from yesterday</span></span><span class="text-xs font-bold">DETAILS ↗</span></div>
+      </article>
+    </section>
+    <footer class="mono mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9eaf0] pt-5 text-[10px] uppercase tracking-[.12em] text-[#646b80]"><span>Concept explorations · Tailwind CSS</span><span>Click any card to select</span></footer>
+  </main>
+  <script>
+    const cards = [...document.querySelectorAll('.pick')];
+    const label = document.getElementById('selected-label');
+    function choose(card) { cards.forEach((item) => { const selected = item === card; item.classList.toggle('selected', selected); item.setAttribute('aria-pressed', String(selected)); }); label.textContent = card.dataset.name + ' selected'; }
+    cards.forEach((card) => { card.addEventListener('click', () => choose(card)); card.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(card); } }); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+/* Resource & Operational Limits Overrides */
+.settings-view .resource-limits-panel {
+  border-radius: 16px;
+  background: var(--surface);
+}
+.settings-view .resource-limits-content {
+  padding: 0 24px 24px;
+}
+.settings-view .resource-limits-active {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--surface-sunken);
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.settings-view .resource-limits-active strong {
+  color: var(--ink);
+}
+.settings-view .resource-limit-field {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--surface-sunken);
+}
+.settings-view .resource-limit-input input,
+.settings-view .resource-limit-input select {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.settings-view .resource-continuity-control strong {
+  color: var(--accent-strong);
+}
+
+/* Output styles panel */
+.settings-view .output-styles-panel .panel-icon {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+.settings-view .output-styles-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-view .output-styles-content .resource-limits-description {
+  margin: 0;
+}
+.settings-view .output-styles-active {
+  margin: 4px 0 4px;
+}
+.output-styles-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.output-style-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(140px, 180px);
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--surface-sunken);
+  cursor: pointer;
+  border: 1px solid var(--line);
+  transition: background 0.15s ease;
+}
+.output-style-row:hover {
+  background: var(--surface-sunken);
+}
+.output-style-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.output-style-copy strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+.output-style-copy small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.output-style-level {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.output-styles-form .resource-limits-actions {
+  margin-top: 0;
+}
+@media (max-width: 640px) {
+  .output-style-row {
+    grid-template-columns: auto 1fr;
+    gap: 12px 10px;
+  }
+  .output-style-level {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* Database Backup Panel Overrides */
+.settings-view .database-panel {
+  border-radius: 16px;
+  background: var(--surface);
+}
+.settings-view .database-content {
+  padding: 0 24px 24px;
+  gap: 18px;
+}
+.settings-view .database-log-option {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--surface-sunken);
+  width: 100%;
+}
+.settings-view .database-file-label {
+  background: var(--surface-sunken);
+  color: var(--muted);
+  border-radius: 8px;
+}
+.settings-view .database-file-label:hover {
+  background: var(--line);
+}
+.settings-view .database-file-label.has-file {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--accent-strong);
+}
+
+/* ─── Operational Config Guidance & Diagnostics Modal ─── */
+.field-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.config-help-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: var(--radius-full, 9999px);
+  border: none;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: none;
+  transition: all 0.15s ease;
+}
+
+.config-help-trigger:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-strong);
+}
+
+.config-help-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.config-help-desc-box {
+  padding: 10px 13px;
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  border: none;
+  box-shadow: none;
+}
+
+.config-help-desc-box p {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--ink);
+  font-weight: var(--font-medium, 500);
+}
+
+.config-help-violation-box {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 13px;
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--chart-critical) 7%, transparent);
+  border: none;
+  box-shadow: none;
+}
+
+.config-help-violation-box .violation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.config-help-violation-box .violation-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 6px);
+  background: color-mix(in srgb, var(--chart-critical) 14%, transparent);
+  color: var(--chart-critical);
+  font-size: 11px;
+  font-weight: var(--font-semibold, 600);
+  letter-spacing: 0.01em;
+  border: none;
+  box-shadow: none;
+}
+
+.config-help-violation-box .violation-code {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: var(--font-semibold, 600);
+  border: none;
+  box-shadow: none;
+}
+
+.config-help-violation-box .violation-body {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.config-help-violation-box .violation-label {
+  color: var(--chart-critical);
+  font-weight: var(--font-semibold, 600);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.config-help-violation-box .violation-text {
+  color: var(--muted);
+  font-weight: var(--font-medium, 500);
+}
+
+.config-help-meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 4px 2px;
+}
+
+.config-help-meta-row .meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.config-help-meta-row .meta-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: var(--font-medium, 500);
+}
+
+.config-help-meta-row .meta-val {
+  font-size: var(--text-xs);
+  color: var(--ink);
+  font-weight: var(--font-semibold, 600);
+}

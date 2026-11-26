@@ -1,0 +1,422 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">Requests</h1>
+                  <p id="page-description">Inspect gateway traffic and debug failures.</p>
+                </div>
+                <div class="heading-actions">
+                  <label class="switch switch-inline" title="Auto-refresh every 5s">
+                    <input type="checkbox" id="auto-refresh" />
+                    <span class="switch-track"><span class="switch-thumb"></span></span>
+                    <span class="switch-label">Live</span>
+                  </label>
+                  <button class="action-button" type="button" id="export-csv">
+                    <span class="button-icon"><svg class="icon"><use href="#i-download" /></svg></span>
+                    <span class="button-label">Export CSV</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="page-surface">
+                <section class="stats-grid" aria-label="Request overview">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
+                      <span class="stat-number">12,847</span>
+                    </div>
+                    <h2>Requests · 24h</h2>
+                    <div class="stat-trend">All keys and providers</div>
+                    <button class="details-link" type="button" id="stat-goto-table">Browse table <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-trend-up" /></svg></span>
+                      <span class="stat-number">98.2%</span>
+                    </div>
+                    <h2>Success Rate</h2>
+                    <div class="stat-trend">2xx responses</div>
+                    <button class="details-link" type="button" id="stat-2xx">Filter 2xx <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-clock" /></svg></span>
+                      <span class="stat-number">412 ms</span>
+                    </div>
+                    <h2>Avg Latency</h2>
+                    <div class="stat-trend">p50 across providers</div>
+                    <button class="details-link" type="button" id="stat-latency">Sort by latency <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-alert" /></svg></span>
+                      <span class="stat-number">231</span>
+                    </div>
+                    <h2>Failed</h2>
+                    <div class="stat-trend">4xx + 5xx responses</div>
+                    <button class="details-link" type="button" id="stat-failed">Show failures <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <section class="course-card surface req-board" id="req-board" aria-labelledby="requests-heading">
+                  <div class="card-title-row">
+                    <h2 id="requests-heading">Requests</h2>
+                  </div>
+                  <p class="card-subtitle" id="req-summary">Showing 12 of 12,847 requests</p>
+                  <div class="page-toolbar req-filters">
+                    <input id="req-search" class="req-search" type="search" placeholder="Search model, key, provider…" aria-label="Search requests" />
+                    <select id="req-status" class="req-select" aria-label="Filter by status">
+                      <option value="all">All statuses</option>
+                      <option value="2xx">2xx success</option>
+                      <option value="4xx">4xx client</option>
+                      <option value="5xx">5xx server</option>
+                      <option value="live">Live only</option>
+                    </select>
+                    <select id="req-provider" class="req-select" aria-label="Filter by provider">
+                      <option value="all">All providers</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="openrouter">OpenRouter</option>
+                      <option value="deepseek">DeepSeek</option>
+                      <option value="lmstudio">LM Studio</option>
+                    </select>
+                    <select id="req-range" class="req-select" aria-label="Time range">
+                      <option value="24h" selected>24 hours</option>
+                      <option value="7d">7 days</option>
+                      <option value="30d">30 days</option>
+                      <option value="90d">90 days</option>
+                    </select>
+                  </div>
+
+                  <div class="req-table-wrap">
+                  <table class="req-table">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Model</th>
+                        <th>Provider</th>
+                        <th>Key</th>
+                        <th class="num">Latency</th>
+                        <th class="num">Tokens</th>
+                        <th class="num">Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody id="req-body">
+                      <tr class="req-row req-live" data-status="live" data-provider="gemini" data-model="gemini-2.5-flash" data-key="web-app">
+                        <td class="req-time"><span class="live-dot"></span>now</td>
+                        <td><span class="status progress">LIVE</span></td>
+                        <td class="req-model">gemini-2.5-flash</td>
+                        <td>gemini</td>
+                        <td>web-app</td>
+                        <td class="num req-ms" data-start="0">0 ms</td>
+                        <td class="num"><span class="tok-in">980</span> / <span class="tok-out">220</span> <span class="tok-cache">[410]</span></td>
+                        <td class="num">$0.0004</td>
+                      </tr>
+                      <tr class="req-row" data-status="2xx" data-provider="openai" data-model="gpt-4o-mini" data-key="web-app">
+                        <td class="req-time">14:02:11</td>
+                        <td><span class="status complete">200</span></td>
+                        <td class="req-model">gpt-4o-mini</td>
+                        <td>openai</td>
+                        <td>web-app</td>
+                        <td class="num">184 ms</td>
+                        <td class="num"><span class="tok-in">1,980</span> / <span class="tok-out">451</span> <span class="tok-cache">[—]</span></td>
+                        <td class="num">$0.0009</td>
+                      </tr>
+                      <tr class="req-row" data-status="2xx" data-provider="anthropic" data-model="claude-sonnet-4" data-key="cli-tool">
+                        <td class="req-time">14:01:58</td>
+                        <td><span class="status complete">200</span></td>
+                        <td class="req-model">claude-sonnet-4</td>
+                        <td>anthropic</td>
+                        <td>cli-tool</td>
+                        <td class="num">1.2 s</td>
+                        <td class="num"><span class="tok-in">7,240</span> / <span class="tok-out">1,672</span> <span class="tok-cache">[2,048]</span></td>
+                        <td class="num">$0.0412</td>
+                      </tr>
+                      <tr class="req-row" data-status="4xx" data-provider="openrouter" data-model="llama-3.3-70b" data-key="batch-job">
+                        <td class="req-time">14:01:02</td>
+                        <td><span class="status progress">429</span></td>
+                        <td class="req-model">llama-3.3-70b</td>
+                        <td>openrouter</td>
+                        <td>batch-job</td>
+                        <td class="num">96 ms</td>
+                        <td class="num"><span class="tok-in">0</span> / <span class="tok-out">0</span> <span class="tok-cache">[—]</span></td>
+                        <td class="num">—</td>
+                      </tr>
+                      <tr class="req-row" data-status="5xx" data-provider="deepseek" data-model="deepseek-chat" data-key="web-app">
+                        <td class="req-time">13:59:47</td>
+                        <td><span class="status error">500</span></td>
+                        <td class="req-model">deepseek-chat</td>
+                        <td>deepseek</td>
+                        <td>web-app</td>
+                        <td class="num">640 ms</td>
+                        <td class="num"><span class="tok-in">1,204</span> / <span class="tok-out">—</span> <span class="tok-cache">[—]</span></td>
+                        <td class="num">—</td>
+                      </tr>
+                      <tr class="req-row" data-status="2xx" data-provider="gemini" data-model="gemini-2.5-pro" data-key="cli-tool">
+                        <td class="req-time">13:58:20</td>
+                        <td><span class="status complete">200</span></td>
+                        <td class="req-model">gemini-2.5-pro</td>
+                        <td>gemini</td>
+                        <td>cli-tool</td>
+                        <td class="num">2.8 s</td>
+                        <td class="num"><span class="tok-in">9,860</span> / <span class="tok-out">2,680</span> <span class="tok-cache">[1,120]</span></td>
+                        <td class="num">$0.0188</td>
+                      </tr>
+                      <tr class="req-row" data-status="2xx" data-provider="lmstudio" data-model="llama-3.3-70b" data-key="local-dev">
+                        <td class="req-time">13:57:44</td>
+                        <td><span class="status complete">200</span></td>
+                        <td class="req-model">llama-3.3-70b</td>
+                        <td>lmstudio</td>
+                        <td>local-dev</td>
+                        <td class="num">2.4 s</td>
+                        <td class="num"><span class="tok-in">4,120</span> / <span class="tok-out">1,191</span> <span class="tok-cache">[—]</span></td>
+                        <td class="num">—</td>
+                      </tr>
+                      <tr class="req-row" data-status="4xx" data-provider="openai" data-model="gpt-4o" data-key="web-app">
+                        <td class="req-time">13:56:11</td>
+                        <td><span class="status progress">400</span></td>
+                        <td class="req-model">gpt-4o</td>
+                        <td>openai</td>
+                        <td>web-app</td>
+                        <td class="num">22 ms</td>
+                        <td class="num"><span class="tok-in">0</span> / <span class="tok-out">0</span> <span class="tok-cache">[—]</span></td>
+                        <td class="num">—</td>
+                      </tr>
+                      <tr class="req-row" data-status="2xx" data-provider="anthropic" data-model="claude-haiku-4" data-key="cli-tool">
+                        <td class="req-time">13:55:03</td>
+                        <td><span class="status complete">200</span></td>
+                        <td class="req-model">claude-haiku-4</td>
+                        <td>anthropic</td>
+                        <td>cli-tool</td>
+                        <td class="num">410 ms</td>
+                        <td class="num"><span class="tok-in">2,540</span> / <span class="tok-out">837</span> <span class="tok-cache">[640]</span></td>
+                        <td class="num">$0.0041</td>
+                      </tr>
+                      <tr class="req-row" data-status="5xx" data-provider="gemini" data-model="gemini-2.5-flash" data-key="batch-job">
+                        <td class="req-time">13:53:36</td>
+                        <td><span class="status error">503</span></td>
+                        <td class="req-model">gemini-2.5-flash</td>
+                        <td>gemini</td>
+                        <td>batch-job</td>
+                        <td class="num">5.1 s</td>
+                        <td class="num"><span class="tok-in">0</span> / <span class="tok-out">0</span> <span class="tok-cache">[—]</span></td>
+                        <td class="num">—</td>
+                      </tr>
+                      <tr class="req-row" data-status="2xx" data-provider="openrouter" data-model="mistral-large" data-key="web-app">
+                        <td class="req-time">13:52:19</td>
+                        <td><span class="status complete">200</span></td>
+                        <td class="req-model">mistral-large</td>
+                        <td>openrouter</td>
+                        <td>web-app</td>
+                        <td class="num">1.9 s</td>
+                        <td class="num"><span class="tok-in">4,980</span> / <span class="tok-out">1,224</span> <span class="tok-cache">[310]</span></td>
+                        <td class="num">$0.0122</td>
+                      </tr>
+                      <tr class="req-row" data-status="2xx" data-provider="deepseek" data-model="deepseek-chat" data-key="cli-tool">
+                        <td class="req-time">13:50:55</td>
+                        <td><span class="status complete">200</span></td>
+                        <td class="req-model">deepseek-chat</td>
+                        <td>deepseek</td>
+                        <td>cli-tool</td>
+                        <td class="num">720 ms</td>
+                        <td class="num"><span class="tok-in">3,760</span> / <span class="tok-out">1,130</span> <span class="tok-cache">[—]</span></td>
+                        <td class="num">$0.0028</td>
+                      </tr>
+                      <tr class="req-row" data-status="2xx" data-provider="openai" data-model="gpt-4o-mini" data-key="local-dev">
+                        <td class="req-time">13:49:31</td>
+                        <td><span class="status complete">200</span></td>
+                        <td class="req-model">gpt-4o-mini</td>
+                        <td>openai</td>
+                        <td>local-dev</td>
+                        <td class="num">156 ms</td>
+                        <td class="num"><span class="tok-in">1,540</span> / <span class="tok-out">448</span> <span class="tok-cache">[96]</span></td>
+                        <td class="num">$0.0007</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="empty-state" id="req-empty" hidden>No requests match the current filters.</div>
+                </div>
+
+                <div class="req-pager">
+                  <button class="page-action" type="button" id="req-prev">← Prev</button>
+                  <span class="req-page-info">Page 1 of 1,072</span>
+                  <button class="page-action" type="button" id="req-next">Next →</button>
+                </div>
+                </section>
+              </div>
+
+              <!-- Request detail dialog -->
+              <dialog class="modal modal-wide" id="req-dialog" aria-labelledby="req-dialog-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="req-dialog-title">Request detail</h2>
+                      <p id="req-dialog-sub">—</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="req-detail" id="req-detail"></div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" id="req-retry" data-close-modal>Retry request</button>
+                    <button class="page-action" type="button" data-close-modal>Close</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <script>
+                (() => {
+                  const tbody = document.getElementById('req-body');
+                  const empty = document.getElementById('req-empty');
+                  const summary = document.getElementById('req-summary');
+                  const search = document.getElementById('req-search');
+                  const statusFilter = document.getElementById('req-status');
+                  const providerFilter = document.getElementById('req-provider');
+                  const rangeFilter = document.getElementById('req-range');
+                  const autoRefresh = document.getElementById('auto-refresh');
+                  let refreshTimer = null;
+
+                  function statusGroup(row) {
+                    const s = row.dataset.status;
+                    if (s === 'live') return 'live';
+                    if (s.startsWith('2')) return '2xx';
+                    if (s.startsWith('4')) return '4xx';
+                    return '5xx';
+                  }
+
+                  function applyFilters() {
+                    const q = search.value.trim().toLowerCase();
+                    const sf = statusFilter.value;
+                    const pf = providerFilter.value;
+                    let visible = 0;
+                    tbody.querySelectorAll('.req-row').forEach((row) => {
+                      const okQ = !q || row.textContent.toLowerCase().includes(q);
+                      const okS = sf === 'all' || (sf === 'live' ? row.classList.contains('req-live') : statusGroup(row) === sf);
+                      const okP = pf === 'all' || row.dataset.provider === pf;
+                      row.style.display = okQ && okS && okP ? '' : 'none';
+                      if (okQ && okS && okP) visible += 1;
+                    });
+                    empty.hidden = visible !== 0;
+                    summary.textContent = `Showing ${visible} of 12,847 requests`;
+                  }
+                  [search, statusFilter, providerFilter, rangeFilter].forEach((el) => el.addEventListener('input', applyFilters));
+                  rangeFilter.addEventListener('change', () => {
+                    applyFilters();
+                    showToast(`Showing requests from the last ${rangeFilter.selectedOptions[0].textContent} (mock)`);
+                  });
+
+                  // Prefill from topbar search (?q=...)
+                  const qParam = new URLSearchParams(location.search).get('q');
+                  if (qParam) {
+                    search.value = qParam;
+                    applyFilters();
+                  }
+
+                  // Live latency ticker
+                  const liveStart = Date.now();
+                  tbody.querySelectorAll('.req-live .req-ms').forEach((el) => { el.dataset.start = liveStart; });
+                  setInterval(() => {
+                    tbody.querySelectorAll('.req-live .req-ms').forEach((el) => {
+                      const ms = Date.now() - Number(el.dataset.start || Date.now());
+                      el.textContent = ms > 999 ? `${(ms / 1000).toFixed(1)} s` : `${ms} ms`;
+                    });
+                  }, 200);
+
+                  // Auto refresh simulation: prepend a fake finished row every 5s
+                  function startAutoRefresh() {
+                    stopAutoRefresh();
+                    refreshTimer = setInterval(() => {
+                      const models = ['gpt-4o-mini', 'claude-haiku-4', 'gemini-2.5-flash'];
+                      const providers = ['openai', 'anthropic', 'gemini'];
+                      const i = Math.floor(Math.random() * models.length);
+                      const tr = document.createElement('tr');
+                      tr.className = 'req-row';
+                      tr.dataset.status = '2xx';
+                      tr.dataset.provider = providers[i];
+                      tr.dataset.model = models[i];
+                      tr.dataset.key = 'auto';
+                      const ms = 80 + Math.floor(Math.random() * 900);
+                      const tin = 200 + Math.floor(Math.random() * 4000);
+                      const tout = 50 + Math.floor(Math.random() * 900);
+                      const tcache = Math.random() > 0.5 ? Math.floor(Math.random() * 2000) : null;
+                      tr.innerHTML = `<td class="req-time">now</td><td><span class="status complete">200</span></td><td class="req-model">${models[i]}</td><td>${providers[i]}</td><td>auto</td><td class="num">${ms} ms</td><td class="num"><span class="tok-in">${tin.toLocaleString()}</span> / <span class="tok-out">${tout}</span> <span class="tok-cache">[${tcache === null ? '—' : tcache.toLocaleString()}]</span></td><td class="num">—</td>`;
+                      tbody.prepend(tr);
+                      applyFilters();
+                    }, 5000);
+                  }
+                  function stopAutoRefresh() { if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; } }
+                  autoRefresh.addEventListener('change', () => {
+                    if (autoRefresh.checked) { startAutoRefresh(); showToast('Live feed on — new requests every 5s'); }
+                    else { stopAutoRefresh(); showToast('Live feed paused'); }
+                  });
+
+                  // Row click → detail dialog
+                  const dialog = document.getElementById('req-dialog');
+                  tbody.addEventListener('click', (e) => {
+                    const row = e.target.closest('.req-row');
+                    if (!row) return;
+                    const cells = [...row.cells].map((c) => c.textContent.trim());
+                    const isLive = row.classList.contains('req-live');
+                    const statusText = cells[1];
+                    document.getElementById('req-dialog-title').textContent = isLive ? 'Live request' : 'Request detail';
+                    document.getElementById('req-dialog-sub').textContent = `${cells[2]} via ${cells[3]} · ${cells[0]}`;
+                    document.getElementById('req-retry').hidden = isLive;
+                    document.getElementById('req-detail').innerHTML = `
+                      <div class="req-detail-grid">
+                        <div class="req-detail-item"><span>Status</span><strong>${statusText}</strong></div>
+                        <div class="req-detail-item"><span>Latency</span><strong>${cells[5]}</strong></div>
+                        <div class="req-detail-item"><span>Tokens in</span><strong>${row.querySelector('.tok-in')?.textContent || '—'}</strong></div>
+                        <div class="req-detail-item"><span>Tokens out</span><strong>${row.querySelector('.tok-out')?.textContent || '—'}</strong></div>
+                        <div class="req-detail-item"><span>Cache read</span><strong>${(row.querySelector('.tok-cache')?.textContent || '—').replace(/[\[\]]/g, '')}</strong></div>
+                        <div class="req-detail-item"><span>Cost</span><strong>${cells[7]}</strong></div>
+                        <div class="req-detail-item"><span>API key</span><strong>${cells[4]}</strong></div>
+                        <div class="req-detail-item"><span>Provider</span><strong>${cells[3]}</strong></div>
+                      </div>
+                      ${isLive ? '<p class="form-note">This request is still streaming. Detail will be available once it finishes.</p>' : `
+                      <div class="req-payload">
+                        <div class="req-payload-head"><strong>Request payload</strong><button class="icon-action" type="button" title="Copy"><svg class="icon"><use href="#i-copy" /></svg></button></div>
+                        <pre>${JSON.stringify({ model: cells[2], provider: cells[3], stream: true, messages: [{ role: 'user', content: 'Summarize this document in 3 bullets…' }] }, null, 2)}</pre>
+                      </div>
+                      ${statusText !== '200' ? `<div class="req-error"><svg class="icon"><use href="#i-alert" /></svg><div><strong>${statusText === '429' ? 'Rate limit exceeded' : statusText === '500' ? 'Upstream error' : 'Bad request'}</strong><p>${statusText === '429' ? 'Provider quota for this key is exhausted. Retry after 41s or switch provider.' : statusText === '500' ? 'deepseek-chat returned 500 after 640 ms. The combo may fail over to the next target.' : 'Invalid parameter: max_tokens exceeds model limit.'}</p></div></div>` : ''}`}`;
+                    dialog.showModal();
+                  });
+                  document.getElementById('req-retry').addEventListener('click', () => showToast('Retry queued (mock)'));
+
+                  // Export + pager
+                  document.getElementById('export-csv').addEventListener('click', () => showToast('Exported 12,847 rows to requests.csv (mock)'));
+                  document.getElementById('req-prev').addEventListener('click', () => showToast('Already on the first page'));
+                  document.getElementById('req-next').addEventListener('click', () => showToast('Page 2 of 1,072 (mock — pagination is simulated)'));
+
+                  // Stat-card actions
+                  document.getElementById('stat-goto-table').addEventListener('click', () => {
+                    document.getElementById('req-board').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  });
+                  document.getElementById('stat-2xx').addEventListener('click', () => {
+                    statusFilter.value = '2xx';
+                    applyFilters();
+                    document.getElementById('req-board').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  });
+                  document.getElementById('stat-failed').addEventListener('click', () => {
+                    statusFilter.value = '5xx';
+                    applyFilters();
+                    document.getElementById('req-board').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    showToast('Showing server errors — 231 failed in 24h');
+                  });
+                  let latencyAsc = true;
+                  document.getElementById('stat-latency').addEventListener('click', () => {
+                    const parseMs = (text) => {
+                      const t = text.trim();
+                      if (t.endsWith(' s')) return parseFloat(t) * 1000;
+                      return parseFloat(t) || Infinity;
+                    };
+                    const rowsArr = [...tbody.querySelectorAll('.req-row')];
+                    rowsArr.sort((a, b) => {
+                      const av = parseMs(a.cells[5].textContent);
+                      const bv = parseMs(b.cells[5].textContent);
+                      return latencyAsc ? av - bv : bv - av;
+                    });
+                    rowsArr.forEach((r) => tbody.appendChild(r));
+                    latencyAsc = !latencyAsc;
+                    showToast(`Sorted by latency ${latencyAsc ? 'ascending' : 'descending'} (this page only)`);
+                  });
+                })();
+              </script>

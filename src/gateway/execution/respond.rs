@@ -1,0 +1,417 @@
+use super::*;
+use futures_util::StreamExt;
+use outcome::CompletedUpstream;
+use provider::ProviderUpstreamResult;
+use target_preparation::RequestScope;
+
+/// Builds the streaming client response from a completed upstream result.
+///
+/// The response owns the provider permit and circuit lease through
+/// `StreamLog`, so cancellation or client disconnect releases both resources
+/// when the translated stream is dropped.
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn stream_response(
+    scope: &RequestScope,
+    completed: CompletedUpstream,
+    route_alias: &str,
+    live: &RequestLiveGuard,
+    background_continuity: bool,
+    started: Instant,
+    analytics: Option<RequestAnalytics>,
+    failures: &mut TargetLoopFailures,
+    log: &RequestLogPayload<'_>,
+) -> Option<Response> {
+    let CompletedUpstream {
+        result,
+        mut circuit_probe,
+        provider_permit,
+        adapter,
+        adapter_id: _,
+        provider_id,
+        proxy_id,
+        sent_bytes,
+        upstream_protocol,
+        target_model,
+    } = completed;
+    let proxy_traffic_sample = proxy_id.as_ref().map(|_| {
+        Arc::new(crate::state::ProxyTrafficSample {
+            received_bytes: std::sync::atomic::AtomicU64::new(0),
+            sent_bytes,
+            started,
+        })
+    });
+    let upstream_chunks = match result {
+        ProviderUpstreamResult::Response(upstream) => {
+            if !provider_adapters::accepts_event_stream_response(
+                &upstream,
+                adapter.allows_missing_event_stream_content_type(),
+            ) {
+                let error = format!(
+                    "provider '{provider_id}' returned a non-SSE response to a streaming request"
+                );
+                circuit_probe.failed();
+                failures.last_status = StatusCode::BAD_GATEWAY;
+                failures.last_error = error.clone();
+                log_request(
+                    &scope.state,
+                    Some(live),
+                    log.provider_failure(
+                        &provider_id,
+                        upstream_protocol,
+                        failures.selected_credential_id.as_deref(),
+                        failures.last_status,
+                        &error,
+                        &target_model,
+                    ),
+                );
+                drop(provider_permit);
+                return None;
+            }
+            Box::pin(upstream.bytes_stream())
+        }
+        ProviderUpstreamResult::Stream { chunks, .. } => chunks,
+        ProviderUpstreamResult::AdapterResponse { .. }
+        | ProviderUpstreamResult::AdapterSseFailure { .. } => {
+            let error =
+                format!("provider '{provider_id}' returned an invalid adapter stream result");
+            circuit_probe.failed();
+            failures.last_status = StatusCode::BAD_GATEWAY;
+            failures.last_error = error.clone();
+            log_request(
+                &scope.state,
+                Some(live),
+                log.provider_failure(
+                    &provider_id,
+                    upstream_protocol,
+                    failures.selected_credential_id.as_deref(),
+                    failures.last_status,
+                    &error,
+                    &target_model,
+                ),
+            );
+            drop(provider_permit);
+            return None;
+        }
+    };
+
+    let upstream_chunks = if let Some(sample) = proxy_traffic_sample.as_ref() {
+        let sample = sample.clone();
+        Box::pin(async_stream::stream! {
+            let mut chunks = upstream_chunks;
+            while let Some(chunk) = chunks.next().await {
+                if let Ok(bytes) = &chunk {
+                    sample.received_bytes.fetch_add(bytes.len() as u64, std::sync::atomic::Ordering::Relaxed);
+                }
+                yield chunk;
+            }
+        }) as super::UpstreamChunkStream
+    } else {
+        upstream_chunks
+    };
+    let outcome = StreamOutcome::default();
+    // The stream log keeps its own handle on the request's usage counters so a
+    // stream abandoned before finalization can still record the tokens the
+    // upstream already reported.
+    let log_analytics = analytics.clone();
+    let mut producer = stream_translation_from_chunks(
+        upstream_chunks,
+        StreamTranslationConfig {
+            upstream_protocol,
+            client_protocol: scope.client_protocol,
+            request_id: scope.request_id.clone(),
+            model: route_alias.to_owned(),
+            idle_timeout: scope.operational_settings.stream_idle_timeout,
+            continuity_enabled: background_continuity,
+            overall_timeout: background_continuity.then_some(
+                scope
+                    .operational_settings
+                    .upstream
+                    .continuity_request_timeout,
+            ),
+            outcome: outcome.clone(),
+            analytics,
+            resource_limits: scope.resource_limits,
+            shutdown: scope.state.shutdown_receiver(),
+            log: Some(StreamLog {
+                state: scope.state.clone(),
+                request_id: scope.request_id.clone(),
+                route_alias: route_alias.to_owned(),
+                provider_id,
+                proxy_id,
+                proxy_traffic_sample: proxy_traffic_sample.clone(),
+                model: target_model,
+                api_key_id: log.api_key_id.map(str::to_owned),
+                provider_credential_id: failures.selected_credential_id.clone(),
+                client_protocol: scope.client_protocol,
+                upstream_protocol,
+                reasoning_effort: log.reasoning_effort.clone(),
+                started,
+                run_id: None,
+                live: live.clone(),
+                _provider_permit: provider_permit,
+                circuit_probe,
+                sse_processing_slots: scope.state.gates.gateway_sse_processing.clone(),
+                analytics: log_analytics,
+                finalized: std::sync::atomic::AtomicBool::new(false),
+                shutdown: scope.state.shutdown_receiver(),
+            }),
+        },
+    );
+    producer.extensions_mut().insert(outcome);
+    Some(producer)
+}
+
+/// Decodes a completed non-streaming provider response and returns `None`
+/// when the target can safely be failed over.
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn decode_response(
+    scope: &RequestScope,
+    completed: CompletedUpstream,
+    route_alias: &str,
+    live: &RequestLiveGuard,
+    log: &RequestLogPayload<'_>,
+    started: Instant,
+    analytics: Option<&RequestAnalytics>,
+    failures: &mut TargetLoopFailures,
+) -> Option<Response> {
+    let CompletedUpstream {
+        result,
+        mut circuit_probe,
+        provider_permit,
+        adapter,
+        adapter_id,
+        provider_id,
+        proxy_id,
+        sent_bytes,
+        upstream_protocol,
+        target_model,
+    } = completed;
+    let (upstream_value, response_bytes) = match read_upstream_value(
+        result,
+        adapter,
+        &adapter_id,
+        scope.operational_settings.upstream_response_limit_bytes,
+    )
+    .await
+    {
+        Ok(value) => value,
+        Err(error) => {
+            circuit_probe.failed();
+            failures.last_status = StatusCode::BAD_GATEWAY;
+            failures.last_error = format!("provider '{provider_id}' response failed: {error}");
+            log_request(
+                &scope.state,
+                Some(live),
+                log.provider_failure(
+                    &provider_id,
+                    upstream_protocol,
+                    failures.selected_credential_id.as_deref(),
+                    failures.last_status,
+                    &failures.last_error,
+                    &target_model,
+                ),
+            );
+            drop(provider_permit);
+            return None;
+        }
+    };
+    let decoded =
+        match protocol::decode_upstream_response(upstream_protocol, &upstream_value, &target_model)
+        {
+            Ok(response) => response,
+            Err(error) => {
+                circuit_probe.failed();
+                failures.last_status = StatusCode::BAD_GATEWAY;
+                failures.last_error =
+                    crate::gateway::provider_decode_failure_message(&error, &upstream_value);
+                log_request(
+                    &scope.state,
+                    Some(live),
+                    log.provider_failure(
+                        &provider_id,
+                        upstream_protocol,
+                        failures.selected_credential_id.as_deref(),
+                        failures.last_status,
+                        &failures.last_error,
+                        &target_model,
+                    ),
+                );
+                drop(provider_permit);
+                return None;
+            }
+        };
+    if let Some(analytics) = analytics {
+        analytics.set_token_usage(
+            decoded.usage.as_ref().map(|usage| usage.input_tokens),
+            decoded.usage.as_ref().map(|usage| usage.output_tokens),
+        );
+        analytics.set_cached_token_usage(
+            decoded.usage.as_ref().map(|usage| usage.cached_tokens),
+            decoded.usage.as_ref().map(|usage| usage.cache_input_tokens),
+        );
+    }
+    circuit_probe.succeeded();
+    if let Some(proxy_id) = proxy_id.as_deref() {
+        scope
+            .state
+            .record_proxy_traffic(
+                proxy_id,
+                response_bytes,
+                sent_bytes,
+                started.elapsed().as_millis() as u64,
+            )
+            .await;
+    }
+    // Upstream-reported cost is authoritative; only fill a missing value from
+    // the validated user catalog so telemetry does not report a null cost.
+    let cost_micro_usd = decoded.usage.as_ref().and_then(|usage| {
+        if usage.cost_micro_usd.is_some() {
+            return usage.cost_micro_usd;
+        }
+        let pricing =
+            scope
+                .state
+                .resolve_model_pricing(&provider_id, &adapter_id, &target_model)?;
+        crate::config::provider_catalog::estimate_cost_micro_usd(
+            &pricing,
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cached_tokens,
+            usage.cache_input_tokens.saturating_sub(usage.cached_tokens),
+            0,
+        )
+        .and_then(|value| i64::try_from(value).ok())
+    });
+    log_request(
+        &scope.state,
+        Some(live),
+        log.provider_success(
+            &provider_id,
+            upstream_protocol,
+            failures.selected_credential_id.as_deref(),
+            &target_model,
+            decoded
+                .usage
+                .as_ref()
+                .map(|usage| usage.input_tokens as i64),
+            decoded
+                .usage
+                .as_ref()
+                .map(|usage| usage.output_tokens as i64),
+            decoded
+                .usage
+                .as_ref()
+                .map(|usage| usage.cached_tokens as i64),
+            decoded
+                .usage
+                .as_ref()
+                .map(|usage| usage.cache_input_tokens as i64),
+            decoded.usage.as_ref().and(cost_micro_usd),
+        ),
+    );
+    drop(provider_permit);
+
+    let mut result = protocol::encode_response(scope.client_protocol, &decoded);
+    result["model"] = json!(route_alias);
+    Some(attach_request_live_guard(
+        ([("x-request-id", scope.request_id.clone())], Json(result)).into_response(),
+        live.clone(),
+    ))
+}
+
+async fn read_upstream_value(
+    result: ProviderUpstreamResult,
+    adapter: &'static dyn provider_adapters::ProviderAdapter,
+    adapter_id: &str,
+    response_limit: usize,
+) -> Result<(Value, u64), String> {
+    match result {
+        ProviderUpstreamResult::AdapterResponse { value, .. } => {
+            let bytes = serde_json::to_vec(&value)
+                .map_err(|_| "provider response could not be measured".to_owned())?;
+            Ok((value, bytes.len() as u64))
+        }
+        ProviderUpstreamResult::Response(upstream) if adapter.wants_event_stream() => {
+            if !provider_adapters::accepts_event_stream_response(
+                &upstream,
+                adapter.allows_missing_event_stream_content_type(),
+            ) {
+                return Err("provider adapter returned a non-SSE response".to_owned());
+            }
+            let length = upstream.content_length();
+            let value =
+                provider_adapters::read_adapter_event_stream(adapter_id, upstream, response_limit)
+                    .await
+                    .map_err(|error| error.message)?;
+            let bytes = length.unwrap_or_else(|| {
+                serde_json::to_vec(&value).map_or(0, |encoded| encoded.len() as u64)
+            });
+            Ok((value, bytes))
+        }
+        ProviderUpstreamResult::Response(upstream) => {
+            let bytes = provider_adapters::read_limited_response(upstream, response_limit)
+                .await
+                .map_err(|error| format!("provider response failed: {error}"))?;
+            let byte_count = bytes.len() as u64;
+            let value = serde_json::from_slice::<Value>(&bytes)
+                .map_err(|_| "provider returned invalid JSON".to_owned())
+                .and_then(|value| provider_adapters::normalize_response(adapter_id, value))?;
+            Ok((value, byte_count))
+        }
+        ProviderUpstreamResult::Stream { .. } => {
+            Err("preflighted stream result cannot reach non-stream decoding".to_owned())
+        }
+        ProviderUpstreamResult::AdapterSseFailure { error } => {
+            Err(format!("provider adapter stream failed: {}", error.message))
+        }
+    }
+}
+
+/// Builds the final gateway error after all configured targets are exhausted.
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn final_failure_response(
+    scope: &RequestScope,
+    canonical: &protocol::CanonicalRequest,
+    route_alias: &str,
+    api_key_id: Option<&str>,
+    live: RequestLiveGuard,
+    failures: TargetLoopFailures,
+    started: Instant,
+) -> Response {
+    let final_status = if failures.translation_failed && !failures.request_encodable {
+        StatusCode::BAD_REQUEST
+    } else {
+        failures.last_status
+    };
+    log_request(
+        &scope.state,
+        Some(&live),
+        GatewayRequestLog {
+            api_key_id,
+            request_id: &scope.request_id,
+            route: route_alias,
+            provider: None,
+            provider_credential_id: None,
+            cost_micro_usd: None,
+            model: &canonical.model,
+            client: scope.client_protocol,
+            upstream: None,
+            proxy_id: None,
+            status: final_status,
+            duration_ms: started.elapsed().as_millis() as i64,
+            input_tokens: None,
+            output_tokens: None,
+            cached_tokens: None,
+            cache_input_tokens: None,
+            reasoning_effort: None,
+            error: Some(&failures.last_error),
+        },
+    );
+    let mut response = gateway_error(final_status, &failures.last_error);
+    if let Some(retry_after) = failures.upstream_retry_after {
+        response
+            .headers_mut()
+            .insert(header::RETRY_AFTER, retry_after);
+    }
+    attach_request_live_guard(response, live)
+}

@@ -1,0 +1,71 @@
+[package]
+name = "exoroute"
+version = "0.1.3"
+edition = "2024"
+rust-version = "1.88"
+description = "A lightweight AI protocol gateway and router"
+license = "MIT"
+
+[dependencies]
+aes = "0.8"
+argon2 = "0.5"
+async-stream = "0.3"
+axum = "0.8"
+base64 = "0.22"
+bincode = "1.3"
+zstd = { version = "0.13", default-features = false, features = ["zdict_builder"] }
+bytes = "1"
+cbc = "0.1"
+chacha20poly1305 = "0.10"
+dotenvy = "0.15"
+fs2 = "0.4"
+futures-util = "0.3"
+heed = { version = "0.22.1", default-features = false, features = ["serde", "serde-bincode"] }
+http = "1"
+if-addrs = "0.14"
+md-5 = "0.10"
+mime_guess = "2"
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+# Gzip decoding for compressed Connect frames on the Devin Desktop transport.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+rsa = { version = "0.9", default-features = false, features = ["pem"] }
+rust-embed = "8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml_ng = "0.10"
+sha2 = { version = "0.10", features = ["oid"] }
+subtle = "2"
+tokio = { version = "1", features = ["fs", "io-util", "macros", "process", "rt-multi-thread", "signal", "sync", "time"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "registry"] }
+# Non-blocking file writer for the persistent error log (bounded, lossy buffer).
+tracing-appender = "0.2"
+uuid = { version = "1", features = ["v4"] }
+zeroize = "1"
+zxcvbn = "3.1.1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Threading",
+] }
+
+[build-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml_ng = "0.10"
+
+[dev-dependencies]
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
+
+# One codegen unit per crate trades build time for a smaller binary.
+# Measured on the published Windows x86_64 artifact with rustc 1.88.0: the zip
+# dropped from 8,667,041 to 7,778,162 bytes (-10.3%) for +120s of build time.
+# Adding lto = "thin" or "fat" on top of it measured *larger*, so it stays off.
+[profile.release]
+codegen-units = 1

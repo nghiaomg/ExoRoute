@@ -1,0 +1,951 @@
+use super::*;
+use crate::provider_adapters::{
+    OPENCODE_GO_ADAPTER_ID, OPENCODE_ZEN_ADAPTER_ID, UpstreamAuthContext, UpstreamProtocol,
+};
+use http::{HeaderMap, HeaderValue};
+use serde_json::json;
+
+#[test]
+fn endpoints_match_opencode_prefixes_and_google_actions() {
+    for (adapter_id, base_url) in [
+        (OPENCODE_GO_ADAPTER_ID, "https://opencode.ai/zen/go/v1"),
+        (OPENCODE_ZEN_ADAPTER_ID, "https://opencode.ai/zen/v1"),
+    ] {
+        for (protocol, suffix) in [
+            (UpstreamProtocol::ChatCompletions, "chat/completions"),
+            (UpstreamProtocol::Responses, "responses"),
+            (UpstreamProtocol::Messages, "messages"),
+        ] {
+            assert_eq!(
+                super::super::upstream_endpoint(
+                    adapter_id, base_url, protocol, "model", false, None,
+                )
+                .expect("documented OpenCode endpoint")
+                .as_str(),
+                format!("{base_url}/{suffix}")
+            );
+        }
+    }
+    let zen = OPENCODE_ZEN_ADAPTER
+        .upstream_endpoint(
+            "https://opencode.ai/zen/v1",
+            UpstreamProtocol::GoogleGenerateContent,
+            "gemini/3.7 flash",
+            false,
+            None,
+        )
+        .expect("Zen Google endpoint");
+    assert_eq!(
+        zen.as_str(),
+        "https://opencode.ai/zen/v1/models/gemini%2F3.7%20flash:generateContent"
+    );
+    let zen_stream = OPENCODE_ZEN_ADAPTER
+        .upstream_endpoint(
+            "https://opencode.ai/zen/v1",
+            UpstreamProtocol::GoogleGenerateContent,
+            "gemini-3.7-flash",
+            true,
+            None,
+        )
+        .expect("Zen Google SSE endpoint");
+    assert_eq!(
+        zen_stream.as_str(),
+        "https://opencode.ai/zen/v1/models/gemini-3.7-flash:streamGenerateContent?alt=sse"
+    );
+    assert!(
+        super::super::upstream_endpoint(
+            OPENCODE_GO_ADAPTER_ID,
+            "https://opencode.ai/zen/go/v1",
+            UpstreamProtocol::GoogleGenerateContent,
+            "gemini-3.7-flash",
+            false,
+            None,
+        )
+        .is_err()
+    );
+    assert!(google_generate_content_endpoint("https://opencode.ai/zen/v1", "", true).is_err());
+}
+
+#[test]
+fn static_model_metadata_is_exact_and_provider_scoped() {
+    assert_eq!(
+        model_protocol(OPENCODE_GO_ADAPTER_ID, "minimax-m3"),
+        Some(UpstreamProtocol::Messages)
+    );
+    assert_eq!(
+        model_protocol(OPENCODE_ZEN_ADAPTER_ID, "gemini-3.7-flash"),
+        Some(UpstreamProtocol::GoogleGenerateContent)
+    );
+    assert_eq!(
+        model_protocol(OPENCODE_GO_ADAPTER_ID, "gemini-3.7-flash"),
+        None
+    );
+    assert_eq!(
+        model_protocol(OPENCODE_ZEN_ADAPTER_ID, "brand-new-model"),
+        None
+    );
+}
+
+#[test]
+fn opencode_go_replays_required_reasoning_content_without_overwriting_real_content() {
+    let mut deepseek = json!({
+        "messages":[
+            {"role":"user","content":"hello"},
+            {"role":"assistant","content":"tool result"},
+            {"role":"assistant","content":"real","reasoning_content":"provider thought"}
+        ]
+    });
+    inject_opencode_go_reasoning_content("deepseek-v4.1-flash", &mut deepseek);
+    assert_eq!(deepseek["messages"][1]["reasoning_content"], " ");
+    assert_eq!(
+        deepseek["messages"][2]["reasoning_content"],
+        "provider thought"
+    );
+
+    let mut kimi = json!({
+        "messages":[
+            {"role":"assistant","content":"plain"},
+            {"role":"assistant","content":null,"tool_calls":[{"id":"call-1"}]}
+        ]
+    });
+    inject_opencode_go_reasoning_content("kimi-k2.6", &mut kimi);
+    assert!(kimi["messages"][0].get("reasoning_content").is_none());
+    assert_eq!(kimi["messages"][1]["reasoning_content"], " ");
+
+    let mut ordinary = json!({
+        "messages":[{"role":"assistant","content":"plain"}]
+    });
+    inject_opencode_go_reasoning_content("glm-5.3-flash", &mut ordinary);
+    assert!(ordinary["messages"][0].get("reasoning_content").is_none());
+}
+
+#[test]
+fn opencode_bodies_drop_only_a_boolean_reasoning_flag() {
+    // The Go backend decodes `reasoning` into a structured value, so the OpenAI
+    // boolean form is rejected with HTTP 400 while object/string forms are the
+    // shapes the struct expects.
+    let mut boolean = json!({"model":"mimo-v2.6-flash","reasoning":true});
+    OPENCODE_GO_ADAPTER.prepare_body(&mut boolean, "request");
+    assert!(boolean.get("reasoning").is_none());
+
+    let mut disabled = json!({"model":"mimo-v2.6-flash","reasoning":false});
+    OPENCODE_ZEN_ADAPTER.prepare_body(&mut disabled, "request");
+    assert!(disabled.get("reasoning").is_none());
+
+    let mut structured = json!({
+        "model":"mimo-v2.6-flash",
+        "reasoning":{"effort":"high"},
+        "reasoning_effort":"high"
+    });
+    OPENCODE_GO_ADAPTER.prepare_body(&mut structured, "request");
+    assert_eq!(structured["reasoning"], json!({"effort":"high"}));
+    assert_eq!(structured["reasoning_effort"], "high");
+
+    let mut text = json!({"model":"mimo-v2.6-flash","reasoning":"medium"});
+    OPENCODE_GO_ADAPTER.prepare_body(&mut text, "request");
+    assert_eq!(text["reasoning"], "medium");
+
+    let mut untouched = json!({"model":"mimo-v2.6-flash"});
+    OPENCODE_GO_ADAPTER.prepare_body(&mut untouched, "request");
+    assert_eq!(untouched, json!({"model":"mimo-v2.6-flash"}));
+}
+
+#[test]
+fn quota_parser_rejects_partial_and_out_of_range_snapshots() {
+    let valid = json!({"usage":{
+        "rolling":{"status":"ok","percent":12.5,"resetsAt":"2026-09-15T01:00:00Z"},
+        "weekly":{"status":"ok","percent":40.0,"resetsAt":"2026-09-20T00:00:00Z"},
+        "monthly":{"status":"rate-limited","percent":3.0,"resetsAt":"2026-10-01T00:00:00Z"}
+    }});
+    let snapshot = parse_opencode_go_usage(&valid).expect("valid quota");
+    assert_eq!(snapshot.quotas.len(), 3);
+    assert_eq!(snapshot.quotas[2].used_percent, 100.0);
+    assert!(snapshot.limit_reached);
+    assert!(parse_opencode_go_usage(&json!({"usage":{"rolling":{"status":"ok","percent":101,"resetsAt":"2026-09-15T00:00:00Z"}}})).is_err());
+}
+
+#[test]
+fn auth_header_selection_matches_open_code_contract() {
+    let cases = [
+        (
+            OPENCODE_GO_ADAPTER_ID,
+            UpstreamProtocol::ChatCompletions,
+            Some("Bearer key-value"),
+            None,
+            None,
+        ),
+        (
+            OPENCODE_GO_ADAPTER_ID,
+            UpstreamProtocol::Responses,
+            Some("Bearer key-value"),
+            None,
+            None,
+        ),
+        (
+            OPENCODE_GO_ADAPTER_ID,
+            UpstreamProtocol::Messages,
+            None,
+            Some("key-value"),
+            None,
+        ),
+        (
+            OPENCODE_ZEN_ADAPTER_ID,
+            UpstreamProtocol::ChatCompletions,
+            Some("Bearer key-value"),
+            None,
+            None,
+        ),
+        (
+            OPENCODE_ZEN_ADAPTER_ID,
+            UpstreamProtocol::Responses,
+            None,
+            Some("key-value"),
+            None,
+        ),
+        (
+            OPENCODE_ZEN_ADAPTER_ID,
+            UpstreamProtocol::Messages,
+            None,
+            Some("key-value"),
+            None,
+        ),
+        (
+            OPENCODE_ZEN_ADAPTER_ID,
+            UpstreamProtocol::GoogleGenerateContent,
+            Some("Bearer key-value"),
+            None,
+            None,
+        ),
+    ];
+    for (adapter_id, protocol, authorization, api_key, google_key) in cases {
+        let request = super::super::apply_upstream_request_auth(
+            adapter_id,
+            reqwest::Client::new().post("https://example.test"),
+            UpstreamAuthContext {
+                auth_type: "bearer",
+                auth_header: None,
+                secret: Some("key-value"),
+                oauth_auth: None,
+                session_id: "ignored",
+                protocol,
+                model: None,
+            },
+        )
+        .expect("upstream auth should be supported")
+        .build()
+        .expect("build authenticated request");
+        assert_eq!(
+            request
+                .headers()
+                .get(http::header::AUTHORIZATION)
+                .and_then(|value| value.to_str().ok()),
+            authorization
+        );
+        assert_eq!(
+            request
+                .headers()
+                .get("x-api-key")
+                .and_then(|value| value.to_str().ok()),
+            api_key
+        );
+        assert_eq!(
+            request
+                .headers()
+                .get("x-goog-api-key")
+                .and_then(|value| value.to_str().ok()),
+            google_key
+        );
+        assert!(!request.url().as_str().contains("key-value"));
+    }
+}
+
+#[test]
+fn forwards_only_client_supplied_safe_opencode_session_ids() {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "x-opencode-session",
+        HeaderValue::from_static("session_01:stable"),
+    );
+    let request = apply_opencode_session_header(
+        reqwest::Client::new().post("https://example.test"),
+        &headers,
+    )
+    .build()
+    .expect("build session request");
+    assert_eq!(
+        request
+            .headers()
+            .get("x-opencode-session")
+            .and_then(|value| value.to_str().ok()),
+        Some("session_01:stable")
+    );
+
+    headers.insert(
+        "x-opencode-session",
+        HeaderValue::from_static("invalid session"),
+    );
+    let request = apply_opencode_session_header(
+        reqwest::Client::new().post("https://example.test"),
+        &headers,
+    )
+    .build()
+    .expect("build rejected session request");
+    assert!(request.headers().get("x-opencode-session").is_none());
+}
+
+#[test]
+fn open_code_go_adds_the_canonical_session_to_upstream_requests() {
+    let mut client_headers = HeaderMap::new();
+    client_headers.insert(
+        "x-opencode-session",
+        HeaderValue::from_static("client-session-01"),
+    );
+    let request = OPENCODE_GO_ADAPTER.apply_client_headers(
+        reqwest::Client::new().post("https://example.test"),
+        &client_headers,
+    );
+    let request = OPENCODE_GO_ADAPTER
+        .apply_upstream_request_auth(
+            request,
+            UpstreamAuthContext {
+                auth_type: "bearer",
+                auth_header: None,
+                secret: Some("key-value"),
+                oauth_auth: None,
+                session_id: "probe-session-01",
+                protocol: UpstreamProtocol::Responses,
+                model: None,
+            },
+        )
+        .expect("OpenCode Go auth should be supported")
+        .build()
+        .expect("build OpenCode Go request");
+
+    assert_eq!(
+        request
+            .headers()
+            .get("x-opencode-session")
+            .and_then(|value| value.to_str().ok()),
+        Some("probe-session-01")
+    );
+    assert_eq!(
+        request
+            .headers()
+            .get_all("x-opencode-session")
+            .iter()
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn open_code_go_rejects_invalid_canonical_sessions() {
+    let result = OPENCODE_GO_ADAPTER.apply_upstream_request_auth(
+        reqwest::Client::new().post("https://example.test"),
+        UpstreamAuthContext {
+            auth_type: "bearer",
+            auth_header: None,
+            secret: Some("key-value"),
+            oauth_auth: None,
+            session_id: "invalid session",
+            protocol: UpstreamProtocol::ChatCompletions,
+            model: None,
+        },
+    );
+
+    assert_eq!(
+        result.expect_err("invalid OpenCode Go session should be rejected"),
+        "OpenCode Go provider session ID is invalid"
+    );
+}
+
+#[test]
+fn only_opencode_zen_requires_a_streaming_model_probe() {
+    // Zen's free tier answers a non-streaming inference with HTTP 403
+    // FreeTierError, so a non-streaming probe would report a healthy credential
+    // as failing. Go accepts a non-streaming inference.
+    assert!(OPENCODE_ZEN_ADAPTER.probe_requires_event_stream());
+    assert!(!OPENCODE_GO_ADAPTER.probe_requires_event_stream());
+}
+
+#[test]
+fn zen_declares_the_client_identity_the_free_tier_requires() {
+    let request = OPENCODE_ZEN_ADAPTER
+        .apply_client_headers(
+            reqwest::Client::new().post("https://example.test"),
+            &HeaderMap::new(),
+        )
+        .build()
+        .expect("build Zen identity request");
+    let headers = request.headers();
+
+    // A caller without an acceptable client identity gets the official one.
+    assert_eq!(
+        headers
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok()),
+        Some(client::CLIENT_USER_AGENT)
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-client")
+            .and_then(|value| value.to_str().ok()),
+        Some("desktop")
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-project")
+            .and_then(|value| value.to_str().ok()),
+        Some("global")
+    );
+}
+
+#[test]
+fn zen_keeps_a_usable_caller_agent_and_client_name() {
+    let mut client_headers = HeaderMap::new();
+    client_headers.insert(
+        http::header::USER_AGENT,
+        HeaderValue::from_static("opencode/1.20.0"),
+    );
+    client_headers.insert("x-opencode-client", HeaderValue::from_static("terminal"));
+    let request = OPENCODE_ZEN_ADAPTER
+        .apply_client_headers(
+            reqwest::Client::new().post("https://example.test"),
+            &client_headers,
+        )
+        .build()
+        .expect("build forwarded Zen identity request");
+    let headers = request.headers();
+    assert_eq!(
+        headers
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok()),
+        Some("opencode/1.20.0")
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-client")
+            .and_then(|value| value.to_str().ok()),
+        Some("terminal")
+    );
+
+    // A caller that is not the official client at an accepted version is
+    // replaced, since the upstream refuses everything else.
+    let mut foreign = HeaderMap::new();
+    foreign.insert(
+        http::header::USER_AGENT,
+        HeaderValue::from_static("claude-cli/2.0.0"),
+    );
+    let request = OPENCODE_ZEN_ADAPTER
+        .apply_client_headers(
+            reqwest::Client::new().post("https://example.test"),
+            &foreign,
+        )
+        .build()
+        .expect("build replaced Zen identity request");
+    assert_eq!(
+        request
+            .headers()
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok()),
+        Some(client::CLIENT_USER_AGENT)
+    );
+}
+
+#[test]
+fn opencode_go_applies_client_identity_headers() {
+    let client_headers = HeaderMap::new();
+    let request = OPENCODE_GO_ADAPTER
+        .apply_client_headers(
+            reqwest::Client::new().post("https://example.test"),
+            &client_headers,
+        )
+        .build()
+        .expect("build OpenCode Go identity request");
+    let headers = request.headers();
+    assert_eq!(
+        headers
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok()),
+        Some(client::CLIENT_USER_AGENT)
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-client")
+            .and_then(|value| value.to_str().ok()),
+        Some("desktop")
+    );
+    assert_eq!(
+        headers
+            .get("x-opencode-project")
+            .and_then(|value| value.to_str().ok()),
+        Some("global")
+    );
+}
+
+#[tokio::test]
+async fn zen_canonicalises_the_session_and_declares_the_fingerprint_tools() {
+    let database = crate::support::test_support::TestDatabase::open().await;
+    let state = AppState::new(database.config(), database.db.clone());
+    let seed = "5b1a1e57-0000-4000-8000-000000000000";
+    let mut body = json!({
+        "model": "exo-free",
+        "messages": [{"role": "user", "content": "hi"}],
+    });
+    let preparation = OPENCODE_ZEN_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: &state,
+                base_url: "https://opencode.ai/zen/v1",
+                adapter_base_url_override: None,
+                model: "exo-free",
+                request_id: "request-1",
+                streaming: false,
+                auth: UpstreamAuthContext {
+                    auth_type: "bearer",
+                    auth_header: None,
+                    secret: Some("key-value"),
+                    oauth_auth: None,
+                    session_id: seed,
+                    protocol: UpstreamProtocol::ChatCompletions,
+                    model: Some("exo-free"),
+                },
+            },
+            &mut body,
+        )
+        .await
+        .expect("Zen fingerprint preparation");
+
+    let session = preparation
+        .headers
+        .get("x-opencode-session")
+        .and_then(|value| value.to_str().ok())
+        .expect("canonical session header");
+    assert_ne!(session, seed);
+    assert!(client::is_canonical_session_id(session), "{session}");
+    let request_id = preparation
+        .headers
+        .get("x-opencode-request")
+        .and_then(|value| value.to_str().ok())
+        .expect("canonical request header");
+    assert!(request_id.starts_with("msg_"), "{request_id}");
+    // The free-tier authorization belongs to `apply_upstream_request_auth`: a
+    // preparation header would be appended *in addition* to it, and the wire
+    // then carries a duplicate `Authorization` that Cloudflare's edge answers
+    // with a bare HTTP 400.
+    assert!(
+        preparation
+            .headers
+            .get(http::header::AUTHORIZATION)
+            .is_none()
+    );
+
+    let names: Vec<&str> = body["tools"]
+        .as_array()
+        .expect("fingerprint tools")
+        .iter()
+        .filter_map(|tool| tool["function"]["name"].as_str())
+        .collect();
+    assert_eq!(names, ["bash", "glob", "grep", "read"]);
+    assert!(body.get("tool_choice").is_none());
+    assert!(body["tools"][0]["function"]["parameters"]["properties"].is_object());
+
+    // A retry of the same request reuses one upstream session instead of
+    // inventing a new one.
+    let mut retry_body = json!({"model": "exo-free", "messages": []});
+    let retry = OPENCODE_ZEN_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: &state,
+                base_url: "https://opencode.ai/zen/v1",
+                adapter_base_url_override: None,
+                model: "exo-free",
+                request_id: "request-1",
+                streaming: false,
+                auth: UpstreamAuthContext {
+                    auth_type: "bearer",
+                    auth_header: None,
+                    secret: Some("key-value"),
+                    oauth_auth: None,
+                    session_id: seed,
+                    protocol: UpstreamProtocol::ChatCompletions,
+                    model: Some("exo-free"),
+                },
+            },
+            &mut retry_body,
+        )
+        .await
+        .expect("Zen fingerprint preparation");
+    assert_eq!(
+        retry.headers.get("x-opencode-session"),
+        preparation.headers.get("x-opencode-session")
+    );
+}
+
+/// Composes the request exactly as every send path does — the model probe, the
+/// gateway send, and the workspace relay all apply the preparation headers onto
+/// the request builder and then the adapter auth — and builds it, so assertions
+/// run against the wire-shaped header list.
+async fn compose_zen_wire_request(
+    state: &AppState,
+    model: &str,
+    auth_type: &str,
+    secret: Option<&str>,
+    protocol: UpstreamProtocol,
+) -> reqwest::Request {
+    let request_id = "request-1";
+    let mut body = json!({
+        "model": model,
+        "messages": [{"role": "user", "content": "Reply with OK."}],
+        "stream": true,
+    });
+    let preparation = OPENCODE_ZEN_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state,
+                base_url: "https://opencode.ai/zen/v1",
+                adapter_base_url_override: None,
+                model,
+                request_id,
+                streaming: true,
+                auth: UpstreamAuthContext {
+                    auth_type,
+                    auth_header: None,
+                    secret,
+                    oauth_auth: None,
+                    session_id: request_id,
+                    protocol,
+                    model: Some(model),
+                },
+            },
+            &mut body,
+        )
+        .await
+        .expect("Zen fingerprint preparation");
+
+    let mut request = reqwest::Client::new().post("https://opencode.ai/zen/v1/chat/completions");
+    for (name, value) in &preparation.headers {
+        request = request.header(name, value);
+    }
+    let request = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request,
+            UpstreamAuthContext {
+                auth_type,
+                auth_header: None,
+                secret,
+                oauth_auth: None,
+                session_id: request_id,
+                protocol,
+                model: Some(model),
+            },
+        )
+        .expect("Zen upstream auth");
+    request.build().expect("build composed Zen request")
+}
+
+#[tokio::test]
+async fn zen_sends_exactly_one_authorization_header_on_the_wire() {
+    let database = crate::support::test_support::TestDatabase::open().await;
+    let state = AppState::new(database.config(), database.db.clone());
+
+    // The free-tier lane answers `Bearer public` whether the provider is keyed
+    // or not, and the upstream rejects anything else with 403/500.
+    for (auth_type, secret) in [("none", None), ("bearer", Some("key-value"))] {
+        let request = compose_zen_wire_request(
+            &state,
+            "exo-free",
+            auth_type,
+            secret,
+            UpstreamProtocol::ChatCompletions,
+        )
+        .await;
+        let values: Vec<&HeaderValue> = request
+            .headers()
+            .get_all(http::header::AUTHORIZATION)
+            .iter()
+            .collect();
+        assert_eq!(
+            values.len(),
+            1,
+            "a duplicate Authorization header reaches the wire and Cloudflare's edge answers it with HTTP 400"
+        );
+        assert_eq!(
+            values[0].to_str().expect("authorization header text"),
+            "Bearer public"
+        );
+    }
+
+    // A paid model keeps the connection key — still sent exactly once.
+    let request = compose_zen_wire_request(
+        &state,
+        "exo-paid",
+        "bearer",
+        Some("key-value"),
+        UpstreamProtocol::ChatCompletions,
+    )
+    .await;
+    let values: Vec<&HeaderValue> = request
+        .headers()
+        .get_all(http::header::AUTHORIZATION)
+        .iter()
+        .collect();
+    assert_eq!(
+        values.len(),
+        1,
+        "duplicate Authorization header on the wire"
+    );
+    assert_eq!(
+        values[0].to_str().expect("authorization header text"),
+        "Bearer key-value"
+    );
+}
+
+#[tokio::test]
+async fn zen_leaves_a_canonical_client_session_and_its_tools_alone() {
+    let database = crate::support::test_support::TestDatabase::open().await;
+    let state = AppState::new(database.config(), database.db.clone());
+    let mut body = json!({
+        "model": "exo-free",
+        "messages": [],
+        "tools": [{"type": "function", "function": {"name": "bash"}}],
+        "tool_choice": "required",
+    });
+    let session = client::canonical_session_id("genuine-client-conversation");
+    let preparation = OPENCODE_ZEN_ADAPTER
+        .prepare_upstream_request(
+            AdapterRequestContext {
+                state: &state,
+                base_url: "https://opencode.ai/zen/v1",
+                adapter_base_url_override: None,
+                model: "exo-free",
+                request_id: "request-1",
+                streaming: true,
+                auth: UpstreamAuthContext {
+                    auth_type: "bearer",
+                    auth_header: None,
+                    secret: Some("key-value"),
+                    oauth_auth: None,
+                    session_id: &session,
+                    protocol: UpstreamProtocol::ChatCompletions,
+                    model: Some("exo-free"),
+                },
+            },
+            &mut body,
+        )
+        .await
+        .expect("Zen fingerprint preparation");
+
+    // A genuine OpenCode client keeps the session it chose.
+    assert_eq!(
+        preparation
+            .headers
+            .get("x-opencode-session")
+            .and_then(|value| value.to_str().ok()),
+        Some(session.as_str())
+    );
+    // `bash` is already declared, so it is not declared twice, and the caller's
+    // tool-choice policy is untouched.
+    let names: Vec<&str> = body["tools"]
+        .as_array()
+        .expect("tools")
+        .iter()
+        .filter_map(|tool| tool["function"]["name"].as_str())
+        .collect();
+    assert_eq!(names, ["bash", "glob", "grep", "read"]);
+    assert_eq!(body["tool_choice"], json!("required"));
+}
+
+#[test]
+fn test_opencode_free_tier_model_detection() {
+    use super::routing::is_opencode_free_tier_model;
+
+    for model in [
+        "mimo-v2.6-flash-free",
+        "muse-spark-1.3-contributor-free",
+        "big-pickle",
+        "big-pickle-free",
+        "deepseek-v4-flash-free",
+        "jev-1.13-free",
+        "mimo-v2.6-flash-free(xhigh)",
+        "ocfree/mimo-v2.6-flash-free",
+    ] {
+        assert!(
+            is_opencode_free_tier_model(model),
+            "expected {model} to be detected as free tier"
+        );
+    }
+
+    for paid in ["muse-spark-1.3", "gpt-5.5", "claude-opus-5", "kimi-k3", ""] {
+        assert!(
+            !is_opencode_free_tier_model(paid),
+            "expected {paid} to not be free tier"
+        );
+    }
+
+    // Check model routing
+    assert_eq!(
+        super::routing::model_protocol(OPENCODE_ZEN_ADAPTER_ID, "mimo-v2.6-flash-free"),
+        Some(UpstreamProtocol::ChatCompletions)
+    );
+    assert_eq!(
+        super::routing::model_protocol(OPENCODE_ZEN_ADAPTER_ID, "muse-spark-1.3-contributor-free"),
+        Some(UpstreamProtocol::Responses)
+    );
+}
+
+#[test]
+fn zen_free_tier_auth_switches_to_bearer_public() {
+    let request = reqwest::Client::new().post("https://example.test");
+    let authenticated = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request,
+            UpstreamAuthContext {
+                auth_type: "bearer",
+                auth_header: None,
+                secret: Some("oc_sk_real_user_key"),
+                oauth_auth: None,
+                session_id: "test-session",
+                protocol: UpstreamProtocol::ChatCompletions,
+                model: Some("mimo-v2.6-flash-free"),
+            },
+        )
+        .expect("auth success")
+        .build()
+        .expect("build request");
+
+    assert_eq!(
+        authenticated
+            .headers()
+            .get("authorization")
+            .and_then(|v| v.to_str().ok()),
+        Some("Bearer public")
+    );
+
+    // Paid model keeps real key
+    let request_paid = reqwest::Client::new().post("https://example.test");
+    let authenticated_paid = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request_paid,
+            UpstreamAuthContext {
+                auth_type: "bearer",
+                auth_header: None,
+                secret: Some("oc_sk_real_user_key"),
+                oauth_auth: None,
+                session_id: "test-session",
+                protocol: UpstreamProtocol::ChatCompletions,
+                model: Some("gpt-5.5"),
+            },
+        )
+        .expect("auth success")
+        .build()
+        .expect("build request");
+
+    assert_eq!(
+        authenticated_paid
+            .headers()
+            .get("authorization")
+            .and_then(|v| v.to_str().ok()),
+        Some("Bearer oc_sk_real_user_key")
+    );
+}
+
+#[test]
+fn zen_no_auth_serves_free_tier_and_rejects_paid_models() {
+    // A provider stored with auth_type "none" still reaches the free tier:
+    // the adapter substitutes the public attested identity upstream requires.
+    let request = reqwest::Client::new().post("https://example.test");
+    let free = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request,
+            UpstreamAuthContext {
+                auth_type: "none",
+                auth_header: None,
+                secret: None,
+                oauth_auth: None,
+                session_id: "test-session",
+                protocol: UpstreamProtocol::ChatCompletions,
+                model: Some("big-pickle"),
+            },
+        )
+        .expect("free-tier auth should succeed without a key")
+        .build()
+        .expect("build request");
+    assert_eq!(
+        free.headers()
+            .get("authorization")
+            .and_then(|v| v.to_str().ok()),
+        Some("Bearer public")
+    );
+
+    // Paid models on the same provider fail fast with a clear diagnostic
+    // instead of silently sending an empty credential upstream.
+    let request_paid = reqwest::Client::new().post("https://example.test");
+    let error = OPENCODE_ZEN_ADAPTER
+        .apply_upstream_request_auth(
+            request_paid,
+            UpstreamAuthContext {
+                auth_type: "none",
+                auth_header: None,
+                secret: None,
+                oauth_auth: None,
+                session_id: "test-session",
+                protocol: UpstreamProtocol::ChatCompletions,
+                model: Some("gpt-5.5"),
+            },
+        )
+        .expect_err("paid models require a key");
+    assert!(
+        error.contains("require an API key"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn zen_config_accepts_none_auth_but_go_does_not() {
+    let preset =
+        crate::provider_adapters::preset_for_adapter(OPENCODE_ZEN_ADAPTER_ID).expect("zen preset");
+    let protocols = vec!["chat_completions".to_owned()];
+    assert!(
+        OPENCODE_ZEN_ADAPTER
+            .validate_config(
+                preset,
+                "none",
+                "https://opencode.ai/zen/v1",
+                "chat_completions",
+                &protocols,
+                false
+            )
+            .is_ok(),
+        "zen should accept auth_type none"
+    );
+    assert!(
+        OPENCODE_ZEN_ADAPTER
+            .validate_config(
+                preset,
+                "bearer",
+                "https://opencode.ai/zen/v1",
+                "chat_completions",
+                &protocols,
+                true
+            )
+            .is_ok(),
+        "zen should keep accepting bearer"
+    );
+
+    let go_preset =
+        crate::provider_adapters::preset_for_adapter(OPENCODE_GO_ADAPTER_ID).expect("go preset");
+    assert!(
+        OPENCODE_GO_ADAPTER
+            .validate_config(
+                go_preset,
+                "none",
+                "https://opencode.ai/zen/go/v1",
+                "chat_completions",
+                &protocols,
+                false
+            )
+            .is_err(),
+        "go must keep requiring bearer"
+    );
+}

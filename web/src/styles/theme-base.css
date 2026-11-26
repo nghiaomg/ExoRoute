@@ -1,0 +1,209 @@
+/* Theme overrides: base — flat, token-driven, no shadows. */
+
+:root[data-theme='dark'] body {
+  color: var(--ink);
+  background-color: var(--canvas);
+}
+:root[data-theme='dark'] ::selection {
+  color: var(--accent-contrast);
+  background: var(--accent);
+}
+
+:root[data-theme='dark'] .dashboard-app {
+  --db-danger: var(--chart-critical);
+  --db-success: var(--chart-good);
+}
+
+/* Scrollbars follow the palette tokens. */
+:root[data-theme='dark'] * { scrollbar-color: var(--scrollbar-thumb) transparent; }
+:root[data-theme='dark'] ::-webkit-scrollbar-track { background: transparent; }
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 6px;
+}
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb:active { background-color: var(--accent); }
+
+/* Login and session-check surfaces. */
+:root[data-theme='dark'] .login-screen,
+:root[data-theme='dark'] .session-check-screen { background: transparent; }
+:root[data-theme='dark'] .login-card,
+:root[data-theme='dark'] .session-check-card {
+  color: var(--ink);
+  background: var(--surface-modal, var(--surface-raised));
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .session-check-notice,
+:root[data-theme='dark'] .session-check-notice.rate-limited {
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .session-check-retry { color: var(--accent); }
+:root[data-theme='dark'] .session-check-retry:disabled { color: var(--muted); }
+:root[data-theme='dark'] .login-heading h1,
+:root[data-theme='dark'] .session-check-card h1 { color: var(--ink); }
+:root[data-theme='dark'] .login-heading p,
+:root[data-theme='dark'] .session-check-card p,
+:root[data-theme='dark'] .login-footnote { color: var(--muted); }
+:root[data-theme='dark'] .login-footnote { border-top: 1px solid var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .login-icon {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+
+/* Preference and language controls. */
+:root[data-theme='dark'] .login-screen .preference-button,
+:root[data-theme='dark'] .preference-button,
+:root[data-theme='dark'] .login-screen .language-select-control,
+:root[data-theme='dark'] .language-select-control {
+  color: var(--muted);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .login-screen .preference-button:hover,
+:root[data-theme='dark'] .preference-button:hover,
+:root[data-theme='dark'] .login-screen .language-select-control:hover,
+:root[data-theme='dark'] .language-select-control:hover,
+:root[data-theme='dark'] .language-select-root[data-state="open"] .language-select-control {
+  color: var(--ink);
+  background: var(--surface-hover, var(--surface-raised));
+  border-color: var(--accent);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .login-screen .language-select,
+:root[data-theme='dark'] .login-screen .language-select-trigger,
+:root[data-theme='dark'] .language-select,
+:root[data-theme='dark'] .language-select-trigger { color: inherit; }
+:root[data-theme='dark'] .language-select-root[data-state="open"] .language-select-indicator,
+:root[data-theme='dark'] .language-select-item-indicator { color: var(--accent); }
+
+/* Form controls and buttons. */
+:root[data-theme='dark'] .login-screen .modal-form input {
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .button-primary,
+:root[data-theme='dark'] .primary-button,
+:root[data-theme='dark'] .login-screen .primary-button {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .login-screen .primary-button:hover:not(:disabled) { background: var(--accent-strong); box-shadow: none; }
+:root[data-theme='dark'] .button-secondary,
+:root[data-theme='dark'] .secondary-button,
+:root[data-theme='dark'] .login-screen .secondary-button {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .login-screen .secondary-button:hover {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--ink);
+  border-color: var(--accent);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .login-screen .form-error,
+:root[data-theme='dark'] .form-error {
+  background: color-mix(in srgb, var(--chart-critical) 12%, var(--surface));
+  border: 1px solid var(--chart-critical);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+/* Navigation and chrome. */
+:root[data-theme='dark'] .sidebar {
+  background: var(--surface-shell);
+  border-right: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .brand-word { color: var(--ink); }
+:root[data-theme='dark'] .brand-word span { color: var(--accent); }
+:root[data-theme='dark'] .brand-version,
+:root[data-theme='dark'] .nav-count {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .workspace-label,
+:root[data-theme='dark'] .nav-item,
+:root[data-theme='dark'] .icon-button,
+:root[data-theme='dark'] .breadcrumbs,
+:root[data-theme='dark'] .gateway-pill,
+:root[data-theme='dark'] .preference-button,
+:root[data-theme='dark'] .language-select-control { color: var(--muted); }
+:root[data-theme='dark'] .nav-item:hover,
+:root[data-theme='dark'] .icon-button:hover,
+:root[data-theme='dark'] .preference-button:hover { color: var(--ink); background: var(--surface-hover, var(--surface-raised)); }
+:root[data-theme='dark'] .nav-item.active {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .sidebar-status {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .sidebar-status strong,
+:root[data-theme='dark'] .breadcrumbs strong,
+:root[data-theme='dark'] .profile-copy strong { color: var(--ink); }
+:root[data-theme='dark'] .sidebar-status small,
+:root[data-theme='dark'] .profile-copy small,
+:root[data-theme='dark'] .sidebar-footer,
+:root[data-theme='dark'] .crumb-slash { color: var(--muted); border-color: var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .avatar {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-color: var(--accent);
+}
+:root[data-theme='dark'] .topbar {
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .gateway-pill,
+:root[data-theme='dark'] .preference-button,
+:root[data-theme='dark'] .language-select-control {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .gateway-pill code { color: var(--muted); border-color: var(--border-subtle, var(--line)); }
+
+/* Language dropdown menu (portal). */
+:root[data-theme='dark'] .language-select-positioner { z-index: 99999; }
+:root[data-theme='dark'] .language-select-content {
+  position: relative;
+  z-index: 99999;
+  background: var(--surface-modal, var(--surface-raised));
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .language-select-item-group-label,
+:root[data-theme='dark'] .language-select-item { color: var(--muted); }
+:root[data-theme='dark'] .language-select-item:hover,
+:root[data-theme='dark'] .language-select-item[data-highlighted],
+:root[data-theme='dark'] .language-select-item[data-state="checked"] {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--ink);
+}
+
+/* Keyboard focus remains visible without elevation. */
+:root[data-theme='dark'] :focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent-soft));
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  :root[data-theme='dark'] .sidebar { background: var(--surface-shell); }
+}

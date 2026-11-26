@@ -1,0 +1,226 @@
+/* Theme overrides: providers */
+/* Provider Details Page Dark Mode */
+:root[data-theme='dark'] .detail-hero-banner,
+:root[data-theme='dark'] .detail-card {
+  background: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .detail-title { color: var(--ink); }
+:root[data-theme='dark'] .detail-id-chip { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--info) 28%, transparent); }
+:root[data-theme='dark'] .detail-meta-pill { background: var(--surface-hover, var(--surface-raised)); color: var(--muted); border: 1px solid var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .back-link-btn { background: var(--surface-hover, var(--surface-raised)); color: var(--muted); border: 1px solid var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .back-link-btn:hover { background: var(--surface-hover, var(--surface-raised)); color: var(--accent-soft); }
+:root[data-theme='dark'] .detail-copy-btn { background: var(--surface-hover, var(--surface-raised)); color: var(--muted); border: 1px solid var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .detail-copy-btn:hover { background: var(--surface-hover, var(--surface-raised)); color: var(--accent-soft); }
+:root[data-theme='dark'] .detail-delete-btn { background: var(--surface-hover, var(--surface-raised)); color: var(--accent-soft); border: 1px solid var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .detail-delete-btn:hover { background: var(--surface-hover, var(--surface-raised)); }
+:root[data-theme='dark'] .detail-card-header h3 { color: var(--ink); }
+:root[data-theme='dark'] .detail-notice-banner { background: var(--surface-hover, var(--surface-raised)); color: var(--accent-soft); border: 1px solid var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .detail-form-section:not(:last-child) { border-bottom: 1px solid var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .detail-url-row { background: var(--surface-hover, var(--surface-raised)); }
+:root[data-theme='dark'] .detail-hero-actions { border-top-color: var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .model-test-toolbar { background: transparent; border: none; }
+:root[data-theme='dark'] .provider-model-row .model-test-actions { border-top-color: var(--border-subtle, var(--line)); }
+:root[data-theme='dark'] .provider-model-filter .search-box {
+  background: var(--surface-hover, var(--surface-raised));
+}
+:root[data-theme='dark'] .provider-model-filter .search-box:focus-within {
+  background: var(--surface-hover, var(--surface-raised));
+}
+
+/* Scoped Providers View Overrides in Dark Mode */
+:root[data-theme='dark'] .providers-view .search-box {
+  background: var(--surface-hover, var(--surface-raised));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-color: var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .providers-view .search-box:focus-within {
+  background: var(--surface-hover, var(--surface-raised));
+}
+:root[data-theme='dark'] .providers-view .search-box input { color: var(--ink); }
+:root[data-theme='dark'] .providers-view .search-box kbd {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--muted);
+  border: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .providers-view .category-count-badge {
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--info) 25%, transparent);
+}
+:root[data-theme='dark'] .providers-view .row-icon {
+  background: var(--surface-hover, var(--surface-raised));
+  border: 1px solid var(--border-subtle, var(--line));
+  color: var(--muted);
+}
+:root[data-theme='dark'] .providers-view .row-icon:hover {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--accent-soft);
+}
+:root[data-theme='dark'] .providers-view .row-icon.danger-hover:hover {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--accent-soft);
+}
+:root[data-theme='dark'] .preset-detail-btn {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--accent-soft);
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .preset-detail-btn:hover {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--accent-soft);
+}
+:root[data-theme='dark'] .preset-card-icon.custom { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--accent-soft); }
+
+/* Scoped Combos View Overrides in Dark Mode */
+:root[data-theme='dark'] .combos-view .search-box {
+  background: var(--surface-hover, var(--surface-raised));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-color: var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .combos-view .search-box:focus-within {
+  background: var(--surface-hover, var(--surface-raised));
+}
+:root[data-theme='dark'] .combos-view .search-box input { color: var(--ink); border: none; }
+:root[data-theme='dark'] .combos-view .search-box kbd {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--muted);
+  border: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .combos-view .primary-button {
+  background: var(--surface-hover, var(--surface-raised));
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+
+/* Scoped API Keys View Overrides in Dark Mode */
+:root[data-theme='dark'] .api-keys-view .search-box {
+  background: var(--surface-hover, var(--surface-raised));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-color: var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .api-keys-view .search-box:focus-within {
+  background: var(--surface-hover, var(--surface-raised));
+}
+:root[data-theme='dark'] .api-keys-view .search-box input { color: var(--ink); border: none; }
+:root[data-theme='dark'] .api-keys-view .search-box kbd {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--muted);
+  border: 1px solid var(--border-subtle, var(--line));
+}
+:root[data-theme='dark'] .api-keys-view .primary-button {
+  background: var(--surface-hover, var(--surface-raised));
+  border: 1px solid var(--border-subtle, var(--line));
+  box-shadow: none;
+}
+:root[data-theme='dark'] .combos-view .combo-card {
+  background: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: none;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .combos-view .combo-card:hover {
+  background: var(--surface-hover, var(--surface-raised));
+  border: none;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .combos-view .combo-card:active {
+  transform: scale(0.985);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .combos-view .combo-icon {
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  color: var(--accent-soft);
+  border: none;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .combos-view .strategy-badge {
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--accent-soft);
+  border: none;
+}
+:root[data-theme='dark'] .combos-view .combo-meta {
+  background: var(--surface-hover, var(--surface-raised));
+  border: none;
+  color: var(--muted);
+}
+:root[data-theme='dark'] .combos-view .target-row {
+  background: var(--surface-hover, var(--surface-raised));
+  border: none;
+  color: var(--muted);
+}
+:root[data-theme='dark'] .combos-view .target-row code {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--ink);
+  border: none;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .combos-view .target-protocol {
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--accent-soft);
+  border: none;
+}
+:root[data-theme='dark'] .combos-view .row-icon {
+  background: var(--surface-hover, var(--surface-raised));
+  border: none;
+  color: var(--muted);
+}
+:root[data-theme='dark'] .combos-view .row-icon:hover {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--accent-soft);
+}
+:root[data-theme='dark'] .combos-view .row-icon.danger-hover:hover {
+  background: var(--surface-hover, var(--surface-raised));
+  color: var(--accent-soft);
+}
+:root[data-theme='dark'] .combos-view .empty-state {
+  background: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(170%);
+  border: none;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .combos-view .empty-illustration {
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  border: none;
+  box-shadow: none;
+  color: var(--info-soft);
+}
+:root[data-theme='dark'] .combos-view .empty-orbit { border: none; }
+:root[data-theme='dark'] .combo-field-label,
+:root[data-theme='dark'] .combo-model-search-field > span { color: var(--muted); }
+:root[data-theme='dark'] .combo-combobox-trigger { color: var(--muted); }
+:root[data-theme='dark'] .combo-combobox-trigger:hover { color: var(--info-soft); }
+:root[data-theme='dark'] .combo-picker-limit-hint { color: var(--muted); }
+
+/* Shared motion: one declaration, disabled for reduced-motion users. */
+@media (prefers-reduced-motion: no-preference) {
+  .pipeline-card,
+  .metric-card,
+  .combo-mini-item,
+  .provider-mini-row,
+  .combo-card,
+  .summary-metric-card {
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pipeline-card,
+  .metric-card,
+  .combo-mini-item,
+  .provider-mini-row,
+  .combo-card,
+  .summary-metric-card {
+    transition: none;
+  }
+}

@@ -1,0 +1,103 @@
+/* Flat surface resets — token-driven, no shadows or importance overrides.
+   Cards are separated by 1px borders and surface hierarchy, not elevation. */
+
+:root {
+  --nb-border: 1px solid var(--border-subtle, var(--line));
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
+  --nb-radius: var(--radius-md, 8px);
+}
+
+/* View-level cards and controls keep one flat frame. */
+.overview-view .section-card,
+.overview-view .side-card,
+.overview-view .quick-action-strip,
+.api-keys-view .api-key-summary,
+.api-keys-view .api-key-card,
+.providers-view .detail-card,
+.providers-view .preset-card,
+.providers-view .metric-chip,
+.providers-view .provider-model-card,
+.providers-view .detail-hero-banner,
+.providers-view .back-link-btn,
+.providers-view .detail-copy-btn,
+.providers-view .detail-delete-btn,
+.api-keys-view .detail-hero-banner,
+.api-keys-view .back-link-btn,
+.api-keys-view .detail-copy-btn,
+.api-keys-view .detail-delete-btn,
+.combos-view .combo-card,
+.combos-view .summary-metric-card,
+.combos-view .empty-state,
+.combo-target-card,
+.combo-target-card.is-primary,
+.target-icon-btn,
+.add-target-dashed-btn,
+.config-help-trigger,
+.config-help-desc-box,
+.config-help-violation-box,
+.config-help-violation-box .violation-badge,
+.config-help-violation-box .violation-code {
+  border: var(--nb-border);
+  border-radius: var(--nb-radius);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+/* Nested rows stay flat inside framed cards (no card-in-card). */
+.overview-view .quick-strip-btn,
+.overview-view .combo-mini-item,
+.overview-view .provider-mini-row,
+.overview-view .mini-target-chip,
+.overview-view .strategy-pill,
+.api-keys-view .api-key-card-heading code,
+.api-keys-view .api-key-card-dates > div,
+.api-keys-view .api-key-revoke,
+.api-keys-view .detail-id-chip,
+.api-keys-view .detail-meta-pill,
+.providers-view .provider-key-item,
+.providers-view .model-routing-table tr,
+.combos-view .strategy-badge,
+.combos-view .pipeline-target-item,
+.combos-view .pipeline-target-item.is-primary,
+.combos-view .target-model-chip,
+.combos-view .pipeline-connector .connector-badge {
+  border: none;
+  box-shadow: none;
+}
+
+/* Hover and active states change color only, never geometry or elevation. */
+.api-keys-view .api-key-card:hover,
+.providers-view .back-link-btn:hover,
+.providers-view .detail-copy-btn:hover,
+.providers-view .detail-delete-btn:hover,
+.api-keys-view .back-link-btn:hover,
+.api-keys-view .detail-copy-btn:hover,
+.api-keys-view .detail-delete-btn:hover,
+.combos-view .combo-card:hover,
+.combos-view .summary-metric-card:hover,
+.target-icon-btn:hover,
+.add-target-dashed-btn:hover {
+  background: var(--surface-hover, var(--surface-raised));
+  border-color: var(--accent);
+  box-shadow: none;
+}
+.api-keys-view .api-key-card:active,
+.providers-view .back-link-btn:active,
+.providers-view .detail-copy-btn:active,
+.providers-view .detail-delete-btn:active,
+.api-keys-view .back-link-btn:active,
+.api-keys-view .detail-copy-btn:active,
+.api-keys-view .detail-delete-btn:active,
+.combos-view .combo-card:active,
+.target-icon-btn:active,
+.add-target-dashed-btn:active {
+  background: var(--surface);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .api-keys-view .api-key-card,
+  .combos-view .combo-card { transition: none; }
+}

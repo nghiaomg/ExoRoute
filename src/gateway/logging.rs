@@ -1,0 +1,81 @@
+use super::*;
+
+pub struct GatewayRequestLog<'a> {
+    pub(super) request_id: &'a str,
+    pub(super) route: &'a str,
+    pub(super) provider: Option<&'a str>,
+    pub(super) provider_credential_id: Option<&'a str>,
+    pub(super) api_key_id: Option<&'a str>,
+    pub(super) model: &'a str,
+    pub(super) client: Protocol,
+    pub(super) upstream: Option<UpstreamProtocol>,
+    /// The proxy the serving attempt egressed through, when the provider is
+    /// bound to one. The final all-targets-failed log has no attempt, so it
+    /// carries no proxy.
+    pub(super) proxy_id: Option<&'a str>,
+    pub(super) status: StatusCode,
+    pub(super) duration_ms: i64,
+    pub(super) input_tokens: Option<i64>,
+    pub(super) output_tokens: Option<i64>,
+    pub(super) cached_tokens: Option<i64>,
+    pub(super) cache_input_tokens: Option<i64>,
+    pub(super) reasoning_effort: Option<String>,
+    pub(super) cost_micro_usd: Option<i64>,
+    pub(super) error: Option<&'a str>,
+}
+
+/// Records one bounded gateway request-log entry.
+///
+/// This is deliberately synchronous: it only builds the bounded record and
+/// hand it to the telemetry queue (a non-blocking `try_send`), so the same
+/// path can run from `Drop` when a stream is abandoned before finalization.
+/// Nothing here may await or block.
+pub fn log_request(
+    state: &AppState,
+    live: Option<&RequestLiveGuard>,
+    record: GatewayRequestLog<'_>,
+) {
+    let request_log = RequestLogRecord {
+        id: uuid::Uuid::new_v4().to_string(),
+        request_id: record.request_id.chars().take(128).collect(),
+        route_alias: record.route.chars().take(256).collect(),
+        provider_id: record
+            .provider
+            .map(|value| value.chars().take(256).collect()),
+        provider_credential_id: record
+            .provider_credential_id
+            .map(|value| value.chars().take(256).collect()),
+        api_key_id: record
+            .api_key_id
+            .map(|value| value.chars().take(128).collect()),
+        model: record.model.chars().take(256).collect(),
+        client_protocol: record.client.as_str().to_owned(),
+        upstream_protocol: record.upstream.map(|protocol| protocol.as_str().to_owned()),
+        proxy_id: record
+            .proxy_id
+            .map(|value| value.chars().take(256).collect()),
+        status: record.status.as_u16() as i64,
+        duration_ms: record.duration_ms.max(0),
+        input_tokens: record.input_tokens,
+        output_tokens: record.output_tokens,
+        cached_tokens: record.cached_tokens,
+        cache_input_tokens: record.cache_input_tokens,
+        reasoning_effort: record.reasoning_effort.clone(),
+        cost_micro_usd: record.cost_micro_usd,
+        error: record
+            .error
+            .map(|value| value.chars().take(MAX_REQUEST_LOG_ERROR_CHARS).collect()),
+    };
+    if let Some(live) = live {
+        live.update_log(&request_log);
+    }
+    state.enqueue_request_log(request_log);
+    if let Some(credential_id) = record.provider_credential_id {
+        state.telemetry.record_provider_usage(
+            credential_id.to_owned(),
+            record.cost_micro_usd,
+            record.input_tokens,
+            record.output_tokens,
+        );
+    }
+}

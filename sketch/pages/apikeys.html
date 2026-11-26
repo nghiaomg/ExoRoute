@@ -1,0 +1,388 @@
+              <div class="page-heading">
+                <div class="heading-copy">
+                  <h1 id="page-title">API keys</h1>
+                  <p id="page-description">Client credentials for the gateway. Secrets are shown once at creation.</p>
+                </div>
+                <div class="heading-actions">
+                  <button class="action-button" type="button" id="keys-export">
+                    <span class="button-icon"><svg class="icon"><use href="#i-download" /></svg></span>
+                    <span class="button-label">Export</span>
+                  </button>
+                  <button class="action-button primary" type="button" data-open-modal="key-dialog">
+                    <span class="button-icon"><svg class="icon"><use href="#i-plus" /></svg></span>
+                    <span class="button-label">New API key</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="page-surface">
+                <section class="stats-grid" aria-label="API key overview">
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-key" /></svg></span>
+                      <span class="stat-number">3</span>
+                    </div>
+                    <h2>Active Keys</h2>
+                    <div class="stat-trend">1 expiring in 12 days</div>
+                    <button class="details-link" type="button" id="stat-active">Show active <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-clipboard" /></svg></span>
+                      <span class="stat-number">9,412</span>
+                    </div>
+                    <h2>Requests Today</h2>
+                    <div class="stat-trend">Across all keys</div>
+                    <button class="details-link" type="button" data-nav="requests">View requests <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-dollar" /></svg></span>
+                      <span class="stat-number">$41.20</span>
+                    </div>
+                    <h2>Spend Today</h2>
+                    <div class="stat-trend">Estimated upstream cost</div>
+                    <button class="details-link" type="button" id="stat-budget">Budget overview <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                  <article class="stat-card surface">
+                    <div class="stat-top">
+                      <span class="stat-icon"><svg class="icon"><use href="#i-alert" /></svg></span>
+                      <span class="stat-number">0</span>
+                    </div>
+                    <h2>Rate Limited</h2>
+                    <div class="stat-trend">No keys throttled</div>
+                    <button class="details-link" type="button" data-nav="quota">Check quota <svg class="icon"><use href="#i-arrow-right" /></svg></button>
+                  </article>
+                </section>
+
+                <section class="course-card surface keys-board" id="keys-board" aria-labelledby="keys-heading">
+                  <div class="card-title-row">
+                    <h2 id="keys-heading">Keys</h2>
+                  </div>
+                  <p class="card-subtitle" id="keys-summary">3 active · 1 revoked · $150 combined monthly budget</p>
+                  <div class="page-toolbar keys-toolbar">
+                    <input id="keys-search" class="prov-search" type="search" placeholder="Search keys…" aria-label="Search API keys" />
+                    <select id="keys-filter" class="prov-select" aria-label="Filter keys">
+                      <option value="all">All keys</option>
+                      <option value="active">Active</option>
+                      <option value="revoked">Revoked</option>
+                      <option value="expiring">Expiring soon</option>
+                    </select>
+                  </div>
+                  <div class="course-list" id="keys-list">
+                    <article class="course-row key-card" data-status="active" data-name="web-app" data-expiry="soon">
+                      <span class="course-icon"><svg class="icon"><use href="#i-video" /></svg></span>
+                      <div class="course-copy">
+                        <strong>web-app <span class="prov-type">all models</span></strong>
+                        <span>exr_a1b2…9f3c · used 12s ago · $50/mo budget</span>
+                      </div>
+                      <div class="key-budget">
+                        <div class="progress-track"><div class="progress-fill" style="width:64%"></div></div>
+                        <span>$32.10 / $50</span>
+                      </div>
+                      <span class="status progress">Active</span>
+                      <div class="course-actions">
+                        <button class="icon-action" type="button" title="Copy key" data-copy="web-app"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action" type="button" title="Edit limits" data-edit="web-app"><svg class="icon"><use href="#i-edit" /></svg></button>
+                        <button class="icon-action danger" type="button" title="Revoke key" data-revoke="web-app"><svg class="icon"><use href="#i-x-circle" /></svg></button>
+                      </div>
+                    </article>
+                    <article class="course-row key-card" data-status="active" data-name="cli-tool" data-expiry="ok">
+                      <span class="course-icon"><svg class="icon"><use href="#i-terminal" /></svg></span>
+                      <div class="course-copy">
+                        <strong>cli-tool <span class="prov-type">openai + anthropic</span></strong>
+                        <span>exr_77dd…02be · used 4m ago · $100/mo budget</span>
+                      </div>
+                      <div class="key-budget">
+                        <div class="progress-track"><div class="progress-fill blue" style="width:38%"></div></div>
+                        <span>$38.40 / $100</span>
+                      </div>
+                      <span class="status complete">Active</span>
+                      <div class="course-actions">
+                        <button class="icon-action" type="button" title="Copy key" data-copy="cli-tool"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action" type="button" title="Edit limits" data-edit="cli-tool"><svg class="icon"><use href="#i-edit" /></svg></button>
+                        <button class="icon-action danger" type="button" title="Revoke key" data-revoke="cli-tool"><svg class="icon"><use href="#i-x-circle" /></svg></button>
+                      </div>
+                    </article>
+                    <article class="course-row key-card" data-status="active" data-name="batch-job" data-expiry="soon">
+                      <span class="course-icon"><svg class="icon"><use href="#i-layers" /></svg></span>
+                      <div class="course-copy">
+                        <strong>batch-job <span class="prov-type">openrouter only</span></strong>
+                        <span>exr_5e10…c8a1 · used 1h ago · expires in 12d</span>
+                      </div>
+                      <div class="key-budget">
+                        <div class="progress-track"><div class="progress-fill" style="width:12%"></div></div>
+                        <span>$6.00 / $50</span>
+                      </div>
+                      <span class="status progress">Expiring</span>
+                      <div class="course-actions">
+                        <button class="icon-action" type="button" title="Copy key" data-copy="batch-job"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action" type="button" title="Edit limits" data-edit="batch-job"><svg class="icon"><use href="#i-edit" /></svg></button>
+                        <button class="icon-action danger" type="button" title="Revoke key" data-revoke="batch-job"><svg class="icon"><use href="#i-x-circle" /></svg></button>
+                      </div>
+                    </article>
+                    <article class="course-row key-card key-revoked" data-status="revoked" data-name="old-mobile" data-expiry="ok">
+                      <span class="course-icon"><svg class="icon"><use href="#i-smartphone" /></svg></span>
+                      <div class="course-copy">
+                        <strong>old-mobile <span class="prov-type">revoked Mar 12</span></strong>
+                        <span>exr_00aa…ff19 · no longer accepts requests</span>
+                      </div>
+                      <div class="key-budget">
+                        <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
+                        <span>—</span>
+                      </div>
+                      <span class="status pending">Revoked</span>
+                      <div class="course-actions">
+                        <button class="icon-action" type="button" title="Copy key" data-copy="old-mobile"><svg class="icon"><use href="#i-copy" /></svg></button>
+                        <button class="icon-action" type="button" title="Delete permanently" data-delete="old-mobile"><svg class="icon"><use href="#i-trash" /></svg></button>
+                      </div>
+                    </article>
+                  </div>
+                  <div class="empty-state" id="keys-empty" hidden>No keys match the current filters.</div>
+                </section>
+              </div>
+
+              <!-- New API key (2-step) -->
+              <dialog class="modal" id="key-dialog" aria-labelledby="key-dialog-title">
+                <form class="modal-card" id="key-form">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="key-dialog-title">New API key</h2>
+                      <p>Create a client credential. The secret is shown once.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-fields" id="key-fields">
+                    <label class="field provd-wide">
+                      Key name
+                      <input id="nk-name" type="text" required placeholder="e.g. staging-app" />
+                    </label>
+                    <label class="field">
+                      Allowed models
+                      <select id="nk-models">
+                        <option value="all">All models</option>
+                        <option value="openai">OpenAI models</option>
+                        <option value="anthropic">Anthropic models</option>
+                        <option value="local">Local models only</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      Monthly budget (USD)
+                      <input id="nk-budget" type="number" min="0" step="1" value="50" />
+                    </label>
+                    <label class="field">
+                      Expiry
+                      <select id="nk-expiry">
+                        <option value="30">30 days</option>
+                        <option value="90" selected>90 days</option>
+                        <option value="365">1 year</option>
+                        <option value="never">Never</option>
+                      </select>
+                    </label>
+                    <label class="field provd-wide check-row-inline">
+                      <input id="nk-readonly" type="checkbox" />
+                      Read-only key (cannot spend budget)
+                    </label>
+                  </div>
+                  <div class="key-reveal" id="key-reveal" hidden>
+                    <strong>Your new key</strong>
+                    <p>Copy it now — it will not be shown again.</p>
+                    <div class="key-reveal-row">
+                      <code id="key-value">exr_…</code>
+                      <button class="page-action" type="button" id="key-copy"><svg class="icon"><use href="#i-copy" /></svg> Copy</button>
+                    </div>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal id="key-cancel">Cancel</button>
+                    <button class="page-action primary" type="submit" id="key-submit">Create key</button>
+                  </div>
+                </form>
+              </dialog>
+
+              <!-- Edit limits -->
+              <dialog class="modal" id="edit-dialog" aria-labelledby="edit-dialog-title">
+                <form class="modal-card" id="edit-form">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="edit-dialog-title">Edit key limits</h2>
+                      <p id="edit-dialog-sub">Adjust budget and expiry for this key.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-fields">
+                    <label class="field">
+                      Monthly budget (USD)
+                      <input id="ek-budget" type="number" min="0" step="1" value="50" />
+                    </label>
+                    <label class="field">
+                      Expiry
+                      <select id="ek-expiry">
+                        <option value="30">30 days</option>
+                        <option value="90" selected>90 days</option>
+                        <option value="180">180 days</option>
+                        <option value="never">Never</option>
+                      </select>
+                    </label>
+                    <label class="field provd-wide check-row-inline">
+                      <input id="ek-readonly" type="checkbox" />
+                      Read-only key
+                    </label>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action primary" type="submit">Save limits</button>
+                  </div>
+                </form>
+              </dialog>
+
+              <!-- Revoke / delete confirm -->
+              <dialog class="modal" id="revoke-dialog" aria-labelledby="revoke-title">
+                <div class="modal-card">
+                  <div class="modal-heading">
+                    <div>
+                      <h2 id="revoke-title">Revoke API key?</h2>
+                      <p id="revoke-desc">Requests using this key will start failing immediately.</p>
+                    </div>
+                    <button class="modal-close" type="button" data-close-modal aria-label="Close dialog">×</button>
+                  </div>
+                  <div class="modal-actions">
+                    <button class="page-action" type="button" data-close-modal>Cancel</button>
+                    <button class="page-action danger" id="revoke-confirm" type="button">Revoke key</button>
+                  </div>
+                </div>
+              </dialog>
+
+              <script>
+                (() => {
+                  const list = document.getElementById('keys-list');
+                  const empty = document.getElementById('keys-empty');
+                  const search = document.getElementById('keys-search');
+                  const filter = document.getElementById('keys-filter');
+                  const summary = document.getElementById('keys-summary');
+                  let revokeTarget = null;
+                  let deleteTarget = null;
+
+                  const cards = () => [...list.querySelectorAll('.key-card')];
+                  function applyFilters() {
+                    const q = search.value.trim().toLowerCase();
+                    const f = filter.value;
+                    let visible = 0;
+                    cards().forEach((card) => {
+                      const okQ = !q || card.dataset.name.includes(q) || card.textContent.toLowerCase().includes(q);
+                      const okF = f === 'all' || (f === 'expiring' ? card.dataset.expiry === 'soon' : card.dataset.status === f);
+                      card.style.display = okQ && okF ? '' : 'none';
+                      if (okQ && okF) visible += 1;
+                    });
+                    empty.hidden = visible !== 0;
+                    const active = cards().filter((c) => c.dataset.status === 'active').length;
+                    const revoked = cards().filter((c) => c.dataset.status === 'revoked').length;
+                    summary.textContent = `${active} active · ${revoked} revoked · $150 combined monthly budget`;
+                  }
+                  search.addEventListener('input', applyFilters);
+                  filter.addEventListener('change', applyFilters);
+
+                  // Stat actions
+                  document.getElementById('stat-active').addEventListener('click', () => {
+                    filter.value = 'active';
+                    applyFilters();
+                    document.getElementById('keys-board').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  });
+                  document.getElementById('stat-budget').addEventListener('click', () => {
+                    document.getElementById('keys-board').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    showToast('Combined monthly budget: $150 across 3 keys');
+                  });
+                  document.querySelectorAll('[data-nav]').forEach((el) => {
+                    el.addEventListener('click', () => { location.href = `${el.dataset.nav}.html`; });
+                  });
+
+                  // Row actions
+                  list.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-copy],button[data-edit],button[data-revoke],button[data-delete]');
+                    if (!btn) return;
+                    const card = btn.closest('.key-card');
+                    const name = card.dataset.name;
+                    if (btn.dataset.copy !== undefined) {
+                      showToast(`Copied masked key for "${name}" (full value requires re-auth)`);
+                    } else if (btn.dataset.edit !== undefined) {
+                      document.getElementById('edit-dialog-sub').textContent = `Adjust budget and expiry for "${name}".`;
+                      document.getElementById('ek-budget').value = card.dataset.name === 'cli-tool' ? 100 : 50;
+                      document.getElementById('edit-dialog').showModal();
+                    } else if (btn.dataset.revoke !== undefined) {
+                      revokeTarget = card;
+                      document.getElementById('revoke-desc').textContent = `Requests using "${name}" will start failing immediately.`;
+                      document.getElementById('revoke-dialog').showModal();
+                    } else if (btn.dataset.delete !== undefined) {
+                      deleteTarget = card;
+                      document.getElementById('revoke-desc').textContent = `Permanently delete "${name}"? This cannot be undone.`;
+                      document.getElementById('revoke-confirm').textContent = 'Delete permanently';
+                      document.getElementById('revoke-dialog').showModal();
+                    }
+                  });
+                  document.getElementById('revoke-dialog').addEventListener('close', () => {
+                    document.getElementById('revoke-confirm').textContent = 'Revoke key';
+                  });
+                  document.getElementById('revoke-confirm').addEventListener('click', () => {
+                    const card = deleteTarget || revokeTarget;
+                    document.getElementById('revoke-dialog').close();
+                    if (!card) return;
+                    if (deleteTarget) {
+                      card.remove();
+                      showToast(`"${card.dataset.name}" deleted permanently`);
+                      deleteTarget = null;
+                    } else {
+                      card.dataset.status = 'revoked';
+                      card.classList.add('key-revoked');
+                      const pill = card.querySelector('.status');
+                      pill.className = 'status pending';
+                      pill.textContent = 'Revoked';
+                      card.querySelector('.prov-type').textContent = 'revoked';
+                      showToast(`"${card.dataset.name}" revoked — requests now fail`);
+                      revokeTarget = null;
+                    }
+                    applyFilters();
+                  });
+
+                  // New key 2-step flow
+                  const dialog = document.getElementById('key-dialog');
+                  const form = document.getElementById('key-form');
+                  const fields = document.getElementById('key-fields');
+                  const reveal = document.getElementById('key-reveal');
+                  const cancelBtn = document.getElementById('key-cancel');
+                  const submitBtn = document.getElementById('key-submit');
+                  dialog.addEventListener('close', () => {
+                    fields.hidden = false;
+                    reveal.hidden = true;
+                    form.reset();
+                    submitBtn.hidden = false;
+                    cancelBtn.textContent = 'Cancel';
+                  });
+                  form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('nk-name').value.trim() || 'unnamed';
+                    const key = `exr_${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 10)}`;
+                    fields.hidden = true;
+                    reveal.hidden = false;
+                    document.getElementById('key-value').textContent = key;
+                    submitBtn.hidden = true;
+                    cancelBtn.textContent = 'Done';
+                    showToast(`API key "${name}" created`);
+                  });
+                  document.getElementById('key-copy').addEventListener('click', async () => {
+                    try { await navigator.clipboard.writeText(document.getElementById('key-value').textContent); } catch (_) {}
+                    showToast('Key copied to clipboard');
+                  });
+                  cancelBtn.addEventListener('click', () => dialog.close());
+
+                  // Edit limits
+                  document.getElementById('edit-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    document.getElementById('edit-dialog').close();
+                    showToast(`Limits saved — $${document.getElementById('ek-budget').value}/mo`);
+                  });
+
+                  // Export
+                  document.getElementById('keys-export').addEventListener('click', () => {
+                    showToast('Exported 4 keys (names + metadata only) to keys.csv (mock)');
+                  });
+                })();
+              </script>
