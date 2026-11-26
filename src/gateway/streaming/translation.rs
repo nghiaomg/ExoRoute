@@ -29,6 +29,8 @@ mod driver;
 use super::*;
 
 pub(in crate::gateway::streaming) use chat::handle_chat_frame;
+#[cfg(test)]
+pub(in crate::gateway::streaming) use driver::stream_keepalive_frame;
 pub(in crate::gateway::streaming) use driver::translation_stream;
 pub(in crate::gateway::streaming) use finalize::{
     complete_events, fail_events, log_completed, log_failed,

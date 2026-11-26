@@ -14,6 +14,7 @@ pub(crate) mod banner;
 pub(crate) mod bootstrap;
 pub(crate) mod error_log;
 pub(crate) mod provider_catalog_watch;
+pub(crate) mod provider_model_sync;
 pub(crate) mod router;
 pub(crate) mod workers;
 

@@ -148,9 +148,10 @@ pub(in crate::gateway) async fn handle_request_with_limits_and_owner(
     .await
     {
         Ok(response) => response,
-        Err(_) => gateway_error(
+        Err(_) => gateway_error_for(
+            client_protocol,
             StatusCode::GATEWAY_TIMEOUT,
-            "route exceeded the total request deadline",
+            "Upstream request timed out. The gateway did not receive a complete response in time.",
         ),
     }
 }

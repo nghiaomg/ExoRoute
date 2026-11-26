@@ -40,7 +40,8 @@ describe('overview duplicate keys', () => {
     }));
     render(DashboardOverviewPage, { props: { tr, locale: 'en', onNavigate: () => {}, onCreateRequest: () => {}, onConnectionChange: () => {}, onProviderCountChange: () => {}, onGatewayAddressChange: () => {} } });
     expect(await screen.findByRole('heading', { name: 'Requests' })).toBeTruthy();
-    expect(await screen.findByText('Top models')).toBeTruthy();
+    // Both the health rollup and the new right-hand panel use this label.
+    expect((await screen.findAllByText('Top models')).length).toBeGreaterThan(0);
   });
   test('request rows sharing created_at do not crash', async () => {
     const req = (i) => ({ id: undefined, request_id: undefined, model: 'm', created_at: '2026-11-19 10:00:00', status: 200, duration_ms: 1, input_tokens: 1, output_tokens: 1 });

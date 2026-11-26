@@ -407,7 +407,7 @@ pub(super) async fn final_failure_response(
             error: Some(&failures.last_error),
         },
     );
-    let mut response = gateway_error(final_status, &failures.last_error);
+    let mut response = gateway_error_for(scope.client_protocol, final_status, &failures.last_error);
     if let Some(retry_after) = failures.upstream_retry_after {
         response
             .headers_mut()

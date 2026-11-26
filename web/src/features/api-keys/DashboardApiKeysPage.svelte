@@ -195,14 +195,14 @@
           {#each visibleKeys as key (key.id)}
             <tr class="key-row" onclick={() => onNavigate(`api-key-detail:${key.id}`)} tabindex="0" onkeydown={(e) => e.key === 'Enter' && onNavigate(`api-key-detail:${key.id}`)}>
               <td><button type="button" class="key-name" onclick={() => onNavigate(`api-key-detail:${key.id}`)}>{key.name}</button><div class="key-prefix"><code>{key.id.slice(0, 8)}…</code><button type="button" title={tr('Copy prefix')} onclick={() => copyText(key.id, tr('Key prefix'))}><svg class="icon"><use href="#i-copy" /></svg></button></div></td>
-              <td><span class="status-badge {key.enabled ? 'complete' : 'pending'}" title={tr('Operational status')}><i></i>{statusLabel(key)}</span>{#if isStale(key)}<span class="badge-warn">{tr('Stale')}</span>{/if}</td>
+              <td><span class="key-status-cell"><span class="status-badge {key.enabled ? 'complete' : 'pending'}" title={tr('Operational status')}><i></i>{statusLabel(key)}</span>{#if isStale(key)}<span class="badge-warn">{tr('Stale')}</span>{/if}</span></td>
               <td>
                 {#if !key.scope_restricted}<span class="badge">{tr('Any model')}</span>
                 {:else}<div class="scope-cell"><span class="badge">{key.allowed_models?.[0] ?? tr('Restricted models')}</span>{#if (key.allowed_models?.length ?? 0) > 1}<button type="button" class="badge more" onclick={() => (scopeOpen = scopeOpen === key.id ? null : key.id)}>+{(key.allowed_models?.length ?? 0) - 1}</button>{/if}</div>
                   {#if scopeOpen === key.id}<div class="scope-popover">{#each key.allowed_models ?? [] as model}<code>{model}</code>{/each}</div>{/if}{/if}
               </td>
               <td class="numeric tabular-nums">{metrics[key.id]?.loaded ? `${formatCount(metrics[key.id].requests, locale)} ${tr('requests')}` : '—'}<div class="muted">{metrics[key.id]?.loaded ? `${formatCompactTokenTotal(metrics[key.id].tokens, locale)} ${tr('Tokens')}` : ''}</div></td>
-              <td class="numeric tabular-nums">{metrics[key.id]?.loaded ? (metrics[key.id].successRate?.toFixed(1) ?? '—') + '%' : '—'}{#if (metrics[key.id]?.failures ?? 0) > 0}<button type="button" class="badge-warn error-badge {failureTone(metrics[key.id].failures, metrics[key.id].requests)}" title={tr('Failed requests using this key')} onclick={(e) => { e.stopPropagation(); onNavigate(`api-key-detail:${key.id}`); }}>{formatCount(metrics[key.id].failures, locale)} {tr('failed')}</button>{/if}</td>
+              <td class="numeric tabular-nums"><span class="reliability-pair"><span class="reliability-rate tabular-nums">{metrics[key.id]?.loaded ? (metrics[key.id].successRate?.toFixed(1) ?? '—') + '%' : '—'}</span>{#if (metrics[key.id]?.failures ?? 0) > 0}<button type="button" class="badge-warn error-badge tabular-nums {failureTone(metrics[key.id].failures, metrics[key.id].requests)}" title={tr('Failed requests using this key')} onclick={(e) => { e.stopPropagation(); onNavigate(`api-key-detail:${key.id}`); }}>{formatCount(metrics[key.id].failures, locale)} {tr('failed')}</button>{/if}</span></td>
               <td title={key.last_used_at ?? ''}>{idleText(key)}</td>
               <td class="row-actions"><button type="button" class="action-detail" title={tr('Details')} aria-label={tr('Details')} onclick={(e) => { e.stopPropagation(); onNavigate(`api-key-detail:${key.id}`); }}>{tr('Details')}</button><button type="button" title={tr('Edit key')} aria-label={tr('Edit key')} onclick={(e) => { e.stopPropagation(); openEdit(key); }}><svg class="icon"><use href="#i-edit" /></svg></button><button type="button" title={key.enabled ? tr('Pause') : tr('Resume')} aria-label={key.enabled ? tr('Pause') : tr('Resume')} onclick={(e) => { e.stopPropagation(); key.enabled ? askConfirm(key, 'disable') : toggleEnabled(key); }}>{#if key.enabled}<span class="pause-mark">II</span>{:else}<svg class="icon"><use href="#i-play" /></svg>{/if}</button><button type="button" class="danger" title={tr('Delete permanently')} aria-label={tr('Delete permanently')} onclick={(e) => { e.stopPropagation(); askConfirm(key, 'delete'); }}><svg class="icon"><use href="#i-trash" /></svg></button></td>
             </tr>
@@ -234,11 +234,11 @@
 
 <!-- New API key (preserved reauth + one-time secret reveal) -->
 <Dialog bind:open={keyDialogOpen} title={createdKey ? tr('Key created') : tr('New API key')} kicker="" closeLabel={tr('Close dialog')}>
-  <form class="modal-form" onsubmit={submitCreate}>
+  <form class="modal-form key-created-form" onsubmit={submitCreate}>
     <p class="modal-description">{createdKey ? tr('Copy it now — it will not be shown again.') : tr('Create a client credential. The secret is shown once.')}</p>
     {#if createdKey}
-      <div class="mt-4 flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface-sunken px-[18px] py-4"><strong>{createdKey.name}</strong><div class="mt-1 flex items-center gap-2.5"><code class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-text-dim bg-surface px-3.5 py-2.5 text-[13px] tracking-[0.02em] select-all">{createdKey.key}</code><Button class="page-action" type="button" onclick={() => copyText(createdKey!.key, tr('API key'))}><svg class="icon"><use href="#i-copy" /></svg> {tr('Copy')}</Button></div></div>
-      <div class="modal-actions"><Button class="page-action primary" type="button" onclick={() => (keyDialogOpen = false)}>{tr('Done')}</Button></div>
+      <div class="key-created-card mt-4 flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface-sunken px-[18px] py-4"><strong>{createdKey.name}</strong><div class="key-created-row mt-1 flex w-full min-w-0 items-center gap-2"><code class="key-created-value min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-text-dim bg-surface px-3.5 py-2.5 text-[13px] tracking-[0.02em] select-all">{createdKey.key}</code><Button class="key-created-copy page-action shrink-0 whitespace-nowrap" type="button" onclick={() => copyText(createdKey!.key, tr('API key'))}><svg class="icon"><use href="#i-copy" /></svg> {tr('Copy')}</Button></div></div>
+      <div class="modal-actions key-created-actions"><Button class="page-action primary" type="button" onclick={() => (keyDialogOpen = false)}>{tr('Done')}</Button></div>
     {:else}
       <div class="modal-fields"><label class="field provd-wide">{tr('Key name')}<Input type="text" required placeholder={tr('e.g. staging-app')} bind:value={newName} /></label><div class="field provd-wide api-key-create-scope"><ApiKeyScopeFields modelRulesId="new-api-key-model-rules" {tr} providers={providerOptions} bind:selectedProviderIds={newProviders} bind:modelRules={newModels} /></div></div>
       <div class="modal-actions"><Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button><Button class="page-action primary" type="submit" disabled={busy || !newName.trim()}>{tr('Create key')}</Button></div>
@@ -248,12 +248,12 @@
 
 <!-- Edit key -->
 <Dialog bind:open={editDialogOpen} title={tr('Edit API key')} kicker="" wide closeLabel={tr('Close dialog')} class="w-[min(94vw,680px)]! max-h-[calc(100dvh-32px)]! overflow-visible! max-[640px]:w-[min(94vw,480px)]!">
-  <form class="modal-form max-h-[calc(100dvh-32px)]! gap-4! overflow-hidden! rounded-[inherit] [grid-template-rows:auto_minmax(0,1fr)_auto]! px-6! py-[22px]! max-[640px]:px-4!" onsubmit={submitEdit}>
+  <form class="edit-key-form modal-form max-h-[calc(100dvh-32px)]! gap-4! overflow-hidden! rounded-[inherit] [grid-template-rows:auto_minmax(0,1fr)_auto]! px-6! py-[22px]! max-[640px]:px-4!" onsubmit={submitEdit}>
     <p class="modal-description">{editTarget ? tr('Adjust name, scope and state for "{name}".', { name: editTarget.name }) : ''}</p>
-    <div class="modal-fields grid-cols-[minmax(0,1fr)_minmax(0,1fr)]! gap-3.5! min-h-0 overflow-y-auto max-[640px]:grid-cols-1!">
+    <div class="edit-key-fields modal-fields grid-cols-[minmax(0,1fr)_minmax(0,1fr)]! gap-3.5! min-h-0 overflow-y-auto max-[640px]:grid-cols-1!">
       <label class="field col-span-full">{tr('Key name')}<Input type="text" required bind:value={editName} /></label>
-      <div class="col-span-full rounded-xl border border-line bg-surface-sunken p-3.5"><ApiKeyScopeFields {tr} providers={providerOptions} modelRulesId="edit-api-key-model-rules" bind:selectedProviderIds={editProviders} bind:modelRules={editModels} /></div>
-      <label class="col-span-full flex items-center gap-3 cursor-pointer"><Input type="checkbox" bind:checked={editEnabled} /><span><strong>{tr('Key enabled')}</strong></span></label>
+      <div class="edit-key-scope col-span-full rounded-xl border border-line bg-surface-sunken p-3.5"><ApiKeyScopeFields {tr} providers={providerOptions} modelRulesId="edit-api-key-model-rules" bind:selectedProviderIds={editProviders} bind:modelRules={editModels} /></div>
+      <label class="edit-key-enabled col-span-full cursor-pointer"><Input type="checkbox" bind:checked={editEnabled} /><span class="edit-key-enabled-text"><strong>{tr('Key enabled')}</strong></span></label>
     </div>
     <div class="modal-actions pt-3 border-t border-line"><Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button><Button class="page-action primary" type="submit" disabled={busy}>{tr('Save')}</Button></div>
   </form>
@@ -264,3 +264,135 @@
   <p class="modal-description">{confirmTarget ? (confirmMode === 'delete' ? tr('Permanently delete "{name}"? This cannot be undone.', { name: confirmTarget.name }) : tr('Requests using "{name}" will start failing immediately.', { name: confirmTarget.name })) : ''}</p>
   <div class="modal-actions"><Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button><Button class="page-action danger" type="button" onclick={runConfirm} disabled={busy}>{confirmMode === 'delete' ? tr('Delete permanently') : tr('Disable key')}</Button></div>
 </Dialog>
+
+<style>
+  /* The shared `.row-actions button` rule forces every control into a 24px
+     inline-grid cell, which truncates the "Details" label into the pencil
+     icon. Give the label its intrinsic width and keep the icon buttons fixed. */
+  .row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .row-actions > button {
+    flex-shrink: 0;
+  }
+  .row-actions .action-detail {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+    line-height: 1.25;
+  }
+
+  /* Status badges use different box models and font sizes globally, so their
+     baselines drift. Normalize both onto one horizontal centerline. */
+  .key-status-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .key-status-cell .status-badge,
+  .key-status-cell .badge-warn {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+
+  /* A bare text node followed by the failed-count badge had no gap at all. */
+  .reliability-pair {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .reliability-rate,
+  .reliability-pair .error-badge {
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+  }
+  .reliability-pair .error-badge {
+    margin: 0;
+    flex-shrink: 0;
+  }
+  /* The shared `.modal-form label { display: grid }` rule outranks utility
+     classes, which stacked the checkbox above its label. These scoped rules
+     restore a compact inline row and bounded widths for the modal children. */
+  .edit-key-form,
+  .edit-key-fields,
+  .edit-key-scope,
+  .edit-key-enabled,
+  .edit-key-enabled-text {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Keep the one-time secret reveal inside the dialog: a long `exo_…` value
+     must shrink and ellipsize instead of widening the modal and clipping its
+     Copy/Done actions. */
+  .key-created-form,
+  .key-created-card,
+  .key-created-row {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .key-created-card > div {
+    min-width: 0;
+  }
+  .key-created-value {
+    display: block;
+    flex: 1 1 0%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .key-created-copy {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .key-created-actions {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .edit-key-fields {
+    overflow-x: hidden;
+  }
+
+  .edit-key-enabled {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .edit-key-enabled :global(input[type='checkbox']) {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    accent-color: var(--accent);
+  }
+
+  .edit-key-enabled-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+</style>

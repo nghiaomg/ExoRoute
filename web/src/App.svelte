@@ -3,6 +3,8 @@
   import { onMount } from 'svelte';
   import DashboardAppShell from './components/layout/DashboardAppShell.svelte';
   import LoginPage from './features/auth/LoginPage.svelte';
+  import KeyPortalPage from './features/key-portal/KeyPortalPage.svelte';
+  import { keyPortalApi, type KeyPortalSession } from './lib/api/keyPortal';
   import ProviderOAuthCallbackFlow from './features/providers/ProviderOAuthCallbackFlow.svelte';
   import DocsLayout from './features/docs/DocsLayout.svelte';
   import DocsHomePage from './features/docs/DocsHomePage.svelte';
@@ -74,6 +76,8 @@
   let sessionRetryAfterSeconds = 0;
   let retryAuthBootstrap: () => Promise<void> = async () => {};
   let mustChangePassword = false;
+  let keyPortalActive = false;
+  let keyPortalSession: KeyPortalSession | null = null;
   let currentPassword = '';
   let connectionState: ConnectionState = 'idle';
   let gatewayAddress = typeof window === 'undefined'
@@ -268,6 +272,22 @@
     navigateTo(pageAfterLogin(window.location.search));
   }
 
+  function onKeyPortalLogin(session: KeyPortalSession): void {
+    keyPortalSession = session;
+    keyPortalActive = true;
+    currentPage = 'login';
+  }
+
+  async function signOutOfKeyPortal(): Promise<void> {
+    try {
+      await keyPortalApi.logout();
+    } catch {
+      // The local view returns to login even if the cookie was already gone.
+    }
+    keyPortalActive = false;
+    keyPortalSession = null;
+  }
+
   function onPasswordChanged(result: AdminAccessResult): void {
     setAdminAccessToken(result.access_token, result.access_expires_in_seconds);
     mustChangePassword = false;
@@ -388,6 +408,18 @@
       sessionCheckStatus = null;
       mustChangePassword = outcome.mustChangePassword;
       currentPassword = '';
+      if (!outcome.authenticated) {
+        try {
+          const portalSession = await keyPortalApi.session();
+          if (!disposed && portalSession) {
+            keyPortalSession = portalSession;
+            keyPortalActive = true;
+          }
+        } catch {
+          keyPortalActive = false;
+          keyPortalSession = null;
+        }
+      }
       authBootstrap = 'ready';
       if (outcome.authenticated && !mustChangePassword) authVersion += 1;
       if (mustChangePassword && window.location.pathname !== pagePaths.login) {
@@ -450,8 +482,10 @@
       <DocsReferencePage {locale} />
     {/if}
   </DocsLayout>
+{:else if keyPortalActive && keyPortalSession}
+  <KeyPortalPage {tr} {locale} session={keyPortalSession} onSignOut={signOutOfKeyPortal} />
 {:else if currentPage === 'login'}
-  <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
+  <LoginPage {tr} {preferences} {mustChangePassword} {currentPassword} {onLogin} onPasswordChanged={onPasswordChanged} {onKeyPortalLogin} sessionCheckStatus={authBootstrap === 'unavailable' ? sessionCheckStatus : null} {sessionRetryAfterSeconds} onRetrySessionCheck={retryAuthBootstrap} />
 {:else if useDashboardShell}
   <DashboardAppShell page={isApiKeyDetailRoute(currentPage) ? 'api-keys' : currentPage as DashboardPage} {providerCount} gatewayAddress={gateway.address} {tr} {locale} onLocaleChange={changeLocale} onNavigate={(target) => navigateTo(target as DashboardPage)} onSignOut={signOut}>
     {#if providerOAuthNotice}

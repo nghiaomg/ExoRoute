@@ -9,13 +9,18 @@
   const SIZE = 120; const STROKE = 16; const R = (SIZE - STROKE) / 2; const C = 2 * Math.PI * R;
   type Slice = { label: string; value: number; color: string; text: string };
   function total(s: Slice[]): number { return s.reduce((sum, x) => sum + x.value, 0); }
+  /** Backend `cache_ratio` is already a 0–100 percentage; never scale it again. */
+  function cachePercent(value: number): string {
+    const bounded = Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
+    return `${Math.round(bounded * 10) / 10}%`;
+  }
   function arcs(slices: Slice[], center: string, sub = '') {
     const t = total(slices);
     return `<circle cx="${SIZE/2}" cy="${SIZE/2}" r="${R}" fill="none" stroke="var(--surface-sunken)" stroke-width="${STROKE}" />` + (t > 0 ? slices.map((slice, i) => {
       const before = slices.slice(0, i).reduce((sum, x) => sum + (x.value / t) * C, 0);
       const dash = Math.max(0, (slice.value / t) * C - 2);
       return `<circle cx="${SIZE/2}" cy="${SIZE/2}" r="${R}" fill="none" stroke="${slice.color}" stroke-width="${STROKE}" stroke-dasharray="${dash} ${C}" stroke-dashoffset="${-before}" transform="rotate(-90 ${SIZE/2} ${SIZE/2})"><title>${slice.label}: ${slice.text || slice.value}</title></circle>`;
-    }).join('') : '') + `<text x="50%" y="54%" text-anchor="middle" fill="var(--ink)" font-size="11" font-weight="700">${center}</text>` + (sub ? `<text x="50%" y="68%" text-anchor="middle" fill="var(--muted)" font-size="8">${sub}</text>` : '');
+    }).join('') : '') + `<text x="50%" y="54%" text-anchor="middle" fill="var(--ink)" font-size="11" font-weight="700" style="font-variant-numeric:tabular-nums">${center}</text>` + (sub ? `<text x="50%" y="68%" text-anchor="middle" fill="var(--muted)" font-size="8">${sub}</text>` : '');
   }
   const tokenSlices = $derived<Slice[]>(stats ? [
     { label: tr('Input tokens'), value: stats.input_tokens, color: 'var(--accent)', text: formatCompactTokenTotal(stats.input_tokens, locale) },
@@ -35,7 +40,7 @@
 </script>
 <section class="chart-grid" aria-label={tr('Token & cache distribution')}>
   <article class="mini-card"><h3>{tr('Token & cache distribution')}</h3><div class="mini-body">
-    <svg class="donut" viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={tr('Token & cache distribution')}>{@html arcs(tokenSlices, stats ? Math.round(stats.cache_ratio * 1000) / 10 + '%' : '—', tr('Cache'))}</svg>
+    <svg class="donut" viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={tr('Token & cache distribution')}>{@html arcs(tokenSlices, stats ? cachePercent(stats.cache_ratio) : '—', tr('Cache'))}</svg>
     <ul class="mini-legend">{#each tokenSlices as slice (slice.label)}<li><i style={`background:${slice.color}`}></i><span>{slice.label}</span><strong>{slice.text}</strong></li>{/each}</ul>
   </div></article>
   <article class="mini-card"><h3>{tr('HTTP status distribution')}</h3><div class="mini-body">
