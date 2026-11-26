@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from '../../components/ui/Button.svelte';
+  import EmptyState from '../../components/ui/EmptyState.svelte';
   import StatsCard from '../../components/ui/StatsCard.svelte';
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
@@ -169,11 +170,11 @@
 
   <div class="page-surface key-detail">
     {#if error}
-      <div class="empty-state" role="alert">{error} <Button class="mini-add" type="button" onclick={onRetry}>{tr('Retry')}</Button></div>
+      <div role="alert"><EmptyState icon="requests" title={error} description="" action={tr('Retry')} onclick={onRetry} /></div>
     {:else if loading && !apiKey}
       <p class="usage-note" role="status">{tr('Loading…')}</p>
     {:else if !apiKey}
-      <div class="empty-state" role="alert">{tr('Unknown key')}</div>
+      <div role="alert"><EmptyState icon="api-keys" title={tr('Unknown key')} description="" /></div>
     {:else}
       {#if apiKey.scope_valid === false}<p class="key-alert" role="alert">{tr('The stored access scope is invalid, so every request with this key is rejected. Save a scope to repair it.')}</p>{/if}
 
@@ -202,7 +203,7 @@
       {#if statsLoading && !statistics}
         <p class="usage-note" role="status">{tr('Loading statistics')}…</p>
       {:else if statsError && !statistics}
-        <div class="empty-state" role="alert">{statsError} <Button class="mini-add" type="button" onclick={() => void load(range)}>{tr('Retry')}</Button></div>
+        <div role="alert"><EmptyState icon="requests" title={statsError} description="" action={tr('Retry')} onclick={() => void load(range)} /></div>
       {:else if statistics}
         <section class="telemetry-strip" aria-label={tr('Traffic summary')}>
           <div><span>{tr('Total requests')}</span><strong class="numeric">{formatCount(statistics.total_requests, locale)}</strong></div>
@@ -230,7 +231,7 @@
           <section class="detail-panel" aria-labelledby="activity-heatmap-title">
             <div class="panel-head">
               <div><h3 id="activity-heatmap-title">{tr('Activity heatmap')}</h3><p>{tr('Request volume across the selected period')}</p></div>
-              <span class="panel-total numeric">{formatCount(statistics.total_requests, locale)}</span>
+              <span class="panel-total numeric tabular-nums">{formatCount(statistics.total_requests, locale)}</span>
             </div>
             {#if activityCells.length}
               <div class="heatmap" role="img" aria-label={tr('Activity heatmap')}>

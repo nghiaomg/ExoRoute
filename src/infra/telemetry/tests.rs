@@ -1237,6 +1237,12 @@ async fn paced_request_traffic_does_not_overflow_the_telemetry_queue() {
             }
             sent += this_chunk;
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            // The writer shares the process CPU with every other test in the
+            // full suite. Yielding the OS thread here keeps the paced producer
+            // from starving it under parallel load; the drop assertion below
+            // still measures real queue overflow.
+            std::thread::yield_now();
+            tokio::task::yield_now().await;
         }
         telemetry.flush().await.expect("flush telemetry");
         let dropped = telemetry.drop_counters().total() - before;

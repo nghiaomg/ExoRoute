@@ -89,7 +89,6 @@
   }
 
   let detailOpen = $state(false);
-  let dialogHost = $state<HTMLDivElement | null>(null);
   let detailRow = $state<RequestLog | RequestLiveRow | null>(null);
 
   const providerNameById = $derived(new Map(providers.map((p) => [p.id, p.name])));
@@ -315,16 +314,6 @@
     detailOpen = true;
   }
 
-  // Keep the established `req-dialog-title` label hook while using the shared
-  // Dialog primitive, whose own heading uses the generic `modal-title` id.
-  $effect(() => {
-    if (!detailOpen || !dialogHost) return;
-    const dialog = dialogHost.querySelector('dialog');
-    if (dialog && dialog.getAttribute('aria-labelledby') !== 'req-dialog-title') {
-      dialog.setAttribute('aria-labelledby', 'req-dialog-title');
-    }
-  });
-
   $effect(() => {
     if (autoRefresh) startLive();
     else stopLive();
@@ -426,14 +415,14 @@
               stateClasses={{ active: rangeFilter === range }}
               aria-pressed={rangeFilter === range}
               onclick={() => { if (rangeFilter !== range) { rangeFilter = range; void loadStatistics(range); } }}
-              class="h-7 rounded-[7px] border-0 px-2.5 text-[13px] font-medium text-dash-body cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {rangeFilter === range ? 'bg-surface text-ink shadow-sm font-semibold' : 'bg-transparent text-muted hover:bg-db-tint-strong'}"
+              class="h-7 rounded-[7px] border-0 px-2.5 text-[13px] font-medium text-dash-body cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-db-accent-ring {rangeFilter === range ? 'bg-surface text-ink font-semibold' : 'bg-transparent text-muted hover:bg-db-tint-strong'}"
             >{tr(RANGE_LABEL[range])}</Button>
           {/each}
         </div>
         <RequestColumnVisibilityMenu tr={tr} hiddenColumns={hiddenColumns} onToggleColumn={toggleVisibleColumn} />
       </div>
 
-      <div class="mt-3.5 overflow-x-auto rounded-[13px] border border-line bg-db-tint">
+      <div class="mt-3.5 overflow-x-auto border-y border-line bg-db-tint">
         <table class="w-full border-collapse min-w-[940px]">
           <thead>
             <tr>
@@ -452,9 +441,9 @@
               {@const modelLogo = modelLogoSrc(row.model)}
               {@const proxyLabel = row.proxy_name?.trim() || row.proxy_id?.trim() || ''}
               <tr class:req-live={isLiveRequest(row)} onclick={() => openDetail(row)} class="group/row cursor-pointer transition-colors duration-150 hover:bg-db-tint-strong {isLiveRequest(row) ? 'bg-db-accent-tint hover:bg-db-accent-tint' : ''}">
-                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap tabular-nums group-hover/row:text-ink [[tbody_tr:last-child_&]]:border-b-0 {isLiveRequest(row) ? 'text-db-danger! font-semibold' : ''}">{#if isLiveRequest(row)}<span class="me-1.5 inline-block size-2 rounded-full bg-accent align-[1px] animate-req-pulse"></span>{/if}{timeLabel(row)}</td>
-                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0"><span class="status {statusClass(row)}">{statusText(row)}</span></td>
-                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0">
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap tabular-nums group-hover/row:text-ink group-last/row:border-b-0 {isLiveRequest(row) ? 'text-db-danger! font-semibold' : ''}">{#if isLiveRequest(row)}<span class="me-1.5 inline-block size-2 rounded-full bg-accent align-[1px] animate-req-pulse"></span>{/if}{timeLabel(row)}</td>
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap group-last/row:border-b-0"><span class="status {statusClass(row)}">{statusText(row)}</span></td>
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap group-last/row:border-b-0">
                   <span class="inline-flex min-w-0 items-center gap-2">
                     {#if modelLogo}<img class="block w-5 h-5 shrink-0 object-contain" src={modelLogo} alt="" aria-hidden="true" />{/if}
                   <span class="text-ink font-medium transition-colors duration-150 group-hover/row:text-accent">{row.model || '—'}</span>
@@ -469,10 +458,10 @@
                   {/if}
                   </span>
                 </td>
-                {#if !hiddenColumns.provider}<td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0">{providerLabel(row)}</td>{/if}
-                {#if !hiddenColumns.key}<td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap [[tbody_tr:last-child_&]]:border-b-0">{row.api_key_name || '—'}</td>{/if}
-                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">{durationLabel(row)}</td>
-                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">
+                {#if !hiddenColumns.provider}<td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap group-last/row:border-b-0">{providerLabel(row)}</td>{/if}
+                {#if !hiddenColumns.key}<td class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body whitespace-nowrap group-last/row:border-b-0">{row.api_key_name || '—'}</td>{/if}
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums group-last/row:border-b-0">{durationLabel(row)}</td>
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums group-last/row:border-b-0">
                   <span class="text-info! font-semibold">{formatCount(row.input_tokens ?? 0, locale)}</span>
                   <span class="mx-1 text-text-dim">/</span>
                   <span class="text-violet! font-semibold">{formatCount(row.output_tokens ?? 0, locale)}</span>
@@ -480,10 +469,10 @@
                     <span class="inline-flex ms-[7px] px-[7px] py-0.5 rounded-full bg-chart-good/12! text-chart-good! text-caption font-semibold">{tr('Cache: {count}', { count: formatCount(cacheTokens(row) ?? 0, locale) })}</span>
                   {/if}
                 </td>
-                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums [[tbody_tr:last-child_&]]:border-b-0">{formatCostMicroUsd(row.cost_micro_usd) || '—'}</td>
+                <td class="border-b border-db-tint-strong px-3.5 py-2.5 text-right text-muted text-dash-body whitespace-nowrap tabular-nums group-last/row:border-b-0">{formatCostMicroUsd(row.cost_micro_usd) || '—'}</td>
               </tr>
             {:else}
-              <tr><td colspan={tableColumnCount} class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body [[tbody_tr:last-child_&]]:border-b-0"><div class="empty-state flush">{tr('No requests match the current filters.')}</div></td></tr>
+              <tr><td colspan={tableColumnCount} class="border-b border-db-tint-strong px-3.5 py-2.5 text-muted text-dash-body group-last/row:border-b-0"><div class="empty-state flush">{tr('No requests match the current filters.')}</div></td></tr>
             {/each}
           </tbody>
         </table>
@@ -491,22 +480,21 @@
 
       <div class="mt-3.5 flex items-center justify-center gap-3.5">
         <Button class="page-action disabled:opacity-55" type="button" onclick={prevPage} disabled={!cursorStack.length || loadingMore}>← {tr('Prev')}</Button>
-        <span class="text-muted text-meta">{loadingMore ? tr('Loading…') : tr('{count} rows', { count: visibleRows.length })}</span>
+        <span class="text-muted text-meta tabular-nums">{loadingMore ? tr('Loading…') : tr('{count} rows', { count: visibleRows.length })}</span>
         <Button class="page-action disabled:opacity-55" type="button" onclick={nextPage} disabled={!nextCursor || loadingMore}>{tr('Next')} →</Button>
       </div>
     </section>
   </div>
 {/if}
 
-<div bind:this={dialogHost}>
-  <Dialog
+<Dialog
     open={detailOpen}
     title={tr('Request detail')}
+    ariaLabelledBy="req-dialog-title"
     closeLabel={tr('Close dialog')}
     wide
     onClose={() => { detailOpen = false; }}
   >
-    <span id="req-dialog-title" hidden>{tr('Request detail')}</span>
     <p class="text-muted text-meta m-0">{detailRow ? (detailRow.route_alias || detailRow.model || tr('request')) : '—'}</p>
     {#if detailRow}
       {@const live = isLiveRequest(detailRow)}
@@ -552,5 +540,4 @@
       <Button class="page-action" type="button" data-close-modal>{tr('Close')}</Button>
     </div>
   </Dialog>
-</div>
 

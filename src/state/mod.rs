@@ -5,15 +5,22 @@
 //! the smallest matching slice rather than as another unrelated AppState
 //! field.
 
+#[cfg(test)]
+use crate::config::provider_catalog::ModelLimitsConfig;
+use crate::config::provider_catalog::{
+    ModelPricingConfig, ProviderCatalogError, ProvidersYamlConfig,
+};
 use crate::config::{Config, GatewayResourceLimits, OperationalSettings};
 use crate::gateway::continuity::JournalBatch;
 use crate::infra::db::OperationalSettingsRecord;
 use crate::infra::storage::Database;
 use crate::infra::telemetry::Telemetry;
+use crate::provider_adapters::ProviderPresetCatalog;
 use crate::security::rate_limit::{RateLimitPolicy, RateLimiter, RateLimiterConfig};
 use crate::support::output_styles::{self, OutputStylesSnapshot};
 use std::{
     collections::HashMap,
+    path::PathBuf,
     sync::{
         Arc, RwLock as StdRwLock, Weak,
         atomic::{AtomicBool, AtomicU64, AtomicUsize},
@@ -202,6 +209,15 @@ pub const PROVIDER_AUTH_TERMINAL_FLOW_TTL: Duration = Duration::from_secs(2 * 60
 const MAX_CODEX_REFRESH_LOCKS: usize = 256;
 const MAX_ADMIN_UPSTREAM_EVENT_STREAMS: usize = 8;
 
+use serde::Serialize;
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ReloadSummary {
+    pub reloaded: bool,
+    pub provider_count: usize,
+    pub overlaid_providers: Vec<String>,
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub config: Arc<Config>,
@@ -210,6 +226,12 @@ pub struct AppState {
     pub request_log_retention_notify: Arc<Notify>,
     pub provider_deletion_notify: Arc<Notify>,
     pub admin_key: Arc<RwLock<Option<String>>>,
+    /// Validated user-editable provider catalog overlay; replaced atomically on reload.
+    provider_catalog: Arc<StdRwLock<ProvidersYamlConfig>>,
+    /// Runtime preset snapshot with the user model overlay applied.
+    provider_presets: Arc<StdRwLock<ProviderPresetCatalog>>,
+    /// Path of the validated user catalog, injectable in tests.
+    providers_yaml_path: PathBuf,
     /// Admin dashboard runtime: sessions, limits, database gates, auth flows.
     pub(crate) admin: AdminRuntime,
     /// Gateway admission gates, bulkheads, and circuit breakers.
@@ -227,6 +249,17 @@ pub struct AppState {
     pub(crate) continuity_journal: JournalBatch,
     pub started_at: Instant,
     pub request_count: Arc<AtomicU64>,
+}
+
+fn build_preset_catalog(config: &ProvidersYamlConfig) -> ProviderPresetCatalog {
+    ProviderPresetCatalog::built_in().with_model_overlay(|id, adapter_id, base_models| {
+        config
+            .overlay_for(id, adapter_id)
+            .map(|overlay| {
+                crate::config::provider_catalog::merge_provider_models(base_models, Some(overlay))
+            })
+            .unwrap_or_else(|| base_models.to_vec())
+    })
 }
 
 impl AppState {
@@ -275,6 +308,15 @@ impl AppState {
         debug_assert!(operational_record.settings.validate().is_ok());
         let operational = operational_record.settings;
         let admin_key = Arc::new(RwLock::new(config.admin_key.clone()));
+        let providers_yaml_path = config.app_dir.join("providers.yaml");
+        let catalog_config =
+            crate::config::provider_catalog::load_providers_yaml(&providers_yaml_path)
+                .unwrap_or_else(|error| {
+                    tracing::warn!(%error, "ignoring invalid provider catalog at startup");
+                    ProvidersYamlConfig::default()
+                });
+        let provider_presets = Arc::new(StdRwLock::new(build_preset_catalog(&catalog_config)));
+        let provider_catalog = Arc::new(StdRwLock::new(catalog_config));
         let password_change_required = config
             .admin_key
             .as_deref()
@@ -355,6 +397,9 @@ impl AppState {
             request_log_retention_notify: Arc::new(Notify::new()),
             provider_deletion_notify: Arc::new(Notify::new()),
             admin_key,
+            provider_catalog,
+            provider_presets,
+            providers_yaml_path,
             admin: AdminRuntime {
                 admin_sessions: Arc::new(RwLock::new(HashMap::new())),
                 admin_step_up_proofs: Arc::new(RwLock::new(HashMap::new())),
@@ -428,6 +473,107 @@ impl AppState {
             started_at,
             request_count: Arc::new(AtomicU64::new(0)),
         }
+    }
+
+    fn model_override(
+        &self,
+        provider_id: &str,
+        adapter_id: &str,
+        model_id: &str,
+    ) -> Option<crate::config::provider_catalog::ModelOverrideConfig> {
+        let catalog = self
+            .provider_catalog
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::config::provider_catalog::find_model_override(
+            &catalog,
+            provider_id,
+            adapter_id,
+            model_id,
+        )
+    }
+
+    /// Per-model price overlay, validated at load time. Upstream-reported cost
+    /// always takes precedence over this fallback in the gateway.
+    pub fn resolve_model_pricing(
+        &self,
+        provider_id: &str,
+        adapter_id: &str,
+        model_id: &str,
+    ) -> Option<ModelPricingConfig> {
+        self.model_override(provider_id, adapter_id, model_id)
+            .and_then(|override_config| override_config.pricing)
+    }
+
+    /// Per-model limit overlay, validated at load time.
+    #[cfg(test)]
+    pub fn resolve_model_limits(
+        &self,
+        provider_id: &str,
+        adapter_id: &str,
+        model_id: &str,
+    ) -> Option<ModelLimitsConfig> {
+        self.model_override(provider_id, adapter_id, model_id)
+            .and_then(|override_config| override_config.limits)
+    }
+
+    /// Live snapshot of built-in presets with the validated YAML overlay applied.
+    pub fn provider_presets_snapshot(&self) -> ProviderPresetCatalog {
+        self.provider_presets
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
+    }
+
+    /// Default models for a newly created provider, including user overrides.
+    pub fn provider_presets_default_models(&self, id: &str, adapter_id: &str) -> Vec<String> {
+        self.provider_presets_snapshot()
+            .all()
+            .iter()
+            .find(|preset| preset.id == id || preset.adapter_id == adapter_id)
+            .map(|preset| preset.default_models.clone())
+            .unwrap_or_default()
+    }
+
+    /// Reloads and validates the YAML catalog, swapping the live snapshot only
+    /// on success so a malformed edit cannot change runtime state.
+    pub fn reload_provider_presets(&self) -> Result<ReloadSummary, ProviderCatalogError> {
+        let next = crate::config::provider_catalog::load_providers_yaml(&self.providers_yaml_path)?;
+        let overlaid = build_preset_catalog(&next);
+        let summary = ReloadSummary {
+            reloaded: true,
+            provider_count: overlaid.all().len(),
+            overlaid_providers: next.overlaid_provider_ids(),
+        };
+        {
+            let mut presets = self
+                .provider_presets
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            *presets = overlaid;
+        }
+        {
+            let mut catalog = self
+                .provider_catalog
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            *catalog = next;
+        }
+        Ok(summary)
+    }
+
+    /// Atomically replaces the live overlay with a freshly validated YAML file.
+    /// Invalid files leave the current snapshot active.
+    #[cfg(test)]
+    pub fn reload_provider_catalog(
+        &self,
+    ) -> Result<ProvidersYamlConfig, crate::config::provider_catalog::ProviderCatalogError> {
+        self.reload_provider_presets()?;
+        Ok(self
+            .provider_catalog
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone())
     }
 }
 

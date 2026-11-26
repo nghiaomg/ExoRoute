@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from '../../components/ui/Button.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
   import { showDashboardToast } from '../../lib/dashboard-ui';
   import type { Translate } from '../../lib/format';
   import { RANGES, type RangeKey } from './overview.data';
@@ -62,9 +63,9 @@
       {#if updatedAt}{tr('Last updated {time}', { time: new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(updatedAt) })}{:else}—{/if}
     </span>
   </div>
-  <label class="ops-live">
-    <input type="checkbox" class="ops-switch-input" role="switch" aria-checked={live} aria-label={tr('Auto-refresh')} checked={live} onchange={(event) => onLiveChange(event.currentTarget.checked)} />
+  <div class="ops-live" role="switch" aria-checked={live} aria-label={tr('Auto-refresh')}>
+    <Checkbox class="ops-switch-input" checked={live} ariaLabel={tr('Auto-refresh')} onCheckedChange={(checked) => onLiveChange(checked === true)} />
     <span class="ops-switch" class:on={live} aria-hidden="true"><i></i></span>
     <span>{tr('Auto-refresh')}</span>
-  </label>
+  </div>
 </section>

@@ -59,9 +59,20 @@ impl Metrics {
 }
 
 fn saturating_increment(value: &AtomicU64) {
-    let _ = value.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
-        Some(current.saturating_add(1))
-    });
+    // A compare-exchange loop keeps saturating behaviour on the crate's MSRV;
+    // `AtomicU64::try_update` is newer than the supported toolchain.
+    let mut current = value.load(Ordering::Relaxed);
+    loop {
+        match value.compare_exchange_weak(
+            current,
+            current.saturating_add(1),
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => return,
+            Err(observed) => current = observed,
+        }
+    }
 }
 
 pub fn apply(

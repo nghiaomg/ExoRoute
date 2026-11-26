@@ -86,7 +86,7 @@ Last-Event-ID: &lt;last_event_id&gt;</pre>
       <ul class="continuity-limits">
         <li>
           <span class="continuity-limit-bullet"></span>
-          <span>{tr('Up to {limit} concurrent background continuity tasks. This limit is always finite; 0 is unlimited only for body processing, provider concurrency, and SSE size settings.', { limit: continuityCapacity })}</span>
+          <span class="tabular-nums">{tr('Up to {limit} concurrent background continuity tasks. This limit is always finite; 0 is unlimited only for body processing, provider concurrency, and SSE size settings.', { limit: continuityCapacity })}</span>
         </li>
         <li>
           <span class="continuity-limit-bullet"></span>

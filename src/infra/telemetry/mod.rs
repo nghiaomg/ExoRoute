@@ -310,12 +310,14 @@ impl Telemetry {
 }
 
 pub(super) fn increment_saturating(counter: &AtomicU64) -> u64 {
-    let previous = counter
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-            Some(value.saturating_add(1))
-        })
-        .unwrap_or_else(|value| value);
-    previous.saturating_add(1)
+    let mut current = counter.load(Ordering::Relaxed);
+    loop {
+        let next = current.saturating_add(1);
+        match counter.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed) {
+            Ok(_) => return next,
+            Err(observed) => current = observed,
+        }
+    }
 }
 
 pub(super) fn unix_minute() -> i64 {

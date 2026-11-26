@@ -11,6 +11,7 @@ use std::{ops::Deref, sync::atomic::Ordering, time::Duration};
 mod auth_cache;
 mod circuit_breaker;
 mod local_rpm_tracker;
+mod provider_catalog;
 mod request_live_registry;
 mod runtime_gate_behavior;
 mod runtime_restore;

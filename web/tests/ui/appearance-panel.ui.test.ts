@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
 import AppearancePanel from '../../src/features/settings/AppearancePanel.svelte';
+import { THEMES } from '../../src/lib/theme';
 import type { Translate } from '../../src/lib/format';
 
 const tr: Translate = (key, vars) => key.replace(/\{(\w+)\}/g, (_, name: string) => String(vars?.[name] ?? `{${name}}`));
@@ -80,5 +81,33 @@ describe('appearance theme radio group', () => {
     const reducedMotion = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
     expect(reducedMotion).toContain(':global(.appearance-theme-card) { transition: none; }');
     expect(reducedMotion).toContain(':global(.appearance-theme-card:hover) { transform: none; }');
+  });
+
+  test('each preview renders flat geometry from the theme catalog', () => {
+    renderAppearance();
+    for (const theme of THEMES) {
+      const radio = screen.getByRole('radio', { name: theme.name });
+      const preview = radio.querySelector('.appearance-theme-preview') as HTMLElement;
+      expect(preview, `${theme.id} preview`).toBeTruthy();
+      expect(preview.style.getPropertyValue('--preview-canvas')).toBe(theme.swatches[0]);
+      expect(preview.style.getPropertyValue('--preview-surface')).toBe(theme.swatches[1]);
+      expect(preview.style.getPropertyValue('--preview-accent')).toBe(theme.swatches[2]);
+      expect(preview.style.getPropertyValue('--preview-text')).toBe(theme.swatches[3]);
+      expect(preview.style.getPropertyValue('--preview-radius')).toBe(theme.previewRadius);
+      expect(preview.style.getPropertyValue('--preview-accent-contrast')).toBe(theme.previewAccentContrast);
+      expect(preview.querySelector('.appearance-theme-preview-surface')).toBeTruthy();
+      expect(preview.querySelector('.appearance-theme-preview-lines')).toBeTruthy();
+      expect(preview.querySelector('.appearance-theme-preview-accent')?.textContent).toContain('Aa');
+    }
+    const systemPreview = screen.getByRole('radio', { name: 'System theme' })
+      .querySelector('.system-theme-preview');
+    expect(systemPreview?.querySelector('.system-theme-light')).toBeTruthy();
+    expect(systemPreview?.querySelector('.system-theme-dark')).toBeTruthy();
+  });
+
+  test('preview styles use no drop shadows', () => {
+    const css = readFileSync('src/features/settings/AppearancePanel.svelte', 'utf8');
+    const styleBlock = css.slice(css.indexOf('<style>'));
+    expect(styleBlock).not.toMatch(/box-shadow:\s*(?!none)/);
   });
 });

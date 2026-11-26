@@ -38,7 +38,7 @@
     {/if}
   </div>
   <span class="resource-limit-input">
-    <Input {id} type="number" {min} {max} step="1" bind:value {disabled} />
+    <Input {id} type="number" {min} {max} step="1" class="tabular-nums" bind:value {disabled} />
     {#if unit}<small>{unit}</small>{/if}
   </span>
   {#if hint}<small>{hint}</small>{/if}

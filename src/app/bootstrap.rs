@@ -108,6 +108,19 @@ pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app_dir = crate::config::app_dir()?;
     crate::config::initialize_app_dir(&app_dir)?;
+    let providers_yaml_path = crate::config::providers_yaml_path();
+    match crate::config::provider_catalog::ensure_providers_yaml_template(&providers_yaml_path) {
+        Ok(true) => tracing::info!(
+            path = %providers_yaml_path.display(),
+            "created starter provider catalog"
+        ),
+        Ok(false) => {}
+        Err(error) => tracing::warn!(
+            %error,
+            path = %providers_yaml_path.display(),
+            "could not create starter provider catalog; continuing with built-in presets"
+        ),
+    }
     let admin_key_was_set_in_process = std::env::var_os("EXOROUTE_ADMIN_KEY").is_some();
     let master_key_was_set_in_process = std::env::var_os("EXOROUTE_MASTER_KEY").is_some();
     dotenvy::from_path(app_dir.join(".env"))?;
@@ -160,6 +173,20 @@ pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(request_log_retention_worker(state.clone()));
     tokio::spawn(crate::admin::providers::provider_deletion_recovery_worker(
         state.clone(),
+    ));
+    // Keep the YAML catalog in sync with on-disk edits without a restart. Both
+    // tasks share the AppState watch channel, so the existing shutdown signal
+    // stops them together with the HTTP server.
+    tokio::spawn(provider_catalog_watch::watch_provider_catalog(
+        state.clone(),
+        providers_yaml_path.clone(),
+        provider_catalog_watch::DEFAULT_WATCH_POLL_INTERVAL,
+        state.shutdown_receiver(),
+    ));
+    tokio::spawn(provider_catalog_watch::terminal_reload_listener(
+        state.clone(),
+        providers_yaml_path,
+        state.shutdown_receiver(),
     ));
     let database_requires_password_change =
         crate::infra::db::admin_password_change_required(&state.db).await?;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import Dialog from '../../components/ui/Dialog.svelte';
   import Button from '../../components/ui/Button.svelte';
+  import Input from '../../components/ui/Input.svelte';
   import { formatCount, formatDate, formatTokenCount } from '../../lib/format';
   import type { Translate } from '../../lib/format';
   import type { Locale } from '../../lib/i18n';
@@ -27,18 +28,18 @@
     {#each [{ key: 'all', label: tr('All') }, { key: 'success', label: tr('Success') }, { key: 'errors', label: tr('Errors') }] as pill (pill.key)}
       <button type="button" class:active={status === pill.key} onclick={() => (status = pill.key as RequestFilter)}>{pill.label}</button>
     {/each}
-    <input type="search" bind:value={query} aria-label={tr('Filter by model')} placeholder={tr('Filter by model')} />
+    <Input type="search" bind:value={query} ariaLabel={tr('Filter by model')} placeholder={tr('Filter by model')} />
   </div>
   <div class="recent-list" aria-live="polite">
     {#if !visible.length}<p class="card-subtitle">{totalRequests === 0 ? tr('No requests recorded yet') : tr('No requests match your filter')}</p>{/if}
     {#each visible as request, index (rowKey(request, index))}
       <button type="button" class="recent-row" onclick={() => (selected = request)} aria-label={tr('Inspect request')}>
-        <span class="status {outcome(request)}">{statusText(request)}</span>
+        <span class="status tabular-nums {outcome(request)}">{statusText(request)}</span>
         <span class="recent-main"><strong>{request.model}</strong><span>{request.provider_id ?? '—'}{request.route_alias ? ' · ' + request.route_alias : ''}</span></span>
         <span class="recent-meta">
           {#if isCached(request)}<span class="cache-badge">{tr('Cache hit')}</span>{/if}
-          <span title={tr('Tokens')}>{formatTokenCount(request.input_tokens, locale)} / {formatTokenCount(request.output_tokens, locale)}</span>
-          <span>{latency(request)}</span>
+          <span class="tabular-nums" title={tr('Tokens')}>{formatTokenCount(request.input_tokens, locale)} / {formatTokenCount(request.output_tokens, locale)}</span>
+          <span class="tabular-nums">{latency(request)}</span>
         </span>
       </button>
     {/each}
@@ -47,18 +48,18 @@
 <Dialog open={selected !== null} title={tr('Request details')} closeLabel={tr('Close')} class="request-drawer-card" onClose={() => (selected = null)}>
   {#if selected}
     <dl class="request-drawer-fields">
-      <div><dt>{tr('Status')}</dt><dd>{statusText(selected)}</dd></div>
+      <div><dt>{tr('Status')}</dt><dd class="tabular-nums">{statusText(selected)}</dd></div>
       <div><dt>{tr('Time')}</dt><dd>{formatDate(selected.created_at, locale)}</dd></div>
-      <div><dt>{tr('Duration')}</dt><dd>{latency(selected)}</dd></div>
+      <div><dt>{tr('Duration')}</dt><dd class="tabular-nums">{latency(selected)}</dd></div>
       <div><dt>{tr('Model')}</dt><dd>{selected.model}</dd></div>
       <div><dt>{tr('Provider')}</dt><dd>{selected.provider_id ?? '—'}</dd></div>
       <div><dt>{tr('Combo alias')}</dt><dd>{selected.route_alias ?? '—'}</dd></div>
       <div><dt>{tr('Client protocol')}</dt><dd>{selected.client_protocol ?? '—'}</dd></div>
       <div><dt>{tr('Upstream protocol')}</dt><dd>{selected.upstream_protocol ?? '—'}</dd></div>
-      <div><dt>{tr('Input tokens')}</dt><dd>{formatCount(selected.input_tokens, locale)}</dd></div>
-      <div><dt>{tr('Output tokens')}</dt><dd>{formatCount(selected.output_tokens, locale)}</dd></div>
-      <div><dt>{tr('Cached tokens')}</dt><dd>{formatCount(selected.cached_tokens, locale)}</dd></div>
-      <div><dt>{tr('Cost')}</dt><dd>{selected.cost_micro_usd == null ? '—' : '$' + (selected.cost_micro_usd / 1e6).toFixed(6)}</dd></div>
+      <div><dt>{tr('Input tokens')}</dt><dd class="tabular-nums">{formatCount(selected.input_tokens, locale)}</dd></div>
+      <div><dt>{tr('Output tokens')}</dt><dd class="tabular-nums">{formatCount(selected.output_tokens, locale)}</dd></div>
+      <div><dt>{tr('Cached tokens')}</dt><dd class="tabular-nums">{formatCount(selected.cached_tokens, locale)}</dd></div>
+      <div><dt>{tr('Cost')}</dt><dd class="tabular-nums">{selected.cost_micro_usd == null ? '—' : '$' + (selected.cost_micro_usd / 1e6).toFixed(6)}</dd></div>
       <div><dt>{tr('Request ID')}</dt><dd>{selected.request_id ?? selected.id ?? '—'}</dd></div>
     </dl>
     {#if selected.error}<section class="request-drawer-error"><h3>{tr('Error')}</h3><p>{selected.error}</p></section>{/if}

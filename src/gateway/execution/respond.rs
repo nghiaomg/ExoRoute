@@ -262,6 +262,26 @@ pub(super) async fn decode_response(
             )
             .await;
     }
+    // Upstream-reported cost is authoritative; only fill a missing value from
+    // the validated user catalog so telemetry does not report a null cost.
+    let cost_micro_usd = decoded.usage.as_ref().and_then(|usage| {
+        if usage.cost_micro_usd.is_some() {
+            return usage.cost_micro_usd;
+        }
+        let pricing =
+            scope
+                .state
+                .resolve_model_pricing(&provider_id, &adapter_id, &target_model)?;
+        crate::config::provider_catalog::estimate_cost_micro_usd(
+            &pricing,
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cached_tokens,
+            usage.cache_input_tokens.saturating_sub(usage.cached_tokens),
+            0,
+        )
+        .and_then(|value| i64::try_from(value).ok())
+    });
     log_request(
         &scope.state,
         Some(live),
@@ -286,10 +306,7 @@ pub(super) async fn decode_response(
                 .usage
                 .as_ref()
                 .map(|usage| usage.cache_input_tokens as i64),
-            decoded
-                .usage
-                .as_ref()
-                .and_then(|usage| usage.cost_micro_usd),
+            decoded.usage.as_ref().and(cost_micro_usd),
         ),
     );
     drop(provider_permit);

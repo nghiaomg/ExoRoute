@@ -11,6 +11,7 @@
     closeLabel?: string;
     class?: string;
     role?: 'dialog' | 'alertdialog';
+    ariaLabelledBy?: string;
     onClose?: () => void;
     children?: Snippet;
   }
@@ -24,6 +25,7 @@
     closeLabel = 'Close dialog',
     class: className = '',
     role = 'dialog',
+    ariaLabelledBy = 'modal-title',
     onClose = () => {},
     children,
   }: Props = $props();
@@ -72,7 +74,7 @@
   <dialog
     class="modal {wide ? 'modal-wide' : ''}"
     {role}
-    aria-labelledby="modal-title"
+    aria-labelledby={ariaLabelledBy}
     bind:this={dialogEl}
     data-prevent-close={preventClose || undefined}
     onclick={handleDialogClick}
@@ -85,7 +87,7 @@
           {#if kicker}
             <span class="modal-kicker">{kicker}</span>
           {/if}
-          <h2 class="modal-title" id="modal-title">{title}</h2>
+          <h2 class="modal-title" id={ariaLabelledBy}>{title}</h2>
         </div>
         {#if !preventClose}
           <Button class="modal-close" type="button" data-close-modal aria-label={closeLabel}>×</Button>

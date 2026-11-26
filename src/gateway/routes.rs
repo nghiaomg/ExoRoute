@@ -173,10 +173,10 @@ pub async fn require_api_key(
             if !decision.allowed {
                 rate_limited_response(decision.retry_after)
             } else {
-                response
+                *response
             }
         }
-        Err(response) => response,
+        Err(response) => *response,
     }
 }
 
@@ -321,7 +321,7 @@ pub async fn models(State(state): State<AppState>, request: Request<Body>) -> Re
 pub async fn chat_completions(State(state): State<AppState>, request: Request<Body>) -> Response {
     let (headers, body, execution_settings) = match gateway_json_request(request).await {
         Ok(request) => request,
-        Err(response) => return response,
+        Err(response) => return *response,
     };
     handle_request_with_limits_and_owner(
         state,
@@ -335,7 +335,7 @@ pub async fn chat_completions(State(state): State<AppState>, request: Request<Bo
 pub async fn responses(State(state): State<AppState>, request: Request<Body>) -> Response {
     let (headers, body, execution_settings) = match gateway_json_request(request).await {
         Ok(request) => request,
-        Err(response) => return response,
+        Err(response) => return *response,
     };
     handle_request_with_limits_and_owner(
         state,
@@ -349,7 +349,7 @@ pub async fn responses(State(state): State<AppState>, request: Request<Body>) ->
 pub async fn messages(State(state): State<AppState>, request: Request<Body>) -> Response {
     let (headers, body, execution_settings) = match gateway_json_request(request).await {
         Ok(request) => request,
-        Err(response) => return response,
+        Err(response) => return *response,
     };
     handle_request_with_limits_and_owner(
         state,

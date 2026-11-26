@@ -394,7 +394,7 @@
         </div>
       {/if}
 
-      <div class="modal-actions" style="margin-top: 16px;">
+      <div class="modal-actions">
         <Button
           type="button"
           class="secondary-button"

@@ -313,6 +313,7 @@ import { localizedError } from '../../lib/errors';
                 <Input
                   id={`operational-upstream-${field.key}`}
                   type="number"
+                  class="tabular-nums"
                   min={field.min}
                   max={field.max}
                   step="1"

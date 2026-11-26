@@ -1,9 +1,16 @@
 import type { Collection, Provider, ProviderApiKeyAuthStartResult, ProviderApiKeyAuthStatus, ProviderAuthCompletionResult, ProviderAuthPollResult, ProviderAuthStartResult, ProviderAuthStatus, ProviderCreateResult, ProviderCustomHeaderInput, ProviderKey, ProviderKeyCreateResult, ProviderKeyPage, ProviderKeyStrategyInput, ProviderKeyStrategyResult, ProviderModelCatalog, ProviderModelImportResult, ProviderModelRoutingPage, ProviderPreset, ProviderThinkingSettingsInput, ProviderThinkingSettingsResult, ProviderUpdateResult, UpstreamProtocol } from '../types';
 import { collection, request } from './core';
 
+export interface ProviderPresetsReloadResult {
+  reloaded: boolean;
+  provider_count: number;
+  overlaid_providers: string[];
+}
+
 export const providerApi = {
 providers: async () => collection(await request<Collection<Provider> | Record<string, unknown>>('/providers'), 'providers'),
 providerPresets: async () => collection(await request<Collection<ProviderPreset> | Record<string, unknown>>('/provider-presets'), 'presets'),
+reloadProviderPresets: () => request<ProviderPresetsReloadResult>('/provider-presets/reload', { method: 'POST' }),
 createProvider: (provider: Omit<Provider, 'id' | 'capabilities' | 'api_key' | 'api_key_count' | 'invalid_api_key_count' | 'model_count' | 'custom_headers'> & { api_key?: string; api_keys?: string[]; custom_headers?: ProviderCustomHeaderInput[] }) => request<ProviderCreateResult>('/providers', { method: 'POST', body: JSON.stringify(provider) }),
 updateProvider: (id: string, provider: Partial<Omit<Provider, 'custom_headers'>> & { custom_headers?: ProviderCustomHeaderInput[] }) => request<ProviderUpdateResult>(`/providers/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(provider) }),
 updateProviderThinkingSettings: (id: string, settings: ProviderThinkingSettingsInput) => request<ProviderThinkingSettingsResult>(`/providers/${encodeURIComponent(id)}/thinking-settings`, { method: 'PUT', body: JSON.stringify(settings) }),

@@ -24,6 +24,10 @@ export interface ThemeDefinition {
   metaColor: string;
   /** Preview swatches: canvas, surface, accent, text. */
   swatches: readonly [string, string, string, string];
+  /** Mini-preview radius; mirrors --radius-md from styles/theme-styles.css. */
+  previewRadius: string;
+  /** Mini-preview accent-button text color; mirrors --accent-contrast. */
+  previewAccentContrast: string;
 }
 
 export type ThemePreference = ThemeId | 'system';
@@ -46,6 +50,8 @@ export const THEMES: readonly ThemeDefinition[] = [
     descriptionKey: 'The default light dashboard with warm orange accents.',
     metaColor: '#f6f7fb',
     swatches: ['#f6f7fb', '#ffffff', '#f97316', '#222538'],
+    previewRadius: '8px',
+    previewAccentContrast: '#111827',
   },
   {
     id: 'dark',
@@ -55,6 +61,8 @@ export const THEMES: readonly ThemeDefinition[] = [
     descriptionKey: 'Glassy dark surfaces with the signature orange accent.',
     metaColor: '#11121b',
     swatches: ['#07080c', '#111320', '#f97316', '#f0f2f8'],
+    previewRadius: '10px',
+    previewAccentContrast: '#111827',
   },
   {
     id: 'tokyo-night',
@@ -64,6 +72,8 @@ export const THEMES: readonly ThemeDefinition[] = [
     descriptionKey: 'Cool Tokyo-night blues for long developer sessions.',
     metaColor: '#1a1b26',
     swatches: ['#1a1b26', '#24283b', '#7aa2f7', '#c0caf5'],
+    previewRadius: '6px',
+    previewAccentContrast: '#0b1220',
   },
   {
     id: 'catppuccin',
@@ -73,6 +83,8 @@ export const THEMES: readonly ThemeDefinition[] = [
     descriptionKey: 'Soft dark pastels that stay easy on the eyes.',
     metaColor: '#1e1e2e',
     swatches: ['#1e1e2e', '#313244', '#89b4fa', '#cdd6f4'],
+    previewRadius: '10px',
+    previewAccentContrast: '#11111b',
   },
   {
     id: 'linear',
@@ -82,6 +94,8 @@ export const THEMES: readonly ThemeDefinition[] = [
     descriptionKey: 'Quiet greys with a single indigo accent.',
     metaColor: '#111111',
     swatches: ['#111111', '#1a1a1c', '#5e6ad2', '#e5e5e5'],
+    previewRadius: '6px',
+    previewAccentContrast: '#ffffff',
   },
   {
     id: 'cyber-neon',
@@ -91,6 +105,8 @@ export const THEMES: readonly ThemeDefinition[] = [
     descriptionKey: 'High-energy neon glow on deep space black.',
     metaColor: '#0a0a0f',
     swatches: ['#0a0a0f', '#12121a', '#00f5d5', '#e0e0ff'],
+    previewRadius: '3px',
+    previewAccentContrast: '#052019',
   },
   {
     id: 'minimal-light',
@@ -100,6 +116,8 @@ export const THEMES: readonly ThemeDefinition[] = [
     descriptionKey: 'A clean light theme for bright rooms and screenshots.',
     metaColor: '#f8fafc',
     swatches: ['#f8fafc', '#ffffff', '#3b82f6', '#0f172a'],
+    previewRadius: '8px',
+    previewAccentContrast: '#0f172a',
   },
 ];
 

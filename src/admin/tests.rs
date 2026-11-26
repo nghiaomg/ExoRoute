@@ -7,7 +7,7 @@
 use super::{
     AppState, ProviderInput, list_provider_presets, normalized_provider_model_prefix,
     normalized_provider_model_prefix_for_adapter, password_needs_change, provider_adapters,
-    providers, validate_provider,
+    providers, reload_provider_presets, validate_provider,
 };
 use super::{Argon2, Json, PasswordHasher, SaltString};
 use super::{MAX_ADMIN_PASSWORD_HASH_BYTES, is_supported_admin_password_hash};
@@ -22,7 +22,9 @@ use axum::extract::{Json as AxumJson, State as AxumState};
 
 #[tokio::test]
 async fn provider_preset_catalog_exposes_categories_labels_and_adapter_ids() {
-    let Json(value) = list_provider_presets()
+    let database = TestDatabase::open().await;
+    let state = AppState::new(database.config(), database.db.clone());
+    let Json(value) = list_provider_presets(AxumState(state))
         .await
         .expect("provider preset catalog");
     let presets = value["presets"]
@@ -374,4 +376,89 @@ fn imported_admin_hashes_must_use_bounded_argon2id_parameters() {
         .expect("hash with weak parameters")
         .to_string();
     assert!(!is_supported_admin_password_hash(&weak));
+}
+
+#[tokio::test]
+async fn provider_catalog_template_and_invalid_yaml_fall_back_to_builtin() {
+    let database = TestDatabase::open().await;
+    let path = database.config().app_dir.join("providers.yaml");
+    assert!(
+        crate::config::provider_catalog::ensure_providers_yaml_template(&path)
+            .expect("create template")
+    );
+    let template = crate::config::provider_catalog::load_providers_yaml(&path)
+        .expect("template is valid YAML");
+    assert!(template.providers.is_empty());
+
+    std::fs::write(&path, "providers:\n  bad: [not-a-map]\n").expect("write invalid YAML");
+    let state = AppState::new(database.config(), database.db.clone());
+    assert_eq!(
+        state.provider_presets_snapshot().all().len(),
+        provider_adapters::provider_preset_catalog().all().len()
+    );
+    assert!(
+        state
+            .provider_presets_snapshot()
+            .find("opencode_go")
+            .is_some()
+    );
+}
+
+#[tokio::test]
+async fn get_presets_and_reload_endpoint_reflect_catalog_overlay() {
+    let database = TestDatabase::open().await;
+    let path = database.config().app_dir.join("providers.yaml");
+    std::fs::write(
+        &path,
+        "providers:\n  opencode_go:\n    default_models: [user-go-model]\n  opencode_zen:\n    default_models: [user-zen-model]\n",
+    )
+    .expect("write catalog");
+    let state = AppState::new(database.config(), database.db.clone());
+
+    let Json(value) = list_provider_presets(AxumState(state.clone()))
+        .await
+        .expect("preset list");
+    let presets = value["presets"].as_array().expect("presets array");
+    assert!(presets.iter().any(|preset| preset["id"] == "opencode_go"));
+    assert!(
+        state
+            .provider_presets_default_models("opencode_go", "opencode_go")
+            .contains(&"user-go-model".to_owned())
+    );
+    assert!(
+        state
+            .provider_presets_default_models("opencode_zen", "opencode_zen")
+            .contains(&"user-zen-model".to_owned())
+    );
+
+    std::fs::write(
+        &path,
+        "providers:\n  opencode_go:\n    default_models: [reloaded-go-model]\n",
+    )
+    .expect("rewrite catalog");
+    let Json(reloaded) = reload_provider_presets(AxumState(state.clone()))
+        .await
+        .expect("reload succeeds");
+    assert_eq!(reloaded["reloaded"], true);
+    assert_eq!(
+        reloaded["provider_count"],
+        state.provider_presets_snapshot().all().len()
+    );
+    assert_eq!(reloaded["overlaid_providers"][0], "opencode_go");
+    assert!(
+        state
+            .provider_presets_default_models("opencode_go", "opencode_go")
+            .contains(&"reloaded-go-model".to_owned())
+    );
+
+    std::fs::write(&path, "providers:\n  opencode_go:\n    default_models: [too, many, x]\n    model_overrides:\n      x:\n        pricing: { input_per_million: -1.0 }\n").expect("write invalid edit");
+    let (bad_status, _) = reload_provider_presets(AxumState(state.clone()))
+        .await
+        .expect_err("invalid YAML is rejected");
+    assert_eq!(bad_status, axum::http::StatusCode::BAD_REQUEST);
+    assert!(
+        state
+            .provider_presets_default_models("opencode_go", "opencode_go")
+            .contains(&"reloaded-go-model".to_owned())
+    );
 }

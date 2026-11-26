@@ -1,6 +1,7 @@
 <script lang="ts">
   import Button from "../../components/ui/Button.svelte";
   import StatsCard from "../../components/ui/StatsCard.svelte";
+  import EmptyState from "../../components/ui/EmptyState.svelte";
   import { onMount } from 'svelte';
   import { ArrowDown, ArrowUp, GitBranch, Plus, Save, Trash2 } from '@lucide/svelte';
   import Checkbox from '../../components/ui/Checkbox.svelte';
@@ -250,7 +251,7 @@
         <div class="flex justify-end gap-2 border-t border-line pt-2.5"><Button class="page-action" type="button" disabled={checkingId !== null} onclick={() => void runCheck(proxy)}>{#if checkingId === proxy.id}<span class="spin">◌</span>{/if}{tr(checkingId === proxy.id ? 'Checking…' : 'Check live')}</Button><Button class="page-action" type="button" onclick={() => openEdit(proxy)}><svg class="icon"><use href="#i-edit" /></svg>{tr('Edit')}</Button><Button class="page-action danger" type="button" onclick={() => { deleting = proxy; deleteDialog = true; }}><Trash2 size={14} />{tr('Delete')}</Button></div>
       </article>
     {:else}
-      <div class="empty-state col-span-full grid min-h-[170px] place-items-center">{query ? tr('No proxies match your search.') : tr('No proxies configured yet.')}</div>
+      <div class="col-span-full"><EmptyState icon="providers" title={query ? tr('No proxies match your search.') : tr('No proxies configured yet.')} description="" /></div>
     {/each}
       </div>
     </section>

@@ -98,6 +98,38 @@ describe('api-keys and combos design-system standardization', () => {
     }
   });
 
+  test('the combo retry row keeps a compact checkbox and a wrapping text column', () => {
+    function rule(selector: string): string {
+      const start = combosPageSource.indexOf(`${selector} {`);
+      expect(start, selector).toBeGreaterThanOrEqual(0);
+      return combosPageSource.slice(start, combosPageSource.indexOf('}', start) + 1);
+    }
+
+    const container = rule('.combo-retry-setting');
+    for (const declaration of [
+      'display: flex',
+      'align-items: flex-start',
+      'gap: 12px',
+      'width: 100%',
+      'box-sizing: border-box',
+      'box-shadow: none',
+    ]) {
+      expect(container, declaration).toContain(declaration);
+    }
+
+    const checkbox = rule('.combo-retry-setting :global(input[type="checkbox"])');
+    for (const declaration of ['box-sizing: border-box', 'width: 16px', 'height: 16px', 'flex: 0 0 auto']) {
+      expect(checkbox, declaration).toContain(declaration);
+    }
+    // The shared `.modal-form input` skin must not stretch this control.
+    expect(checkbox).not.toContain('width: 100%');
+
+    const copy = rule('.combo-retry-setting span');
+    for (const declaration of ['flex: 1 1 auto', 'min-width: 0']) {
+      expect(copy, declaration).toContain(declaration);
+    }
+  });
+
   test('scope chips render known providers and flag deleted ones', () => {
     const { unmount } = render(ApiKeyScopeFields, {
       props: {
@@ -141,6 +173,15 @@ describe('api-keys and combos design-system standardization', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'New combo' }));
     expect(await screen.findByRole('heading', { name: 'New combo' })).toBeTruthy();
     const retry = await screen.findByRole('checkbox', { name: /Retry until success/ });
+    const setting = retry.closest('.combo-retry-setting') as HTMLElement;
+    expect(setting).toBeTruthy();
+    // A single text wrapper sits next to the checkbox and holds both the title
+    // and the description, so the copy can wrap inside the card.
+    expect(retry.parentElement).toBe(setting);
+    const copy = setting.querySelector('span');
+    expect(copy?.parentElement).toBe(setting);
+    expect(copy?.querySelector('strong')?.textContent).toContain('Retry until success');
+    expect(copy?.querySelector('small')?.textContent).toContain('After all targets fail');
     expect((retry as HTMLInputElement).checked).toBe(false);
     await fireEvent.click(retry);
     expect((retry as HTMLInputElement).checked).toBe(true);

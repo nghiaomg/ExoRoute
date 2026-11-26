@@ -14,6 +14,7 @@ mod env_secrets;
 mod limits;
 mod operational;
 mod paths;
+pub mod provider_catalog;
 #[cfg(windows)]
 mod windows;
 

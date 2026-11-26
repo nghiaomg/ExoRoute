@@ -69,15 +69,15 @@ describe('DashboardChatPage', () => {
     expect(screen.getByText('Write a Python retry decorator')).toBeTruthy();
     expect(screen.getByText('Explain SSE vs WebSocket')).toBeTruthy();
 
-    // Parameters (system prompt, thinking) start collapsed behind the shell's
-    // modal opener; the dialog exists but is closed until the shell acts.
-    const dialog = document.querySelector('#chat-settings-dialog') as HTMLDialogElement;
-    expect(dialog).toBeTruthy();
-    expect(dialog.open).toBe(false);
+    // Parameters are collapsed until the page-level shared Dialog opens.
+    expect(document.querySelector('dialog[open]')).toBeNull();
+    expect(screen.queryByPlaceholderText('You are a helpful routing assistant…')).toBeNull();
+    await fireEvent.click(screen.getByRole('button', { name: 'Parameters' }));
+    const dialog = await screen.findByRole('dialog');
     expect(dialog.querySelector('textarea[placeholder="You are a helpful routing assistant…"]')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Parameters' }).getAttribute('data-open-modal')).toBe(
-      'chat-settings-dialog',
-    );
+    expect(dialog.textContent).toContain('Chat parameters');
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(document.querySelector('dialog[open]')).toBeNull());
   });
 
   test('starts on a model, shown as the readable name instead of the raw id', async () => {

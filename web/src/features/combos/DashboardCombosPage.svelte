@@ -423,7 +423,7 @@
         {#each filteredCombos as combo (combo.id)}
           {@const usage = comboUsage(combo)}
           {@const pct = successPct(combo)}
-          <article class="flex min-w-0 flex-col rounded-[14px] border border-line bg-surface p-4 transition-[border-color,box-shadow] duration-200 hover:border-text-dim/50 hover:shadow-sm data-[status=disabled]:opacity-62" data-status={combo.enabled !== false ? 'enabled' : 'disabled'} data-strategy={combo.strategy}>
+          <article class="flex min-w-0 flex-col rounded-[14px] border border-line bg-surface p-4 transition-colors duration-200 hover:border-text-dim/50 data-[status=disabled]:opacity-62" data-status={combo.enabled !== false ? 'enabled' : 'disabled'} data-strategy={combo.strategy}>
             <div class="flex min-w-0 items-center gap-[11px]">
               <span class="course-icon shrink-0"><svg class="icon"><use href={combo.strategy === 'round_robin' ? '#i-layers' : '#i-code'} /></svg></span>
               <div class="min-w-0 flex-1">
@@ -431,7 +431,7 @@
                   <strong class="truncate text-sm font-semibold text-ink">{combo.name}</strong>
                   <span class="shrink-0 rounded-full bg-surface-sunken px-2 py-0.5 text-[11px] font-medium leading-none text-muted">{strategyLabel(combo.strategy)}</span>
                 </div>
-                <span class="mt-0.5 block truncate text-xs text-muted">
+                <span class="mt-0.5 block truncate text-xs text-muted tabular-nums">
                   {#if usage}
                     {formatCount(usage.requests, locale)} {tr('requests')}{pct !== null ? ` · ${tr('{count}% success', { count: pct })}` : ''}
                   {:else}
@@ -490,7 +490,7 @@
   class="combo-dialog"
   onClose={() => { cfError = ''; }}
 >
-  <form class="modal-form" onsubmit={(e) => { e.preventDefault(); void saveCombo(); }}>
+  <form class="modal-form combo-editor-form" onsubmit={(e) => { e.preventDefault(); void saveCombo(); }}>
     <p class="modal-description">{tr('Chain provider targets with a routing strategy.')}</p>
     <div class="modal-fields grid-cols-2! max-nav:grid-cols-1!">
       <label class="field prov-field-wide">
@@ -629,24 +629,52 @@
     opacity: 0.45;
   }
 
+  /* Switch inputs are invisible overlays sized by `inset: 0`. Inside the modal
+     the shared text-field skin would give them width:100%/height:37px, so they
+     would spill past the compact target switches and overlay neighbouring rows. */
+  .combo-editor-form :global(.switch input) {
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
   .combo-retry-setting {
     grid-column: 1 / -1;
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
     padding: 12px;
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--surface);
+    box-shadow: none;
     cursor: pointer;
   }
 
+  /* The shared `.modal-form input` skin sets width:100%/height:37px and a
+     text-field padding, which would otherwise stretch this checkbox across
+     the whole setting card and squeeze the copy off the right edge. */
   .combo-retry-setting :global(input[type="checkbox"]) {
-    margin: 2px 0 0;
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
     flex: 0 0 auto;
+    margin: 2px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    box-shadow: none;
+    accent-color: var(--accent);
   }
 
   .combo-retry-setting span {
+    flex: 1 1 auto;
+    min-width: 0;
     display: grid;
     gap: 4px;
   }

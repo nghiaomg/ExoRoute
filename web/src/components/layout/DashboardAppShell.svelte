@@ -193,7 +193,7 @@
                 <defs>
                   <linearGradient id="compBodyGrad" x1="12" y1="46" x2="56" y2="16" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: var(--accent-deep)"></stop><stop offset="50%" style="stop-color: var(--accent)"></stop><stop offset="100%" style="stop-color: var(--accent-glow)"></stop></linearGradient>
                   <linearGradient id="compBellyGrad" x1="16" y1="44" x2="52" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: color-mix(in srgb, var(--accent) 45%, black)"></stop><stop offset="60%" style="stop-color: var(--accent-deep)"></stop><stop offset="100%" style="stop-color: var(--accent-soft)"></stop></linearGradient>
-                  <linearGradient id="compWingGrad" x1="37" y1="23" x2="16" y2="6" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: var(--accent)"></stop><stop offset="50%" style="stop-color: var(--accent-soft)"></stop><stop offset="100%" style="stop-color: color-mix(in srgb, var(--accent) 30%, #fff)"></stop></linearGradient>
+                  <linearGradient id="compWingGrad" x1="37" y1="23" x2="16" y2="6" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: var(--accent)"></stop><stop offset="50%" style="stop-color: var(--accent-soft)"></stop><stop offset="100%" style="stop-color: color-mix(in srgb, var(--accent) 30%, var(--accent-contrast))"></stop></linearGradient>
                   <linearGradient id="compBackWing" x1="32" y1="28" x2="14" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: color-mix(in srgb, var(--accent) 45%, black)" stop-opacity="0.9"></stop><stop offset="100%" style="stop-color: var(--accent)" stop-opacity="0.95"></stop></linearGradient>
                   <linearGradient id="compTailGrad" x1="20" y1="40" x2="6" y2="54" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: var(--accent-deep)"></stop><stop offset="100%" style="stop-color: var(--accent-glow)"></stop></linearGradient>
                   <linearGradient id="compTrailGrad" x1="6" y1="56" x2="28" y2="44" gradientUnits="userSpaceOnUse"><stop offset="0%" style="stop-color: var(--accent-glow)" stop-opacity="0"></stop><stop offset="100%" style="stop-color: var(--accent-soft)" stop-opacity="0.7"></stop></linearGradient>
@@ -208,10 +208,10 @@
                 <path d="M54 18C46 26 34 38 18 42C26 36 38 27 54 18Z" fill="url(#compBellyGrad)"></path>
                 <path d="M54 18C44 19 32 26 18 42C30 30 42 21 54 18Z" fill="url(#compBodyGrad)"></path>
                 <path d="M37 23C32 17 25 10 16 6C18 12 21 16 25 19L33 24L37 23Z" fill="url(#compWingGrad)"></path>
-                <path d="M19 8.5C21.5 13 24 16 28 18.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.7"></path>
-                <path d="M23 12C25 15 27 17.5 30 19.5" style="stroke: color-mix(in srgb, var(--accent) 14%, #fff)" stroke-width="1" stroke-linecap="round" opacity="0.6"></path>
-                <path d="M27 15.5C28.5 17.5 30 19 32 20.5" style="stroke: color-mix(in srgb, var(--accent) 14%, #fff)" stroke-width="0.8" stroke-linecap="round" opacity="0.5"></path>
-                <circle cx="48" cy="20" r="2.2" fill="#ffffff"></circle>
+                <path d="M19 8.5C21.5 13 24 16 28 18.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.7"></path>
+                <path d="M23 12C25 15 27 17.5 30 19.5" style="stroke: color-mix(in srgb, var(--accent) 14%, var(--accent-contrast))" stroke-width="1" stroke-linecap="round" opacity="0.6"></path>
+                <path d="M27 15.5C28.5 17.5 30 19 32 20.5" style="stroke: color-mix(in srgb, var(--accent) 14%, var(--accent-contrast))" stroke-width="0.8" stroke-linecap="round" opacity="0.5"></path>
+                <circle cx="48" cy="20" r="2.2" fill="currentColor"></circle>
                 <circle cx="48.5" cy="19.8" r="1.1" style="fill: var(--accent-deep)"></circle>
                 <circle cx="54" cy="18" r="1" style="fill: var(--accent-soft)"></circle>
               </svg>
@@ -269,11 +269,11 @@
           </nav>
         </aside>
         <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-        <div class="max-nav:fixed max-nav:inset-0 max-nav:z-[45] max-nav:bg-surface-backdrop max-nav:backdrop-blur-[2px]" hidden={!mobileOpen} onclick={() => setMobileOpen(false)}></div>
+        <div role="presentation" class="max-nav:fixed max-nav:inset-0 max-nav:z-[45] max-nav:bg-surface-backdrop max-nav:backdrop-blur-[2px]" hidden={!mobileOpen} onclick={() => setMobileOpen(false)}></div>
 
-        <section class="grid min-w-0 min-h-0 max-nav:min-h-[100svh] max-nav:[grid-template-rows:56px_auto] max-nav:gap-2.5 nav:h-full nav:ml-[252px] nav:gap-[1.8%] nav:pe-6 nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] {collapsed ? 'nav:ml-[92px]' : ''}">
-          <header class="flex h-full min-w-0 items-center justify-between gap-[18px] rounded-[16px] bg-surface px-[2.3%] max-nav:gap-2 max-nav:rounded-[13px] max-nav:px-[9px]">
-            <label class="group/search hidden w-[min(43%,370px)] min-w-[120px] items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2 text-text-dim transition-[border-color,box-shadow] duration-150 focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15 nav:flex">
+        <section class="grid min-w-0 min-h-0 max-nav:min-h-[100svh] max-nav:[grid-template-rows:56px_auto] max-nav:gap-2.5 nav:h-full nav:ml-[252px] nav:gap-3 nav:pe-4 nav:[grid-template-rows:var(--shell-header-row)_minmax(0,1fr)] {collapsed ? 'nav:ml-[92px]' : ''}">
+          <header class="flex h-full min-w-0 items-center justify-between gap-[18px] rounded-[16px] bg-surface px-4 max-nav:gap-2 max-nav:rounded-[13px] max-nav:px-[9px]">
+            <label class="group/search hidden w-[min(43%,370px)] min-w-[120px] items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2 text-text-dim transition-colors duration-150 focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15 nav:flex">
               <svg class="icon size-3.5! transition-colors duration-200 group-focus-within/search:text-accent" aria-hidden="true"><use href="#i-search" /></svg>
               <Input
                 type="search"
@@ -282,7 +282,7 @@
                 bind:value={searchQuery}
                 onkeydown={(e) => { if (e.key === 'Enter') handleTopSearch(); }}
                 bare
-class="m-0 w-full appearance-none border-0 border-none bg-transparent! p-0 text-[13px] font-normal outline-none placeholder:text-muted focus:shadow-none! focus-visible:shadow-none! focus:border-transparent! focus-visible:border-transparent!"
+class="m-0 w-full appearance-none border-0 border-none bg-transparent! p-0 text-[13px] font-normal outline-none placeholder:text-muted focus:border-transparent! focus-visible:border-transparent!"
               />
             </label>
             <div class="flex min-w-0 items-center gap-[clamp(8px,1.2vw,17px)] max-nav:gap-1.5">
@@ -295,16 +295,16 @@ class="m-0 w-full appearance-none border-0 border-none bg-transparent! p-0 text-
                 <svg class="size-[clamp(28px,2.4vw,34px)] shrink-0 overflow-hidden rounded-full border-2 border-line max-nav:size-[28px] transition-transform duration-200 group-hover/profile:scale-[1.06]" viewBox="0 0 44 44" role="img" aria-label={tr('ExoRoute Admin')}>
                   <defs>
                     <linearGradient id="avatar-bg" x1="0" y1="0" x2="1" y2="1">
-                      <stop stop-color="#d6e1e3" />
-                      <stop offset="1" stop-color="#9aa7ad" />
+                      <stop stop-color="var(--surface-raised)" />
+                      <stop offset="1" stop-color="var(--line)" />
                     </linearGradient>
                   </defs>
                   <circle cx="22" cy="22" r="22" fill="url(#avatar-bg)" />
-                  <path d="M9 43c1.6-8 6.2-12 13-12s11.4 4 13 12" fill="#293746" />
-                  <path d="M15 16c0-6 3.2-9 7.4-9 5.1 0 8.5 3.6 8.5 9v5.2c0 5.3-3.9 8.8-8.4 8.8S15 26.5 15 21.2z" fill="#bd8a6a" />
-                  <path d="M14.5 17c-.6-7.1 3.3-11 8.6-11 5.8 0 9.2 4.5 8.2 11-1.5-1.1-3.1-2.5-4.4-4.6-2.4 2.7-6.8 4-12.4 4.6Z" fill="#29323a" />
-                  <path d="M19 22h.2m7.4 0h.2" stroke="#29323a" stroke-width="1.4" stroke-linecap="round" />
-                  <path d="M20 26c1.5 1.1 3.4 1.1 4.9 0" fill="none" stroke="#855c4d" stroke-width="1.2" stroke-linecap="round" />
+                  <path d="M9 43c1.6-8 6.2-12 13-12s11.4 4 13 12" fill="var(--ink)" />
+                  <path d="M15 16c0-6 3.2-9 7.4-9 5.1 0 8.5 3.6 8.5 9v5.2c0 5.3-3.9 8.8-8.4 8.8S15 26.5 15 21.2z" fill="var(--accent-glow)" />
+                  <path d="M14.5 17c-.6-7.1 3.3-11 8.6-11 5.8 0 9.2 4.5 8.2 11-1.5-1.1-3.1-2.5-4.4-4.6-2.4 2.7-6.8 4-12.4 4.6Z" fill="var(--text-dim)" />
+                  <path d="M19 22h.2m7.4 0h.2" stroke="var(--text-dim)" stroke-width="1.4" stroke-linecap="round" />
+                  <path d="M20 26c1.5 1.1 3.4 1.1 4.9 0" fill="none" stroke="var(--accent-strong)" stroke-width="1.2" stroke-linecap="round" />
                 </svg>
                 <div class="hidden grid gap-[2px] whitespace-nowrap leading-[1.15] nav:grid">
                   <strong class="overflow-hidden text-ellipsis text-[13px] font-medium transition-colors duration-150 group-hover/profile:text-accent max-nav:max-w-[78px]">{tr('ExoRoute Admin')}</strong>
@@ -315,7 +315,7 @@ class="m-0 w-full appearance-none border-0 border-none bg-transparent! p-0 text-
           </header>
 
           <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-          <div class="grid min-w-0 min-h-0 max-w-full gap-[1.8%] overflow-x-hidden max-nav:gap-3 max-nav:[grid-template-rows:auto_auto] max-nav:pb-[calc(80px+env(safe-area-inset-bottom,0px))] nav:flex nav:w-full nav:flex-col nav:h-full nav:min-h-0 nav:overflow-y-auto nav:[&>*]:shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" onclick={onDialogClick}>
+          <div role="presentation" class="grid min-w-0 min-h-0 max-w-full gap-3 overflow-x-hidden max-nav:gap-3 max-nav:[grid-template-rows:auto_auto] max-nav:pb-[calc(80px+env(safe-area-inset-bottom,0px))] nav:flex nav:w-full nav:flex-col nav:h-full nav:min-h-0 nav:overflow-y-auto nav:[&>*]:shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" onclick={onDialogClick}>
             {@render children?.()}
           </div>
         </section>
@@ -336,7 +336,7 @@ class="m-0 w-full appearance-none border-0 border-none bg-transparent! p-0 text-
         aria-label={item.label}
         aria-current={item.id !== 'more' && navPage === item.id ? 'page' : undefined}
         onclick={() => (item.id === 'more' ? setMobileOpen(true) : handleNav(item.id))}
-        class="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 border-0 bg-transparent px-0.5 py-1 text-[10px] font-medium leading-tight tracking-tight cursor-pointer transition-colors {navPage === item.id && item.id !== 'more' ? 'text-accent-strong [box-shadow:inset_0_2px_0_0_var(--accent)]' : 'text-muted'} {focusRing}"
+        class="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 border-0 bg-transparent px-0.5 py-1 text-[10px] font-medium leading-tight tracking-tight cursor-pointer transition-colors {navPage === item.id && item.id !== 'more' ? 'text-accent-strong border-b-2! border-accent!' : 'text-muted'} {focusRing}"
       >
         <svg class="icon size-[18px]!"><use href="#{item.icon}" /></svg>
         <span class="max-w-full truncate">{item.shortLabel ?? item.label}</span>
@@ -345,6 +345,6 @@ class="m-0 w-full appearance-none border-0 border-none bg-transparent! p-0 text-
   </nav>
 
   {#if $dashboardToast}
-    <div class="fixed right-5 bottom-5 z-20 max-nav:bottom-[calc(84px+env(safe-area-inset-bottom,0px))] max-w-[min(380px,calc(100vw-40px))] rounded-xl border border-ink bg-ink px-4 py-3 text-canvas text-dash-body leading-[1.4] shadow-[0_10px_30px_#0003]" role="status" aria-live="polite">{$dashboardToast.message}</div>
+    <div class="fixed right-5 bottom-5 z-20 max-nav:bottom-[calc(84px+env(safe-area-inset-bottom,0px))] max-w-[min(380px,calc(100vw-40px))] rounded-xl border border-ink bg-ink px-4 py-3 text-canvas text-dash-body leading-[1.4]" role="status" aria-live="polite">{$dashboardToast.message}</div>
   {/if}
 </div>

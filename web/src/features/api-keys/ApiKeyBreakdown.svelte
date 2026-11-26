@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import { api } from '../../lib/api';
   import { formatCount, formatCompactTokenTotal } from '../../lib/format';
   import type { Translate } from '../../lib/format';
@@ -7,6 +8,7 @@
   import { EMPTY_METRICS, KEY_RANGES, loadKeyMetrics, type KeyMetrics, type KeyRange } from './api-keys.data';
   interface Props { tr: Translate; locale: Locale; keys: GatewayApiKey[]; range?: KeyRange; onRangeChange?: (r: KeyRange) => void; onInspect: (key: GatewayApiKey) => void }
   let { tr, locale, keys, range = '1d', onRangeChange = () => {}, onInspect }: Props = $props();
+  const rangeItems = KEY_RANGES.map((option) => ({ label: tr(option.label === '24H' ? '24 hours' : option.label === '7D' ? '7 days' : '30 days'), value: option.key }));
   type Metric = 'requests' | 'tokens' | 'failures';
   let metric = $state<Metric>('requests');
   let active = $state<string | null>(null);
@@ -73,7 +75,7 @@
           <button type="button" aria-pressed={metric === option.k} class:active={metric === option.k} onclick={() => { metric = option.k as Metric; active = null; }}>{option.l}</button>
         {/each}
       </div>
-      <div class="range-inline"><span>{tr('Time window')}</span><select aria-label={tr('Time window')} value={range} onchange={(e) => onRangeChange(e.currentTarget.value as KeyRange)}>{#each KEY_RANGES as option (option.key)}<option value={option.key}>{tr(option.label === '24H' ? '24 hours' : option.label === '7D' ? '7 days' : '30 days')}</option>{/each}</select></div>
+      <div class="range-inline"><span>{tr('Time window')}</span><SelectOptions ariaLabel={tr('Time window')} value={range} items={rangeItems} onValueChange={(value) => onRangeChange(value as KeyRange)} /></div>
     </div>
   </div>
   {#if partialError}<p class="breakdown-note">{tr('Telemetry temporarily unavailable for some keys.')}</p>{/if}
@@ -118,7 +120,6 @@
   .metric-switch button.active { background:var(--accent); color:var(--accent-contrast); }
   .metric-switch button:focus-visible, .legend-row:focus-visible, .slice:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .range-inline { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; }
-  .range-inline select { border:1px solid var(--line); border-radius:8px; background:var(--surface-sunken); color:var(--ink); padding:4px 8px; font-size:11px; }
   .breakdown-note, .breakdown-hint { margin:10px 0 0; color:var(--muted); font-size:12px; }
   .donut-layout { display:grid; grid-template-columns:200px minmax(0,1fr); gap:18px; align-items:center; margin-top:12px; }
   .donut-wrap { position:relative; width:200px; height:200px; }

@@ -757,8 +757,11 @@ pub(crate) use discovery::{
     GenericModelDiscoveryRequest, discover_api_key_models, discover_generic_api_key_models,
     discover_generic_api_key_models_with_timeout, provider_models_url,
 };
+#[cfg(test)]
+pub use presets::presets;
 pub use presets::{
-    capabilities, default_models, preset_for_adapter, presets, supported_upstream_protocols,
+    ProviderPresetCatalog, capabilities, default_models, preset_for_adapter,
+    supported_upstream_protocols,
 };
 pub(crate) use sse::{
     AdapterSseError, ResponsesStreamAccumulator, accepts_event_stream_response,

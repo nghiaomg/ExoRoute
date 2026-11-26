@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from "../../components/ui/Button.svelte";
+  import Dialog from "../../components/ui/Dialog.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
   import { streamWorkspaceChat } from '../../lib/api/workspace-chat-stream';
@@ -53,7 +54,7 @@
   // Parameters dialog. The backend validates temperature in [0, 2] and
   // max_tokens in [1, 131072] (128 * 1024), and caps the system prompt at
   // 32k chars; the UI clamps to the same bounds before anything is sent.
-  let paramsDialog = $state<HTMLDialogElement>();
+  let paramsOpen = $state(false);
   const CHAT_PARAMETERS_KEY = 'exoroute:chat:parameters';
   const CHAT_MAX_TOKENS_LIMIT = 131072;
   const CHAT_SYSTEM_PROMPT_LIMIT = 32 * 1024;
@@ -372,7 +373,7 @@
     <p>{tr('Test models through the gateway before wiring them into production.')}</p>
   </div>
   <div class="heading-actions">
-    <Button class="action-button" type="button" data-open-modal="chat-settings-dialog">
+    <Button class="action-button" type="button" onclick={() => (paramsOpen = true)}>
       <span class="button-icon"><svg class="icon"><use href="#i-sliders" /></svg></span>
       <span class="button-label">{tr('Parameters')}</span>
     </Button>
@@ -430,7 +431,7 @@
           />
         </div>
         {#if pendingAttachments.length}
-          <span class="ms-auto text-muted text-caption">{tr('{count} attachments queued', { count: pendingAttachments.length })}</span>
+          <span class="ms-auto text-muted text-caption tabular-nums">{tr('{count} attachments queued', { count: pendingAttachments.length })}</span>
         {/if}
       </div>
 
@@ -489,16 +490,10 @@
   </div>
 </div>
 
-<!-- Chat parameters dialog; the shell opens it via [data-open-modal] on the Parameters button -->
-<dialog class="modal" id="chat-settings-dialog" bind:this={paramsDialog} aria-labelledby="chat-settings-title">
-  <form class="modal-card" onsubmit={(e) => { e.preventDefault(); saveChatParameters(); paramsDialog?.close(); showDashboardToast(tr('Parameters applied to the next request')); }}>
-    <div class="modal-heading">
-      <div>
-        <h2 id="chat-settings-title">{tr('Chat parameters')}</h2>
-        <p>{tr('Applied to the next request through the gateway.')}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
+<!-- Chat parameters dialog; the Parameters button opens it through page state. -->
+<Dialog bind:open={paramsOpen} title={tr('Chat parameters')} kicker="" closeLabel={tr('Close dialog')}>
+  <form onsubmit={(e) => { e.preventDefault(); saveChatParameters(); paramsOpen = false; showDashboardToast(tr('Parameters applied to the next request')); }}>
+    <p class="modal-description">{tr('Applied to the next request through the gateway.')}</p>
     <div class="modal-fields grid-cols-2! max-nav:grid-cols-1!">
       <label class="field">
         {tr('Temperature')}
@@ -507,7 +502,7 @@
       </label>
       <label class="field">
         {tr('Max tokens')}
-        <Input type="number" min="64" max="128000" step="64" bind:value={maxTokens} />
+        <Input class="tabular-nums" type="number" min="64" max="128000" step="64" bind:value={maxTokens} />
       </label>
       <label class="field prov-field-wide">
         {tr('System prompt')}
@@ -522,11 +517,11 @@
     </div>
     <div class="modal-actions">
       <Button class="page-action" type="button" onclick={resetChatParameters}>{tr('Reset to defaults')}</Button>
-      <Button class="page-action" type="button" data-close-modal>{tr('Cancel')}</Button>
+      <Button class="page-action" type="button" data-close-modal onclick={() => (paramsOpen = false)}>{tr('Cancel')}</Button>
       <Button class="page-action primary" type="submit">{tr('Apply')}</Button>
     </div>
   </form>
-</dialog>
+</Dialog>
 
 <style>
   /* Scoped ExoRoute Chat workspace: clean SaaS surfaces, minimal borders. */
@@ -537,9 +532,7 @@
     min-height: 480px;
     height: calc(100svh - 320px);
     overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: var(--surface);
+    background: transparent;
   }
 
   .chat-history {
@@ -549,8 +542,8 @@
     min-width: 0;
     min-height: 0;
     padding: 14px 12px;
-    border-right: 1px solid var(--line);
-    background: var(--surface);
+    border-right: 1px solid var(--border-subtle, var(--line));
+    background: var(--surface-hover, var(--surface-raised));
   }
   :global(.chat-new-button) {
     display: flex;
@@ -583,7 +576,7 @@
     background: var(--surface-sunken);
     color: var(--muted);
   }
-  .chat-history-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+  .chat-history-search:focus-within { border-color: var(--accent); outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: -1px; }
   .chat-history-search input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); font-size: 12px; outline: none; }
   .chat-history-list { display: grid; align-content: start; gap: 4px; flex: 1; min-height: 0; overflow-y: auto; }
   .chat-history-item {
@@ -602,7 +595,7 @@
   .chat-history-item.active { border-color: color-mix(in srgb, var(--accent) 24%, var(--line)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
   .chat-history-item strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 13px; font-weight: 600; }
   .chat-history-item.active strong { color: var(--accent-strong); }
-  .chat-history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
+  .chat-history-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
   .chat-history-empty { display: grid; justify-items: center; gap: 6px; padding: 32px 12px; text-align: center; color: var(--muted); }
   .chat-history-empty p { margin: 0; font-size: 12px; font-weight: 600; color: var(--ink); }
   .chat-history-empty small { font-size: 11px; line-height: 1.45; }
@@ -615,7 +608,7 @@
   .chat-message-row.user { justify-content: flex-end; }
   .chat-bubble { max-width: min(78%, 680px); padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; border-bottom-left-radius: 4px; background: var(--surface); color: var(--ink); font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
   .chat-message-row.user .chat-bubble { border-color: var(--accent); border-radius: 12px; border-bottom-right-radius: 4px; background: var(--accent); color: var(--surface); }
-  .chat-bubble.error { border-color: color-mix(in srgb, var(--danger, #dc2626) 45%, var(--line)); }
+  .chat-bubble.error { border-color: color-mix(in srgb, var(--chart-critical) 45%, var(--line)); }
   .chat-caret { display: inline-block; width: 6px; height: 13px; margin-left: 3px; border-radius: 2px; background: var(--accent); vertical-align: -2px; animation: chat-blink 1s step-end infinite; }
   @keyframes chat-blink { 50% { opacity: 0; } }
 
@@ -629,8 +622,8 @@
   .chat-suggestion:hover { border-color: var(--accent); color: var(--accent-strong); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
 
   .chat-composer-dock { flex: 0 0 auto; padding: 10px 16px 14px; border-top: 1px solid var(--line); background: var(--surface); }
-  .chat-composer { display: flex; align-items: flex-end; gap: 8px; max-width: 760px; margin: 0 auto; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 6%, transparent); transition: border-color .15s ease, box-shadow .15s ease; }
-  .chat-composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+  .chat-composer { display: flex; align-items: flex-end; gap: 8px; width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); transition: border-color .15s ease; }
+  .chat-composer:focus-within { border-color: var(--accent); outline: 2px solid var(--focus-ring, var(--accent)); outline-offset: -1px; }
   :global(.chat-attach) { display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
   :global(.chat-attach:hover) { background: var(--surface-sunken); color: var(--ink); }
   .chat-textarea { flex: 1; min-width: 0; min-height: 34px; max-height: 140px; padding: 7px 4px; border: 0; background: transparent; color: var(--ink); font-size: 13px; line-height: 1.5; resize: none; outline: none; }
@@ -639,7 +632,7 @@
   :global(.chat-send) { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; border: 0; border-radius: 10px; background: var(--accent); color: var(--surface); cursor: pointer; transition: background-color .15s ease, opacity .15s ease; }
   :global(.chat-send:hover:not(:disabled)) { background: var(--accent-strong); }
   :global(.chat-send:disabled) { opacity: .45; cursor: not-allowed; }
-  :global(.chat-send.stop) { background: color-mix(in srgb, var(--danger, #dc2626) 85%, var(--ink)); }
+  :global(.chat-send.stop) { background: color-mix(in srgb, var(--chart-critical) 85%, var(--ink)); }
 
   @media (max-width: 920px) {
     .chat-shell { grid-template-columns: 1fr; height: auto; min-height: 70svh; }

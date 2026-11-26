@@ -288,7 +288,7 @@ import { localizedError } from '../../lib/errors';
         <div class="resource-limits-grid">
           <label class="resource-limit-field" for="gateway-body-limit">
             <span>{tr('Gateway request body')}</span>
-            <span class="resource-limit-input"><Input id="gateway-body-limit" type="number" min="1" max="16" step="1" bind:value={draft.gateway_body_limit_mib} disabled={busy !== ''} /><small>MiB</small></span>
+            <span class="resource-limit-input"><Input id="gateway-body-limit" class="tabular-nums" type="number" min="1" max="16" step="1" bind:value={draft.gateway_body_limit_mib} disabled={busy !== ''} /><small>MiB</small></span>
             <small>{tr('Maximum accepted request body size (1–16 MiB).')}</small>
           </label>
           <div class="resource-limit-field">
@@ -306,22 +306,22 @@ import { localizedError } from '../../lib/errors';
           </div>
           <label class="resource-limit-field" for="sse-frame-limit">
             <span>{tr('SSE frame size')}</span>
-            <span class="resource-limit-input"><Input id="sse-frame-limit" type="number" min="0" step="1" bind:value={draft.sse_frame_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
+            <span class="resource-limit-input"><Input id="sse-frame-limit" class="tabular-nums" type="number" min="0" step="1" bind:value={draft.sse_frame_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
             <small>{tr('Maximum size of one streamed event (64 KiB–1 MiB).')}</small>
           </label>
           <label class="resource-limit-field" for="sse-buffer-limit">
             <span>{tr('SSE buffer size')}</span>
-            <span class="resource-limit-input"><Input id="sse-buffer-limit" type="number" min="0" step="1" bind:value={draft.sse_buffer_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
+            <span class="resource-limit-input"><Input id="sse-buffer-limit" class="tabular-nums" type="number" min="0" step="1" bind:value={draft.sse_buffer_limit_kib} disabled={busy !== ''} /><small>KiB</small></span>
             <small>{tr('Maximum buffered stream data (at least the frame size, up to 2 MiB).')}</small>
           </label>
           <label class="resource-limit-field" for="provider-concurrency-limit">
             <span>{tr('Concurrent requests per provider')}</span>
-            <span class="resource-limit-input"><Input id="provider-concurrency-limit" type="number" min="0" max="32" step="1" bind:value={draft.provider_max_concurrency} disabled={busy !== ''} /><small>{tr('requests')}</small></span>
+            <span class="resource-limit-input"><Input id="provider-concurrency-limit" class="tabular-nums" type="number" min="0" max="32" step="1" bind:value={draft.provider_max_concurrency} disabled={busy !== ''} /><small>{tr('requests')}</small></span>
             <small>{tr('Set to 0 for unlimited; finite values allow 1–32 concurrent requests per provider.')}</small>
           </label>
           <label class="resource-limit-field" for="stream-continuity-concurrency-limit">
             <span>{tr('Concurrent continuity tasks')}</span>
-            <span class="resource-limit-input"><Input id="stream-continuity-concurrency-limit" type="number" min="1" max="64" step="1" bind:value={draft.stream_continuity_max_concurrency} disabled={busy !== ''} /><small>{tr('tasks')}</small></span>
+            <span class="resource-limit-input"><Input id="stream-continuity-concurrency-limit" class="tabular-nums" type="number" min="1" max="64" step="1" bind:value={draft.stream_continuity_max_concurrency} disabled={busy !== ''} /><small>{tr('tasks')}</small></span>
             <small>{tr('Choose 1–64 concurrent continuity tasks. This limit is always finite; 0 is not unlimited.')}</small>
           </label>
           <div class="resource-limit-field resource-continuity-field">

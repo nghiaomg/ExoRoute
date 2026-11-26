@@ -38,8 +38,20 @@ pub(crate) struct ProviderAuthStartRequest {
     callback_url: Option<String>,
 }
 
-pub(crate) async fn list_provider_presets() -> ApiResult {
-    Ok(Json(json!({"presets":provider_adapters::presets()})))
+pub(crate) async fn list_provider_presets(State(state): State<AppState>) -> ApiResult {
+    Ok(Json(
+        json!({"presets":state.provider_presets_snapshot().all()}),
+    ))
+}
+
+pub(crate) async fn reload_provider_presets(State(state): State<AppState>) -> ApiResult {
+    match state.reload_provider_presets() {
+        Ok(summary) => Ok(Json(json!(summary))),
+        Err(error) => Err(fail(
+            StatusCode::BAD_REQUEST,
+            format!("provider catalog was not reloaded: {error}"),
+        )),
+    }
 }
 
 pub(crate) async fn start_provider_auth(

@@ -1,5 +1,7 @@
 <script lang="ts">
   import Button from '../../components/ui/Button.svelte';
+  import Input from '../../components/ui/Input.svelte';
+  import SelectOptions from '../../components/ui/SelectOptions.svelte';
   import LanguageSelect from '../../components/layout/LanguageSelect.svelte';
   import { Copy, Menu, Moon, Sun, Terminal, X } from '@lucide/svelte';
   import { t, type Locale } from '../../lib/i18n';
@@ -12,6 +14,10 @@
   interface Props { page: DocsPage; locale: Locale; preferences: Preferences; providerCount?: number; gatewayAddress?: string; onNavigate: (page: Page) => void; onExitDocs: () => void; children?: import('svelte').Snippet }
   let { page, locale, preferences, providerCount = 0, gatewayAddress = '127.0.0.1:8686', onNavigate, onExitDocs, children }: Props = $props();
   let tr: Translate = $derived((key, vars) => t(locale, key, vars));
+  const themeItems = $derived([
+    { label: tr('System theme'), value: 'system' },
+    ...THEMES.map((theme) => ({ label: theme.name, value: theme.id })),
+  ]);
   let copy = $derived(docsCopy(locale));
   let menuOpen = $state(false);
   let query = $state('');
@@ -53,7 +59,7 @@
     </div>
     <label class="docs-search">
       <span class="sr-only">{tr('Search documentation…')}</span>
-      <input type="search" bind:value={query} placeholder={tr('Search documentation…')} aria-label={tr('Search documentation…')} />
+      <Input type="search" bind:value={query} placeholder={tr('Search documentation…')} ariaLabel={tr('Search documentation…')} />
     </label>
     <nav class="docs-nav" aria-label={copy.shell.menu}>
       {#each visible as item (item)}
@@ -62,7 +68,7 @@
     </nav>
     <div class="docs-sidebar-foot">
       <span class="docs-gateway-pill"><i></i>{tr('Gateway local-first')} · {gatewayAddress}</span>
-      <label class="docs-theme-select"><span class="sr-only">{tr('All themes')}</span><select aria-label={tr('All themes')} value={preferences.themePreference} onchange={(e) => preferences.setThemePreference(e.currentTarget.value as ThemePreference)}><option value="system">{tr('System theme')}</option>{#each THEMES as theme}<option value={theme.id}>{theme.name}</option>{/each}</select></label>
+      <label class="docs-theme-select"><span class="sr-only">{tr('All themes')}</span><SelectOptions ariaLabel={tr('All themes')} value={preferences.themePreference} items={themeItems} onValueChange={(value) => preferences.setThemePreference(value as ThemePreference)} /></label>
     </div>
   </aside>
 
@@ -103,7 +109,7 @@
   .docs-version { padding:2px 6px; border:1px solid var(--line); border-radius:6px; color:var(--muted); font-size:10px; }
   :global(.docs-close) { display:none; }
   :global(.docs-back) { width:100%; }
-  .docs-search input { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:var(--surface-sunken); color:var(--ink); font-size:12px; }
+  .docs-search :global(input) { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:var(--surface-sunken); color:var(--ink); font-size:12px; }
   .docs-nav { display:grid; gap:3px; }
   .docs-nav a { display:block; padding:9px 11px; border-radius:9px; color:var(--muted); font-size:13px; font-weight:500; text-decoration:none; }
   .docs-nav a:hover { background:var(--surface-sunken); color:var(--ink); }
@@ -112,7 +118,7 @@
   .docs-sidebar-foot { margin-top:auto; display:grid; gap:8px; padding-top:12px; border-top:1px solid var(--line); }
   .docs-gateway-pill { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; }
   .docs-gateway-pill i { width:6px; height:6px; border-radius:50%; background:var(--chart-good); }
-  .docs-theme-select select { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-sunken); color:var(--ink); font-size:11px; }
+  .docs-theme-select :global(select) { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-sunken); color:var(--ink); font-size:11px; }
   .docs-main { flex:1; min-width:0; }
   .docs-topbar { position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:12px; min-height:56px; padding:8px 20px; border-bottom:1px solid var(--line); background:var(--surface); }
   :global(.docs-menu) { display:none; }

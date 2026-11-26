@@ -90,13 +90,24 @@ impl ProviderUsageRuntime {
     /// Advancing the epoch also prevents an already-running refresh from
     /// repopulating the cache with data for a deleted credential.
     pub(crate) async fn invalidate(&self) {
-        if self
-            .epoch
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |epoch| {
-                epoch.checked_add(1)
-            })
-            .is_err()
-        {
+        let mut current = self.epoch.load(Ordering::Acquire);
+        let mut overflowed = false;
+        loop {
+            let Some(next) = current.checked_add(1) else {
+                overflowed = true;
+                break;
+            };
+            match self.epoch.compare_exchange_weak(
+                current,
+                next,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => break,
+                Err(observed) => current = observed,
+            }
+        }
+        if overflowed {
             // Disable caching rather than allow an ancient in-flight result to
             // match the epoch again after theoretical integer wraparound.
             self.disabled.store(true, Ordering::Release);

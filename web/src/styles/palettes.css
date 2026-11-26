@@ -16,16 +16,21 @@
 :root[data-theme='dark'][data-palette='tokyo-night'] {
   --canvas: #1a1b26;
   --surface: #24283b;
+  --surface-hover: #2a2f45;
   --surface-raised: #292e42;
   --surface-sunken: #16161e;
   --surface-glass-base: #1e2030;
   --surface-shell: #20243a;
   --surface-popover: #24283b;
-  --surface-modal: #1e2030;
+  --surface-modal: #2a3048;
   --surface-backdrop: rgba(14, 15, 24, 0.78);
+  --border-subtle: #38405c;
   --focus-ring: #a9c1ff;
-  --shadow-raised: 0 10px 30px rgba(8, 10, 20, 0.42);
-  --shadow-popover: 0 16px 40px rgba(8, 10, 20, 0.58);
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
   --scrollbar-thumb: #3b4260;
   --scrollbar-thumb-hover: #596386;
   --ink: #c0caf5;
@@ -49,36 +54,36 @@
   background-color: var(--canvas);
 }
 :root[data-theme='dark'][data-palette='tokyo-night'] body::before {
-  background-image:
-    radial-gradient(at 0% 0%, rgba(122, 162, 247, 0.07) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(187, 154, 247, 0.05) 0px, transparent 45%),
-    radial-gradient(at 50% 30%, rgba(41, 46, 66, 0.4) 0px, transparent 65%),
-    radial-gradient(at 0% 100%, rgba(125, 207, 255, 0.04) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(122, 162, 247, 0.05) 0px, transparent 45%);
+  background-image: none;
 }
 :root[data-theme='dark'][data-palette='tokyo-night'] .overview-hero {
-  background: radial-gradient(ellipse at 80% 45%, rgba(42, 48, 74, 0.95) 0, rgba(28, 30, 46, 0.97) 45%, rgba(24, 25, 38, 0.99) 100%) !important;
+  background: var(--surface-raised) !important;
 }
 
 /* ── Catppuccin Mocha ──────────────────────────────────────────────────── */
 :root[data-theme='dark'][data-palette='catppuccin'] {
   --canvas: #1e1e2e;
   --surface: #313244;
+  --surface-hover: #383a4d;
   --surface-raised: #45475a;
   --surface-sunken: #181825;
   --surface-glass-base: #181825;
   --surface-shell: #181825;
   --surface-popover: #313244;
-  --surface-modal: #181825;
+  --surface-modal: #3c3f52;
   --surface-backdrop: rgba(12, 12, 20, 0.8);
+  --border-subtle: #414365;
   --focus-ring: #b4befe;
-  --shadow-raised: 0 10px 28px rgba(8, 8, 16, 0.42);
-  --shadow-popover: 0 16px 40px rgba(8, 8, 16, 0.6);
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
   --scrollbar-thumb: #45475a;
   --scrollbar-thumb-hover: #585b70;
   --ink: #cdd6f4;
   --muted: #9fa6c2;
-  --text-dim: #a6adc8;
+  --text-dim: #b0b6d0;
   --line: rgba(205, 214, 244, 0.1);
   --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
   --accent: #89b4fa;
@@ -97,33 +102,33 @@
   background-color: var(--canvas);
 }
 :root[data-theme='dark'][data-palette='catppuccin'] body::before {
-  background-image:
-    radial-gradient(at 0% 0%, rgba(137, 180, 250, 0.06) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(203, 166, 247, 0.05) 0px, transparent 45%),
-    radial-gradient(at 50% 30%, rgba(49, 50, 68, 0.35) 0px, transparent 65%),
-    radial-gradient(at 0% 100%, rgba(166, 227, 161, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(137, 180, 250, 0.04) 0px, transparent 45%);
+  background-image: none;
 }
 
 /* ── Linear ────────────────────────────────────────────────────────────── */
 :root[data-theme='dark'][data-palette='linear'] {
   --canvas: #111111;
   --surface: #1a1a1c;
+  --surface-hover: #222226;
   --surface-raised: #222226;
   --surface-sunken: #0d0d0f;
   --surface-glass-base: #161618;
   --surface-shell: #111111;
   --surface-popover: #222226;
-  --surface-modal: #161618;
+  --surface-modal: #26262b;
   --surface-backdrop: rgba(0, 0, 0, 0.76);
+  --border-subtle: rgba(255, 255, 255, 0.14);
   --focus-ring: #9ba3ff;
-  --shadow-raised: 0 8px 28px rgba(0, 0, 0, 0.48);
-  --shadow-popover: 0 14px 36px rgba(0, 0, 0, 0.64);
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
   --scrollbar-thumb: #3f3f46;
   --scrollbar-thumb-hover: #62626c;
   --ink: #e5e5e5;
   --muted: #a1a1aa;
-  --text-dim: #a1a1aa;
+  --text-dim: #adadb7;
   --line: rgba(255, 255, 255, 0.08);
   --paper: color-mix(in srgb, var(--surface-glass-base) 72%, transparent);
   --accent: #5e6ad2;
@@ -142,28 +147,28 @@
   background-color: var(--canvas);
 }
 :root[data-theme='dark'][data-palette='linear'] body::before {
-  background-image:
-    radial-gradient(at 0% 0%, rgba(94, 106, 210, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(94, 106, 210, 0.03) 0px, transparent 45%),
-    radial-gradient(at 50% 30%, rgba(26, 26, 28, 0.4) 0px, transparent 65%),
-    radial-gradient(at 0% 100%, rgba(99, 102, 241, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(94, 106, 210, 0.03) 0px, transparent 45%);
+  background-image: none;
 }
 
 /* ── Cyber Neon ────────────────────────────────────────────────────────── */
 :root[data-theme='dark'][data-palette='cyber-neon'] {
   --canvas: #0a0a0f;
   --surface: #12121a;
+  --surface-hover: #1c1c28;
   --surface-raised: #1a1a26;
   --surface-sunken: #08080c;
   --surface-glass-base: #0e0e16;
   --surface-shell: #08080c;
   --surface-popover: #12121a;
-  --surface-modal: #0e0e16;
+  --surface-modal: #1a1a24;
   --surface-backdrop: rgba(3, 3, 8, 0.84);
+  --border-subtle: rgba(0, 245, 213, 0.18);
   --focus-ring: #7dffec;
-  --shadow-raised: 0 0 26px rgba(0, 245, 213, 0.12);
-  --shadow-popover: 0 0 28px rgba(0, 245, 213, 0.16), 0 16px 40px rgba(0, 0, 0, 0.7);
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
   --scrollbar-thumb: #33334a;
   --scrollbar-thumb-hover: #585878;
   --ink: #e0e0ff;
@@ -187,21 +192,17 @@
   background-color: var(--canvas);
 }
 :root[data-theme='dark'][data-palette='cyber-neon'] body::before {
-  background-image:
-    radial-gradient(at 0% 0%, rgba(0, 245, 213, 0.06) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(179, 136, 255, 0.07) 0px, transparent 45%),
-    radial-gradient(at 50% 30%, rgba(18, 18, 26, 0.4) 0px, transparent 65%),
-    radial-gradient(at 0% 100%, rgba(179, 136, 255, 0.04) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(0, 245, 213, 0.05) 0px, transparent 45%);
+  background-image: none;
 }
 
 /* ── Minimal Light ─────────────────────────────────────────────────────── */
 :root[data-theme='light'][data-palette='minimal-light'] {
   --canvas: #f8fafc;
   --ink: #0f172a;
-  --muted: #64748b;
+  --muted: #5b6a80;
   --text-dim: #64748b;
   --line: #e2e8f0;
+  --border-subtle: #cbd5e1;
   --accent: #3b82f6;
   --accent-strong: #2563eb;
   --accent-deep: #1d4ed8;
@@ -214,13 +215,16 @@
   --chart-series-soft: #3b82f6;
   --chart-grid: #e2e8f0;
   --surface-shell: #f1f5f9;
+  --surface-hover: #f1f5f9;
   --surface-popover: #ffffff;
-  --surface-modal: rgba(255, 255, 255, 0.97);
+  --surface-modal: #f8fafc;
   --surface-backdrop: rgba(15, 23, 42, 0.34);
-  --text-dim: #64748b;
   --focus-ring: #1d4ed8;
-  --shadow-raised: 0 8px 24px rgba(15, 23, 42, 0.1);
-  --shadow-popover: 0 16px 36px rgba(15, 23, 42, 0.16);
+  --shadow-raised: none;
+  --shadow-popover: none;
+  --nb-shadow-sm: none;
+  --nb-shadow-md: none;
+  --nb-shadow-lg: none;
   --scrollbar-thumb: #cbd5e1;
   --scrollbar-thumb-hover: #94a3b8;
 }
@@ -228,16 +232,14 @@
   background: #f1f5f9;
 }
 :root[data-theme='light'][data-palette='minimal-light'] body::before {
-  background-image:
-    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.04) 0px, transparent 50%);
+  background-image: none;
 }
 :root[data-theme='dark'][data-palette='catppuccin'] .overview-hero {
-  background: radial-gradient(ellipse at 80% 45%, rgba(49, 50, 68, 0.95) 0, rgba(34, 35, 52, 0.97) 45%, rgba(30, 30, 46, 0.99) 100%) !important;
+  background: var(--surface-raised) !important;
 }
 :root[data-theme='dark'][data-palette='linear'] .overview-hero {
-  background: radial-gradient(ellipse at 80% 45%, rgba(30, 30, 32, 0.95) 0, rgba(22, 22, 24, 0.97) 45%, rgba(17, 17, 17, 0.99) 100%) !important;
+  background: var(--surface-raised) !important;
 }
 :root[data-theme='dark'][data-palette='cyber-neon'] .overview-hero {
-  background: radial-gradient(ellipse at 80% 45%, rgba(18, 26, 36, 0.95) 0, rgba(13, 14, 22, 0.97) 45%, rgba(10, 10, 15, 0.99) 100%) !important;
+  background: var(--surface-raised) !important;
 }

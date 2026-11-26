@@ -27,6 +27,7 @@ pub(crate) async fn create_provider(
     Json(input): Json<ProviderInput>,
 ) -> ApiResult {
     let adapter_id = effective_adapter_id(&input);
+    let seed_adapter_id = adapter_id.clone();
     validate_provider(
         &input,
         &adapter_id,
@@ -261,6 +262,19 @@ pub(crate) async fn create_provider(
                 internal(error)
             }
         })?;
+    // Seed the live catalog (including user models from providers.yaml) so a
+    // newly created provider immediately exposes the configured model list.
+    let default_models = state.provider_presets_default_models(&id, &seed_adapter_id);
+    if !default_models.is_empty() {
+        super::models_store::store_provider_models(
+            &state.db,
+            &id,
+            &default_models,
+            super::models_store::ProviderModelSource::Import,
+            false,
+        )
+        .await?;
+    }
     if enabled {
         notify_enabled_provider_count_changed(&state).await;
     }

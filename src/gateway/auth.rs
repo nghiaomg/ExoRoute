@@ -12,23 +12,23 @@ pub(super) struct AuthenticatedClient {
 pub(super) async fn authenticate_client(
     state: &AppState,
     headers: &HeaderMap,
-) -> Result<AuthenticatedClient, Response> {
+) -> Result<AuthenticatedClient, Box<Response>> {
     let token = headers
         .get(header::AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .or_else(|| headers.get("x-api-key").and_then(|h| h.to_str().ok()));
     let Some(token) = token else {
-        return Err(gateway_error(
+        return Err(Box::new(gateway_error(
             StatusCode::UNAUTHORIZED,
             "gateway API key required",
-        ));
+        )));
     };
     if token.is_empty() || token.len() > 4096 {
-        return Err(gateway_error(
+        return Err(Box::new(gateway_error(
             StatusCode::UNAUTHORIZED,
             "invalid gateway API key",
-        ));
+        )));
     }
     let candidate = token_hash(token);
     let token_index = format!("token/{}", hex_bytes(&candidate));
@@ -56,10 +56,10 @@ pub(super) async fn authenticate_client(
         .await
         .map_err(gateway_database_error)?;
     let Some((key_id, scope)) = authenticated else {
-        return Err(gateway_error(
+        return Err(Box::new(gateway_error(
             StatusCode::UNAUTHORIZED,
             "invalid gateway API key",
-        ));
+        )));
     };
     // `last_used_at` is an administrative hint; throttle writes so it does not
     // turn every accepted gateway request into a serialized LMDB writer.

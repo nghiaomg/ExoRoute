@@ -215,7 +215,7 @@ import { localizedError } from '../../lib/errors';
     <p class="modal-description">
       {tr('Remove provider key “{name}”?', { name: keyToRemove?.name ?? '' })}
     </p>
-    <div class="modal-actions" style="margin-top: 16px;">
+    <div class="modal-actions">
       <Button type="button" class="secondary-button" disabled={Boolean(deletingId)} onclick={() => { keyToRemove = null; }}>
         {tr('Cancel')}
       </Button>

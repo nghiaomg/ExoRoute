@@ -1,3 +1,5 @@
+#[cfg(test)]
+use super::ProviderPresetCatalog;
 use super::{
     AdapterApiKeyRequest, AdapterDeviceAuthorization, AdapterDevicePoll, AdapterKeyTestOutcome,
     AdapterModelTestOutcome, AdapterModelTestRequest, AdapterOAuthAccount, ApiKeyAuthCallback,
@@ -10,6 +12,13 @@ use serde_json::Value;
 
 pub fn adapter(adapter_id: &str) -> Option<&'static dyn ProviderAdapter> {
     registry::adapter(adapter_id)
+}
+
+/// Owned snapshot of all built-in presets for runtime overlays. The static
+/// accessors remain the default path until a user catalog is loaded.
+#[cfg(test)]
+pub fn provider_preset_catalog() -> ProviderPresetCatalog {
+    ProviderPresetCatalog::built_in()
 }
 
 pub fn supports_upstream_protocol(adapter_id: &str, protocol: UpstreamProtocol) -> bool {

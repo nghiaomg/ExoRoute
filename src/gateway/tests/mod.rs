@@ -17,6 +17,7 @@ use tokio::sync::Mutex;
 mod analytics;
 mod api_key_scope;
 mod combo_fallback;
+mod cost_fallback;
 mod fallback_chat;
 mod fallback_messages;
 mod key_rotation;

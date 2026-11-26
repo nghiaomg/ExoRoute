@@ -6,13 +6,13 @@ use super::*;
 
 pub(in crate::gateway) async fn gateway_json_request(
     request: Request<Body>,
-) -> Result<(HeaderMap, Value, GatewayExecutionSettings), Response> {
+) -> Result<(HeaderMap, Value, GatewayExecutionSettings), Box<Response>> {
     let (parts, body) = request.into_parts();
     let Some(context) = parts.extensions.get::<GatewayRequestContext>() else {
-        return Err(gateway_error(
+        return Err(Box::new(gateway_error(
             StatusCode::INTERNAL_SERVER_ERROR,
             "gateway request context was not initialized",
-        ));
+        )));
     };
     let execution_settings = GatewayExecutionSettings {
         resource_limits: context.resource_limits,
@@ -38,10 +38,10 @@ pub(in crate::gateway) async fn gateway_json_request(
                     || subtype.to_ascii_lowercase().ends_with("+json"))
         });
     if !is_json {
-        return Err(gateway_error(
+        return Err(Box::new(gateway_error(
             StatusCode::UNSUPPORTED_MEDIA_TYPE,
             "request Content-Type must be application/json",
-        ));
+        )));
     }
 
     if let Some(content_length) = parts.headers.get(header::CONTENT_LENGTH) {
@@ -55,10 +55,10 @@ pub(in crate::gateway) async fn gateway_json_request(
         if u128::from(content_length)
             > execution_settings.resource_limits.gateway_body_limit_bytes as u128
         {
-            return Err(gateway_error(
+            return Err(Box::new(gateway_error(
                 StatusCode::PAYLOAD_TOO_LARGE,
                 "request body exceeds the configured gateway body limit",
-            ));
+            )));
         }
     }
 
@@ -74,10 +74,10 @@ pub(in crate::gateway) async fn gateway_json_request(
                 .gateway_body_limit_bytes
                 .saturating_sub(body_bytes.len())
         {
-            return Err(gateway_error(
+            return Err(Box::new(gateway_error(
                 StatusCode::PAYLOAD_TOO_LARGE,
                 "request body exceeds the configured gateway body limit",
-            ));
+            )));
         }
         body_bytes.extend_from_slice(&chunk);
     }

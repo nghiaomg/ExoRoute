@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from '../../components/ui/Button.svelte';
+  import Checkbox from '../../components/ui/Checkbox.svelte';
   import { Check, Copy, LoaderCircle, PlugZap, Trash2 } from '@lucide/svelte';
   import { api } from '../../lib/api';
   import { localizedError } from '../../lib/errors';
@@ -46,7 +47,7 @@
     <ProviderAvatar name={provider.name} logoUrl={provider.logo_url} adapterId={provider.adapter_id} providerId={provider.id} className="detail-avatar" />
     <div class="detail-identity">
       <div class="detail-title-row"><h1>{provider.name}</h1><code>{provider.id}</code>
-        <label class="switch-wrap"><input type="checkbox" role="switch" aria-checked={provider.enabled} aria-label={tr(provider.enabled ? 'Enabled' : 'Disabled')} checked={provider.enabled} disabled={toggling} onchange={toggleEnabled} /><span class="switch" class:on={provider.enabled} aria-hidden="true"><i></i></span><span>{tr(provider.enabled ? 'Enabled' : 'Disabled')}</span></label>
+        <span class="switch-wrap" role="switch" aria-checked={provider.enabled} aria-label={tr(provider.enabled ? 'Enabled' : 'Disabled')}><Checkbox checked={provider.enabled} disabled={toggling} ariaLabel={tr(provider.enabled ? 'Enabled' : 'Disabled')} onCheckedChange={() => void toggleEnabled()} /><span class="switch" class:on={provider.enabled} aria-hidden="true"><i></i></span><span>{tr(provider.enabled ? 'Enabled' : 'Disabled')}</span></span>
       </div>
       <div class="detail-url"><span title={provider.base_url}>{provider.base_url}</span><Button class="mini-add" type="button" aria-label={tr('Copy URL')} onclick={copyBaseUrl}><Copy size={13} />{copiedUrl ? tr('URL copied') : tr('Copy URL')}</Button></div>
       <div class="detail-badges"><span class="protocol-pill {protocolBadgeClass(provider.preferred_protocol)}">{labelProtocol(provider.preferred_protocol, tr)}</span><span class="detail-badge">{labelAuthType(provider.auth_type || 'none', tr)}</span><span class="detail-badge">{tr('Model prefix')}: <code>{prefix}</code></span>
@@ -89,12 +90,10 @@
   .detail-badge code { font-family:var(--font-mono); }
   .detail-actions { display:flex; flex-wrap:wrap; gap:8px; }
   .switch-wrap { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
-  .switch-wrap input { position:absolute; width:1px; height:1px; opacity:0; }
   .switch { display:inline-flex; align-items:center; width:30px; height:17px; padding:2px; border:1px solid var(--line); border-radius:999px; background:var(--surface); }
   .switch i { width:11px; height:11px; border-radius:50%; background:var(--muted); transition:transform .15s; }
   .switch.on { border-color:var(--chart-good); background:color-mix(in srgb, var(--chart-good) 18%, var(--surface)); }
   .switch.on i { transform:translateX(13px); background:var(--chart-good); }
-  .switch-wrap input:focus-visible + .switch { outline:2px solid var(--accent); outline-offset:2px; }
   .connection-result { margin:0; font-size:12px; } .connection-result.ok { color:var(--chart-good); } .connection-result.fail { color:var(--accent-strong); }
   .telemetry-strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.6fr); gap:10px; padding-top:14px; border-top:1px solid var(--line); }
   .telemetry-strip > div { display:grid; gap:3px; min-width:0; }

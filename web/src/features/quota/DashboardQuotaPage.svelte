@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from "../../components/ui/Button.svelte";
+  import Dialog from "../../components/ui/Dialog.svelte";
   import StatsCard from "../../components/ui/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
@@ -38,7 +39,7 @@
   let errorMessage = $state('');
   let generation = 0;
 
-  let detailDialog = $state<HTMLDialogElement>();
+  let detailOpen = $state(false);
   let detailView = $state<ProviderQuotaView | null>(null);
 
   const reporting = $derived(views.filter((v) => v.hasData));
@@ -236,7 +237,7 @@
 
   function openDetail(view: ProviderQuotaView): void {
     detailView = view;
-    detailDialog?.showModal();
+    detailOpen = true;
   }
 
   function scrollToCard(providerId: string) {
@@ -258,7 +259,7 @@
   <section class="course-card surface" aria-label={tr('Load error')}>
     <div class="card-title-row"><h2>{tr('Could not load quota')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
-    <div class="modal-actions" style="padding-top:14px">
+    <div class="modal-actions">
       <Button class="page-action primary" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   </section>
@@ -287,7 +288,7 @@
       <div class="mt-3.5 grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 max-nav:grid-cols-1">
         {#each boardViews as view (view.provider.id)}
       <article
-        class="flex min-w-0 flex-col gap-3.5 rounded-[14px] bg-db-tint-strong p-[18px] transition-[background-color,transform,box-shadow] duration-200 hover:bg-surface-sunken {(view.maxUsed ?? 0) >= 90 ? 'bg-db-accent-tint hover:bg-db-accent-tint' : ''}"
+        class="flex min-w-0 flex-col gap-3 border-t border-line px-1 py-3.5 first:border-t-0 {(view.maxUsed ?? 0) >= 90 ? 'bg-db-accent-tint' : ''}"
         class:pending={view.usageIncomplete}
         id="quota-card-{view.provider.id}"
       >
@@ -303,7 +304,7 @@
                 <strong>{view.provider.name}</strong>
                 <span>{view.plan ? tr('{plan} plan', { plan: view.plan }) : view.provider.base_url}{view.quotas[0] ? ` · ${resetLabel(view.quotas[0]) ?? ''}` : ''}</span>
               </div>
-              <span class="status {statusClass(view)}" title={tr('Remaining quota')}>{view.maxUsed === null ? '—' : `${remainingPercent(view.maxUsed)}%`}</span>
+              <span class="status tabular-nums {statusClass(view)}" title={tr('Remaining quota')}>{view.maxUsed === null ? '—' : `${remainingPercent(view.maxUsed)}%`}</span>
             </div>
             <div class="grid gap-3">
               {#if view.quotas.length}
@@ -335,15 +336,8 @@
 {/if}
 
 <!-- Quota detail dialog -->
-<dialog class="modal modal-wide" bind:this={detailDialog} aria-labelledby="quota-dialog-title">
-  <div class="modal-card">
-    <div class="modal-heading">
-      <div>
-        <h2 id="quota-dialog-title">{tr('{name} quota', { name: detailView?.provider.name ?? tr('Provider') })}</h2>
-        <p>{detailView?.plan ? tr('{plan} plan', { plan: detailView.plan }) : detailView?.provider.base_url}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
+<Dialog bind:open={detailOpen} title={tr('{name} quota', { name: detailView?.provider.name ?? tr('Provider') })} kicker="" wide closeLabel={tr('Close dialog')}>
+  <p class="modal-description">{detailView?.plan ? tr('{plan} plan', { plan: detailView.plan }) : detailView?.provider.base_url}</p>
     <div class="grid gap-3.5">
       {#if detailView?.quotas.length}
         {#each detailView.quotas as quota, i (i)}
@@ -376,7 +370,6 @@
     </div>
     <p class="form-note">{tr('Quota values are informational and never change provider routing.')}</p>
     <div class="modal-actions">
-      <Button class="page-action" type="button" data-close-modal>{tr('Close')}</Button>
+      <Button class="page-action" type="button" data-close-modal onclick={() => (detailOpen = false)}>{tr('Close')}</Button>
     </div>
-  </div>
-</dialog>
+  </Dialog>

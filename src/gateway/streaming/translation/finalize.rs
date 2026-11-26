@@ -180,6 +180,45 @@ pub(in crate::gateway::streaming) async fn log_failed(
 
 /// Records the completed-stream log entry with usage captured mid-stream.
 pub(in crate::gateway::streaming) async fn log_completed(log: StreamLog, state: &TranslationState) {
+    let mut cost_micro_usd = state.cost_micro_usd;
+    if cost_micro_usd.is_none() && state.has_usage {
+        let provider_id = log.provider_id.clone();
+        let lookup_id = provider_id.clone();
+        let adapter_id = log
+            .state
+            .db
+            .read(move |transaction| {
+                let Some(record) = transaction
+                    .get::<crate::infra::storage::Record>(
+                        crate::infra::storage::Table::Providers,
+                        &lookup_id,
+                    )
+                    .ok()
+                    .flatten()
+                else {
+                    return Ok(None);
+                };
+                Ok(record.text("adapter_id").ok().map(str::to_owned))
+            })
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+        if let Some(pricing) =
+            log.state
+                .resolve_model_pricing(&provider_id, &adapter_id, &log.model)
+        {
+            cost_micro_usd = crate::config::provider_catalog::estimate_cost_micro_usd(
+                &pricing,
+                state.input_tokens,
+                state.output_tokens,
+                state.cached_tokens,
+                state.cache_input_tokens.saturating_sub(state.cached_tokens),
+                0,
+            )
+            .and_then(|value| i64::try_from(value).ok());
+        }
+    }
     log_completed_stream(
         log,
         state
@@ -192,7 +231,7 @@ pub(in crate::gateway::streaming) async fn log_completed(log: StreamLog, state: 
             .then_some(state.cached_tokens.min(i64::MAX as u64) as i64),
         (state.cache_input_tokens > 0 || state.cached_tokens > 0)
             .then_some(state.cache_input_tokens.min(i64::MAX as u64) as i64),
-        state.cost_micro_usd,
+        cost_micro_usd,
     )
     .await;
 }

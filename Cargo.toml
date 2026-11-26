@@ -33,6 +33,7 @@ rsa = { version = "0.9", default-features = false, features = ["pem"] }
 rust-embed = "8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_yaml_ng = "0.10"
 sha2 = { version = "0.10", features = ["oid"] }
 subtle = "2"
 tokio = { version = "1", features = ["fs", "io-util", "macros", "process", "rt-multi-thread", "signal", "sync", "time"] }

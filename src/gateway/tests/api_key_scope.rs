@@ -176,7 +176,7 @@ async fn a_corrupt_stored_scope_fails_authentication_closed() {
 
     let response = match authenticate_client(&state, &bearer("corrupt-token")).await {
         Ok(_) => panic!("a corrupt scope must not authenticate"),
-        Err(response) => response,
+        Err(response) => *response,
     };
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }

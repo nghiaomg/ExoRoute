@@ -77,10 +77,14 @@
         onclick={() => select(entry.preference)}
       >
         {#if entry.theme}
-          <span class="appearance-theme-preview theme-preview-{entry.theme.id}" style="background: {entry.theme.swatches[0]};" aria-hidden="true">
-            <span class="appearance-theme-preview-surface" style="background: {entry.theme.swatches[1]};"></span>
-            <span class="appearance-theme-preview-accent" style="background: {entry.theme.swatches[2]};"></span>
-            <span class="appearance-theme-preview-text" style="background: {entry.theme.swatches[3]};"></span>
+          <span
+            class="appearance-theme-preview"
+            style="--preview-canvas: {entry.theme.swatches[0]}; --preview-surface: {entry.theme.swatches[1]}; --preview-accent: {entry.theme.swatches[2]}; --preview-text: {entry.theme.swatches[3]}; --preview-radius: {entry.theme.previewRadius}; --preview-accent-contrast: {entry.theme.previewAccentContrast};"
+            aria-hidden="true"
+          >
+            <span class="appearance-theme-preview-surface"></span>
+            <span class="appearance-theme-preview-lines"></span>
+            <span class="appearance-theme-preview-accent">Aa</span>
           </span>
           <span class="appearance-theme-name">
             {entry.theme.name}
@@ -91,7 +95,8 @@
         {:else}
           <span class="appearance-theme-preview system-theme-preview" aria-hidden="true">
             <span class="system-theme-light"></span><span class="system-theme-dark"></span>
-            <span class="appearance-theme-preview-accent"></span>
+            <span class="appearance-theme-preview-lines"></span>
+            <span class="appearance-theme-preview-accent">Aa</span>
           </span>
           <span class="appearance-theme-name">
             {tr('System theme')}
@@ -125,7 +130,7 @@
     font: inherit;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease;
+    transition: border-color 0.14s ease, transform 0.14s ease;
   }
 
   :global(.appearance-theme-card:hover) {
@@ -135,7 +140,8 @@
 
   :global(.appearance-theme-card.selected) {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 
   :global(.appearance-theme-card:focus-visible) {
@@ -150,8 +156,8 @@
   .system-theme-preview {
     position: relative;
     display: block;
-    height: 52px;
-    border: 1px solid var(--line);
+    height: 56px;
+    border: 1px solid var(--border-subtle, var(--line));
     border-radius: var(--radius-md);
     overflow: hidden;
     background: linear-gradient(90deg, #f6f7fb 0 50%, #11121b 50% 100%);
@@ -159,56 +165,85 @@
 
   .system-theme-light, .system-theme-dark {
     position: absolute;
-    top: 9px;
+    top: 8px;
     width: 38%;
-    height: 17px;
-    border-radius: 4px;
+    height: 18px;
+    border: 1px solid var(--border-subtle, var(--line));
+    border-radius: 6px;
   }
-
-  .system-theme-light { left: 7%; background: #fff; border: 1px solid #d7d9e1; }
-  .system-theme-dark { right: 7%; background: #202332; border: 1px solid #45485a; }
+  .system-theme-light { left: 7%; background: #ffffff; }
+  .system-theme-dark { right: 7%; background: #202332; }
   .system-theme-preview .appearance-theme-preview-accent {
-    left: 7%; bottom: 7px; width: 86%; height: 5px;
+    left: 7%;
+    bottom: 7px;
+    width: 86%;
+    height: 12px;
     background: linear-gradient(90deg, #f97316 0 48%, #89b4fa 52% 100%);
+    color: #111827;
   }
 
+  /* Miniature flat UI: canvas → bordered surface → text lines → accent control.
+     Geometry and accent contrast come from the theme catalog, not hardcodes. */
   .appearance-theme-preview {
     position: relative;
     display: block;
-    height: 52px;
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(0, 0, 0, 0.14);
+    height: 56px;
+    border: 1px solid var(--border-subtle, var(--line));
+    border-radius: var(--preview-radius, var(--radius-md, 8px));
+    background: var(--preview-canvas, var(--canvas));
     overflow: hidden;
   }
 
   .appearance-theme-preview-surface {
     position: absolute;
-    inset: 8px 12px auto;
-    height: 18px;
+    inset: 7px 9px auto;
+    height: 25px;
     display: block;
-    border-radius: 5px;
-    border: 1px solid rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--border-subtle, var(--line));
+    border-radius: var(--preview-radius, var(--radius-md, 8px));
+    background: var(--preview-surface, var(--surface));
+  }
+
+  .appearance-theme-preview-lines,
+  .system-theme-preview .appearance-theme-preview-lines {
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    width: 44px;
+    height: 3px;
+    display: block;
+    border-radius: var(--radius-full);
+    background: var(--preview-text, var(--muted));
+    opacity: 0.85;
+  }
+
+  .appearance-theme-preview-lines::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 70%;
+    height: 3px;
+    border-radius: var(--radius-full);
+    background: var(--preview-text, var(--muted));
   }
 
   .appearance-theme-preview-accent {
     position: absolute;
     left: 12px;
-    bottom: 8px;
-    width: 26px;
-    height: 8px;
-    display: block;
-    border-radius: var(--radius-full);
-  }
-
-  .appearance-theme-preview-text {
-    position: absolute;
-    left: 46px;
-    bottom: 10px;
-    width: 44px;
-    height: 4px;
-    display: block;
-    border-radius: var(--radius-full);
-    opacity: 0.85;
+    bottom: 7px;
+    min-width: 28px;
+    height: 13px;
+    padding: 0 5px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: max(2px, calc(var(--preview-radius, 8px) / 2));
+    background: var(--preview-accent, var(--accent));
+    color: var(--preview-accent-contrast, var(--accent-contrast));
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
   }
 
   .appearance-theme-name {

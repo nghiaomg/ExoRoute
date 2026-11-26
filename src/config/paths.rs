@@ -224,6 +224,17 @@ pub(crate) fn atomic_replace_file(source: &Path, destination: &Path) -> io::Resu
     }
 }
 
-pub(crate) fn app_dir_from_home(home: &Path) -> PathBuf {
+pub fn app_dir_from_home(home: &Path) -> PathBuf {
     home.join(".exoroute")
+}
+
+/// Path of the user-editable provider catalog overlay. A missing `HOME` is
+/// degenerate for the whole application (`app_dir()` reports it), so the
+/// helper falls back to a relative `.exoroute` path rather than panicking.
+pub fn providers_yaml_path() -> PathBuf {
+    let home = env::var_os("HOME")
+        .or_else(|| env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+        .unwrap_or_default();
+    app_dir_from_home(&home).join("providers.yaml")
 }

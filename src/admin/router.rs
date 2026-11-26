@@ -23,6 +23,10 @@ fn provider_routes() -> Router<AppState> {
         .route("/api/v1/admin/metrics", get(prometheus_metrics))
         .route("/api/v1/admin/provider-presets", get(list_provider_presets))
         .route(
+            "/api/v1/admin/provider-presets/reload",
+            post(reload_provider_presets),
+        )
+        .route(
             "/api/v1/admin/providers",
             get(providers::list_providers).post(providers::create_provider),
         )

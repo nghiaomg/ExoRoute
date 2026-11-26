@@ -1,5 +1,6 @@
 <script lang="ts">
   import Button from "../../components/ui/Button.svelte";
+  import Dialog from "../../components/ui/Dialog.svelte";
   import StatsCard from "../../components/ui/StatsCard.svelte";
   import { onDestroy, onMount } from 'svelte';
   import { api } from '../../lib/api';
@@ -26,6 +27,7 @@
 
   let providers = $state<Provider[]>([]);
   let presets = $state<ProviderPreset[]>([]);
+  let reloadingPresets = $state(false);
   let loading = $state(true);
   let errorMessage = $state('');
   let generation = 0;
@@ -34,7 +36,7 @@
   let statusFilter = $state('all');
 
   // Keys dialog
-  let keysDialog = $state<HTMLDialogElement>();
+  let keysOpen = $state(false);
   let keysProvider = $state<Provider | null>(null);
   let keys = $state<ProviderKey[]>([]);
   let keysLoading = $state(false);
@@ -42,7 +44,7 @@
   let keyBusy = $state(false);
 
   // Delete dialog
-  let deleteDialog = $state<HTMLDialogElement>();
+  let deleteOpen = $state(false);
   let deleteTarget = $state<Provider | null>(null);
   let deleteBusy = $state(false);
 
@@ -51,7 +53,7 @@
   let detailProviderId = $state<string | null>(null);
 
   // Test-all dialog
-  let testDialog = $state<HTMLDialogElement>();
+  let testOpen = $state(false);
   let testRows = $state<{ id: string; name: string; state: 'pending' | 'testing' | 'ok' | 'fail'; detail: string }[]>([]);
   let testRunning = $state(false);
   let creatingPresetId = $state<string | null>(null);
@@ -196,6 +198,22 @@
 
 
 
+  async function handleReloadProviderPresets(): Promise<void> {
+    if (reloadingPresets) return;
+    reloadingPresets = true;
+    try {
+      const result = await api.reloadProviderPresets();
+      presets = await api.providerPresets();
+      const overlaid = result.overlaid_providers?.length ?? 0;
+      showDashboardToast(tr('Reloaded {count} presets from providers.yaml ({overlaid} overlaid)', { count: result.provider_count, overlaid }));
+    } catch (error) {
+      showDashboardToast(error instanceof Error ? error.message : tr('Could not reload providers.yaml'));
+    } finally {
+      reloadingPresets = false;
+    }
+  }
+
+
   async function toggleProvider(provider: Provider): Promise<void> {
     const next = !provider.enabled;
     providers = providers.map((p) => (p.id === provider.id ? { ...p, enabled: next } : p));
@@ -212,7 +230,7 @@
     keysProvider = provider;
     keys = [];
     newKey = '';
-    keysDialog?.showModal();
+    keysOpen = true;
     keysLoading = true;
     try {
       const page = await api.providerKeys(provider.id);
@@ -256,7 +274,7 @@
 
   function openDelete(provider: Provider): void {
     deleteTarget = provider;
-    deleteDialog?.showModal();
+    deleteOpen = true;
   }
 
   /** Opens the full-page provider detail view and records it in the URL. */
@@ -314,7 +332,7 @@
       providers = providers.filter((p) => p.id !== deleteTarget?.id);
       onProviderCountChange(providers.length);
       showDashboardToast(tr('Provider "{name}" deleted', { name: deleteTarget.name }));
-      deleteDialog?.close();
+      deleteOpen = false;
     } catch (error) {
       showDashboardToast(error instanceof Error ? error.message : tr('Could not delete provider'));
     } finally {
@@ -340,7 +358,7 @@
     const targets = providers.filter((p) => p.enabled);
     testRows = targets.map((p) => ({ id: p.id, name: p.name, state: 'pending', detail: '' }));
     testRunning = true;
-    testDialog?.showModal();
+    testOpen = true;
     for (let i = 0; i < testRows.length; i++) {
       const row = testRows[i];
       testRows[i] = { ...row, state: 'testing', detail: tr('testing…') };
@@ -413,6 +431,9 @@
       <span class="button-icon"><svg class="icon"><use href="#i-zap" /></svg></span>
       <span class="button-label">{tr('Test all')}</span>
     </Button>
+    <Button variant="secondary" class="action-button" type="button" disabled={reloadingPresets} title={tr('Reload ~/.exoroute/providers.yaml')} onclick={() => void handleReloadProviderPresets()}>
+      <span class="button-label">{reloadingPresets ? tr('Reloading…') : tr('Reload YAML')}</span>
+    </Button>
   </div>
 </div>
 
@@ -420,7 +441,7 @@
   <section class="course-card surface" aria-label={tr('Load error')}>
     <div class="card-title-row"><h2>{tr('Could not load providers')}</h2></div>
     <p class="card-subtitle">{errorMessage}</p>
-    <div class="modal-actions" style="padding-top:14px">
+    <div class="modal-actions">
       <Button class="page-action primary disabled:opacity-55 disabled:cursor-default" type="button" onclick={load}>{tr('Retry')}</Button>
     </div>
   </section>
@@ -482,7 +503,7 @@
                         </span>
                         <span class="course-copy">
                           <strong>{provider.name}</strong>
-                          <span>{fmtKeys(provider)} · {provider.model_count ?? 0} {tr('models')}</span>
+                          <span class="tabular-nums">{fmtKeys(provider)} · {provider.model_count ?? 0} {tr('models')}</span>
                         </span>
                         {#if provider.enabled && !(provider.api_key_count ?? 0)}
                           <span class="status pending">{tr('No keys')}</span>
@@ -546,15 +567,8 @@
 
 
 <!-- Manage API keys -->
-<dialog class="modal modal-wide w-[min(94vw,560px)]!" bind:this={keysDialog} aria-labelledby="keys-dialog-title">
-  <div class="modal-card">
-    <div class="modal-heading">
-      <div>
-        <h2 id="keys-dialog-title">{tr('API keys')}</h2>
-        <p>{tr('Credentials for')} <strong>{keysProvider?.name ?? tr('provider')}</strong>.</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
+<Dialog bind:open={keysOpen} title={tr('API keys')} kicker="" wide closeLabel={tr('Close dialog')}>
+  <p class="modal-description">{tr('Credentials for')} <strong>{keysProvider?.name ?? tr('provider')}</strong>.</p>
     <div class="grid max-h-60 gap-2 overflow-y-auto">
       {#if keysLoading}
         <p class="card-subtitle" style="padding:12px 4px">{tr('Loading keys…')}</p>
@@ -579,38 +593,22 @@
       <Button class="page-action primary disabled:opacity-55 disabled:cursor-default" type="submit" disabled={keyBusy || !newKey.trim()}>{keyBusy ? tr('Testing…') : tr('Add key')}</Button>
     </form>
     <div class="modal-actions">
-      <Button class="page-action disabled:opacity-55 disabled:cursor-default" type="button" data-close-modal>{tr('Close')}</Button>
+      <Button class="page-action" type="button" data-close-modal onclick={() => (keysOpen = false)}>{tr('Close')}</Button>
     </div>
-  </div>
-</dialog>
+  </Dialog>
 
 <!-- Delete confirm -->
-<dialog class="modal" bind:this={deleteDialog} aria-labelledby="delete-dialog-title">
-  <div class="modal-card">
-    <div class="modal-heading">
-      <div>
-        <h2 id="delete-dialog-title">{tr('Delete provider?')}</h2>
-        <p>{tr('This removes {name} and its credentials. Combos referencing it will lose that target.', { name: deleteTarget?.name ?? tr('the provider') })}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
-    <div class="modal-actions">
-      <Button class="page-action disabled:opacity-55 disabled:cursor-default" type="button" data-close-modal>{tr('Cancel')}</Button>
+<Dialog bind:open={deleteOpen} title={tr('Delete provider?')} kicker="" closeLabel={tr('Close dialog')}>
+  <p class="modal-description">{tr('This removes {name} and its credentials. Combos referencing it will lose that target.', { name: deleteTarget?.name ?? tr('the provider') })}</p>
+  <div class="modal-actions">
+    <Button class="page-action disabled:opacity-55 disabled:cursor-default" type="button" data-close-modal onclick={() => (deleteOpen = false)}>{tr('Cancel')}</Button>
       <Button class="page-action danger" type="button" onclick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? tr('Deleting…') : tr('Delete provider')}</Button>
     </div>
-  </div>
-</dialog>
+  </Dialog>
 
 <!-- Test all results -->
-<dialog class="modal" bind:this={testDialog} aria-labelledby="test-all-title">
-  <div class="modal-card">
-    <div class="modal-heading">
-      <div>
-        <h2 id="test-all-title">{tr('Connection test')}</h2>
-        <p>{tr('Test all')}</p>
-      </div>
-      <Button class="modal-close" type="button" data-close-modal aria-label={tr('Close dialog')}>×</Button>
-    </div>
+<Dialog bind:open={testOpen} title={tr('Connection test')} kicker="" closeLabel={tr('Close dialog')}>
+  <p class="modal-description">{tr('Test all')}</p>
     <div class="grid gap-[8px]">
       {#each testRows as row (row.id)}
         <div
@@ -625,8 +623,7 @@
       {/each}
     </div>
     <div class="modal-actions">
-      <Button class="page-action disabled:opacity-55 disabled:cursor-default" type="button" data-close-modal>{tr('Close')}</Button>
+      <Button class="page-action" type="button" data-close-modal onclick={() => (testOpen = false)}>{tr('Close')}</Button>
       <Button class="page-action primary disabled:opacity-55 disabled:cursor-default" type="button" onclick={runAllTests} disabled={testRunning}>{testRunning ? tr('Running…') : tr('Run again')}</Button>
     </div>
-  </div>
-</dialog>
+  </Dialog>
