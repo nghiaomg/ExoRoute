@@ -260,7 +260,7 @@ fn validate(config: &ProvidersYamlConfig) -> Result<(), ProviderCatalogError> {
                     ("reasoning_per_million", pricing.reasoning_per_million),
                 ] {
                     if let Some(price) = price
-                        && (!price.is_finite() || price < 0.0 || price > MAX_PRICE_PER_MILLION)
+                        && !(0.0..=MAX_PRICE_PER_MILLION).contains(&price)
                     {
                         return Err(ProviderCatalogError::Invalid(format!(
                             "invalid {name} {price} for model '{model}' in provider '{key}': expected a finite value in 0..={MAX_PRICE_PER_MILLION}"

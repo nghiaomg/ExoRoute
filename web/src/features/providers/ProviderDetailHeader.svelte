@@ -1,6 +1,5 @@
 <script lang="ts">
   import Button from '../../components/ui/Button.svelte';
-  import Checkbox from '../../components/ui/Checkbox.svelte';
   import { Check, Copy, LoaderCircle, PlugZap, Trash2 } from '@lucide/svelte';
   import { api } from '../../lib/api';
   import { localizedError } from '../../lib/errors';
@@ -47,7 +46,10 @@
     <ProviderAvatar name={provider.name} logoUrl={provider.logo_url} adapterId={provider.adapter_id} providerId={provider.id} className="detail-avatar" />
     <div class="detail-identity">
       <div class="detail-title-row"><h1>{provider.name}</h1><code>{provider.id}</code>
-        <span class="switch-wrap" role="switch" aria-checked={provider.enabled} aria-label={tr(provider.enabled ? 'Enabled' : 'Disabled')}><Checkbox checked={provider.enabled} disabled={toggling} ariaLabel={tr(provider.enabled ? 'Enabled' : 'Disabled')} onCheckedChange={() => void toggleEnabled()} /><span class="switch" class:on={provider.enabled} aria-hidden="true"><i></i></span><span>{tr(provider.enabled ? 'Enabled' : 'Disabled')}</span></span>
+        <span class="switch-wrap" role="switch" aria-checked={provider.enabled} aria-label={tr(provider.enabled ? 'Enabled' : 'Disabled')}>
+          <input class="switch-input" type="checkbox" checked={provider.enabled} disabled={toggling} aria-label={tr(provider.enabled ? 'Enabled' : 'Disabled')} onchange={() => void toggleEnabled()} />
+          <span class="switch" class:on={provider.enabled} aria-hidden="true"><i></i></span><span>{tr(provider.enabled ? 'Enabled' : 'Disabled')}</span>
+        </span>
       </div>
       <div class="detail-url"><span title={provider.base_url}>{provider.base_url}</span><Button class="mini-add" type="button" aria-label={tr('Copy URL')} onclick={copyBaseUrl}><Copy size={13} />{copiedUrl ? tr('URL copied') : tr('Copy URL')}</Button></div>
       <div class="detail-badges"><span class="protocol-pill {protocolBadgeClass(provider.preferred_protocol)}">{labelProtocol(provider.preferred_protocol, tr)}</span><span class="detail-badge">{labelAuthType(provider.auth_type || 'none', tr)}</span><span class="detail-badge">{tr('Model prefix')}: <code>{prefix}</code></span>
@@ -56,10 +58,10 @@
     </div>
   </div>
   <div class="detail-actions">
-    <Button class="secondary-button compact" type="button" disabled={testing || toggling} onclick={testConnection}><PlugZap size={14} />{testing ? tr('Testing connection') : tr('Test connection')}</Button>
-    <Button class="secondary-button compact" type="button" onclick={onEdit}>{tr('Provider Configurations')}</Button>
-    {#if provider.capabilities?.api_keys === true}<Button class="primary-button compact" type="button" onclick={onManageKeys}>{tr('Manage keys')}</Button>{/if}
-    <Button class="detail-delete-btn" type="button" title={tr('Delete {name}', { name: provider.name })} onclick={onDelete}><Trash2 size={14} />{tr('Delete provider')}</Button>
+    <Button class="secondary-button compact" size="compact" type="button" disabled={testing || toggling} onclick={testConnection}><PlugZap size={14} />{testing ? tr('Testing connection') : tr('Test connection')}</Button>
+    <Button class="secondary-button compact" size="compact" type="button" onclick={onEdit}>{tr('Provider Configurations')}</Button>
+    {#if provider.capabilities?.api_keys === true}<Button class="primary-button compact" size="compact" type="button" onclick={onManageKeys}>{tr('Manage keys')}</Button>{/if}
+    <Button class="detail-delete-btn" size="compact" type="button" title={tr('Delete {name}', { name: provider.name })} onclick={onDelete}><Trash2 size={14} />{tr('Delete provider')}</Button>
   </div>
   {#if testResult}<p class="connection-result" class:ok={testResult === 'ok'} class:fail={testResult === 'fail'} role="status">{testResult === 'ok' ? '✓' : '✕'} {testDetail}</p>{/if}
   <div class="telemetry-strip" aria-label={tr('Provider telemetry')}>
@@ -89,7 +91,10 @@
   .detail-badge.warn { color:var(--accent-strong); }
   .detail-badge code { font-family:var(--font-mono); }
   .detail-actions { display:flex; flex-wrap:wrap; gap:8px; }
-  .switch-wrap { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
+  .detail-actions :global(button) { min-height:30px; padding:0 10px; gap:6px; font-size:12px; line-height:1.2; }
+  .switch-wrap { position:relative; display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
+  .switch-input { position:absolute; opacity:0; width:0; height:0; pointer-events:none; }
+  .switch-input:focus-visible + .switch { outline:2px solid var(--accent); outline-offset:2px; }
   .switch { display:inline-flex; align-items:center; width:30px; height:17px; padding:2px; border:1px solid var(--line); border-radius:999px; background:var(--surface); }
   .switch i { width:11px; height:11px; border-radius:50%; background:var(--muted); transition:transform .15s; }
   .switch.on { border-color:var(--chart-good); background:color-mix(in srgb, var(--chart-good) 18%, var(--surface)); }
