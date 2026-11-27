@@ -134,10 +134,9 @@ async fn valid_key_login_session_and_stats_are_scoped() {
     assert_eq!(body["authenticated"], true);
     assert_eq!(body["key"]["id"], "key-a");
     assert!(
-        serde_json::to_string(&body)
+        !serde_json::to_string(&body)
             .expect("body")
-            .find(TOKEN_A)
-            .is_none()
+            .contains(TOKEN_A)
     );
 
     let session = json_body(get(&app, "/api/v1/key-portal/session", &cookie).await).await;
