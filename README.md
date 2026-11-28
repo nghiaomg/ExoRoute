@@ -1,80 +1,38 @@
 # ExoRoute
 
-**Local-first AI gateway · single binary · 43 providers · 3 API formats**
+**A local-first AI gateway in a single Rust binary.**  
+Route OpenAI, Anthropic, and Responses API traffic across **43 providers** with automatic failover, `providers.yaml` hot-reload, and a built-in dashboard — no Docker, no Postgres, no Redis.
 
-`Rust` · `127.0.0.1:8686` · `~/.exoroute` · `MIT`
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/Built%20with-Rust-orange.svg)](#build-from-source)
+[![Releases](https://img.shields.io/github/v/release/nghiaomg/ExoRoute)](https://github.com/nghiaomg/ExoRoute/releases)
 
-ExoRoute lets one client talk to many AI providers through one stable API.
-
----
-
-## ⚡ Port Ready (Cold Start)
-
-**Process start → TCP ready: 1.208s — fastest in the comparison.**
-
-| Metric | **ExoRoute** | 9router | OmniRoute |
-|---|---:|---:|---:|
-| Ready time | **1.208s** | 7.732s (6.4x slower) | 6.221s (5.1x slower) |
-| Working set | **26.4 MiB** | 164.8 MiB | 524.5 MiB |
-| Private bytes | **15.0 MiB** | 166.0 MiB | 565.4 MiB |
-| Peak startup CPU | **0.134%** | 7.517% | 11.150% |
-
-*Reported cold-start figures; publish harness, machine, and workload for reproducibility.*
-
----
-
-## Provider coverage
-
-| Type | Count | Examples |
-|---|---:|---|
-| Cloud APIs | **23** | OpenAI · Anthropic · Gemini · DeepSeek · xAI · Mistral · Perplexity · Groq · Cerebras · DashScope · Together · Fireworks · Moonshot · Zhipu · MiniMax · Azure OpenAI · Vertex AI · GitHub Models · and more |
-| Hosted gateways | **11** | OpenRouter · OpenCode Go/Zen · NVIDIA NIM · Kilo Gateway · Command Code · Freebuff · Ollama · LM Studio · vLLM · Devin CLI |
-| Subscription / OAuth | **9** | OpenAI Codex · Antigravity · Kilo Code · Qoder · Kiro · Cline · ClinePass · Muse |
-| Custom | **+1** | Any OpenAI-compatible endpoint |
-
-**43 built-in presets + custom provider support.**
-
----
-
-## Why ExoRoute
-
-| For you | In practice |
-|---|---|
-| One API, every model | Use your existing OpenAI or Anthropic SDK; switch providers without rewriting client code. |
-| Fewer interruptions | Friendly aliases try the next model automatically when a provider is rate-limited or fails. |
-| New models, no release wait | Edit `~/.exoroute/providers.yaml`; changes apply immediately, or press `[r]` + Enter in the terminal. OpenCode Go/Zen discovers new upstream models on its own. |
-| Keys that keep working | Add unlimited keys per provider; failed or exhausted keys are skipped automatically. |
-| Costs stay visible | Missing upstream cost is estimated from your own prices in `providers.yaml`. |
-| Streams survive disconnects | Live token tracking; optional continuity resumes a stream after a client drops. |
-| A usable dashboard | Manage providers, keys, routes, proxies, usage, request history, and themes in one place. |
-| Private stats per key | A gateway key holder (`exo_...`) signs in separately and sees only that key's data — never admin routes. |
-
----
-
-## Quick start
-
-```sh
-npm install -g exoroute
+```text
+Claude Code / Cursor / OpenAI SDK / Anthropic SDK
+                      │
+                      ▼  (127.0.0.1:8686)
+              ┌───────────────┐
+              │   ExoRoute    │  ← Single Rust binary (~15 MiB RAM)
+              │  • Failover   │  ← Embedded LMDB + Web UI
+              │  • Key Portal │  ← Live providers.yaml hot-reload
+              └───────┬───────┘
+                      │
+     ┌────────────────┼────────────────┐
+     ▼                ▼                ▼
+ Cloud APIs    Hosted Gateways   OAuth / Local
+(OpenAI, ...)  (OpenRouter, ...) (Ollama, Codex, ...)
+Why ExoRoute?One endpoint, 3 API formats: Speak /v1/chat/completions, /v1/responses, or /v1/messages — ExoRoute translates protocols and streaming SSE frames automatically.Resilient failover & multi-key rotation: Group models into aliases (combos) and attach unlimited API keys per provider. Rate-limited or failing keys/upstreams are skipped automatically.Zero-downtime model updates: Edit ~/.exoroute/providers.yaml and changes apply immediately (or press r + Enter in the terminal). OpenCode Go/Zen models are auto-discovered upstream without manual config.Built for long coding sessions: Protocol-aware SSE keep-alive (event: ping for Anthropic), live token/cache accounting, fallback cost estimation, and optional stream continuity across client disconnects.Scoped Key Portal: Issue exo_... gateway keys so teammates or apps can sign in with their key and inspect only their own usage, cost, and request logs — strictly isolated from admin routes.
+Cold-Start FootprintMeasured from process launch to TCP port ready on the same machine:MetricExoRoute9routerOmniRoutePort ready (cold start)1.208 s7.732 s (6.4× slower)6.221 s (5.1× slower)Working set (RAM)26.4 MiB164.8 MiB524.5 MiBPrivate bytes15.0 MiB166.0 MiB565.4 MiBPeak startup CPU0.134%7.517%11.150%
+Quick Start1. Install & RunBashnpm install -g exoroute
 exoroute
-```
-
-Open <http://127.0.0.1:8686>, sign in, add a provider, create a combo, then generate a gateway key.
-
-```sh
-curl http://127.0.0.1:8686/v1/chat/completions \
-  -H "Authorization: Bearer EXO_KEY" \
+(Prebuilt binaries for Linux, macOS, and Windows are also available on GitHub Releases.)Open http://127.0.0.1:8686, sign in, add a provider, create a model combo, and generate a gateway key (exo_...).2. Connect Your ToolsClaude Code (Anthropic /v1/messages):Bashexport ANTHROPIC_BASE_URL="http://127.0.0.1:8686"
+export ANTHROPIC_AUTH_TOKEN="exo_your_gateway_key"
+claude
+OpenAI SDK / curl (/v1/chat/completions):Bashcurl http://127.0.0.1:8686/v1/chat/completions \
+  -H "Authorization: Bearer exo_your_gateway_key" \
   -H "Content-Type: application/json" \
   -d '{"model":"coding-model","messages":[{"role":"user","content":"Hello"}]}'
-```
-
-Endpoints: `/v1/chat/completions` · `/v1/responses` · `/v1/messages` · `/v1/models`
-
----
-
-## Model overlay
-
-```yaml
-providers:
+Supported Endpoints: POST /v1/chat/completions · POST /v1/responses · POST /v1/messages · GET /v1/modelsProvider Coverage (43 Built-in + Custom)CategoryCountHighlightsCloud APIs23OpenAI, Anthropic, Gemini, DeepSeek, xAI, Mistral, Groq, Cerebras, Perplexity, DashScope, Together, Fireworks, Moonshot, Zhipu, MiniMax, Azure OpenAI, Vertex AI, GitHub Models, and moreGateways & Local11OpenRouter, OpenCode Go/Zen, NVIDIA NIM, Kilo Gateway, Command Code, Freebuff, Ollama, LM Studio, vLLM, Devin CLIOAuth / Subscription9OpenAI Codex, Antigravity, Kilo Code, Qoder, Kiro, Cline, ClinePass, MuseCustom+∞Any OpenAI- or Anthropic-compatible HTTP endpointLive Model & Pricing Overlay (providers.yaml)ExoRoute generates a starter ~/.exoroute/providers.yaml on first boot (never overwritten). Use it to add models, hide defaults, or override pricing/limits without waiting for a release:YAMLproviders:
   opencode_go:
     default_models: [hy4-flash-free]
     remove_models: []
@@ -82,25 +40,9 @@ providers:
       hy4-flash-free:
         pricing: { input_per_million: 0.25, output_per_million: 1.5 }
         limits: { context_window: 200000, max_output_tokens: 32000 }
-```
-
-Invalid YAML is rejected; the last valid catalog stays active. The starter file is created once and never overwritten.
-
-Common overrides: `EXOROUTE_HOST`, `EXOROUTE_PORT`, `EXOROUTE_DATA_DIR`, `EXOROUTE_DATABASE_PATH`, `EXOROUTE_MASTER_KEY`, `EXOROUTE_ADMIN_KEY`, `EXOROUTE_ALLOW_PRIVATE_PROVIDER_URLS`, `EXOROUTE_TRUST_PROXY_HEADERS`.
-
----
-
-## Build & check
-
-```sh
-# dashboard first — the binary embeds web/dist
-cd web && npm ci && npm run build && cd ..
-
+Invalid YAML is rejected safely while keeping the last known-good catalog active.ConfigurationEnvironment VariableDefaultDescriptionEXOROUTE_HOST127.0.0.1Bind addressEXOROUTE_PORT8686Listen portEXOROUTE_DATA_DIR~/.exorouteData directory (config & database)EXOROUTE_DATABASE_PATH<data_dir>/dbCustom LMDB database pathEXOROUTE_MASTER_KEY(auto-generated)Master encryption key for stored credentialsEXOROUTE_ADMIN_KEY(auto-generated)Admin authentication secretEXOROUTE_ALLOW_PRIVATE_PROVIDER_URLSfalseAllow routing to localhost/private-IP upstreamsEXOROUTE_TRUST_PROXY_HEADERSfalseTrust X-Forwarded-For from loopback reverse proxiesBuild from SourceThe Rust binary embeds the compiled dashboard (web/dist), so build the frontend first:Bashcd web && npm ci && npm run build && cd ..
 cargo build --locked --release
-cargo test --workspace --all-features
+Run verification checks:Bashcargo test --workspace --all-features
+cd web && npm test && cd ..
 node scripts/check_source_boundaries.mjs
-```
-
-CI runs checks on `develop`/`main` and builds Linux, Windows, and macOS binaries. Tags `v*` create signed releases.
-
-**Docs:** <http://127.0.0.1:8686/docs> · **Releases:** <https://github.com/nghiaomg/ExoRoute/releases> · **License:** [MIT](LICENSE)
+Links & LicenseAPI Docs (local): http://127.0.0.1:8686/docsReleases: https://github.com/nghiaomg/ExoRoute/releasesLicense: MIT
