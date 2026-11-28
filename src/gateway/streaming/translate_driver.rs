@@ -2,6 +2,16 @@ use super::*;
 use bytes::Bytes;
 use serde_json::Value;
 
+/// Keep-alive frame matching the client protocol. Anthropic SSE clients
+/// understand `event: ping`; OpenAI-compatible parsers ignore comment lines.
+pub(in crate::gateway::streaming) fn stream_keepalive_frame(protocol: Protocol) -> &'static str {
+    if protocol == Protocol::Messages {
+        "event: ping\ndata: {\"type\":\"ping\"}\n\n"
+    } else {
+        ": keep-alive\n\n"
+    }
+}
+
 pub(in crate::gateway::streaming) fn translation_stream(
     upstream: UpstreamChunkStream,
     config: StreamTranslationConfig,
@@ -27,7 +37,10 @@ pub(in crate::gateway::streaming) fn translation_stream(
         'read_stream: loop {
             let (event_name, data, frame_permit) = match reader.next().await {
                 SseReadEvent::KeepAlive => {
-                    yield Ok::<Bytes, std::io::Error>(Bytes::from_static(b": keep-alive\n\n"));
+                    // Anthropic clients expect a typed ping event; bare SSE
+                    // comments keep OpenAI-compatible streams alive.
+                    let frame = stream_keepalive_frame(config.client_protocol);
+                    yield Ok::<Bytes, std::io::Error>(Bytes::from_static(frame.as_bytes()));
                     continue 'read_stream;
                 }
                 SseReadEvent::Shutdown => {

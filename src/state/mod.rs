@@ -25,7 +25,7 @@ use std::{
         Arc, RwLock as StdRwLock, Weak,
         atomic::{AtomicBool, AtomicU64, AtomicUsize},
     },
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::{Mutex, Notify, OwnedSemaphorePermit, RwLock, Semaphore, watch};
 
@@ -71,6 +71,7 @@ pub(crate) struct AdminRuntime {
     pub(crate) admin_step_up_proofs: Arc<RwLock<HashMap<[u8; 32], AdminStepUpProof>>>,
     pub(crate) admin_password_change_required: Arc<AtomicBool>,
     pub(crate) admin_login_limiter: Arc<RateLimiter>,
+    pub(crate) key_portal_login_limiter: Arc<RateLimiter>,
     pub(crate) admin_refresh_limiter: Arc<RateLimiter>,
     pub(crate) admin_login_in_flight: Arc<Semaphore>,
     pub(crate) admin_auth_lock: Arc<Mutex<()>>,
@@ -226,8 +227,10 @@ pub struct AppState {
     pub request_log_retention_notify: Arc<Notify>,
     pub provider_deletion_notify: Arc<Notify>,
     pub admin_key: Arc<RwLock<Option<String>>>,
-    /// Validated user-editable provider catalog overlay; replaced atomically on reload.
+    /// Provider catalog overlay snapshot; replaced atomically on reload.
     provider_catalog: Arc<StdRwLock<ProvidersYamlConfig>>,
+    /// Revoked key-portal session nonces, pruned by expiry on every write.
+    key_portal_revoked: Arc<StdRwLock<HashMap<String, u64>>>,
     /// Runtime preset snapshot with the user model overlay applied.
     provider_presets: Arc<StdRwLock<ProviderPresetCatalog>>,
     /// Path of the validated user catalog, injectable in tests.
@@ -330,6 +333,15 @@ impl AppState {
             100_000,
         ))
         .expect("static admin login limiter settings are valid");
+        let key_portal_login_limiter = RateLimiter::new(RateLimiterConfig::new(
+            RateLimitPolicy::TokenBucket {
+                capacity: 5,
+                refill_tokens: 1,
+                refill_interval: Duration::from_secs(30),
+            },
+            100_000,
+        ))
+        .expect("static key portal login limiter settings are valid");
         let admin_refresh_limiter = RateLimiter::new(RateLimiterConfig::new(
             RateLimitPolicy::TokenBucket {
                 capacity: 60,
@@ -398,6 +410,7 @@ impl AppState {
             provider_deletion_notify: Arc::new(Notify::new()),
             admin_key,
             provider_catalog,
+            key_portal_revoked: Arc::new(StdRwLock::new(HashMap::new())),
             provider_presets,
             providers_yaml_path,
             admin: AdminRuntime {
@@ -405,6 +418,7 @@ impl AppState {
                 admin_step_up_proofs: Arc::new(RwLock::new(HashMap::new())),
                 admin_password_change_required: Arc::new(AtomicBool::new(password_change_required)),
                 admin_login_limiter: Arc::new(admin_login_limiter),
+                key_portal_login_limiter: Arc::new(key_portal_login_limiter),
                 admin_refresh_limiter: Arc::new(admin_refresh_limiter),
                 admin_login_in_flight: Arc::new(Semaphore::new(4)),
                 admin_auth_lock: Arc::new(Mutex::new(())),
@@ -515,6 +529,55 @@ impl AppState {
     ) -> Option<ModelLimitsConfig> {
         self.model_override(provider_id, adapter_id, model_id)
             .and_then(|override_config| override_config.limits)
+    }
+
+    /// Remembers a logged-out key-portal session nonce until its expiry. The
+    /// set is bounded; expired entries are pruned before an eviction is needed.
+    pub(crate) fn revoke_key_portal_session(&self, nonce: &str, expiry: u64) {
+        const MAX_REVOKED_SESSIONS: usize = 4096;
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let mut revoked = self
+            .key_portal_revoked
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        revoked.retain(|_, expires| *expires > now);
+        if revoked.contains_key(nonce) {
+            return;
+        }
+        if revoked.len() >= MAX_REVOKED_SESSIONS
+            && let Some(oldest) = revoked
+                .iter()
+                .min_by_key(|(_, expires)| **expires)
+                .map(|(nonce, _)| nonce.clone())
+        {
+            revoked.remove(&oldest);
+        }
+        revoked.insert(nonce.to_owned(), expiry);
+    }
+
+    /// True when the session nonce was logged out and has not yet expired.
+    pub(crate) fn is_key_portal_session_revoked(&self, nonce: &str) -> bool {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        self.key_portal_revoked
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(nonce)
+            .is_some_and(|expires| *expires > now)
+    }
+
+    /// Validated YAML overlay snapshot, used by background sync to honor
+    /// explicit `remove_models` and `model_overrides`.
+    pub fn providers_yaml_snapshot(&self) -> ProvidersYamlConfig {
+        self.provider_catalog
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
     }
 
     /// Live snapshot of built-in presets with the validated YAML overlay applied.

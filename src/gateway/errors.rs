@@ -10,6 +10,24 @@ pub(in crate::gateway) fn gateway_error(status: StatusCode, message: &str) -> Re
     (status, Json(json!({"error":{"message":message,"type":if status==StatusCode::UNAUTHORIZED {"authentication_error"} else {"gateway_error"}}}))).into_response()
 }
 
+/// Protocol-shaped gateway errors. Anthropic clients (`/v1/messages`) require
+/// `{"type":"error","error":{...}}`; returning the OpenAI envelope to them
+/// makes a timeout look like an empty/invalid reply ("504 (no body)").
+pub(in crate::gateway) fn gateway_error_for(
+    protocol: Protocol,
+    status: StatusCode,
+    message: &str,
+) -> Response {
+    if protocol == Protocol::Messages {
+        return (
+            status,
+            Json(json!({"type":"error","error":{"type":"api_error","message":message}})),
+        )
+            .into_response();
+    }
+    gateway_error(status, message)
+}
+
 pub(in crate::gateway) fn gateway_database_error(error: StorageError) -> Response {
     let status = if error.is_busy() || matches!(&error, StorageError::MapFull) {
         StatusCode::SERVICE_UNAVAILABLE
@@ -101,4 +119,48 @@ pub(in crate::gateway) fn track_analytics_response(
         completion.finish(succeeded);
     };
     Response::from_parts(parts, Body::from_stream(stream))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn gateway_timeouts_always_carry_a_protocol_shaped_json_body() {
+        for protocol in [
+            Protocol::Messages,
+            Protocol::ChatCompletions,
+            Protocol::Responses,
+        ] {
+            let response = gateway_error_for(
+                protocol,
+                StatusCode::GATEWAY_TIMEOUT,
+                "Upstream request timed out",
+            );
+            assert_eq!(response.status(), StatusCode::GATEWAY_TIMEOUT);
+            assert_eq!(
+                response
+                    .headers()
+                    .get(header::CONTENT_TYPE)
+                    .and_then(|value| value.to_str().ok()),
+                Some("application/json")
+            );
+            let body = axum::body::to_bytes(response.into_body(), 4096)
+                .await
+                .expect("error body");
+            let payload: Value = serde_json::from_slice(&body).expect("valid JSON error body");
+            if protocol == Protocol::Messages {
+                assert_eq!(payload["type"], "error");
+                assert_eq!(payload["error"]["type"], "api_error");
+            } else {
+                assert!(payload["type"].is_null());
+                assert_eq!(payload["error"]["type"], "gateway_error");
+            }
+            assert!(
+                payload["error"]["message"]
+                    .as_str()
+                    .is_some_and(|text| !text.is_empty())
+            );
+        }
+    }
 }

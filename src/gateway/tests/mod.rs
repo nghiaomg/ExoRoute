@@ -23,6 +23,7 @@ mod fallback_messages;
 mod key_rotation;
 mod model_effort;
 mod nested_combo;
+mod opencode_passthrough;
 mod protocol_selection;
 mod provider_decode;
 mod proxy_egress;

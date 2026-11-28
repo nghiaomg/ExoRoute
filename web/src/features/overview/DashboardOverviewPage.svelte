@@ -19,6 +19,7 @@
   import OverviewTrendChart from './OverviewTrendChart.svelte';
   import OverviewCharts from './OverviewCharts.svelte';
   import OverviewRequests from './OverviewRequests.svelte';
+  import OverviewTopModels from './OverviewTopModels.svelte';
   import OverviewQuickstart from './OverviewQuickstart.svelte';
   import { comboTraffic, LATENCY_TARGET_MS, modelTraffic, providerHealth, RANGES, type RangeKey } from './overview.data';
   interface Props { tr: Translate; locale: Locale; onNavigate: (page: DashboardPage) => void; onCreateRequest: (page: DashboardPage) => void; onConnectionChange: (state: 'idle' | 'loading' | 'loaded' | 'error') => void; onProviderCountChange: (count: number) => void; onGatewayAddressChange: (host: unknown, port: unknown) => void }
@@ -180,7 +181,7 @@
   </section>
   <OverviewHealth {tr} {health} combos={combosRollup} models={modelsRollup} {onNavigate} />
   <div class="overview-chart-stack"><OverviewTrendChart {tr} {locale} {stats} /><OverviewCharts {tr} {locale} {stats} {health} /></div>
-  <div class="overview-panels"><OverviewRequests {tr} {locale} requests={recent} totalRequests={stats.total_requests} {onNavigate} /><div class="overview-chart-placeholder" aria-hidden="true"></div></div>
+  <div class="overview-panels"><OverviewRequests {tr} {locale} requests={recent} totalRequests={stats.total_requests} {onNavigate} /><OverviewTopModels {tr} {locale} {stats} {recent} {onNavigate} /></div>
 {/if}
 <Dialog
   bind:open={keyOpen}

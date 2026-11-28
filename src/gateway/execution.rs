@@ -3,9 +3,9 @@ use super::{
     ApiKeyScope, GatewayExecutionSettings, GatewayRequestLog, GatewayResourceLimits,
     OperationalSettings, PreparedGatewayRequest, RequestAnalytics, RequestLiveGuard, StreamLog,
     StreamOutcome, StreamTranslationConfig, UpstreamChunkStream, attach_request_live_guard,
-    can_fail_over_after_provider_rejection, gateway_database_error, gateway_error, is_retryable,
-    log_request, preflight_stream, prepare_gateway_request, provider_http_error_message,
-    read_provider_error_detail, stream_translation_from_chunks,
+    can_fail_over_after_provider_rejection, gateway_database_error, gateway_error_for,
+    is_retryable, log_request, preflight_stream, prepare_gateway_request,
+    provider_http_error_message, read_provider_error_detail, stream_translation_from_chunks,
 };
 use crate::{
     infra::storage::{Record, StorageError, Table},

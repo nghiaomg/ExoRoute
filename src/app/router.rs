@@ -86,6 +86,7 @@ pub(crate) fn router(state: AppState) -> Router {
         .route("/health/ready", get(crate::gateway::readiness))
         .route("/ready", get(crate::gateway::readiness))
         .merge(gateway)
+        .merge(crate::admin::key_portal::router())
         .merge(admin)
         .fallback(axum::routing::get(crate::static_assets::serve))
         .layer(TraceLayer::new_for_http().make_span_with(

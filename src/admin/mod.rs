@@ -46,6 +46,7 @@ mod cookie_policy;
 mod database;
 mod errors;
 mod gates;
+pub(crate) mod key_portal;
 mod metrics;
 mod model_probes;
 mod overview;

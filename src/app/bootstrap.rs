@@ -188,6 +188,13 @@ pub(crate) async fn async_main() -> Result<(), Box<dyn std::error::Error>> {
         providers_yaml_path,
         state.shutdown_receiver(),
     ));
+    // Register newly published OpenCode models on a background cadence. The
+    // first tick happens after readiness, so discovery never blocks boot.
+    tokio::spawn(provider_model_sync::provider_model_sync_loop(
+        state.clone(),
+        provider_model_sync::DEFAULT_MODEL_SYNC_INTERVAL,
+        state.shutdown_receiver(),
+    ));
     let database_requires_password_change =
         crate::infra::db::admin_password_change_required(&state.db).await?;
     if let Some(required) = database_requires_password_change {
